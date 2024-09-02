@@ -1,3 +1,15 @@
 {
-  "java.compile.nullAnalysis.mode": "automatic"
+  "java.compile.nullAnalysis.mode": "automatic",
+  "cSpell.words": [
+    "assertj",
+    "departmentid",
+    "Departmentid",
+    "drepository",
+    "filedemo",
+    "filelist",
+    "Lastname",
+    "tomstudy",
+    "turial",
+    "uploadstatus"
+  ]
 }
