@@ -2,6 +2,8 @@
   "java.compile.nullAnalysis.mode": "automatic",
   "cSpell.words": [
     "assertj",
+    "assignmenttwo",
+    "Assignmenttwo",
     "departmentid",
     "Departmentid",
     "drepository",
@@ -11,5 +13,7 @@
     "tomstudy",
     "turial",
     "uploadstatus"
-  ]
+  ],
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.debug.settings.onBuildFailureProceed": true
 }
