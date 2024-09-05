@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-SecuritydemoApplication<securitydemo>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "fi.haagahelia.course.SecuritydemoApplication",
+            "projectName": "securitydemo",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
