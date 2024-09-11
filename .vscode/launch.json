@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "StudentListApplication",
+      "request": "launch",
+      "mainClass": "fi.haagahelia.course.StudentListApplication",
+      "projectName": "StudentListCrud"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-StudentListApplication<StudentList>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "fi.haagahelia.course.StudentListApplication",
+      "projectName": "StudentList",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env",
+      "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=36544 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=StudentList"
+    }
+  ]
+}

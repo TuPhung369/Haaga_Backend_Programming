@@ -12,22 +12,22 @@ import fi.haagahelia.course.domain.StudentRepository;
 
 @SpringBootApplication
 public class StudentListApplication {
-	
+
 	private static final Logger log = LoggerFactory.getLogger(StudentListApplication.class);
 
 	public static void main(String[] args) {
 		SpringApplication.run(StudentListApplication.class, args);
 	}
- 
+
 	@Bean
 	public CommandLineRunner studentDemo(StudentRepository repository) {
 		return (args) -> {
 			log.info("save a couple of students");
 			repository.save(new Student("Aku", "Johnson", "john@john.com"));
-			repository.save(new Student("Ankka", "Kateson", "kate@kate.com"));	
-			
+			repository.save(new Student("Ankka", "Kateson", "kate@kate.com"));
+
 			repository.save(new Student("Musta", "Naamio", "mm@bengali.org"));
-			
+
 			log.info("fetch all students");
 			for (Student student : repository.findAll()) {
 				log.info(student.toString());
@@ -39,5 +39,5 @@ public class StudentListApplication {
 
 		};
 	}
-	
+
 }
