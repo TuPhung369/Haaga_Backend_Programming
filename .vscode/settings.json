@@ -17,7 +17,8 @@
     "studentlist",
     "tomstudy",
     "turial",
-    "uploadstatus"
+    "uploadstatus",
+    "varchar"
   ],
   "java.configuration.updateBuildConfiguration": "automatic",
   "java.debug.settings.onBuildFailureProceed": true

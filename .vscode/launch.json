@@ -2,6 +2,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "CustomerApplication",
+      "request": "launch",
+      "mainClass": "com.database.customer.CustomerApplication",
+      "projectName": ""
+    },
+    {
+      "type": "java",
       "name": "PartTwoApplication",
       "request": "launch",
       "mainClass": "com.database.parttwo.PartTwoApplication",
@@ -78,6 +85,16 @@
       "cwd": "${workspaceFolder}",
       "mainClass": "fi.haagahelia.demo.DatabasedemoApplication",
       "projectName": "SpringBootJDBC",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-CustomerApplication<customer>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.database.customer.CustomerApplication",
+      "projectName": "customer",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
     }
