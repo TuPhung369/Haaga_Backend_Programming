@@ -16,7 +16,7 @@ public class Book {
   private String author;
   private String title;
   private String isbn;
-  private String year;
+  private String publicationYear;
 
   @ManyToOne
   @JoinColumn(name = "category_id")
@@ -27,11 +27,11 @@ public class Book {
   }
 
   // Parameterized constructor
-  public Book(String author, String title, String isbn, String year, Category category) {
+  public Book(String author, String title, String isbn, String publicationYear, Category category) {
     this.author = author;
     this.title = title;
     this.isbn = isbn;
-    this.year = year;
+    this.publicationYear = publicationYear;
     this.category = category;
   }
 
@@ -76,17 +76,17 @@ public class Book {
     this.isbn = isbn;
   }
 
-  public String getYear() {
-    return year;
+  public String getPublicationYear() {
+    return publicationYear;
   }
 
-  public void setYear(String year) {
-    this.year = year;
+  public void setPublicationYear(String publicationYear) {
+    this.publicationYear = publicationYear;
   }
 
   @Override
   public String toString() {
-    return String.format("Book[id=%d, author='%s', title='%s', isbn='%s', year='%s', category='%s']",
-        id, author, title, isbn, year, category != null ? category.getName() : "None");
+    return String.format("Book[id=%d, author='%s', title='%s', isbn='%s', publicationYear='%s', category='%s']",
+        id, author, title, isbn, publicationYear, category != null ? category.getName() : "None");
   }
 }

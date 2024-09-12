@@ -60,11 +60,11 @@ public class Book {
     this.isbn = isbn;
   }
 
-  public String getYear() {
+  public String getPublicationYear() {
     return publicationYear;
   }
 
-  public void setYear(String publicationYear) {
+  public void setPublicationYear(String publicationYear) {
     this.publicationYear = publicationYear;
   }
 
