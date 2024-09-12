@@ -1,6 +1,7 @@
 {
   "java.compile.nullAnalysis.mode": "automatic",
   "cSpell.words": [
+    "addstudent",
     "assertj",
     "assignmenttwo",
     "Assignmenttwo",
@@ -10,7 +11,10 @@
     "drepository",
     "filedemo",
     "filelist",
+    "jdbc",
+    "Jdbc",
     "Lastname",
+    "studentlist",
     "tomstudy",
     "turial",
     "uploadstatus"
