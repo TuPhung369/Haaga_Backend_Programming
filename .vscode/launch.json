@@ -58,6 +58,27 @@
       "mainClass": "com.database.parttwo.PartTwoApplication",
       "projectName": "parttwo",
       "args": "",
+      "envFile": "${workspaceFolder}/.env",
+      "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=5113 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=parttwo"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-StudentListApplication<StudentListOneToMany>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "fi.haagahelia.course.StudentListApplication",
+      "projectName": "StudentListOneToMany",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-DatabasedemoApplication<SpringBootJDBC>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "fi.haagahelia.demo.DatabasedemoApplication",
+      "projectName": "SpringBootJDBC",
+      "args": "",
       "envFile": "${workspaceFolder}/.env"
     }
   ]
