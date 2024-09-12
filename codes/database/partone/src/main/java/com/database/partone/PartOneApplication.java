@@ -2,25 +2,21 @@ package com.database.partone;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableAsync; // Add this import statement
+import org.springframework.context.annotation.Bean;
 
 import com.database.partone.domain.Book;
 import com.database.partone.domain.BookRepository;
 
-@EnableAsync
 @SpringBootApplication
 public class PartOneApplication {
     private static final Logger log = LoggerFactory.getLogger(PartOneApplication.class);
 
     public static void main(String[] args) {
-        try (ConfigurableApplicationContext context = SpringApplication.run(PartOneApplication.class, args)) {
-            log.trace("context: " + context);
-        }
+        SpringApplication.run(PartOneApplication.class, args);
     }
 
     @Bean
@@ -31,7 +27,9 @@ public class PartOneApplication {
             repository.save(new Book("George Orwell", "Animal Farm", "2212343-5", "1945"));
 
             log.info("fetch all books");
-            repository.findAll().forEach(book -> log.info(book.toString()));
+            for (Book book : repository.findAll()) {
+                log.info(book.toString());
+            }
         };
     }
 }

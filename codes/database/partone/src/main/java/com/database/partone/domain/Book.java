@@ -14,18 +14,17 @@ public class Book {
   private String author;
   private String title;
   private String isbn;
-  private String year;
+  private String publicationYear;
 
-  // Default constructor
   public Book() {
   }
 
   // Parameterized constructor
-  public Book(String author, String title, String isbn, String year) {
+  public Book(String author, String title, String isbn, String publicationYear) {
     this.author = author;
     this.title = title;
     this.isbn = isbn;
-    this.year = year;
+    this.publicationYear = publicationYear;
   }
 
   // Getters and setters
@@ -62,15 +61,17 @@ public class Book {
   }
 
   public String getYear() {
-    return year;
+    return publicationYear;
   }
 
-  public void setYear(String year) {
-    this.year = year;
+  public void setYear(String publicationYear) {
+    this.publicationYear = publicationYear;
   }
 
   @Override
   public String toString() {
-    return String.format("Book[id=%d, author='%s', title='%s', isbn='%s', year='%s']", id, author, title, isbn, year);
+    return String.format("Book[id=%d, author='%s', title='%s', isbn='%s', year='%s']", id, author, title,
+        isbn,
+        publicationYear);
   }
 }
