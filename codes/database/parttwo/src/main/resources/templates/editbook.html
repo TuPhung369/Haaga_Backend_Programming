@@ -26,9 +26,11 @@
         </div>
         <div class="mb-3">
             <label for="category" class="form-label fw-bold">Category</label>
-            <select id="category" th:field="*{category.id}" class="form-control">
-                <option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.name}" th:selected="${category.id} == ${book.category.id}"></option>
-            </select>
+        <select id="category" name="categoryId" class="form-select">
+            <option th:each="category : ${categories}" 
+                    th:value="${category.id}" 
+                    th:text="${category.name}"></option>
+        </select>
         </div>
         <button type="submit" class="btn btn-primary">Save</button>
     </form>

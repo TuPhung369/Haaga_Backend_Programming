@@ -45,11 +45,18 @@ public class BookController {
 
   // Handles the submission of the add book form (POST request)
   @PostMapping("/addbook")
-  public String addBook(@ModelAttribute Book book, @RequestParam Long categoryId) {
+  public String addBook(@ModelAttribute Book book, @RequestParam("categoryId") Long categoryId) {
+    // Ensure the categoryId is present and valid
+    if (categoryId == null) {
+      throw new IllegalArgumentException("Category ID is missing");
+    }
+
     Category category = categoryRepository.findById(categoryId)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid category Id:" + categoryId));
+        .orElseThrow(() -> new IllegalArgumentException("Invalid category ID: " + categoryId));
+
     book.setCategory(category);
     bookRepository.save(book); // Save the new book
+
     return "redirect:/booklist"; // Redirect to the book list after saving
   }
 
