@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add Book</title>
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+</head>
+<body>
+<h1>Add New Book</h1>
+<form action="#" th:action="@{/addbook}" th:object="${book}" method="post">
+    <div class="mb-3">
+        <label for="title" class="form-label">Title</label>
+        <input type="text" id="title" th:field="*{title}" class="form-control"/>
+    </div>
+    <div class="mb-3">
+        <label for="author" class="form-label">Author</label>
+        <input type="text" id="author" th:field="*{author}" class="form-control"/>
+    </div>
+    <div class="mb-3">
+        <label for="isbn" class="form-label">ISBN</label>
+        <input type="text" id="isbn" th:field="*{isbn}" class="form-control"/>
+    </div>
+    <div class="mb-3">
+        <label for="category" class="form-label">Category</label>
+        <select id="category" name="categoryId" class="form-select">
+            <option th:each="category : ${categories}" 
+                    th:value="${category.id}" 
+                    th:text="${category.name}"></option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Book</button>
+</form>
+</body>
+</html>

@@ -2,6 +2,27 @@
   "configurations": [
     {
       "type": "java",
+      "name": "PartTwoApplication",
+      "request": "launch",
+      "mainClass": "com.database.parttwo.PartTwoApplication",
+      "projectName": ""
+    },
+    {
+      "type": "java",
+      "name": "PartOneApplication",
+      "request": "launch",
+      "mainClass": "com.database.partone.PartOneApplication",
+      "projectName": ""
+    },
+    {
+      "type": "java",
+      "name": "PartoneApplication",
+      "request": "launch",
+      "mainClass": "com.database.partone.PartoneApplication",
+      "projectName": ""
+    },
+    {
+      "type": "java",
       "name": "StudentListApplication",
       "request": "launch",
       "mainClass": "fi.haagahelia.course.StudentListApplication",
@@ -17,6 +38,16 @@
       "args": "",
       "envFile": "${workspaceFolder}/.env",
       "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=36544 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=StudentList"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-PartOneApplication<partone>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.database.partone.PartOneApplication",
+      "projectName": "partone",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }
