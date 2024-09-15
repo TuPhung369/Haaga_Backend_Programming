@@ -3,12 +3,12 @@ package com.database.study.controller;
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.entity.User;
 import com.database.study.service.UserService;
+import com.database.study.dto.request.ApiResponse;
 
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/users")
@@ -28,8 +29,10 @@ public class UserController {
   private UserService userService;
 
   @PostMapping
-  public User createUser(@RequestBody UserCreationRequest request) {
-    return userService.createRequest(request);
+  ApiResponse<User> createUser(@RequestBody @Valid UserCreationRequest request) {
+    ApiResponse<User> apiResponse = new ApiResponse<>();
+    apiResponse.setResult(userService.createUser(request));
+    return apiResponse;
   }
 
   @GetMapping
@@ -38,28 +41,29 @@ public class UserController {
   }
 
   @GetMapping("/{userId}")
-  public User getUserByPath(@PathVariable("userId") UUID userId) {
-    return userService.getUserById(userId);
+  ApiResponse<User> getUserByPath(@PathVariable("userId") UUID userId) {
+    ApiResponse<User> apiResponse = new ApiResponse<>();
+    apiResponse.setResult(userService.getUserById(userId));
+    return apiResponse;
   }
 
   @GetMapping("/info")
-  public User getUserByQuery(@RequestParam("id") UUID id) {
-    return userService.getUserById(id);
+  ApiResponse<User> getUserByQuery(@RequestParam("id") UUID id) {
+    ApiResponse<User> apiResponse = new ApiResponse<>();
+    apiResponse.setResult(userService.getUserById(id));
+    return apiResponse;
   }
 
   @PutMapping("/{userId}")
-  public User updateUser(@PathVariable UUID userId, @RequestBody UserCreationRequest request) {
-    return userService.updateUser(userId, request);
+  public ApiResponse<User> updateUser(@PathVariable UUID userId, @RequestBody @Valid UserCreationRequest request) {
+    ApiResponse<User> apiResponse = new ApiResponse<>();
+    apiResponse.setResult(userService.updateUser(userId, request));
+    return apiResponse;
   }
 
   @DeleteMapping("/{userId}")
   public ResponseEntity<String> deleteUser(@PathVariable UUID userId) {
-    try {
-      userService.deleteUser(userId);
-      return ResponseEntity.ok("User successfully deleted"); // Returns a 200 OK status with a success message
-    } catch (RuntimeException e) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found"); // Returns a 404 Not Found status with
-    }
+    userService.deleteUser(userId);
+    return ResponseEntity.ok("User successfully deleted");
   }
-
 }
