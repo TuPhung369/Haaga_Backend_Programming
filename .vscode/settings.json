@@ -9,8 +9,11 @@
     "departmentid",
     "Departmentid",
     "drepository",
+    "Dskip",
     "filedemo",
     "filelist",
+    "firstname",
+    "Firstname",
     "jdbc",
     "Jdbc",
     "Lastname",
@@ -18,7 +21,8 @@
     "tomstudy",
     "turial",
     "uploadstatus",
-    "varchar"
+    "varchar",
+    "XAMPP"
   ],
   "java.configuration.updateBuildConfiguration": "automatic",
   "java.debug.settings.onBuildFailureProceed": true

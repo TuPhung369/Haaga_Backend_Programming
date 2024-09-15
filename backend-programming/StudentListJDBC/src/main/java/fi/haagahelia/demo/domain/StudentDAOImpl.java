@@ -32,12 +32,10 @@ public class StudentDAOImpl implements StudentDAO {  // Impl = Implementation cl
 
 	public Student findOne(int id) {
 		String sql = "select student_id, first_name, last_name from student where student_id = ?";
-		Object[] parameters = new Object[] { id };
 		RowMapper<Student> mapper = new StudentRowMapper();
 
-		Student student = jdbcTemplate.queryForObject(sql, parameters, mapper);
+		Student student = jdbcTemplate.queryForObject(sql, new Object[]{id}, mapper);
 		return student;
-
 	}
 
 	public List<Student> findAll() {

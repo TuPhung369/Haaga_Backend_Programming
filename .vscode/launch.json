@@ -2,6 +2,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "StudyApplication",
+      "request": "launch",
+      "mainClass": "com.database.study.StudyApplication",
+      "projectName": ""
+    },
+    {
+      "type": "java",
       "name": "CustomerApplication",
       "request": "launch",
       "mainClass": "com.database.customer.CustomerApplication",
@@ -95,6 +102,16 @@
       "cwd": "${workspaceFolder}",
       "mainClass": "com.database.customer.CustomerApplication",
       "projectName": "customer",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-HelloSpringApplication<hello-spring-boot>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.tomstudy.hello_spring_boot.HelloSpringApplication",
+      "projectName": "hello-spring-boot",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
     }
