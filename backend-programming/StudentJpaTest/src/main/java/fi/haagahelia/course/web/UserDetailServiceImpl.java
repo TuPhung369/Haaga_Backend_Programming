@@ -1,6 +1,5 @@
 package fi.haagahelia.course.web;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,7 +16,6 @@ import fi.haagahelia.course.domain.AppUserRepository;
 public class UserDetailServiceImpl implements UserDetailsService  {
 	private final AppUserRepository repository;
 
-	@Autowired
 	public UserDetailServiceImpl(AppUserRepository userRepository) {
 		this.repository = userRepository;
 	}

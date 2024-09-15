@@ -34,7 +34,7 @@ public class StudentDAOImpl implements StudentDAO {  // Impl = Implementation cl
 		String sql = "select student_id, first_name, last_name from student where student_id = ?";
 		RowMapper<Student> mapper = new StudentRowMapper();
 
-		Student student = jdbcTemplate.queryForObject(sql, new Object[]{id}, mapper);
+		Student student = jdbcTemplate.queryForObject(sql, mapper, id);
 		return student;
 	}
 
