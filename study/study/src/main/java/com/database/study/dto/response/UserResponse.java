@@ -1,24 +1,17 @@
-package com.database.study.entity;
+package com.database.study.dto.response;
 
 import java.time.LocalDate;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.GenerationType;
 import java.util.UUID;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-@Entity
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class User {
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
+public class UserResponse {
   UUID id;
   String username;
   String password;
@@ -26,3 +19,4 @@ public class User {
   String lastname;
   LocalDate dob;
 }
+

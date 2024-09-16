@@ -1,33 +1,37 @@
 package com.database.study.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.database.study.entity.User;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.repository.UserRepository;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.response.UserResponse;
+import com.database.study.mapper.UserMapper;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserService {
-  private static final Logger log = LoggerFactory.getLogger(UserService.class);
-  @Autowired
-  private UserRepository userRepository;
+  static final Logger log = LoggerFactory.getLogger(UserService.class);
+
+  UserRepository userRepository;
+  UserMapper userMapper;
 
   public User createUser(UserCreationRequest request) {
-    User user = new User();
     if (userRepository.existsByUsername(request.getUsername())) {
       throw new AppException(ErrorCode.USER_EXISTS);
     }
-    user.setUsername(request.getUsername());
-    user.setPassword(request.getPassword());
-    user.setFirstname(request.getFirstname());
-    user.setLastname(request.getLastname());
-    user.setDob(request.getDob());
+    User user = userMapper.toUser(request);
     return userRepository.save(user);
   }
 
@@ -35,26 +39,27 @@ public class UserService {
     return userRepository.findAll();
   }
 
-  public User getUserById(UUID userId) {
+  public UserResponse getUserById(UUID userId) {
     log.info("Fetching user by ID: {}", userId); // Log ID before fetching
-    return userRepository.findById(userId)
+    return userMapper.toUserResponse(userRepository.findById(userId)
         .orElseThrow(() -> {
           log.error("User with ID {} not found", userId); // Log error with ID
           throw new AppException(ErrorCode.USER_NOT_FOUND); // Ensure correct error is thrown
-        });
+        }));
   }
 
-  public User updateUser(UUID userId, UserCreationRequest request) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+  public UserResponse updateUser(UUID userId, UserCreationRequest request) {
+    log.info("Updating user with ID: {}", userId);
+    User existingUser = userRepository.findById(userId)
+        .orElseThrow(() -> {
+          log.error("User with ID {} not found", userId);
+          throw new AppException(ErrorCode.USER_NOT_FOUND);
+        });
 
-    user.setUsername(request.getUsername());
-    user.setPassword(request.getPassword());
-    user.setFirstname(request.getFirstname());
-    user.setLastname(request.getLastname());
-    user.setDob(request.getDob());
+    userMapper.updateUser(existingUser, request);
+    User updatedUser = userRepository.save(existingUser);
 
-    return userRepository.save(user);
+    return userMapper.toUserResponse(updatedUser);
   }
 
   public void deleteUser(UUID userId) {
