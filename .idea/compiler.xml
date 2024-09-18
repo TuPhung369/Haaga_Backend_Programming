@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="StudentListSignUp" />
+        <module name="hellotest (1)" />
+        <module name="parttwo" />
+        <module name="hellotest" />
+        <module name="StudentListSignUp (1)" />
+        <module name="StudentListTest (1)" />
+        <module name="helloFormValidation" />
+        <module name="StudentListCrud" />
+        <module name="StudentListRest (1)" />
+        <module name="filedemodb" />
+        <module name="StudentListRest" />
+        <module name="StudentListTest" />
+        <module name="securitydemo" />
+        <module name="StudentListSecured" />
+        <module name="bookstore" />
+        <module name="StudentList (1)" />
+        <module name="SpringBootJDBC (1)" />
+        <module name="restdemo (1)" />
+        <module name="restdemo" />
+        <module name="helloworld" />
+        <module name="assignmenttwo" />
+        <module name="StudentListSecureInMemoryUsers" />
+        <module name="StudentListSecureInMemoryUsers (1)" />
+        <module name="StudentList" />
+        <module name="assignment" />
+        <module name="helloForm (1)" />
+        <module name="friendlist" />
+        <module name="helloFormValidation (1)" />
+        <module name="StudentListGraphQL (1)" />
+        <module name="StudentListSecured (1)" />
+        <module name="partone" />
+        <module name="filedemo" />
+        <module name="hello-spring-boot" />
+        <module name="SpringBootJDBC" />
+        <module name="filedemo (1)" />
+        <module name="filedemodb (1)" />
+        <module name="StudentListGraphQL" />
+        <module name="StudentListOneToMany (1)" />
+        <module name="helloForm" />
+        <module name="StudentListOneToMany" />
+        <module name="securitydemo (1)" />
+        <module name="customer" />
+        <module name="StudentListCrud (1)" />
+      </profile>
+      <profile name="Annotation profile for study" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <option name="mapstruct.defaultComponentModel" value="spring" />
+        <option name="mapstruct.suppressGeneratorTimestamp" value="true" />
+        <option name="mapstruct.verbose" value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.24/lombok-1.18.24.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.5.3.Final/mapstruct-processor-1.5.3.Final.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct/1.5.3.Final/mapstruct-1.5.3.Final.jar" />
+        </processorPath>
+        <module name="study" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="SpringBootJDBC" options="-parameters" />
+      <module name="SpringBootJDBC (1)" options="-parameters" />
+      <module name="StudentList" options="-parameters" />
+      <module name="StudentList (1)" options="-parameters" />
+      <module name="StudentListCrud" options="-parameters" />
+      <module name="StudentListCrud (1)" options="-parameters" />
+      <module name="StudentListGraphQL" options="-parameters" />
+      <module name="StudentListGraphQL (1)" options="-parameters" />
+      <module name="StudentListOneToMany" options="-parameters" />
+      <module name="StudentListOneToMany (1)" options="-parameters" />
+      <module name="StudentListRest" options="-parameters" />
+      <module name="StudentListRest (1)" options="-parameters" />
+      <module name="StudentListSecureInMemoryUsers" options="-parameters" />
+      <module name="StudentListSecureInMemoryUsers (1)" options="-parameters" />
+      <module name="StudentListSecured" options="-parameters" />
+      <module name="StudentListSecured (1)" options="-parameters" />
+      <module name="StudentListSignUp" options="-parameters" />
+      <module name="StudentListSignUp (1)" options="-parameters" />
+      <module name="StudentListTest" options="-parameters" />
+      <module name="StudentListTest (1)" options="-parameters" />
+      <module name="assignment" options="-parameters" />
+      <module name="assignmenttwo" options="-parameters" />
+      <module name="bookstore" options="-parameters" />
+      <module name="customer" options="-parameters" />
+      <module name="filedemo" options="-parameters" />
+      <module name="filedemo (1)" options="-parameters" />
+      <module name="filedemodb" options="-parameters" />
+      <module name="filedemodb (1)" options="-parameters" />
+      <module name="friendlist" options="-parameters" />
+      <module name="hello-spring-boot" options="-parameters" />
+      <module name="helloForm" options="-parameters" />
+      <module name="helloForm (1)" options="-parameters" />
+      <module name="helloFormValidation" options="-parameters" />
+      <module name="helloFormValidation (1)" options="-parameters" />
+      <module name="hellotest" options="-parameters" />
+      <module name="hellotest (1)" options="-parameters" />
+      <module name="helloworld" options="-parameters" />
+      <module name="partone" options="-parameters" />
+      <module name="parttwo" options="-parameters" />
+      <module name="restdemo" options="-parameters" />
+      <module name="restdemo (1)" options="-parameters" />
+      <module name="securitydemo" options="-parameters" />
+      <module name="securitydemo (1)" options="-parameters" />
+      <module name="study" options="-parameters -Amapstruct.suppressGeneratorTimestamp=true -Amapstruct.defaultComponentModel=spring -Amapstruct.verbose=true" />
+    </option>
+  </component>
+</project>

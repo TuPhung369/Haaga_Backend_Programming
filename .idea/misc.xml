@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/codes/database/partone/pom.xml" />
+        <option value="$PROJECT_DIR$/codes/database/parttwo/pom.xml" />
+        <option value="$PROJECT_DIR$/codes/database/customer/pom.xml" />
+        <option value="$PROJECT_DIR$/codes/helloworld/pom.xml" />
+        <option value="$PROJECT_DIR$/codes/model-view/bookstore/pom.xml" />
+        <option value="$PROJECT_DIR$/codes/model-view/assignment/pom.xml" />
+        <option value="$PROJECT_DIR$/codes/model-view/friendlist/pom.xml" />
+        <option value="$PROJECT_DIR$/codes/model-view/assignmenttwo/pom.xml" />
+        <option value="$PROJECT_DIR$/study/study/pom.xml" />
+        <option value="$PROJECT_DIR$/study/hello-spring-boot/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/Filedemo/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/HelloForm/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/HelloRest/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/HelloTest/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/FiledemoDb/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/StudentList/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/SecurityDemo/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/StudentJpaTest/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/StudentListCrud/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/StudentListJDBC/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/StudentListRest/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/SecureStudentList/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/StudentListSignup/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/StudentListGraphQL/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/HelloFormValidation/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/StudentListOneToMany/pom.xml" />
+        <option value="$PROJECT_DIR$/exampleCode/SecureStudentListUser/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/Filedemo/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/HelloForm/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/HelloRest/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/HelloTest/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/FiledemoDb/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/StudentList/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/SecurityDemo/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/StudentJpaTest/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/StudentListCrud/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/StudentListJDBC/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/StudentListRest/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/SecureStudentList/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/StudentListSignup/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/StudentListGraphQL/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/HelloFormValidation/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/StudentListOneToMany/pom.xml" />
+        <option value="$PROJECT_DIR$/backend-programming/SecureStudentListUser/pom.xml" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_22" default="true" project-jdk-name="22" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="jpab" />
+  </component>
+</project>
