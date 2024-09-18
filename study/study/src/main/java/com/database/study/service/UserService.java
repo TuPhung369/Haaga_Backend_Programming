@@ -27,25 +27,27 @@ public class UserService {
   UserRepository userRepository;
   UserMapper userMapper;
 
-  public User createUser(UserCreationRequest request) {
-    if (userRepository.existsByUsername(request.getUsername())) {
-      throw new AppException(ErrorCode.USER_EXISTS);
-    }
-    User user = userMapper.toUser(request);
-    return userRepository.save(user);
-  }
-
   public List<User> getUsers() {
     return userRepository.findAll();
   }
 
+  public UserResponse createUser(UserCreationRequest request) {
+    if (userRepository.existsByUsername(request.getUsername())) {
+      throw new AppException(ErrorCode.USER_EXISTS);
+    }
+    User user = userMapper.toUser(request);
+    user = userRepository.save(user);
+    return userMapper.toUserResponse(user);
+  }
+
   public UserResponse getUserById(UUID userId) {
-    log.info("Fetching user by ID: {}", userId); // Log ID before fetching
-    return userMapper.toUserResponse(userRepository.findById(userId)
+    log.info("Fetching user by ID: {}", userId);
+    User user = userRepository.findById(userId)
         .orElseThrow(() -> {
-          log.error("User with ID {} not found", userId); // Log error with ID
-          throw new AppException(ErrorCode.USER_NOT_FOUND); // Ensure correct error is thrown
-        }));
+          log.error("User with ID {} not found", userId);
+          throw new AppException(ErrorCode.USER_NOT_FOUND);
+        });
+    return userMapper.toUserResponse(user); // Use the mapper to convert to UserResponse
   }
 
   public UserResponse updateUser(UUID userId, UserCreationRequest request) {

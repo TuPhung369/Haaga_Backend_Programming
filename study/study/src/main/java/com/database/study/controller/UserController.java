@@ -9,7 +9,6 @@ import com.database.study.dto.request.ApiResponse;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,9 +32,10 @@ public class UserController {
   UserService userService;
 
   @PostMapping
-  ApiResponse<User> createUser(@RequestBody @Valid UserCreationRequest request) {
-    ApiResponse<User> apiResponse = new ApiResponse<>();
-    apiResponse.setResult(userService.createUser(request));
+  public ApiResponse<UserResponse> createUser(@RequestBody @Valid UserCreationRequest request) {
+    UserResponse userResponse = userService.createUser(request);
+    ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
+    apiResponse.setResult(userResponse);
     return apiResponse;
   }
 
@@ -70,8 +70,12 @@ public class UserController {
   }
 
   @DeleteMapping("/{userId}")
-  public ResponseEntity<String> deleteUser(@PathVariable UUID userId) {
+  public ApiResponse<String> deleteUser(@PathVariable UUID userId) {
     userService.deleteUser(userId);
-    return ResponseEntity.ok("User successfully deleted");
+    return ApiResponse.<String>builder()
+        .code(1000) // Success code or you can set a specific code
+        .message("User successfully deleted")
+        .result("User ID: " + userId) // Include any additional details if needed
+        .build();
   }
 }

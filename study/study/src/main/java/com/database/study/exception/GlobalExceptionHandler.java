@@ -16,6 +16,13 @@ import org.slf4j.LoggerFactory;
 public class GlobalExceptionHandler {
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+  private ApiResponse<Object> buildErrorResponse(ErrorCode errorCode) {
+    return ApiResponse.<Object>builder()
+        .code(errorCode.getCode())
+        .message(errorCode.getMessage())
+        .build();
+  }
+  
   // Handling AppException with logging
   @ExceptionHandler(AppException.class)
   public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception) {
@@ -30,20 +37,25 @@ public class GlobalExceptionHandler {
   // Handling all general exceptions
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception exception) {
-    log.error("General exception occurred", exception); // Log stack trace
-    ErrorCode errorCode = ErrorCode.GENERAL_EXCEPTION;
-    ApiResponse<Object> apiResponse = new ApiResponse<>();
-    apiResponse.setCode(errorCode.getCode());
-    apiResponse.setMessage(errorCode.getMessage());
+    log.error("General exception occurred: {}", exception.getMessage(), exception);
+    ApiResponse<Object> apiResponse = buildErrorResponse(ErrorCode.GENERAL_EXCEPTION);
     return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   // Handling validation errors
   @ExceptionHandler(MethodArgumentNotValidException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
-  public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+  public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
+      MethodArgumentNotValidException ex) {
     Map<String, String> errors = new HashMap<>();
     ex.getBindingResult().getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
-    return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+
+    ApiResponse<Map<String, String>> apiResponse = ApiResponse.<Map<String, String>>builder()
+        .code(ErrorCode.INVALID_REQUEST.getCode())
+        .message("Validation errors occurred")
+        .result(errors)
+        .build();
+
+    return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
   }
 }
