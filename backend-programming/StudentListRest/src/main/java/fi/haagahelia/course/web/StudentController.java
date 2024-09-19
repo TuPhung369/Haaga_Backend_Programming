@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -17,52 +18,59 @@ import fi.haagahelia.course.domain.StudentRepository;
 
 @Controller
 public class StudentController {
-	
-	@Autowired
-	private StudentRepository repository; 
 
-	@Autowired
-	private DepartmentRepository drepository; 
-	
-	// Show all students
-    @RequestMapping(value="/studentlist")
-    public String studentList(Model model) {	
+    @Autowired
+    private StudentRepository repository;
+
+    @Autowired
+    private DepartmentRepository drepository;
+
+    // Show all students
+    @RequestMapping(value = "/studentlist")
+    public String studentList(Model model) {
         model.addAttribute("students", repository.findAll());
         return "studentlist";
     }
-  
-	// RESTful service to get all students
-    @RequestMapping(value="/students", method = RequestMethod.GET)
-    public @ResponseBody List<Student> studentListRest() {	
-        return (List<Student>) repository.findAll();
-    }    
 
-	// RESTful service to get student by id
-    @RequestMapping(value="/student/{id}", method = RequestMethod.GET)
-    public @ResponseBody Optional<Student> findStudentRest(@PathVariable("id") Long studentId) {	
-    	return repository.findById(studentId);
-    }       
-    
+    // RESTful service to get all students
+    @RequestMapping(value = "/students", method = RequestMethod.GET)
+    public @ResponseBody List<Student> studentListRest() {
+        return (List<Student>) repository.findAll();
+    }
+
+    // RESTful service to get student by id
+    @RequestMapping(value = "/student/{id}", method = RequestMethod.GET)
+    public @ResponseBody Optional<Student> findStudentRest(@PathVariable("id") Long studentId) {
+        return repository.findById(studentId);
+    }
+
     // Add new student
     @RequestMapping(value = "/add")
-    public String showAddStudentForm(Model model){
-    	model.addAttribute("student", new Student());
-    	model.addAttribute("departments", drepository.findAll());
+    public String showAddStudentForm(Model model) {
+        model.addAttribute("student", new Student());
+        model.addAttribute("departments", drepository.findAll());
         return "addstudent";
-    }     
-    
+    }
+
     // Save new student
     @RequestMapping(value = "/save", method = RequestMethod.POST)
-    public String save(Student student){
+    public String save(Student student) {
         repository.save(student);
         return "redirect:studentlist";
-    }    
+    }
+
+    // Save new student
+    @RequestMapping(value = "/createStudent", method = RequestMethod.POST)
+    public @ResponseBody Student createStudent(@RequestBody Student student) {
+
+        return repository.save(student);
+    }
 
     // Delete student
     @RequestMapping(value = "/delete/{id}", method = RequestMethod.GET)
     public String deleteStudent(@PathVariable("id") Long studentId, Model model) {
-    	repository.deleteById(studentId);
+        repository.deleteById(studentId);
         return "redirect:../studentlist";
-    } 
- 
+    }
+
 }
