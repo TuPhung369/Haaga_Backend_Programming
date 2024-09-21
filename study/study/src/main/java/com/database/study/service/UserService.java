@@ -1,5 +1,6 @@
 package com.database.study.service;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.database.study.entity.User;
 import com.database.study.exception.AppException;
@@ -26,6 +27,7 @@ public class UserService {
 
   UserRepository userRepository;
   UserMapper userMapper;
+  PasswordEncoder passwordEncoder;
 
   public List<User> getUsers() {
     return userRepository.findAll();
@@ -36,6 +38,7 @@ public class UserService {
       throw new AppException(ErrorCode.USER_EXISTS);
     }
     User user = userMapper.toUser(request);
+    user.setPassword(passwordEncoder.encode(request.getPassword()));
     user = userRepository.save(user);
     return userMapper.toUserResponse(user);
   }
@@ -52,15 +55,21 @@ public class UserService {
 
   public UserResponse updateUser(UUID userId, UserCreationRequest request) {
     log.info("Updating user with ID: {}", userId);
+
+    // Find existing user or throw an exception if not found
     User existingUser = userRepository.findById(userId)
         .orElseThrow(() -> {
           log.error("User with ID {} not found", userId);
           throw new AppException(ErrorCode.USER_NOT_FOUND);
         });
-
+    // Update other fields of the user using the userMapper
     userMapper.updateUser(existingUser, request);
+    existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+
+    // Save the updated user to the repository
     User updatedUser = userRepository.save(existingUser);
 
+    // Return the updated user response
     return userMapper.toUserResponse(updatedUser);
   }
 

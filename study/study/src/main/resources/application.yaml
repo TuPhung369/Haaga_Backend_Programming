@@ -18,5 +18,5 @@ spring:
 
 logging:
   level:
-    com.database.study: error
+    "[com.database.study]": error
 

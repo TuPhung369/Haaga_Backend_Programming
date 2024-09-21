@@ -2,6 +2,7 @@ package com.bookstorerest.bookstorerest.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
+import com.bookstorerest.bookstorerest.domain.SomeOtherEntity; // Add this import statement
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
