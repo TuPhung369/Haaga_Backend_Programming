@@ -9,18 +9,19 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public class Student {
-    @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
-    private Long id;
-    private String firstName;
-    private String lastName;
-    private String email;
-    
-    @ManyToOne
-    @JoinColumn(name = "departmentid")
-    private Department department;
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private Long id;
+	private String firstName;
+	private String lastName;
+	private String email;
 
-    public Student() {}
+	@ManyToOne
+	@JoinColumn(name = "departmentid")
+	private Department department;
+
+	public Student() {
+	}
 
 	public Student(String firstName, String lastName, String email, Department department) {
 		super();
@@ -73,7 +74,8 @@ public class Student {
 	@Override
 	public String toString() {
 		if (this.department != null)
-			return "Student [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email + " department =" + this.getDepartment() + "]";		
+			return "Student [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email
+					+ " department =" + this.getDepartment() + "]";
 		else
 			return "Student [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email + "]";
 	}
