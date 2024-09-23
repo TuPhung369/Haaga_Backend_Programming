@@ -57,15 +57,15 @@ public class BookStoreController {
   }
 
   // Save new book from form
-@RequestMapping(value = "/save", method = RequestMethod.POST)
-public String save(@Valid Book book, BindingResult result, Model model) {
+  @RequestMapping(value = "/save", method = RequestMethod.POST)
+  public String save(@Valid Book book, BindingResult result, Model model) {
     if (result.hasErrors()) {
-        model.addAttribute("categories", crepository.findAll());
-        return "addBookForm"; // return the form with errors
+      model.addAttribute("categories", crepository.findAll());
+      return "addBookForm"; // return the form with errors
     }
     repository.save(book);
     return "redirect:/booklist";
-}
+  }
 
   // Save new book via REST API
   @RequestMapping(value = "/createBook", method = RequestMethod.POST)

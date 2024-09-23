@@ -24,20 +24,34 @@ public class BookstorerestApplication {
 	@Bean
 	public CommandLineRunner bookDemo(BookStoreRepository brepository, CategoryRepository crepository) {
 		return (args) -> {
-			log.info("save a couple of books");
-			crepository.save(new Category("Fiction"));
-			crepository.save(new Category("Non-Fiction"));
-			crepository.save(new Category("Science Fiction"));
+			log.info("Saving categories if they don't exist");
+			if (crepository.findByName("Fiction").isEmpty()) {
+				crepository.save(new Category("Fiction"));
+			}
+			if (crepository.findByName("Non-Fiction").isEmpty()) {
+				crepository.save(new Category("Non-Fiction"));
+			}
+			if (crepository.findByName("Science Fiction").isEmpty()) {
+				crepository.save(new Category("Science Fiction"));
+			}
 
-			brepository.save(new Book("The Lord of the Rings", "J.R.R. Tolkien", crepository.findByName("Fiction").get(0)));
-			brepository.save(new Book("To Kill a Mockingbird", "Harper Lee", crepository.findByName("Non-Fiction").get(0)));
-			brepository.save(new Book("The Hitchhiker's Guide to the Galaxy", "Douglas Adams",
-					crepository.findByName("Science Fiction").get(0)));
+			log.info("Saving books");
+			if (brepository.findByTitle("The Lord of the Rings").isEmpty()) {
+				brepository.save(new Book("The Lord of the Rings", "J.R.R. Tolkien", crepository.findByName("Fiction").get(0)));
+			}
+			if (brepository.findByTitle("To Kill a Mockingbird").isEmpty()) {
+				brepository.save(new Book("To Kill a Mockingbird", "Harper Lee", crepository.findByName("Non-Fiction").get(0)));
+			}
+			if (brepository.findByTitle("The Hitchhiker's Guide to the Galaxy").isEmpty()) {
+				brepository.save(new Book("The Hitchhiker's Guide to the Galaxy", "Douglas Adams",
+						crepository.findByName("Science Fiction").get(0)));
+			}
 
-			log.info("fetch all books");
+			log.info("Fetching all books");
 			for (Book book : brepository.findAll()) {
 				log.info(book.toString());
 			}
 		};
 	}
+
 }

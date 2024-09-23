@@ -22,7 +22,7 @@ public class Book {
 
   // Ignore one-to-many relationship in the JSON output
   @ManyToOne
-  @JoinColumn(name = "categoryid")
+  @JoinColumn(name = "categoryId")
   private Category category;
 
   public Book() {

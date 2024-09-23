@@ -138,6 +138,16 @@
       "projectName": "study",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-BookstorerestApplication<bookstorerest>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.bookstorerest.bookstorerest.BookstorerestApplication",
+      "projectName": "bookstorerest",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }

@@ -26,10 +26,12 @@
                 <label for="category" class="form-label">Category</label>
                 <select id="category" th:field="*{category}" class="form-control">
                     <option value="">-- Select Category --</option> <!-- Default option -->
-                    <option th:each="category : ${categories}" th:value="${category.categoryid}" th:text="${category.name}"></option>
+                <option th:each="category : ${categories}" th:value="${category.categoryId}" th:text="${category.name}"></option>
                 </select>
             </div>
             <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></div>
+            <div th:if="${#fields.hasErrors('author')}" th:errors="*{author}"></div>
+            <div th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></div>
             <button type="submit" class="btn btn-primary">Save</button>
         </form>
     </div>

@@ -13,29 +13,28 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @Entity
 public class Category {
   @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Long categoryid;
+  @GeneratedValue(strategy = GenerationType.IDENTITY) // Consider using IDENTITY for clarity
+  private Long categoryId; // Changed to camelCase
   private String name;
 
   @JsonIgnore
-  @OneToMany(cascade = { CascadeType.PERSIST, CascadeType.REMOVE }, mappedBy = "category")
+  @OneToMany(cascade = CascadeType.ALL, mappedBy = "category")
   private List<Book> books;
 
   public Category() {
   }
 
   public Category(String name) {
-    super();
     this.name = name;
   }
 
   // Getters and setters
   public Long getCategoryId() {
-    return categoryid;
+    return categoryId; // Updated getter to match camelCase
   }
 
-  public void setCategoryId(Long categoryid) {
-    this.categoryid = categoryid;
+  public void setCategoryId(Long categoryId) { // Updated setter to match camelCase
+    this.categoryId = categoryId;
   }
 
   public String getName() {
@@ -56,6 +55,6 @@ public class Category {
 
   @Override
   public String toString() {
-    return "Category [categoryid=" + categoryid + ", name=" + name + "]";
+    return "Category [categoryId=" + categoryId + ", name=" + name + "]"; // Updated toString
   }
 }
