@@ -11,7 +11,7 @@ public class FileModel {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private long id;
-	private String fileName, mimeType, base64str;
+	private String fileName, mimeType;
 
 	@Lob
 	private byte[] file;
