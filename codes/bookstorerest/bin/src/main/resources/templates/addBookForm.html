@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add Book</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Add Book</h1>
+        <form th:object="${book}" th:action="@{/save}" method="post">
+            <!-- Book Title -->
+            <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" id="title" th:field="*{title}" class="form-control"/>
+            </div>
+
+            <!-- Book Author -->
+            <div class="mb-3">
+                <label for="author" class="form-label">Author</label>
+                <input type="text" id="author" th:field="*{author}" class="form-control"/>
+            </div>
+
+            <!-- Book Category -->
+            <div class="mb-3">
+                <label for="category" class="form-label">Category</label>
+                <select id="category" th:field="*{category}" class="form-control">
+                    <option value="">-- Select Category --</option> <!-- Default option -->
+                <option th:each="category : ${categories}" th:value="${category.categoryId}" th:text="${category.name}"></option>
+                </select>
+            </div>
+            <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></div>
+            <div th:if="${#fields.hasErrors('author')}" th:errors="*{author}"></div>
+            <div th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</body>
+</html>
