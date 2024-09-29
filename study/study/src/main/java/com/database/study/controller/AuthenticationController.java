@@ -12,6 +12,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.service.AuthenticationService;
+import com.nimbusds.jose.JOSEException;
+import com.database.study.dto.request.IntrospectRequest;
+import com.database.study.dto.response.IntrospectResponse;
+import java.text.ParseException;
 
 @RestController
 @RequestMapping("/auth")
@@ -20,11 +24,20 @@ import com.database.study.service.AuthenticationService;
 public class AuthenticationController {
   AuthenticationService authenticationService;
 
-  @PostMapping("/login")
-  ApiResponse<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
-    boolean result = authenticationService.authenticate(request);
+  @PostMapping("/token")
+  ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
+    var result = authenticationService.authenticate(request);
     return ApiResponse.<AuthenticationResponse>builder()
-        .result(AuthenticationResponse.builder().authenticated(result).build())
+        .result(result)
+        .build();
+  }
+
+  @PostMapping("/introspect")
+  ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
+      throws JOSEException, ParseException {
+    var result = authenticationService.introspect(request);
+    return ApiResponse.<IntrospectResponse>builder()
+        .result(result)
         .build();
   }
 }

@@ -12,27 +12,28 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 public class Student {
-    @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
-    private Long id;
-    private String firstName;
-    private String lastName;
-    private String email;
-    
-    @ManyToOne
-    @JsonIgnore
-    @JoinColumn(name = "departmentid")
-    private Department department;
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private Long id;
+	private String firstName;
+	private String lastName;
+	private String email;
 
-    public Student() {}
+	@ManyToOne
+	@JsonIgnore
+	@JoinColumn(name = "departmentid")
+	private Department department;
+
+	public Student() {
+	}
 
 	public Student(String firstName, String lastName, String email) {
 		super();
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.email = email;
-	}    
-    
+	}
+
 	public Student(String firstName, String lastName, String email, Department department) {
 		super();
 		this.firstName = firstName;
@@ -84,7 +85,8 @@ public class Student {
 	@Override
 	public String toString() {
 		if (this.department != null)
-			return "Student [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email + " department =" + this.getDepartment() + "]";		
+			return "Student [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email
+					+ " department =" + this.getDepartment() + "]";
 		else
 			return "Student [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email + "]";
 	}

@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 9090
   servlet:
     context-path: /identify_service
 
@@ -15,6 +15,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+        
+jwt:
+  signerKey: "MeoAjf04Sc9Qiadukeu7IdiCqr4O3eBUibjTNfU+yDjzX0Y3W/pWgH1fN6DtM8izgOg69U6qfdcDncXhKEfzxQ=="
 
 logging:
   level:

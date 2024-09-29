@@ -3,9 +3,10 @@ package fi.haagahelia.course.web;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import fi.haagahelia.course.domain.DepartmentRepository;
 import fi.haagahelia.course.domain.Student;
@@ -35,14 +36,14 @@ public class StudentController {
     }     
     
     // Save new student
-    @RequestMapping(value = "/save", method = RequestMethod.POST)
+    @PostMapping("/save")
     public String save(Student student){
         repository.save(student);
         return "redirect:studentlist";
     }    
 
     // Delete student
-    @RequestMapping(value = "/delete/{id}", method = RequestMethod.GET)
+    @GetMapping("/delete/{id}")
     public String deleteStudent(@PathVariable("id") Long studentId, Model model) {
     	repository.deleteById(studentId);
         return "redirect:../studentlist";
@@ -50,7 +51,7 @@ public class StudentController {
 
 
     // Edit student
-    @RequestMapping(value = "/edit/{id}", method = RequestMethod.GET)
+    @GetMapping("/edit/{id}")
     public String editStudent(@PathVariable("id") Long studentId, Model model) {
     	model.addAttribute("student", repository.findById(studentId));
     	model.addAttribute("departments", drepository.findAll());

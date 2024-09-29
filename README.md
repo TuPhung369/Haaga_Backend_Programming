@@ -29,5 +29,11 @@ If you suspect that a third-party tool or service is reserving the port but canâ
 
 Run this command to get a complete overview of all listening ports and the associated processes:
 
-`netstat -ab`
+`netstat -ab` or `netstat -ano | findstr :9090`
 This will list all active connections and the process names, which can help you see if something is using port 8080.
+C:\Windows\System32>netstat -ano | findstr :9090
+  TCP    [::1]:9090             [::1]:17044            FIN_WAIT_2      28408
+  TCP    [::1]:17044            [::1]:9090             CLOSE_WAIT      29388
+
+taskkill /F /PID 28408
+taskkill /F /PID 29388
