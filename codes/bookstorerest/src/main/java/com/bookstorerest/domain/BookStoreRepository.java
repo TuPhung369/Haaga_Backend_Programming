@@ -1,4 +1,4 @@
-package com.bookstorerest.bookstorerest.domain;
+package com.bookstorerest.domain;
 
 import java.util.List;
 

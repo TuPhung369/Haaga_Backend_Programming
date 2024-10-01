@@ -1,4 +1,4 @@
-package com.bookstorerest.bookstorerest;
+package com.bookstorerest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,11 +7,14 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.bookstorerest.bookstorerest.domain.Book;
-import com.bookstorerest.bookstorerest.domain.BookStoreRepository;
-import com.bookstorerest.bookstorerest.domain.Category;
-import com.bookstorerest.bookstorerest.domain.CategoryRepository;
+import com.bookstorerest.domain.Book;
+import com.bookstorerest.domain.BookStoreRepository;
+import com.bookstorerest.domain.Category;
+import com.bookstorerest.domain.CategoryRepository;
+import com.bookstorerest.domain.User;
+import com.bookstorerest.domain.UserRepository;
 
 @SpringBootApplication
 public class BookstorerestApplication {
@@ -22,7 +25,8 @@ public class BookstorerestApplication {
 	}
 
 	@Bean
-	public CommandLineRunner bookDemo(BookStoreRepository brepository, CategoryRepository crepository) {
+	public CommandLineRunner bookDemo(BookStoreRepository brepository, CategoryRepository crepository,
+			UserRepository userRepository, PasswordEncoder passwordEncoder) {
 		return (args) -> {
 			log.info("Saving categories if they don't exist");
 			if (crepository.findByName("Fiction").isEmpty()) {
@@ -51,6 +55,27 @@ public class BookstorerestApplication {
 			for (Book book : brepository.findAll()) {
 				log.info(book.toString());
 			}
+
+			log.info("Saving users");
+			if (userRepository.findByUsername("adminUser") == null) {
+				User adminUser = new User();
+				adminUser.setUsername("adminUser");
+				adminUser.setPassword(passwordEncoder.encode("adminUser")); // encode password
+				adminUser.setRole("ADMIN");
+				adminUser.setEmail("admin@gmail.com");
+				userRepository.save(adminUser);
+			}
+
+			if (userRepository.findByUsername("normalUser") == null) {
+				User normalUser = new User();
+				normalUser.setUsername("normalUser");
+				normalUser.setPassword(passwordEncoder.encode("normalUser")); // encode password
+				normalUser.setRole("USER");
+				normalUser.setEmail("user@gmail.com");
+				userRepository.save(normalUser);
+			}
+
+			log.info("Users saved.");
 		};
 	}
 

@@ -1,4 +1,4 @@
-package com.bookstorerest.bookstorerest.domain;
+package com.bookstorerest.domain;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

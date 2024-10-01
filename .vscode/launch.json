@@ -2,6 +2,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "BookstorerestApplication",
+      "request": "launch",
+      "mainClass": "com.bookstorerest.BookstorerestApplication",
+      "projectName": "com.bookstorerest-bookstorerest"
+    },
+    {
+      "type": "java",
       "name": "StudentListSignUpApplication",
       "request": "launch",
       "mainClass": "fi.haagahelia.course.StudentListSignUpApplication",
