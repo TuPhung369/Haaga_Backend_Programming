@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Add Book</title>
+    <title>Edit Book</title>
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -9,25 +9,24 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Add Book</h1>
-        
-        <!-- Form for adding book -->
-        <form th:object="${book}" th:action="@{/save}" method="post" id="addBookForm">
-            <!-- Title -->
+        <h1 class="mb-4">Edit Book</h1>
+
+        <!-- Display error message if exists -->
+        <div th:if="${#fields.hasErrors('book')}" class="alert alert-danger">
+            Please correct the highlighted fields.
+        </div>
+
+        <form th:action="@{/edit/{id}(id=${book.id})}" th:object="${book}" method="post" id="editBookForm">
             <div class="mb-3">
                 <label for="title" class="form-label">Title</label>
-                <input type="text" id="title" th:field="*{title}" class="form-control"/>
-                <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}" class="text-danger"></div>
+                <input type="text" th:field="*{title}" class="form-control" id="title" />
             </div>
 
-            <!-- Author -->
             <div class="mb-3">
                 <label for="author" class="form-label">Author</label>
-                <input type="text" id="author" th:field="*{author}" class="form-control"/>
-                <div th:if="${#fields.hasErrors('author')}" th:errors="*{author}" class="text-danger"></div>
+                <input type="text" th:field="*{author}" class="form-control" id="author" />
             </div>
 
-            <!-- Category -->
             <div class="mb-3">
                 <label for="category" class="form-label">Category</label>
                 <select id="category" th:field="*{category}" class="form-control">
@@ -36,11 +35,13 @@
                             th:value="${category.categoryId}" 
                             th:text="${category.name}"></option>
                 </select>
-                <div th:if="${#fields.hasErrors('category')}" th:errors="*{category}" class="text-danger"></div>
             </div>
 
-            <!-- Save Button -->
-            <button type="submit" class="btn btn-primary">Save</button>
+            <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}" class="text-danger"></div>
+            <div th:if="${#fields.hasErrors('author')}" th:errors="*{author}" class="text-danger"></div>
+            <div th:if="${#fields.hasErrors('category')}" th:errors="*{category}" class="text-danger"></div>
+
+            <button type="submit" class="btn btn-primary">Update Book</button>
         </form>
 
         <!-- Modal for success/error message -->
@@ -65,7 +66,7 @@
     <script>
         $(document).ready(function() {
             // Handle form submission
-            $('#addBookForm').on('submit', function(event) {
+            $('#editBookForm').on('submit', function(event) {
                 event.preventDefault(); // Prevent the default form submission
                 
                 // Get form values
@@ -98,7 +99,7 @@
                         data: $(this).serialize(),
                         success: function(response) {
                             // Display success message
-                            $('#modalMessage').text('Book added successfully!');
+                            $('#modalMessage').text('Book updated successfully!');
                             var myModal = new bootstrap.Modal(document.getElementById('messageModal'));
                             $('#redirectToBookList').show(); // Show the redirect button
                             myModal.show();
@@ -106,11 +107,11 @@
                             // Redirect to the book list after 2 seconds
                             setTimeout(function() {
                                 window.location.href = '/booklist'; // Change this URL if necessary
-                            }, 3000); // 1000 milliseconds = 1 seconds
+                            }, 3000); // 3000 milliseconds = 3 seconds
                         },
                         error: function(xhr) {
                             // Display error message from server
-                            $('#modalMessage').text('Error adding book: ' + xhr.responseText);
+                            $('#modalMessage').text('Error updating book: ' + xhr.responseText);
                             var myModal = new bootstrap.Modal(document.getElementById('messageModal'));
                             myModal.show();
                         }

@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 @Entity
 public class Book {
@@ -14,13 +15,16 @@ public class Book {
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
   private Long id;
+
+  @NotNull(message = "Title is required")
   @NotEmpty(message = "Title cannot be empty")
   private String title;
 
+  @NotNull(message = "Author is required")
   @NotEmpty(message = "Author cannot be empty")
   private String author;
 
-  // Ignore one-to-many relationship in the JSON output
+  @NotNull(message = "Category must be selected")
   @ManyToOne
   @JoinColumn(name = "categoryId")
   private Category category;
@@ -29,7 +33,6 @@ public class Book {
   }
 
   public Book(String title, String author, Category category) {
-    super();
     this.title = title;
     this.author = author;
     this.category = category;
@@ -70,9 +73,7 @@ public class Book {
 
   @Override
   public String toString() {
-    if (category != null)
-      return "Book [id=" + id + ", title=" + title + ", author=" + author + ", category=" + this.getCategory() + "]";
-    else
-      return "Book [id=" + id + ", title=" + title + ", author=" + author + "]";
+    return "Book [id=" + id + ", title=" + title + ", author=" + author + ", category="
+        + (category != null ? category.getName() : "N/A") + "]";
   }
 }

@@ -6,6 +6,7 @@ import java.util.Optional;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,16 +14,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.bookstorerest.domain.Book;
+import com.bookstorerest.domain.BookStoreRepository;
 import com.bookstorerest.domain.User;
 import com.bookstorerest.domain.UserRepository;
-import com.bookstorerest.domain.BookStoreRepository;
+import com.bookstorerest.domain.Category;
 import com.bookstorerest.domain.CategoryRepository;
 
 @Controller
@@ -32,7 +36,7 @@ public class BookStoreController {
   private BookStoreRepository repository;
 
   @Autowired
-  private CategoryRepository crepository;
+  private CategoryRepository categoryRepository;
 
   @Autowired
   private PasswordEncoder passwordEncoder;
@@ -63,25 +67,67 @@ public class BookStoreController {
   @RequestMapping(value = "/add", method = RequestMethod.GET)
   public String showAddBookForm(Model model) {
     model.addAttribute("book", new Book());
-    model.addAttribute("categories", crepository.findAll());
+    model.addAttribute("categories", categoryRepository.findAll());
     return "addBookForm";
   }
 
-  // Save new book from form
-  @RequestMapping(value = "/save", method = RequestMethod.POST)
-  public String save(@Valid Book book, BindingResult result, Model model) {
-    if (result.hasErrors()) {
-      model.addAttribute("categories", crepository.findAll());
-      return "addBookForm"; // return the form with errors
+  @PostMapping("/save")
+  public ResponseEntity<String> saveBook(@Valid @ModelAttribute("book") Book book,
+      BindingResult bindingResult,
+      Model model) {
+
+    // Check for validation errors
+    if (bindingResult.hasErrors()) {
+      // Gather error messages
+      StringBuilder errorMessage = new StringBuilder("Please fix the following errors:<br>");
+      bindingResult.getFieldErrors().forEach(error -> errorMessage.append(error.getDefaultMessage()).append("<br>"));
+      return ResponseEntity.badRequest().body(errorMessage.toString());
     }
+
+    // Ensure the category ID is present and valid
+    if (book.getCategory() == null || book.getCategory().getCategoryId() == null) {
+      return ResponseEntity.badRequest().body("Category must be selected");
+    }
+
+    // Check if the category exists in the repository
+    Category category = categoryRepository.findById(book.getCategory().getCategoryId())
+        .orElseThrow(() -> new IllegalArgumentException("Invalid category ID: " + book.getCategory().getCategoryId()));
+
+    book.setCategory(category); // Set the full Category object on the Book
+
+    // Save the book if valid
     repository.save(book);
-    return "redirect:/booklist";
+
+    return ResponseEntity.ok("Book saved successfully!");
   }
 
   // Save new book via REST API
   @RequestMapping(value = "/createBook", method = RequestMethod.POST)
   public @ResponseBody Book createBook(@RequestBody Book book) {
     return repository.save(book);
+  }
+
+  // Show form to edit an existing book
+  @RequestMapping(value = "/edit/{id}", method = RequestMethod.GET)
+  public String showEditBookForm(@PathVariable("id") Long bookId, Model model) {
+    Optional<Book> book = repository.findById(bookId);
+    if (!book.isPresent()) {
+      model.addAttribute("errorMessage", "Book not found");
+      return "error";
+    }
+    model.addAttribute("book", book.get());
+    model.addAttribute("categories", categoryRepository.findAll());
+    return "editBookForm"; // This should be your edit form template
+  }
+
+  @RequestMapping(value = "/edit/{id}", method = RequestMethod.POST)
+  public String saveEditedBook(@Valid Book book, BindingResult result, Model model) {
+    if (result.hasErrors()) {
+      model.addAttribute("categories", categoryRepository.findAll());
+      return "editBookForm"; // Return to the form with errors
+    }
+    repository.save(book); // Save the updated book
+    return "redirect:/booklist";
   }
 
   // Delete book by ID

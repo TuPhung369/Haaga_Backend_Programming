@@ -55,6 +55,6 @@ public class Category {
 
   @Override
   public String toString() {
-    return "Category [categoryId=" + categoryId + ", name=" + name + "]"; // Updated toString
+    return this.categoryId.toString(); // Return a string representation that matches the ID
   }
 }
