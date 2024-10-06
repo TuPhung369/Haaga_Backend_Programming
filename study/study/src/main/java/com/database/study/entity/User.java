@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.GenerationType;
 import java.util.UUID;
+import java.util.Set;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -25,4 +26,5 @@ public class User {
   String firstname;
   String lastname;
   LocalDate dob;
+  Set<String> roles; //every element is unique # List
 }

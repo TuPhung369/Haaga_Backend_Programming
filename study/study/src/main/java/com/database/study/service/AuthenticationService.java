@@ -119,8 +119,14 @@ public class AuthenticationService {
     SecureRandom secureRandom = new SecureRandom();
     byte[] key = new byte[64]; // 512 bits = 64 bytes
     secureRandom.nextBytes(key);
-    String base64Key = Base64.getEncoder().encodeToString(key);
-    System.out.println("Base64 Encoded Key: " + base64Key);
+    // String base64Key = Base64.getEncoder().encodeToString(key);
+    // System.out.println("Base64 Encoded Key: " + base64Key);
     return key;
   }
+
+  public static byte[] getSecretKeyBytes() {
+    // System.out.println("SECRET_KEY_BYTES: " + SECRET_KEY_BYTES);
+    return SECRET_KEY_BYTES; // Expose the secret key for external use
+  }
+
 }

@@ -2,6 +2,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "HellotestApplication",
+      "request": "launch",
+      "mainClass": "fi.haagahelia.course.HellotestApplication",
+      "projectName": "hellotest"
+    },
+    {
+      "type": "java",
       "name": "BookstorerestApplication",
       "request": "launch",
       "mainClass": "com.bookstorerest.BookstorerestApplication",
