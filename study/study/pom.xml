@@ -90,13 +90,14 @@
 
     <build>
         <plugins>
+            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>22</source> <!-- Update this to match your JDK version -->
+                    <target>22</target> <!-- Update this to match your JDK version -->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -116,11 +117,14 @@
                     </compilerArgs>
                 </configuration>
             </plugin>
+
+            <!-- Spring Boot Maven Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.database.study.StudyApplication</mainClass>
+                    <mainClass>com.database.study.StudyApplication</mainClass> <!-- Ensure this is
+                    correct -->
                 </configuration>
             </plugin>
         </plugins>

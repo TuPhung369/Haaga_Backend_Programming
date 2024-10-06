@@ -2,6 +2,7 @@ package com.database.study.entity;
 
 import java.time.LocalDate;
 
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -26,5 +27,6 @@ public class User {
   String firstname;
   String lastname;
   LocalDate dob;
-  Set<String> roles; //every element is unique # List
+  @ElementCollection
+  Set<String> roles; // every element is unique # List
 }

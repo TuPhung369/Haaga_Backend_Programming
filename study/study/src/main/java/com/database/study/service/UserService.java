@@ -6,6 +6,7 @@ import com.database.study.entity.User;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.repository.UserRepository;
+import com.database.study.enums.Role;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,9 @@ import lombok.experimental.FieldDefaults;
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.mapper.UserMapper;
+
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -37,8 +41,16 @@ public class UserService {
     if (userRepository.existsByUsername(request.getUsername())) {
       throw new AppException(ErrorCode.USER_EXISTS);
     }
+    // Map request to user entity and encode the password
     User user = userMapper.toUser(request);
     user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+    // Set default role as USER
+    Set<String> roles = new HashSet<>();
+    roles.add(Role.USER.name());
+    user.setRoles(roles);
+    log.info("User before saving: {}", user);
+    // Save the user and return response
     user = userRepository.save(user);
     return userMapper.toUserResponse(user);
   }
