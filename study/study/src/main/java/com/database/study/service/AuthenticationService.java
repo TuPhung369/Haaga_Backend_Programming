@@ -1,6 +1,8 @@
 package com.database.study.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.request.IntrospectRequest;
@@ -21,13 +23,12 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.JWSVerifier;
 import java.text.ParseException;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
-
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.security.SecureRandom;
 import java.util.Date;
+import java.util.StringJoiner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +59,7 @@ public class AuthenticationService {
     }
 
     // Generate token
-    String token = generateToken(user.getUsername());
+    String token = generateToken(user);
     return AuthenticationResponse.builder()
         .token(token)
         .authenticated(true)
@@ -89,15 +90,15 @@ public class AuthenticationService {
     }
   }
 
-  private String generateToken(String username) {
+  private String generateToken(com.database.study.entity.User user) {
     try {
       JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512); // Use HS512 algorithm
       JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-          .subject(username)
+          .subject(user.getUsername())
           .issuer("tommem.com")
           .issueTime(new Date())
           .expirationTime(new Date(new Date().getTime() + 60 * 60 * 1000)) // 1 hour expiration
-          .claim("userId", "Custom")
+          .claim("scope", buildScope(user))
           .build();
       Payload payload = new Payload(jwtClaimsSet.toJSONObject());
 
@@ -128,4 +129,12 @@ public class AuthenticationService {
     return SECRET_KEY_BYTES; // Expose the secret key for external use
   }
 
+  private String buildScope(com.database.study.entity.User user) {
+    // Build the scope based on user roles
+    StringJoiner scopeJoiner = new StringJoiner(" ");
+    if (!CollectionUtils.isEmpty(user.getRoles())) {
+      user.getRoles().forEach(scopeJoiner::add); // Use scopeJoiner instead of stringJoiner
+    }
+    return scopeJoiner.toString();
+  }
 }

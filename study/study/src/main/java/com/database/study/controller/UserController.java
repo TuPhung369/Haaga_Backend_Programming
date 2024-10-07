@@ -4,10 +4,13 @@ import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.entity.User;
 import com.database.study.service.UserService;
+import org.springframework.security.core.Authentication;
 import com.database.study.dto.request.ApiResponse;
 
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import jakarta.validation.Valid;
@@ -39,9 +43,22 @@ public class UserController {
     return apiResponse;
   }
 
+  private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
   @GetMapping
   public List<User> getUsers() {
-    return userService.getUsers();
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || !authentication.isAuthenticated()) {
+      log.warn("No authenticated user found");
+      return List.of(); // Return an empty list or handle it as appropriate
+    }
+
+    log.info("User: {}", authentication.getName());
+    authentication.getAuthorities().forEach(authority -> log.info(authority.getAuthority()));
+
+    List<User> users = userService.getUsers();
+    return users;
   }
 
   @GetMapping("/{userId}")

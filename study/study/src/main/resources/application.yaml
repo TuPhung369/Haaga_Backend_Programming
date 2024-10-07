@@ -15,11 +15,16 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-        
+
 jwt:
   signerKey: "MeoAjf04Sc9Qiadukeu7IdiCqr4O3eBUibjTNfU+yDjzX0Y3W/pWgH1fN6DtM8izgOg69U6qfdcDncXhKEfzxQ=="
 
 logging:
   level:
-    "[com.database.study]": error
+    com.database.study: info # Detailed logs for your application's package
+    org.hibernate.SQL: warn # Show SQL queries
+    org.hibernate.type: trace # Show SQL parameters
+    org.springframework: info # Spring framework logs
+    root: info # Global log level
+
 
