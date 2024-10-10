@@ -2,7 +2,6 @@ package com.database.study.controller;
 
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.response.UserResponse;
-import com.database.study.entity.User;
 import com.database.study.service.UserService;
 import org.springframework.security.core.Authentication;
 import com.database.study.dto.request.ApiResponse;
@@ -46,7 +45,7 @@ public class UserController {
   private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
   @GetMapping
-  public List<User> getUsers() {
+  public List<UserResponse> getUsers() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
     if (authentication == null || !authentication.isAuthenticated()) {
@@ -57,7 +56,7 @@ public class UserController {
     log.info("User: {}", authentication.getName());
     authentication.getAuthorities().forEach(authority -> log.info(authority.getAuthority()));
 
-    List<User> users = userService.getUsers();
+    List<UserResponse> users = userService.getUsers();
     return users;
   }
 

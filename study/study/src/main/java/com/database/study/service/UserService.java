@@ -1,5 +1,7 @@
 package com.database.study.service;
 
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.database.study.entity.User;
@@ -11,6 +13,7 @@ import com.database.study.enums.Role;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.response.UserResponse;
@@ -20,21 +23,23 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class UserService {
-  static final Logger log = LoggerFactory.getLogger(UserService.class);
 
   UserRepository userRepository;
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
 
-  public List<User> getUsers() {
-    return userRepository.findAll();
+  @PreAuthorize("hasRole('ADMIN')")
+  public List<UserResponse> getUsers() {
+    log.info("In method getUsers with role ADMIN");
+    return userRepository.findAll().stream()
+        .map(userMapper::toUserResponse)
+        .toList();
   }
 
   public UserResponse createUser(UserCreationRequest request) {
@@ -55,6 +60,7 @@ public class UserService {
     return userMapper.toUserResponse(user);
   }
 
+  @PostAuthorize("returnObject.username == authentication.name")
   public UserResponse getUserById(UUID userId) {
     log.info("Fetching user by ID: {}", userId);
     User user = userRepository.findById(userId)
