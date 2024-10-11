@@ -37,3 +37,19 @@ C:\Windows\System32>netstat -ano | findstr :9090
 
 taskkill /F /PID 28408
 taskkill /F /PID 29388
+
+### guide for upload the file from `Maven lifeCycle Package` to cloud
+
+- Step 1: package the project by Maven(below Explorer in VSC) with lifeCycle -> Package
+- Step 2: open the project with Git Bash
+- Step 3: cd `target`
+- Step 4: use command for upload to Cloud
+  - `scp restdemo-0.0.1-SNAPSHOT.jar bhm352@softala.haaga-helia.fi:`
+- Step 5: enter the password `t.p.....`
+
+### Access the my cloud
+
+Open GitBash -> `ssh bhm352@softala.haaga-helia.fi` (enter password) (logout with `exit` command)
+
+ check `java --version` version of java
+ `java -jar restdemo-0.0.1-SNAPSHOT.jar`

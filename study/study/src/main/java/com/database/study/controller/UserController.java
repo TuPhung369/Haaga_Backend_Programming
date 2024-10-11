@@ -3,6 +3,8 @@ package com.database.study.controller;
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.service.UserService;
+
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.core.Authentication;
 import com.database.study.dto.request.ApiResponse;
 
@@ -61,6 +63,7 @@ public class UserController {
   }
 
   @GetMapping("/{userId}")
+  @PostAuthorize("returnObject.result.username == authentication.name or hasRole('ADMIN')")
   public ApiResponse<UserResponse> getUserByPath(@PathVariable("userId") UUID userId) {
     UserResponse userResponse = userService.getUserById(userId);
     return ApiResponse.<UserResponse>builder()
@@ -69,6 +72,7 @@ public class UserController {
   }
 
   @GetMapping("/info")
+  @PostAuthorize("returnObject.result.username == authentication.name or hasRole('ADMIN')")
   public ApiResponse<UserResponse> getUserByQuery(@RequestParam("id") UUID id) {
     UserResponse userResponse = userService.getUserById(id);
     return ApiResponse.<UserResponse>builder()

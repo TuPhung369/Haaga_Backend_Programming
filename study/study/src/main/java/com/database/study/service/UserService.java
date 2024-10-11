@@ -1,6 +1,5 @@
 package com.database.study.service;
 
-import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -60,7 +59,6 @@ public class UserService {
     return userMapper.toUserResponse(user);
   }
 
-  @PostAuthorize("returnObject.username == authentication.name")
   public UserResponse getUserById(UUID userId) {
     log.info("Fetching user by ID: {}", userId);
     User user = userRepository.findById(userId)
