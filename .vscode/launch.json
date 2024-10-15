@@ -196,6 +196,16 @@
       "projectName": "com.tomstudy-hello-spring-boot",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-StudyApplication<com.database-study>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.database.study.StudyApplication",
+      "projectName": "com.database-study",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }
