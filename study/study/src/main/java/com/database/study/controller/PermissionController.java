@@ -31,7 +31,7 @@ public class PermissionController {
 
   @PostMapping
   ApiResponse<PermissionResponse> createPermission(@RequestBody PermissionRequest request) {
-    PermissionResponse permissionResponse = permissionService.create(request);
+    PermissionResponse permissionResponse = permissionService.createPermission(request);
     ApiResponse<PermissionResponse> apiResponse = new ApiResponse<>();
     apiResponse.setResult(permissionResponse);
     return apiResponse;
@@ -46,7 +46,7 @@ public class PermissionController {
 
   @DeleteMapping("/{permission}")
   ApiResponse<String> deletePermission(@PathVariable String permission) {
-    permissionService.delete(permission);
+    permissionService.deletePermission(permission);
     return ApiResponse.<String>builder()
         .code(2000) // Success code or you can set a specific code
         .message("Permission successfully deleted")
