@@ -55,7 +55,7 @@ public class UserService {
     // Set default role as USER
     Set<String> roles = new HashSet<>();
     roles.add(Role.USER.name());
-    user.setRoles(roles);
+    //user.setRoles(roles);
     log.info("User before saving: {}", user);
     // Save the user and return response
     user = userRepository.save(user);

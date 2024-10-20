@@ -46,7 +46,7 @@ public class ApplicationInitConfig {
         user.setPassword(passwordEncoder.encode(adminRequest.getPassword()));
         Set<String> roles = new HashSet<>();
         roles.add(Role.ADMIN.name());
-        user.setRoles(roles);
+        //user.setRoles(roles);
 
         log.info("Admin user before saving: {}", user);
 
