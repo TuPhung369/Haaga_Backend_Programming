@@ -10,6 +10,11 @@ spring:
     # url: "jdbc:mysql://35.228.131.221:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
     username: root
     password: root
+  h2:
+    console:
+      enabled: true
+  profiles:
+    active: dev
   jpa:
     hibernate:
       ddl-auto: update
