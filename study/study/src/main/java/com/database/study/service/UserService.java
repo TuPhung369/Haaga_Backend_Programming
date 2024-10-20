@@ -1,7 +1,10 @@
 package com.database.study.service;
 
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import com.database.study.entity.User;
 import com.database.study.exception.AppException;
@@ -59,6 +62,15 @@ public class UserService {
     return userMapper.toUserResponse(user);
   }
 
+  public UserResponse getMyInfo() {
+    SecurityContext context = SecurityContextHolder.getContext();
+    String name = context.getAuthentication().getName();
+    User user = userRepository.findByUsername(name)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+    return userMapper.toUserResponse(user);
+  }
+
+  @PostAuthorize("returnObject.username == authentication.name or hasRole('ADMIN')")
   public UserResponse getUserById(UUID userId) {
     log.info("Fetching user by ID: {}", userId);
     User user = userRepository.findById(userId)
