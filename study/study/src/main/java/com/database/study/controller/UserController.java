@@ -98,7 +98,7 @@ public class UserController {
   public ApiResponse<String> deleteUser(@PathVariable UUID userId) {
     userService.deleteUser(userId);
     return ApiResponse.<String>builder()
-        .code(1000) // Success code or you can set a specific code
+        .code(2000) // Success code or you can set a specific code
         .message("User successfully deleted")
         .result("User ID: " + userId) // Include any additional details if needed
         .build();
