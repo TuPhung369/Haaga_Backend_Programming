@@ -131,13 +131,13 @@
             </plugin>
 
             <!-- Spring Boot Maven Plugin -->
-            <!-- <plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.database.study.StudyApplication</mainClass> 
+                    <mainClass>com.database.study.StudyApplication</mainClass>
                 </configuration>
-            </plugin> -->
+            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

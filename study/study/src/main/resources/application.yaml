@@ -1,13 +1,13 @@
 server:
   port: 9095
-  # address: 0.0.0.0
+  address: 0.0.0.0
   servlet:
     context-path: /identify_service
 
 spring:
   datasource:
-    url: "jdbc:mysql://localhost:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
-    # url: "jdbc:mysql://35.228.131.221:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
+    #url: "jdbc:mysql://localhost:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
+    url: "jdbc:mysql://35.228.131.221:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
     username: root
     password: root
   h2:

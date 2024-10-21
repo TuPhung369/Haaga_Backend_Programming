@@ -14,7 +14,7 @@ enter password
 run mySQL with Docker
 `docker run --name mysql-8.0.39 -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:8.0.39-debian`
 
-## Start the project
+## Start the project by localhost
 
 Step 1: Run Docker
 Step 2: Run Dbeaver
@@ -40,12 +40,13 @@ taskkill /F /PID 29388
 
 ### guide for upload the file from `Maven lifeCycle Package` to cloud
 
+- Step package: `mvn package`
 - Step 1: package the project by Maven(below Explorer in VSC) with lifeCycle -> Package
 - Step 2: open the project with Git Bash
 - Step 3: cd `target`
 - Step 4: use command for upload to Cloud
   - `scp restdemo-0.0.1-SNAPSHOT.jar bhm352@softala.haaga-helia.fi:`
-- Step 5: enter the password `t.p.....`
+- Step 5: enter the password `tuphung`
 
 ### Access the my cloud
 
