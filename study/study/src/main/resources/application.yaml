@@ -1,6 +1,6 @@
 server:
   port: 9095
-  address: 0.0.0.0
+  address: 0.0.0.0 # Using when database is on cloud
   servlet:
     context-path: /identify_service
 

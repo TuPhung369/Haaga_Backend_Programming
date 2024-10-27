@@ -48,9 +48,14 @@ taskkill /F /PID 29388
   - `scp restdemo-0.0.1-SNAPSHOT.jar bhm352@softala.haaga-helia.fi:`
 - Step 5: enter the password `tuphung`
 
-### Access the my cloud
+### Access the my cloud (Google cloud -> need to add port 0.0.0.0/0 for allowing connection)
 
 Open GitBash -> `ssh bhm352@softala.haaga-helia.fi` (enter password) (logout with `exit` command)
 
  check `java --version` version of java
  `java -jar restdemo-0.0.1-SNAPSHOT.jar`
+
+### Access to database in Haaga-Helia
+
+mysql -u bhm352 -p
+enter the password `password`

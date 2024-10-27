@@ -31,8 +31,8 @@ public class StudentListSignUpApplication {
 			drepository.save(new Department("Business"));
 			drepository.save(new Department("Law"));
 			
-			srepository.save(new Student("John", "Johnson", "john@john.com", drepository.findByName("IT").get(0)));
-			srepository.save(new Student("Katy", "Kateson", "kate@kate.com", drepository.findByName("Business").get(0)));	
+			//srepository.save(new Student("John", "Johnson", "john@john.com", drepository.findByName("IT").get(0)));
+			//srepository.save(new Student("Katy", "Kateson", "kate@kate.com", drepository.findByName("Business").get(0)));	
 			
 			// Create users: admin/admin user/user
 			AppUser user1 = new AppUser("user", "$2a$06$3jYRJrg0ghaaypjZ/.g4SethoeA51ph3UD4kZi9oPkeMTpjKU5uo6", "USER");

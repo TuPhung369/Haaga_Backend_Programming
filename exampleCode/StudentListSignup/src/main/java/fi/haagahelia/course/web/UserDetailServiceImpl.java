@@ -1,6 +1,6 @@
 package fi.haagahelia.course.web;
 
-import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -15,8 +15,11 @@ import fi.haagahelia.course.domain.AppUserRepository;
  **/
 @Service
 public class UserDetailServiceImpl implements UserDetailsService  {
-	@Autowired 
-	AppUserRepository repository;
+	private final AppUserRepository repository;
+
+	public UserDetailServiceImpl(AppUserRepository userRepository) {
+		this.repository = userRepository;
+	}
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {   
