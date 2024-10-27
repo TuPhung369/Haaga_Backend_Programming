@@ -50,7 +50,7 @@ taskkill /F /PID 29388
 
 ### Access the my cloud (Google cloud -> need to add port 0.0.0.0/0 for allowing connection)
 
-Open GitBash -> `ssh bhm352@softala.haaga-helia.fi` (enter password) (logout with `exit` command)
+Open GitBash -> `ssh bhm352@softala.haaga-helia.fi` (enter password `tuphung`) (logout with `exit` command)
 
  check `java --version` version of java
  `java -jar restdemo-0.0.1-SNAPSHOT.jar`
@@ -59,3 +59,22 @@ Open GitBash -> `ssh bhm352@softala.haaga-helia.fi` (enter password) (logout wit
 
 mysql -u bhm352 -p
 enter the password `password`
+
+`mvn package -DskipTests` => package without tests.
+
+`ssh -L 3306:localhost:3306 bhm352@softala.haaga-helia.fi` => run this command at local machine for remote port `http://softala.haaga-helia.fi:9095` as `http://localhost:9095`
+link check the front end `http://softala.haaga-helia.fi:9095/login`
+Command Breakdown
+ssh: This is the command to initiate an SSH (Secure Shell) connection, which allows secure remote access to a server.
+-L 3306:localhost:3306: This option specifies local port forwarding. It forwards traffic from your local machine's port 3306 to port 3306 on the remote server (localhost refers to the remote server in this context). Here's how it breaks down:
+3306: The first 3306 is the port on your local machine that you want to use.
+localhost: This refers to the remote server's localhost, meaning it will connect to the MySQL server running on that machine.
+3306: The second 3306 is the port on the remote machine that you want to connect to (in this case, the default MySQL port).
+`bhm352@softala.haaga-helia.fi:` This is the username (bhm352) and hostname (softala.haaga-helia.fi) of the remote server you are connecting to.
+
+Purpose of the Command
+The primary purpose of this command is to securely connect to a MySQL server running on the remote server (softala.haaga-helia.fi) from your local machine. Here’s what happens when you run this command:
+
+Secure Connection: It establishes a secure SSH connection to the remote server.
+Port Forwarding: It forwards all traffic that comes to your local machine on port 3306 to port 3306 on the remote server. This allows you to connect to the MySQL server running on the remote server as if it were running locally on your machine.
+Accessing Remote Services: You can then connect to the MySQL server using a client (like mysql or a database management tool) by connecting to localhost:3306 on your local machine.
