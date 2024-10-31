@@ -67,3 +67,24 @@ BACKEND `ssh -L 3306:localhost:3306 bhm352@softala.haaga-helia.fi` as `http://lo
 FRONTEND `ssh -L 9095:localhost:9095 bhm352@softala.haaga-helia.fi`=> run this command at local machine for remote port `http://softala.haaga-helia.fi:9095` as `http://localhost:9095`
 
 link check the front end `http://softala.haaga-helia.fi:9095/login`
+
+## start the service for running application (like virtual machine)
+
+- java version support 17 only
+- Initial step`admin with Allow the permissiong for user`
+  - `ssh jusju@localhost`
+  - `sudo su`
+  - `visudo` => set permission
+  - `exit`
+
+- Step 1: cp the file to `home/matias` (matias as user with always be running)
+  - `sudo cp bookstorerest-0.0.1-SNAPSHOT.jar /home/matias/`
+- Step 2: `sudo su` - login like superUser `root@softala`
+- Step 3: `cd /etc/systemd/system`
+- Step 4: create the service file `tuphungbookstore.service` `cp sophiabookstore.service tuphungbookstore.service`
+- Step 5: change the name of file into service file `nano tuphungbookstore.service`
+- Step 6: start the service `service tuphungbookstore start` # `service tuphungbookstore stop`
+- Step 7: check the status `service tuphungbookstore status`
+`● tuphungbookstore.service - Manage Java service
+   Loaded: loaded (/etc/systemd/system/tuphungbookstore.service; disabled; vendor preset: enabled)
+   Active: active (running) since Thu 2024-10-31 11:16:38 UTC; 12min ago`
