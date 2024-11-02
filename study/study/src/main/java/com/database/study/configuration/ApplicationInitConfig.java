@@ -1,5 +1,6 @@
 package com.database.study.configuration;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -34,10 +35,13 @@ public class ApplicationInitConfig {
   @Bean
   ApplicationRunner applicationRunner(UserRepository userRepository, UserMapper userMapper) {
     return args -> {
-      if (userRepository.findByUsername("admin").isEmpty()) {
+      if (userRepository.findByUsername("adminTom").isEmpty()) {
         UserCreationRequest adminRequest = new UserCreationRequest();
-        adminRequest.setUsername("admin");
+        adminRequest.setUsername("adminTom");
         adminRequest.setPassword("Thanhcong6(");
+        adminRequest.setFirstname("Tom");
+        adminRequest.setLastname("Admin");
+        adminRequest.setDob(LocalDate.parse("1999-09-09"));
 
         User user = userMapper.toUser(adminRequest);
         user.setPassword(passwordEncoder.encode(adminRequest.getPassword()));

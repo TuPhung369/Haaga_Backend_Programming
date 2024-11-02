@@ -10,7 +10,8 @@ import com.database.study.entity.User;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.repository.UserRepository;
-import com.database.study.enums.Role;
+import com.database.study.entity.Role;
+import com.database.study.repository.RoleRepository;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +37,7 @@ public class UserService {
   UserRepository userRepository;
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
+  RoleRepository roleRepository;
 
   @PreAuthorize("hasRole('ADMIN')")
   public List<UserResponse> getUsers() {
@@ -52,10 +55,20 @@ public class UserService {
     User user = userMapper.toUser(request);
     user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-    // Set default role as USER
-    Set<String> roles = new HashSet<>();
-    roles.add(Role.USER.name());
-    //user.setRoles(roles);
+    // Set default role as USER if roles are not provided or empty
+    Set<String> roles = request.getRoles();
+    if (roles == null || roles.isEmpty()) {
+      roles = new HashSet<>();
+      roles.add("USER");
+    }
+
+    // Map roles to Role entities and set them
+    Set<Role> roleEntities = roles.stream()
+        .map(roleName -> roleRepository.findByName(roleName)
+            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+        .collect(Collectors.toSet());
+    user.setRoles(roleEntities);
+
     log.info("User before saving: {}", user);
     // Save the user and return response
     user = userRepository.save(user);

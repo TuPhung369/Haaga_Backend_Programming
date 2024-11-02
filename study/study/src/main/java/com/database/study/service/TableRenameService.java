@@ -6,19 +6,14 @@ import javax.sql.DataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.database.study.configuration.DatabaseContext;
 
 @Service
 public class TableRenameService {
 
   private final JdbcTemplate jdbcTemplate;
-  private final DataSource primaryDataSource;
-  private final DataSource secondaryDataSource;
 
   public TableRenameService(JdbcTemplate jdbcTemplate, DataSource primaryDataSource, DataSource secondaryDataSource) {
     this.jdbcTemplate = jdbcTemplate;
-    this.primaryDataSource = primaryDataSource;
-    this.secondaryDataSource = secondaryDataSource;
   }
 
   public void renameDatabase(String oldDatabaseName, String newDatabaseName) {
@@ -85,23 +80,4 @@ public class TableRenameService {
     }
   }
 
-  public void checkAndSetDatabase() {
-    try {
-      // Try connecting to the primary database
-      jdbcTemplate.setDataSource(primaryDataSource);
-      // Perform a simple query to check if the primary database is accessible
-      jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-      DatabaseContext.setCurrentDatabase("PRIMARY");
-    } catch (Exception e) {
-      System.out.println("Primary database not available, switching to secondary...");
-      try {
-        // If primary is not available, try the secondary database
-        jdbcTemplate.setDataSource(secondaryDataSource);
-        jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-        DatabaseContext.setCurrentDatabase("SECONDARY");
-      } catch (Exception ex) {
-        System.err.println("Both databases are unavailable: " + ex.getMessage());
-      }
-    }
-  }
 }

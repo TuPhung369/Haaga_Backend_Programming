@@ -15,7 +15,8 @@ public enum ErrorCode {
   ACCESS_DENIED(4030, "You do not have permission", HttpStatus.FORBIDDEN, "403", "HIGH"), // Forbidden
   USER_NOT_FOUND(4040, "User not found", HttpStatus.NOT_FOUND, "404", "LOW"), // Not found
   USER_NOT_EXISTS(4041, "User does not exist", HttpStatus.NOT_FOUND, "404", "LOW"), // Similar to Not found
-  USER_EXISTS(4090, "User already exists", HttpStatus.CONFLICT, "409", "MEDIUM"); // Conflict
+  USER_EXISTS(4090, "User already exists", HttpStatus.CONFLICT, "409", "MEDIUM"), // Conflict
+  ROLE_NOT_FOUND(4042, "Role not found", HttpStatus.NOT_FOUND, "404", "LOW"); // Not found
 
   ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
     this.code = code;

@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.FetchType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -30,7 +31,7 @@ public class User {
   LocalDate dob;
 
   // Define many-to-many relationship with Role
-  @ManyToMany
+  @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_name"))
   Set<Role> roles;
 }
