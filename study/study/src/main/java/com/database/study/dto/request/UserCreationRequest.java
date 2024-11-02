@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.Set;
+import java.util.List;
 import lombok.experimental.FieldDefaults;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
@@ -37,5 +37,5 @@ public class UserCreationRequest {
   @NotNull(message = "Date of birth is required")
   LocalDate dob;
 
-  Set<String> roles;
+  List<String> roles;
 }

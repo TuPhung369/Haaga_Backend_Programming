@@ -44,13 +44,13 @@ public class RoleController {
         .build();
   }
 
-  @DeleteMapping("/{Role}")
-  ApiResponse<String> deleteRole(@PathVariable String Role) {
-    roleService.deleteRole(Role);
+  @DeleteMapping("/{role}")
+  ApiResponse<String> deleteRole(@PathVariable String role) {
+    roleService.deleteRole(role);
     return ApiResponse.<String>builder()
         .code(2000) // Success code or you can set a specific code
         .message("Role successfully deleted")
-        .result("Role Name: " + Role) // Include any additional details if needed
+        .result("Role Name: " + role) // Include any additional details if needed
         .build();
   }
 }

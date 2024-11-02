@@ -25,7 +25,7 @@ public class StudentListApplication {
 	
 	@Bean
 	public CommandLineRunner studentDemo(StudentRepository srepository, DepartmentRepository drepository) {
-		return (args) -> {
+		return (_) -> {
 			log.info("save a couple of students");
 			
 			Stream.of("IT", "Business", "Law").forEach(name -> {

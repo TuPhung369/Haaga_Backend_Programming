@@ -18,14 +18,11 @@ public class Role {
   String name;
   String description;
 
-  @ManyToMany(mappedBy = "roles")
-  Set<User> users;
-
   @ManyToMany
   Set<Permission> permissions;
 
-  // Constructor to create Role from a String
   public Role(String name) {
     this.name = name;
   }
+
 }

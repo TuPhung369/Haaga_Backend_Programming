@@ -18,7 +18,7 @@ public class DatabasedemoApplication {
 	   
 	@Bean
 	public CommandLineRunner demo(StudentDAOImpl studentDAO) {
-		return (args) -> {
+		return (_) -> {
 			// Database is created by using resources/schema.sql
 			
 			// Insert some demo data

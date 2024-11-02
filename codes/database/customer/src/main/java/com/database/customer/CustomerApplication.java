@@ -21,7 +21,7 @@ public class CustomerApplication {
 
 	@Bean
 	public CommandLineRunner demo(CustomerDAOImpl customerDAO) {
-		return (args) -> {
+		return (_) -> {
 
 			// Insert some demo data
 			log.info("Inserting demo data into the database");

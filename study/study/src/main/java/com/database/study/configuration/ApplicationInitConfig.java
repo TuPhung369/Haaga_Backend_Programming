@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.database.study.repository.UserRepository;
-import com.database.study.service.TableRenameService;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -53,11 +52,6 @@ public class ApplicationInitConfig {
         log.warn("Admin user created with default password: admin");
       }
     };
-  }
-
-  @Bean
-  public ApplicationRunner renameDatabaseOnStartup(TableRenameService tableRenameService) {
-    return args -> tableRenameService.renameDatabase("RECOVER_YOUR_DATA", "identify_service");
   }
 
 }

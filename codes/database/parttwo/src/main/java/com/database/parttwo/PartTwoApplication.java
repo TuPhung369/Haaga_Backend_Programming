@@ -23,7 +23,7 @@ public class PartTwoApplication {
 
     @Bean
     public CommandLineRunner initData(BookRepository bookRepository, CategoryRepository categoryRepository) {
-        return args -> {
+        return (_) -> {
             log.info("save a couple of categories");
             Category fiction = new Category();
             fiction.setName("Fiction");

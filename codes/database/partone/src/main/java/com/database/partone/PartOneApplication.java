@@ -21,7 +21,7 @@ public class PartOneApplication {
 
     @Bean
     public CommandLineRunner bookDemo(BookRepository repository) {
-        return (args) -> {
+        return (_) -> {
             log.info("save a couple of books");
             repository.save(new Book("Ernest Hemingway", "A Farewell to Arms", "1232323-21", "1929"));
             repository.save(new Book("George Orwell", "Animal Farm", "2212343-5", "1945"));

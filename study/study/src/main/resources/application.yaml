@@ -8,9 +8,9 @@ spring:
   datasource:
     #url: "jdbc:mysql://localhost:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
     #Step 1: Running with the name RECOVER_YOUR_DATA => the script spring boot will change the name of dataBase to identify_service
-    #url: "jdbc:mysql://35.228.131.221:3306/RECOVER_YOUR_DATA?useSSL=false&allowPublicKeyRetrieval=true"
+    url: "jdbc:mysql://35.228.131.221:3306/RECOVER_YOUR_DATA?useSSL=false&allowPublicKeyRetrieval=true"
     #Step 2: Running with the name identify_service
-    url: "jdbc:mysql://35.228.131.221:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
+    #url: "jdbc:mysql://35.228.131.221:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
     username: root
     password: root
   h2:
@@ -20,7 +20,7 @@ spring:
     active: dev
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:

@@ -1,6 +1,8 @@
 package com.database.study.mapper;
 
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.response.PermissionResponse;
+import com.database.study.dto.response.RoleResponse;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.entity.Role;
 import com.database.study.entity.User;
@@ -16,39 +18,41 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
 
-  @Named("mapRoles")
-  default Set<Role> map(Set<String> roles) {
+  // Method to map roles from Role entity to RoleResponse DTO
+  @Named("mapRolesToRoleResponse")
+  default Set<RoleResponse> mapRolesToRoleResponse(Set<Role> roles) {
     if (roles == null) {
       return null;
     }
-    return roles.stream().map(Role::new).collect(Collectors.toSet());
+    return roles.stream()
+        .map(role -> RoleResponse.builder() // Using builder here
+            .name(role.getName())
+            .description(role.getDescription())
+            .permissions(role.getPermissions() != null ? role.getPermissions().stream()
+                .map(permission -> new PermissionResponse(permission.getName(), permission.getDescription()))
+                .collect(Collectors.toSet()) : null)
+            .build())
+        .collect(Collectors.toSet());
   }
 
-  @Named("mapToStringSet")
-  default Set<String> mapToStringSet(Set<Role> roles) {
-    if (roles == null) {
-      return null;
-    }
-    return roles.stream().map(Role::getName).collect(Collectors.toSet());
-  }
-
-  // Maps a creation request to a new user entity
+  @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   @Mapping(target = "id", ignore = true)
-  @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRoles")
   User toUser(UserCreationRequest request);
 
-  @Mapping(target = "roles", source = "roles", qualifiedByName = "rolesToStringSet")
+  @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRolesToRoleResponse")
+  @Mapping(target = "id", source = "id")
   UserResponse toUserResponse(User user);
 
+  // Convert roles to string set for mapping if needed
   @Named("rolesToStringSet")
   default Set<String> rolesToStringSet(Set<Role> roles) {
     return roles.stream()
-        .map(Role::getName) // Extract the role name
+        .map(Role::getName)
         .collect(Collectors.toSet());
   }
 
   // Updates an existing user entity with request data, ignoring the 'id' field
   @Mapping(target = "id", ignore = true)
-  @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRoles")
+  @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   void updateUser(@MappingTarget User user, UserCreationRequest request);
 }

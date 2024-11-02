@@ -25,7 +25,7 @@ public class StudentListApplication {
 	
 	@Bean
 	public CommandLineRunner studentDemo(StudentRepository srepository, DepartmentRepository drepository, AppUserRepository urepository) {
-		return (args) -> {
+		return (_) -> {
 			log.info("save a couple of students");
 			drepository.save(new Department("IT"));
 			drepository.save(new Department("Business"));

@@ -3,6 +3,8 @@ package com.database.study.entity;
 import java.time.LocalDate;
 import java.util.UUID;
 import java.util.Set;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -10,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
-import jakarta.persistence.FetchType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -30,8 +31,7 @@ public class User {
   String lastname;
   LocalDate dob;
 
-  // Define many-to-many relationship with Role
-  @ManyToMany(fetch = FetchType.EAGER)
+  @ManyToMany(cascade = CascadeType.ALL)
   @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_name"))
   Set<Role> roles;
 }

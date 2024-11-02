@@ -21,7 +21,7 @@ public class StudentListApplication {
  
 	@Bean
 	public CommandLineRunner studentDemo(StudentRepository repository) {
-		return (args) -> {
+		return (_) -> {
 			log.info("save a couple of students");
 			repository.save(new Student("Aku", "Johnson", "john@john.com"));
 			repository.save(new Student("Ankka", "Kateson", "kate@kate.com"));	

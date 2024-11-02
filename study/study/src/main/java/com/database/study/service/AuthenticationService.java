@@ -1,7 +1,7 @@
 package com.database.study.service;
 
 import org.springframework.stereotype.Service;
-//import org.springframework.util.CollectionUtils;
+import org.springframework.util.CollectionUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.database.study.dto.request.AuthenticationRequest;
@@ -132,9 +132,15 @@ public class AuthenticationService {
   private String buildScope(com.database.study.entity.User user) {
     // Build the scope based on user roles
     StringJoiner scopeJoiner = new StringJoiner(" ");
-    // if (!CollectionUtils.isEmpty(user.getRoles())) {
-    //   user.getRoles().forEach(scopeJoiner::add); // Use scopeJoiner instead of stringJoiner
-    // }
+    if (!CollectionUtils.isEmpty(user.getRoles())) {
+      user.getRoles().forEach(role -> {
+        scopeJoiner.add("ROLE_" + role.getName());
+        if (!CollectionUtils.isEmpty(role.getPermissions())) {
+          role.getPermissions()
+              .forEach(permission -> scopeJoiner.add(permission.getName()));
+        }
+      }); // Use scopeJoiner instead of stringJoiner
+    }
     return scopeJoiner.toString();
   }
 }
