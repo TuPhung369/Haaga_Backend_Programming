@@ -88,4 +88,3 @@ link check the front end `http://softala.haaga-helia.fi:9095/login`
 `● tuphungbookstore.service - Manage Java service
    Loaded: loaded (/etc/systemd/system/tuphungbookstore.service; disabled; vendor preset: enabled)
    Active: active (running) since Thu 2024-10-31 11:16:38 UTC; 12min ago`
-`history | grep reload` checking daemon-reload
