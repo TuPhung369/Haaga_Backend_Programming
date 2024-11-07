@@ -1,11 +1,15 @@
-server:
-  port: 9095
-  servlet:
-    context-path: /identify_service
-
 spring:
-  profiles:
-    active: dev # This sets the default active profile (can be overridden with environment variables)
+  datasource:
+    url: "jdbc:mysql://35.228.131.221:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  # sql:
+  #   init:
+  #     mode: always
+  # schema-locations: classpath:schema.sql
+  # data-locations: classpath:data.sql
+
   h2:
     console:
       enabled: true
@@ -24,3 +28,5 @@ logging:
     "[org.hibernate.type]": trace # Show SQL parameters
     "[org.springframework]": info # Spring framework logs
     root: info # Global log level
+
+
