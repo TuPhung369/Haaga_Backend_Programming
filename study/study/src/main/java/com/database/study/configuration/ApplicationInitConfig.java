@@ -120,8 +120,6 @@ public class ApplicationInitConfig {
       role.setDescription(description);
       roleRepository.save(role);
       // log.info("Role '{}' created", roleName);
-    } else {
-      log.info("Role '{}' already exists", roleName);
     }
   }
 
@@ -136,6 +134,9 @@ public class ApplicationInitConfig {
   }
 
   // Assign permissions to roles
+  // @Transactional ensures atomic operations, consistency, automatic transaction
+  // management, and
+  // persistence context management within method execution.
   @Transactional
   void assignPermissionToRole(String roleName, String permissionName) {
     Role role = roleRepository.findByNameWithPermissions(roleName).orElse(null);
