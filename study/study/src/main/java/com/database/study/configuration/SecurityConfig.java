@@ -21,7 +21,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 
 import com.database.study.service.AuthenticationService;
-import com.database.study.enums.Role;
+import com.database.study.enums.ENUMS;
 
 @Configuration
 @EnableWebSecurity
@@ -35,7 +35,7 @@ public class SecurityConfig {
     httpSecurity
         .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
-            .requestMatchers(HttpMethod.GET, "/users").hasRole(Role.ADMIN.name())
+            .requestMatchers(HttpMethod.GET, "/users").hasRole(ENUMS.Role.ADMIN.name())
             .anyRequest().authenticated());
 
     // Configure OAuth2 Resource Server for JWT

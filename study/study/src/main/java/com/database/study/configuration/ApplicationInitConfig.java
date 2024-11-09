@@ -7,6 +7,7 @@ import java.util.Set;
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.entity.User;
 import com.database.study.entity.Role;
+import com.database.study.enums.ENUMS;
 import com.database.study.mapper.UserMapper;
 
 import org.springframework.boot.ApplicationRunner;
@@ -46,24 +47,28 @@ public class ApplicationInitConfig {
     return args -> {
       try {
         // Create roles if not exists
-        createRoleIfNotExists("ADMIN", "Admin role");
-        createRoleIfNotExists("USER", "User role");
+        createRoleIfNotExists(ENUMS.Role.ADMIN.name(), ENUMS.Role.ADMIN.getDescription());
+        createRoleIfNotExists(ENUMS.Role.MANAGER.name(), ENUMS.Role.MANAGER.getDescription());
+        createRoleIfNotExists(ENUMS.Role.USER.name(), ENUMS.Role.USER.getDescription());
         // Optionally clear the context here
         entityManager.clear();
         // Create permissions if not exists
-        createPermissionIfNotExists("UPDATE_POST", "Update Post permission");
-        createPermissionIfNotExists("READ_POST", "Read Post permission");
-        createPermissionIfNotExists("APPROVE_POST", "Approve Post permission");
-        createPermissionIfNotExists("REJECT_POST", "Reject Post permission");
+        createPermissionIfNotExists(ENUMS.Permission.CREATE.name(), ENUMS.Permission.CREATE.getDescription());
+        createPermissionIfNotExists(ENUMS.Permission.READ.name(), ENUMS.Permission.READ.getDescription());
+        createPermissionIfNotExists(ENUMS.Permission.UPDATE.name(), ENUMS.Permission.UPDATE.getDescription());
+        createPermissionIfNotExists(ENUMS.Permission.DELETE.name(), ENUMS.Permission.DELETE.getDescription());
 
         // Assign permissions to roles
-        assignPermissionToRole("ADMIN", "APPROVE_POST");
-        assignPermissionToRole("ADMIN", "UPDATE_POST");
-        assignPermissionToRole("ADMIN", "READ_POST");
-        assignPermissionToRole("ADMIN", "REJECT_POST");
-        assignPermissionToRole("USER", "UPDATE_POST");
-        assignPermissionToRole("USER", "READ_POST");
-        assignPermissionToRole("USER", "REJECT_POST");
+        assignPermissionToRole(ENUMS.Role.ADMIN.name(), ENUMS.Permission.CREATE.name());
+        assignPermissionToRole(ENUMS.Role.ADMIN.name(), ENUMS.Permission.READ.name());
+        assignPermissionToRole(ENUMS.Role.ADMIN.name(), ENUMS.Permission.UPDATE.name());
+        assignPermissionToRole(ENUMS.Role.ADMIN.name(), ENUMS.Permission.DELETE.name());
+        assignPermissionToRole(ENUMS.Role.MANAGER.name(), ENUMS.Permission.CREATE.name());
+        assignPermissionToRole(ENUMS.Role.MANAGER.name(), ENUMS.Permission.READ.name());
+        assignPermissionToRole(ENUMS.Role.MANAGER.name(), ENUMS.Permission.UPDATE.name());
+        assignPermissionToRole(ENUMS.Role.USER.name(), ENUMS.Permission.READ.name());
+        assignPermissionToRole(ENUMS.Role.USER.name(), ENUMS.Permission.UPDATE.name());
+
         // Create admin user if not exists
         if (userRepository.findByUsername("adminTom").isEmpty()) {
           UserCreationRequest adminRequest = new UserCreationRequest();
@@ -78,7 +83,8 @@ public class ApplicationInitConfig {
 
           // Fetch Role entities and assign to the User
           Set<Role> roleEntities = new HashSet<>();
-          Role adminRole = roleRepository.findByName("ADMIN")
+          Role adminRole = roleRepository.findByName(ENUMS.Role.ADMIN
+              .name())
               .orElseThrow(() -> new RuntimeException("Role not found: ADMIN"));
           roleEntities.add(adminRole);
           user.setRoles(roleEntities);
