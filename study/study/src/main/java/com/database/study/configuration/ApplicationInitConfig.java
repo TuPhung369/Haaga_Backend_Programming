@@ -50,13 +50,17 @@ public class ApplicationInitConfig {
         createRoleIfNotExists(ENUMS.Role.ADMIN.name(), ENUMS.Role.ADMIN.getDescription());
         createRoleIfNotExists(ENUMS.Role.MANAGER.name(), ENUMS.Role.MANAGER.getDescription());
         createRoleIfNotExists(ENUMS.Role.USER.name(), ENUMS.Role.USER.getDescription());
-        // Optionally clear the context here
-        entityManager.clear();
+
         // Create permissions if not exists
         createPermissionIfNotExists(ENUMS.Permission.CREATE.name(), ENUMS.Permission.CREATE.getDescription());
         createPermissionIfNotExists(ENUMS.Permission.READ.name(), ENUMS.Permission.READ.getDescription());
         createPermissionIfNotExists(ENUMS.Permission.UPDATE.name(), ENUMS.Permission.UPDATE.getDescription());
         createPermissionIfNotExists(ENUMS.Permission.DELETE.name(), ENUMS.Permission.DELETE.getDescription());
+
+        // entityManager.clear() isolates changes, prevents unintended persistence, and
+        // ensures independent execution by detaching entities between different
+        // operations or functions.
+        entityManager.clear();
 
         // Assign permissions to roles
         assignPermissionToRole(ENUMS.Role.ADMIN.name(), ENUMS.Permission.CREATE.name());
@@ -102,9 +106,8 @@ public class ApplicationInitConfig {
           .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
       roleEntities.add(role);
       user.setRoles(roleEntities);
-      log.info("User before saving: {}", user);
       userRepository.save(user);
-      log.warn("{} user created with default password: {}", roleName, password);
+      log.warn("{} user created with\nUsername: {}\nPassword: {}", roleName, user.getUsername(), password);
     }
   }
 

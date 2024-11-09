@@ -10,6 +10,7 @@ import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.repository.UserRepository;
 import com.database.study.entity.Role;
+import com.database.study.enums.ENUMS;
 import com.database.study.repository.RoleRepository;
 
 import lombok.AccessLevel;
@@ -60,7 +61,7 @@ public class UserService {
     List<String> roles = request.getRoles();
     if (roles == null || roles.isEmpty()) {
       roles = new ArrayList<>();
-      roles.add("USER");
+      roles.add(ENUMS.Role.USER.name());
     }
 
     // Fetch Role entities based on role names
