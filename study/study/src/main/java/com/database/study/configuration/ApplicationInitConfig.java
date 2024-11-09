@@ -94,6 +94,54 @@ public class ApplicationInitConfig {
           userRepository.save(user);
           log.warn("Admin user created with default password: Thanhcong6(");
         }
+
+        // Create Manager user if not exists
+        if (userRepository.findByUsername("managerTom").isEmpty()) {
+          UserCreationRequest managerRequest = new UserCreationRequest();
+          managerRequest.setUsername("managerTom");
+          managerRequest.setPassword("Thanhcong6(");
+          managerRequest.setFirstname("Tom");
+          managerRequest.setLastname("Manager");
+          managerRequest.setDob(LocalDate.parse("2003-03-03"));
+
+          User user = userMapper.toUser(managerRequest);
+          user.setPassword(passwordEncoder.encode(managerRequest.getPassword()));
+
+          // Fetch Role entities and assign to the User
+          Set<Role> roleEntities = new HashSet<>();
+          Role managerRole = roleRepository.findByName(ENUMS.Role.MANAGER
+              .name())
+              .orElseThrow(() -> new RuntimeException("Role not found: MANAGER"));
+          roleEntities.add(managerRole);
+          user.setRoles(roleEntities);
+
+          userRepository.save(user);
+          log.warn("Manager user created with default password: Thanhcong6(");
+        }
+
+        // Create User user if not exists
+        if (userRepository.findByUsername("userTom").isEmpty()) {
+          UserCreationRequest userRequest = new UserCreationRequest();
+          userRequest.setUsername("userTom");
+          userRequest.setPassword("Thanhcong6(");
+          userRequest.setFirstname("Tom");
+          userRequest.setLastname("USER");
+          userRequest.setDob(LocalDate.parse("2006-06-06"));
+
+          User user = userMapper.toUser(userRequest);
+          user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+
+          // Fetch Role entities and assign to the User
+          Set<Role> roleEntities = new HashSet<>();
+          Role userRole = roleRepository.findByName(ENUMS.Role.USER
+              .name())
+              .orElseThrow(() -> new RuntimeException("Role not found: USER"));
+          roleEntities.add(userRole);
+          user.setRoles(roleEntities);
+
+          userRepository.save(user);
+          log.warn("USer user created with default password: Thanhcong6(");
+        }
       } catch (Exception e) {
         log.error("Error during application initialization", e);
       }
