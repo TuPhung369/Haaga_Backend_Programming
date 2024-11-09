@@ -24,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.transaction.Transactional;
+import jakarta.persistence.EntityManager;
 
 @Configuration
 @RequiredArgsConstructor
@@ -35,68 +37,97 @@ public class ApplicationInitConfig {
   PasswordEncoder passwordEncoder;
   RoleRepository roleRepository;
   PermissionRepository permissionRepository;
+  UserRepository userRepository;
+  UserMapper userMapper;
+  EntityManager entityManager;
 
   @Bean
-  ApplicationRunner applicationRunner(UserRepository userRepository, UserMapper userMapper) {
+  ApplicationRunner applicationRunner() {
     return args -> {
-      Role adminRole = roleRepository.findByName("ADMIN").orElseGet(() -> {
-        Role role = new Role();
-        role.setName("ADMIN");
-        role.setDescription("Admin role");
-        roleRepository.save(role);
-        return role;
-      });
+      try {
+        // Create roles if not exists
+        createRoleIfNotExists("ADMIN", "Admin role");
+        createRoleIfNotExists("USER", "User role");
+        // Optionally clear the context here
+        entityManager.clear();
+        // Create permissions if not exists
+        createPermissionIfNotExists("UPDATE_POST", "Update Post permission");
+        createPermissionIfNotExists("READ_POST", "Read Post permission");
+        createPermissionIfNotExists("APPROVE_POST", "Approve Post permission");
+        createPermissionIfNotExists("REJECT_POST", "Reject Post permission");
 
-      if (roleRepository.findByName("USER").isEmpty()) {
-        Role userRole = new Role();
-        userRole.setName("USER");
-        userRole.setDescription("User role");
-        roleRepository.save(userRole);
-      }
-      if (permissionRepository.findByName("UPDATE_POST").isEmpty()) {
-        Permission updatePermission = new Permission();
-        updatePermission.setName("UPDATE_POST");
-        updatePermission.setDescription("Update Post permission");
-        permissionRepository.save(updatePermission);
-      }
-      if (permissionRepository.findByName("READ_POST").isEmpty()) {
-        Permission readPermission = new Permission();
-        readPermission.setName("READ_POST");
-        readPermission.setDescription("Read Post permission");
-        permissionRepository.save(readPermission);
-      }
+        // Assign permissions to roles
+        assignPermissionToRole("ADMIN", "APPROVE_POST");
+        assignPermissionToRole("ADMIN", "UPDATE_POST");
+        assignPermissionToRole("ADMIN", "READ_POST");
+        assignPermissionToRole("ADMIN", "REJECT_POST");
+        assignPermissionToRole("USER", "UPDATE_POST");
+        assignPermissionToRole("USER", "READ_POST");
+        assignPermissionToRole("USER", "REJECT_POST");
+        // Create admin user if not exists
+        if (userRepository.findByUsername("adminTom").isEmpty()) {
+          UserCreationRequest adminRequest = new UserCreationRequest();
+          adminRequest.setUsername("adminTom");
+          adminRequest.setPassword("Thanhcong6(");
+          adminRequest.setFirstname("Tom");
+          adminRequest.setLastname("Admin");
+          adminRequest.setDob(LocalDate.parse("1999-09-09"));
 
-      if (permissionRepository.findByName("APPROVE_POST").isEmpty()) {
-        Permission approvePermission = new Permission();
-        approvePermission.setName("APPROVE_POST");
-        approvePermission.setDescription("Approve Post permission");
-        permissionRepository.save(approvePermission);
-      }
-      if (permissionRepository.findByName("REJECT_POST").isEmpty()) {
-        Permission rejectPermission = new Permission();
-        rejectPermission.setName("REJECT_POST");
-        rejectPermission.setDescription("Reject Post permission");
-        permissionRepository.save(rejectPermission);
-      }
+          User user = userMapper.toUser(adminRequest);
+          user.setPassword(passwordEncoder.encode(adminRequest.getPassword()));
 
-      if (userRepository.findByUsername("adminTom").isEmpty()) {
-        UserCreationRequest adminRequest = new UserCreationRequest();
-        adminRequest.setUsername("adminTom");
-        adminRequest.setPassword("Thanhcong6(");
-        adminRequest.setFirstname("Tom");
-        adminRequest.setLastname("Admin");
-        adminRequest.setDob(LocalDate.parse("1999-09-09"));
+          // Fetch Role entities and assign to the User
+          Set<Role> roleEntities = new HashSet<>();
+          Role adminRole = roleRepository.findByName("ADMIN")
+              .orElseThrow(() -> new RuntimeException("Role not found: ADMIN"));
+          roleEntities.add(adminRole);
+          user.setRoles(roleEntities);
 
-        User user = userMapper.toUser(adminRequest);
-        user.setPassword(passwordEncoder.encode(adminRequest.getPassword()));
-        Set<String> roles = new HashSet<>();
-        roles.add(adminRole.getName());
-
-        log.info("Admin user before saving: {}", user);
-        userRepository.save(user);
-        log.warn("Admin user created with default password: Thanhcong6(");
+          log.info("STEP 2: Role entities: {}", roleEntities);
+          log.info("Admin user before saving: {}", user);
+          userRepository.save(user);
+          log.warn("Admin user created with default password: Thanhcong6(");
+        }
+      } catch (Exception e) {
+        log.error("Error during application initialization", e);
       }
     };
   }
 
+  // Create role if not exists
+  void createRoleIfNotExists(String roleName, String description) {
+    if (roleRepository.findByName(roleName).isEmpty()) {
+      log.info("Creating role: {}", roleName);
+      Role role = new Role();
+      role.setName(roleName);
+      role.setDescription(description);
+      roleRepository.save(role);
+      log.info("Role '{}' created", roleName);
+    } else {
+      log.info("Role '{}' already exists", roleName);
+    }
+  }
+
+  // Create permission if not exists
+  void createPermissionIfNotExists(String permissionName, String description) {
+    if (permissionRepository.findByName(permissionName).isEmpty()) {
+      Permission permission = new Permission();
+      permission.setName(permissionName);
+      permission.setDescription(description);
+      permissionRepository.save(permission);
+    }
+  }
+
+  // Assign permissions to roles
+  @Transactional
+  void assignPermissionToRole(String roleName, String permissionName) {
+    Role role = roleRepository.findByNameWithPermissions(roleName).orElse(null);
+    Permission permission = permissionRepository.findByName(permissionName).orElse(null);
+    if (role != null && permission != null) {
+      role.getPermissions().add(permission);
+      roleRepository.save(role);
+    } else {
+      log.warn("Role or Permission not found: {} - {}", roleName, permissionName);
+    }
+  }
 }

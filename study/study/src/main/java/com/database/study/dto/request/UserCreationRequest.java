@@ -37,5 +37,6 @@ public class UserCreationRequest {
   @NotNull(message = "Date of birth is required")
   LocalDate dob;
 
+  @NotNull(message = "Roles cannot be null")
   List<String> roles;
 }
