@@ -69,83 +69,43 @@ public class ApplicationInitConfig {
         assignPermissionToRole(ENUMS.Role.USER.name(), ENUMS.Permission.READ.name());
         assignPermissionToRole(ENUMS.Role.USER.name(), ENUMS.Permission.UPDATE.name());
 
-        // Create admin user if not exists
-        if (userRepository.findByUsername("adminTom").isEmpty()) {
-          UserCreationRequest adminRequest = new UserCreationRequest();
-          adminRequest.setUsername("adminTom");
-          adminRequest.setPassword("Thanhcong6(");
-          adminRequest.setFirstname("Tom");
-          adminRequest.setLastname("Admin");
-          adminRequest.setDob(LocalDate.parse("1999-09-09"));
+        // Create 3 initial users (Admin, Manager, User) if not exists
+        createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
+            ENUMS.Role.ADMIN.name());
+        createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("2003-03-03"),
+            ENUMS.Role.MANAGER.name());
+        createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("2006-06-06"),
+            ENUMS.Role.USER.name());
 
-          User user = userMapper.toUser(adminRequest);
-          user.setPassword(passwordEncoder.encode(adminRequest.getPassword()));
-
-          // Fetch Role entities and assign to the User
-          Set<Role> roleEntities = new HashSet<>();
-          Role adminRole = roleRepository.findByName(ENUMS.Role.ADMIN
-              .name())
-              .orElseThrow(() -> new RuntimeException("Role not found: ADMIN"));
-          roleEntities.add(adminRole);
-          user.setRoles(roleEntities);
-
-          // log.info("STEP 2: Role entities: {}", roleEntities);
-          // log.info("Admin user before saving: {}", user);
-          userRepository.save(user);
-          log.warn("Admin user created with default password: Thanhcong6(");
-        }
-
-        // Create Manager user if not exists
-        if (userRepository.findByUsername("managerTom").isEmpty()) {
-          UserCreationRequest managerRequest = new UserCreationRequest();
-          managerRequest.setUsername("managerTom");
-          managerRequest.setPassword("Thanhcong6(");
-          managerRequest.setFirstname("Tom");
-          managerRequest.setLastname("Manager");
-          managerRequest.setDob(LocalDate.parse("2003-03-03"));
-
-          User user = userMapper.toUser(managerRequest);
-          user.setPassword(passwordEncoder.encode(managerRequest.getPassword()));
-
-          // Fetch Role entities and assign to the User
-          Set<Role> roleEntities = new HashSet<>();
-          Role managerRole = roleRepository.findByName(ENUMS.Role.MANAGER
-              .name())
-              .orElseThrow(() -> new RuntimeException("Role not found: MANAGER"));
-          roleEntities.add(managerRole);
-          user.setRoles(roleEntities);
-
-          userRepository.save(user);
-          log.warn("Manager user created with default password: Thanhcong6(");
-        }
-
-        // Create User user if not exists
-        if (userRepository.findByUsername("userTom").isEmpty()) {
-          UserCreationRequest userRequest = new UserCreationRequest();
-          userRequest.setUsername("userTom");
-          userRequest.setPassword("Thanhcong6(");
-          userRequest.setFirstname("Tom");
-          userRequest.setLastname("USER");
-          userRequest.setDob(LocalDate.parse("2006-06-06"));
-
-          User user = userMapper.toUser(userRequest);
-          user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-
-          // Fetch Role entities and assign to the User
-          Set<Role> roleEntities = new HashSet<>();
-          Role userRole = roleRepository.findByName(ENUMS.Role.USER
-              .name())
-              .orElseThrow(() -> new RuntimeException("Role not found: USER"));
-          roleEntities.add(userRole);
-          user.setRoles(roleEntities);
-
-          userRepository.save(user);
-          log.warn("USer user created with default password: Thanhcong6(");
-        }
       } catch (Exception e) {
         log.error("Error during application initialization", e);
       }
     };
+  }
+
+  private void createUserIfNotExists(String username, String password, String firstname, String lastname, LocalDate dob,
+      String roleName) {
+    if (userRepository.findByUsername(username).isEmpty()) {
+      UserCreationRequest userRequest = new UserCreationRequest();
+      userRequest.setUsername(username);
+      userRequest.setPassword(password);
+      userRequest.setFirstname(firstname);
+      userRequest.setLastname(lastname);
+      userRequest.setDob(dob);
+
+      User user = userMapper.toUser(userRequest);
+      user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+
+      // Fetch Role entities and assign to the User
+      Set<Role> roleEntities = new HashSet<>();
+      Role role = roleRepository.findByName(roleName)
+          .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
+      roleEntities.add(role);
+      user.setRoles(roleEntities);
+      log.info("User before saving: {}", user);
+      userRepository.save(user);
+      log.warn("{} user created with default password: {}", roleName, password);
+    }
   }
 
   // Create role if not exists
