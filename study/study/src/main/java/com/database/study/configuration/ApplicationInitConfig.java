@@ -83,8 +83,8 @@ public class ApplicationInitConfig {
           roleEntities.add(adminRole);
           user.setRoles(roleEntities);
 
-          log.info("STEP 2: Role entities: {}", roleEntities);
-          log.info("Admin user before saving: {}", user);
+          // log.info("STEP 2: Role entities: {}", roleEntities);
+          // log.info("Admin user before saving: {}", user);
           userRepository.save(user);
           log.warn("Admin user created with default password: Thanhcong6(");
         }
@@ -97,12 +97,12 @@ public class ApplicationInitConfig {
   // Create role if not exists
   void createRoleIfNotExists(String roleName, String description) {
     if (roleRepository.findByName(roleName).isEmpty()) {
-      log.info("Creating role: {}", roleName);
+      // log.info("Creating role: {}", roleName);
       Role role = new Role();
       role.setName(roleName);
       role.setDescription(description);
       roleRepository.save(role);
-      log.info("Role '{}' created", roleName);
+      // log.info("Role '{}' created", roleName);
     } else {
       log.info("Role '{}' already exists", roleName);
     }
