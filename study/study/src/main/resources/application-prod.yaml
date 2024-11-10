@@ -23,10 +23,10 @@ spring:
 
 logging:
   level:
-    "[com.database.study]": info # Detailed logs for your application's package
-    "[org.hibernate.SQL]": warn # Show SQL queries
-    "[org.hibernate.type]": trace # Show SQL parameters
-    "[org.springframework]": info # Spring framework logs
-    root: info # Global log level
+    com.database.study: INFO # Detailed logs for your application's package
+    org.hibernate.SQL: WARN # Show SQL queries
+    org.hibernate.type: TRACE # Show SQL parameters
+    org.springframework: DEBUG # Spring framework logs
+  root: INFO # Global log level
 
 

@@ -35,7 +35,6 @@ import java.security.SecureRandom;
 import java.util.Date;
 import java.util.StringJoiner;
 import java.util.UUID;
-import java.util.Base64;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +83,7 @@ public class AuthenticationService {
     Date expiryTime = signedToken.getJWTClaimsSet().getExpirationTime();
     var user = userRepository.findByUsername(signedToken.getJWTClaimsSet().getSubject())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
     InvalidatedToken invalidatedToken = InvalidatedToken.builder()
         .id(jwtId)
         .expiryTime(expiryTime)
@@ -99,24 +99,29 @@ public class AuthenticationService {
     Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
     boolean verified = signedJWT.verify(verifier) && expiryTime.after(new Date());
     if (!verified) {
-      log.warn("Token verification failed. Verified: {}, Expired: {}", signedJWT.verify(verifier),
-          expiryTime.before(new Date()));
       throw new AppException(ErrorCode.INVALID_TOKEN);
+    }
+
+    if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID())) {
+      throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
     }
     return signedJWT;
   }
 
   public IntrospectResponse introspect(IntrospectRequest request) {
+    String token = request.getToken();
+    boolean isValid;
+
     try {
-      String token = request.getToken();
       verifyToken(token);
-      return IntrospectResponse.builder()
-          .valid(true)
-          .build();
+      isValid = true;
     } catch (Exception e) {
-      log.error("Error during token introspection: {}", e.getMessage(), e);
-      throw new AppException(ErrorCode.GENERAL_EXCEPTION);
+      isValid = false;
     }
+
+    return IntrospectResponse.builder()
+        .valid(isValid)
+        .build();
   }
 
   private String generateToken(com.database.study.entity.User user) {
@@ -126,7 +131,7 @@ public class AuthenticationService {
           .subject(user.getUsername())
           .issuer("tommem.com")
           .issueTime(new Date())
-          .expirationTime(new Date(new Date().getTime() + 60 * 60 * 4000)) // 4 hour expiration
+          .expirationTime(new Date(new Date().getTime() + 60 * 60 * 4000)) // 60 * 60 * 4 hour expiration
           .jwtID(UUID.randomUUID().toString()) // Unique identifier for the token ID
           .claim("scope", buildScope(user))
           .build();
@@ -148,15 +153,14 @@ public class AuthenticationService {
     SecureRandom secureRandom = new SecureRandom();
     byte[] key = new byte[64]; // 512 bits = 64 bytes
     secureRandom.nextBytes(key);
-    String base64Key = Base64.getEncoder().encodeToString(key);
-    System.out.println("STEP 4: Base64 Encoded Key: " + base64Key);
+    // String base64Key = Base64.getEncoder().encodeToString(key);
+    // System.out.println("STEP 4: Base64 Encoded Key: " + base64Key);
     return key;
   }
 
   public static byte[] getSecretKeyBytes() {
-    System.out.println("STEP 5: SECRET_KEY_BYTES: " + SECRET_KEY_BYTES);
-    String base64Key = Base64.getEncoder().encodeToString(SECRET_KEY_BYTES);
-    System.out.println("STEP 5: Base64 Encoded Key: " + base64Key);
+    // String base64Key = Base64.getEncoder().encodeToString(SECRET_KEY_BYTES);
+    // System.out.println("STEP 5: Base64 Encoded Key: " + base64Key);
     return SECRET_KEY_BYTES; // Expose the secret key for external use
   }
 
