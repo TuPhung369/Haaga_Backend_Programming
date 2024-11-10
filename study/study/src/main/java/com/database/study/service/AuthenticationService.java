@@ -83,6 +83,7 @@ public class AuthenticationService {
 
     InvalidatedToken invalidatedToken = InvalidatedToken.builder()
         .id(jwtId)
+        .token(token)
         .expiryTime(expiryTime)
         .name(user.getUsername())
         .description("Logged out at: " + formattedDate)

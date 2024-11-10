@@ -42,7 +42,7 @@ public class ENUMS {
     ROLES_NOT_NULL("Roles cannot be null"),
     PASSWORD_MISMATCH("Password mismatch"),
     UNAUTHORIZED_ACCESS("Unauthorized access"),
-    INVALID_TOKEN("Invalid token"),
+    INVALID_TOKEN("Token has been invalidated and cannot be used"),
     ACCESS_DENIED("You do not have permission"),
     USER_NOT_FOUND("User not found"),
     USER_NOT_EXISTS("User does not exist"),

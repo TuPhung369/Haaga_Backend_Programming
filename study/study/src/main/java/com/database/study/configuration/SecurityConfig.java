@@ -15,6 +15,8 @@ import org.springframework.http.HttpMethod;
 
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.database.study.security.JwtTokenFilter;
 
 import com.database.study.enums.ENUMS;
 
@@ -28,9 +30,13 @@ public class SecurityConfig {
   @Autowired
   private CustomJwtDecoder customJwtDecoder;
 
+  @Autowired
+  private JwtTokenFilter jwtTokenFilter;
+
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
     httpSecurity
+        .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.GET, "/users").hasRole(ENUMS.Role.ADMIN.name())
@@ -42,6 +48,7 @@ public class SecurityConfig {
             })
             .authenticationEntryPoint(new JwtAuthenticationEntryPoint()))
         .csrf(AbstractHttpConfigurer::disable);
+
     return httpSecurity.build();
   }
 
