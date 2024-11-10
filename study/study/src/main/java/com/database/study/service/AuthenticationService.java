@@ -26,6 +26,7 @@ import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.JWSVerifier;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -75,14 +76,20 @@ public class AuthenticationService {
   }
 
   public void logout(LogoutRequest request) throws ParseException, JOSEException {
-    var signedToken = verifyToken(request.getToken());
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    String formattedDate = sdf.format(new Date());
+    String token = request.getToken();
+    SignedJWT signedToken = verifyToken(token);
     String jwtId = signedToken.getJWTClaimsSet().getJWTID();
     Date expiryTime = signedToken.getJWTClaimsSet().getExpirationTime();
+    var user = userRepository.findByUsername(signedToken.getJWTClaimsSet().getSubject())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
     InvalidatedToken invalidatedToken = InvalidatedToken.builder()
         .id(jwtId)
         .expiryTime(expiryTime)
+        .name(user.getUsername())
+        .description("Logged out at: " + formattedDate)
         .build();
-    log.warn("STEP 2: Token from signedToken", signedToken);
     invalidatedTokenRepository.save(invalidatedToken);
   }
 
