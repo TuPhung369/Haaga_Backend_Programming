@@ -36,9 +36,9 @@ import java.util.Date;
 import java.util.StringJoiner;
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
@@ -51,9 +51,6 @@ public class AuthenticationService {
   // securely)
 
   protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
-
-  // Initialize the logger for the class
-  static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
 
   public AuthenticationResponse authenticate(AuthenticationRequest request) {
     var user = userRepository.findByUsername(request.getUsername())

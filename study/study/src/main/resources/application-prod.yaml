@@ -27,6 +27,6 @@ logging:
     org.hibernate.SQL: WARN # Show SQL queries
     org.hibernate.type: TRACE # Show SQL parameters
     org.springframework: DEBUG # Spring framework logs
-  root: INFO # Global log level
+    root: INFO # Global log level
 
 
