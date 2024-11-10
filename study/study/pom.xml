@@ -55,6 +55,13 @@
             <version>3.0.0</version>
         </dependency>
 
+        <!-- Javax Validation API -->
+        <!-- <dependency>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+            <version>2.0.1.Final</version>
+        </dependency> -->
+
         <!-- H2 Database for in-memory database (optional) -->
         <dependency>
             <groupId>com.h2database</groupId>
