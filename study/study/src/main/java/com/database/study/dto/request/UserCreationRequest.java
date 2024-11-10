@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import com.database.study.validator.DobConstraint;
 import com.database.study.validator.NotEmptyListConstraint;
-import com.database.study.enums.ENUMS.ErrorMessages;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotBlank;
@@ -24,24 +23,24 @@ import jakarta.validation.constraints.NotNull;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserCreationRequest {
 
-  @Size(min = 5, max = 20, message = ErrorMessages.USERNAME_LENGTH_MSG)
+  @Size(min = 5, max = 20, message = "USERNAME_LENGTH")
   String username;
 
-  @Size(min = 8, message = ErrorMessages.PASSWORD_MIN_LENGTH_MSG)
-  @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()\\-_=+{};:,<.>])[A-Za-z\\d!@#$%^&*()\\-_=+{};:,<.>]{8,}$", message = ErrorMessages.PASSWORD_VALIDATION_MSG)
+  @Size(min = 8, message = "PASSWORD_MIN_LENGTH")
+  @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()\\-_=+{};:,<.>])[A-Za-z\\d!@#$%^&*()\\-_=+{};:,<.>]{8,}$", message = "PASSWORD_VALIDATION")
   String password;
 
-  @NotBlank(message = ErrorMessages.FIRSTNAME_NOT_BLANK_MSG)
+  @NotBlank(message = "FIRSTNAME_NOT_BLANK")
   String firstname;
 
-  @NotBlank(message = ErrorMessages.LASTNAME_NOT_BLANK_MSG)
+  @NotBlank(message = "LASTNAME_NOT_BLANK")
   String lastname;
 
-  @NotNull(message = ErrorMessages.DOB_REQUIRED_MSG)
-  @DobConstraint(min = 18, message = ErrorMessages.INVALID_DOB_MSG)
+  @NotNull(message = "DOB_REQUIRED")
+  @DobConstraint(min = 16, message = "INVALID_DOB")
   LocalDate dob;
 
-  @NotNull(message = ErrorMessages.ROLES_NOT_NULL_MSG)
-  @NotEmptyListConstraint(message = ErrorMessages.ROLES_NOT_NULL_MSG)
+  @NotNull(message = "ROLES_NOT_NULL")
+  @NotEmptyListConstraint(message = "ROLES_NOT_NULL")
   List<String> roles;
 }

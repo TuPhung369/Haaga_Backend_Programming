@@ -9,6 +9,14 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import com.database.study.dto.request.ApiResponse;
+import com.database.study.enums.ENUMS;
+
+import org.springframework.validation.FieldError;
+import jakarta.validation.ConstraintViolation;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,21 +26,29 @@ public class GlobalExceptionHandler {
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   // Utility method to build an error response based on the provided ErrorCode
-  private ApiResponse<Object> buildErrorResponse(ErrorCode errorCode) {
+  private ApiResponse<Object> buildErrorResponse(ErrorCode errorCode, String customMessage) {
+    String responseMessage = (customMessage != null && !customMessage.isEmpty()) ? customMessage
+        : errorCode.getMessage();
+    // log.warn("Error message from Response: {}", responseMessage);
     return ApiResponse.<Object>builder()
         .code(errorCode.getCode())
-        .message(errorCode.getMessage())
+        .message(responseMessage)
         .httpStatus(errorCode.getHttpStatus())
         .httpCode(errorCode.getHttpCode())
         .severity(errorCode.getSeverity())
         .build();
   }
 
+  // Overloaded method to build an error response without customMessage
+  private ApiResponse<Object> buildErrorResponse(ErrorCode errorCode) {
+    return buildErrorResponse(errorCode, null);
+  }
+
   // Handle custom AppException and return a structured error response
   @ExceptionHandler(AppException.class)
   public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception) {
     log.error("Handling AppException: {}", exception.getErrorCode().getMessage(), exception);
-    ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode());
+    ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode(), "");
     return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
   }
 
@@ -62,21 +78,44 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
   }
 
+  // // Build NEW response using the matched or fallback ErrorCode
+  // ApiResponse<Object> apiResponse = ApiResponse.<Object>builder()
+  // .code(errorCode.getCode())
+  // .message(errorCode.getMessage())
+  // .httpStatus(errorCode.getHttpStatus())
+  // .httpCode(errorCode.getHttpCode())
+  // .severity(errorCode.getSeverity())
+  // .build();
+
+  // Build response using the buildErrorResponse utility method
+  // ApiResponse<Object> apiResponse = buildErrorResponse(errorCode, message);
+
+  // return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
+  // }
+
   // Handle validation exceptions and return a structured error response
   @ExceptionHandler(MethodArgumentNotValidException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-    // Extract the first error field and message
     String field = ex.getBindingResult().getFieldErrors().get(0).getField();
-    // String message =
-    // ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
-
-    // Fallback to a generic error code if needed
+    String messageCode = ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
     ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
 
-    // Optionally, if you have more mappings or specific conditions, you can add
-    // them dynamically
-    // or fallback to generic handling
+    // Attempt to unwrap ConstraintViolation and extract attributes if present
+    Map<String, Object> attributes = new HashMap<>();
+    try {
+      ConstraintViolation<?> violation = ((FieldError) ex.getBindingResult().getFieldErrors().get(0))
+          .unwrap(ConstraintViolation.class);
+      attributes = violation.getConstraintDescriptor().getAttributes();
+    } catch (Exception e) {
+      log.warn("Could not extract constraint attributes: {}", e.getMessage());
+    }
+    log.warn("Attributes: {}", attributes);
+
+    // Map messageCode to ENUMS.ErrorMessages and replace placeholders using
+    // attributes
+    String detailedMessage = mapToDetailedMessage(messageCode, attributes);
+
     switch (field) {
       case "dob":
         errorCode = ErrorCode.INVALID_DOB;
@@ -87,24 +126,32 @@ public class GlobalExceptionHandler {
       case "lastname":
         errorCode = ErrorCode.LASTNAME_NOT_BLANK;
         break;
-      // Add cases as needed for more fields
       default:
-        errorCode = ErrorCode.INVALID_REQUEST;
         break;
     }
 
-    // // Build NEW response using the matched or fallback ErrorCode
-    // ApiResponse<Object> apiResponse = ApiResponse.<Object>builder()
-    // .code(errorCode.getCode())
-    // .message(errorCode.getMessage())
-    // .httpStatus(errorCode.getHttpStatus())
-    // .httpCode(errorCode.getHttpCode())
-    // .severity(errorCode.getSeverity())
-    // .build();
-
-    // Build response using the buildErrorResponse utility method
-    ApiResponse<Object> apiResponse = buildErrorResponse(errorCode);
-
+    // log.warn("Validation error for field '{}': {}", field, message);
+    ApiResponse<Object> apiResponse = buildErrorResponse(errorCode, detailedMessage);
     return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
   }
+
+  private String mapToDetailedMessage(String messageCode, Map<String, Object> attributes) {
+    // Retrieve the message template from ENUMS.ErrorMessages based on the code
+    String messageTemplate = "";
+    try {
+      ENUMS.ErrorMessages errorMessage = ENUMS.ErrorMessages.valueOf(messageCode);
+      messageTemplate = errorMessage.getMessage();
+    } catch (IllegalArgumentException e) {
+      log.warn("No matching message found for code: {}", messageCode);
+      return messageCode;
+    }
+
+    // Replace placeholders (e.g., {min}, {max}) with attribute values
+    for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+      messageTemplate = messageTemplate.replace("{" + entry.getKey() + "}", entry.getValue().toString());
+    }
+
+    return messageTemplate;
+  }
+
 }
