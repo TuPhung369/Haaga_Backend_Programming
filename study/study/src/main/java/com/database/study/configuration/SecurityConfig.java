@@ -28,7 +28,7 @@ import com.database.study.enums.ENUMS;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-  private final String[] PUBLIC_ENDPOINTS = { "/users", "/auth/token", "/auth/introspect" };
+  private final String[] PUBLIC_ENDPOINTS = { "/users", "/auth/token", "/auth/introspect", "/auth/logout" };
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
