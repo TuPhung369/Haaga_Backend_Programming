@@ -67,18 +67,10 @@ public class AuthenticationService {
 
     // Generate token
     String token = generateToken(user);
-    log.info("STEP 1: Token from LOGIN {} - BEFORE store to AuthenticationResponse", token);
-
     AuthenticationResponse response = AuthenticationResponse.builder()
         .token(token)
         .authenticated(true)
         .build();
-
-    // Test the stored token
-    String storedToken = response.getToken();
-    log.info("STEP 1: Token from LOGIN {} - AFTER store to AuthenticationResponse", storedToken);
-
-    // Returning the response
     return response;
   }
 
@@ -90,60 +82,31 @@ public class AuthenticationService {
         .id(jwtId)
         .expiryTime(expiryTime)
         .build();
-    log.warn("STEP 6: Token from signedToken", signedToken);
+    log.warn("STEP 2: Token from signedToken", signedToken);
     invalidatedTokenRepository.save(invalidatedToken);
   }
 
   private SignedJWT verifyToken(String token) throws ParseException, JOSEException {
-
-    log.info("STEP 3: Token from verifyToken: {}", token);
     SignedJWT signedJWT = SignedJWT.parse(token);
     JWSVerifier verifier = new MACVerifier(SECRET_KEY_BYTES);
     Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
     boolean verified = signedJWT.verify(verifier) && expiryTime.after(new Date());
     if (!verified) {
-      log.warn("STEP 3:Token verification failed. Verified: {}, Expired: {}", signedJWT.verify(verifier),
+      log.warn("Token verification failed. Verified: {}, Expired: {}", signedJWT.verify(verifier),
           expiryTime.before(new Date()));
       throw new AppException(ErrorCode.INVALID_TOKEN);
     }
     return signedJWT;
   }
 
-  // public IntrospectResponse introspect(IntrospectRequest request) {
-  // try {
-  // log.info("STEP 2: Token BEFORE request.getToken(): {}", request.getToken());
-  // String token = request.getToken();
-  // log.info("STEP 2: Token BEFORE verifyToken: {}", token);
-  // verifyToken(token);
-  // return IntrospectResponse.builder()
-  // .valid(true)
-  // .build();
-  // } catch (Exception e) {
-  // log.error("Error during token introspection: {}", e.getMessage(), e);
-  // throw new AppException(ErrorCode.GENERAL_EXCEPTION);
-  // }
-  // }
-
   public IntrospectResponse introspect(IntrospectRequest request) {
     try {
-      log.info("STEP 2: Token BEFORE request.getToken(): {}", request.getToken());
       String token = request.getToken();
-      log.info("STEP 2: Token BEFORE verifyToken: {}", token);
-      // Parse and verify the token
-      SignedJWT signedJWT = SignedJWT.parse(token);
-      JWSVerifier verifier = new MACVerifier(SECRET_KEY_BYTES);
-
-      // Extract expiration time
-      Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-
-      // Verify token and check expiration
-      boolean verified = signedJWT.verify(verifier);
-      boolean isTokenValid = verified && expiryTime.after(new Date());
-
+      verifyToken(token);
       return IntrospectResponse.builder()
-          .valid(isTokenValid)
+          .valid(true)
           .build();
-    } catch (JOSEException | ParseException e) {
+    } catch (Exception e) {
       log.error("Error during token introspection: {}", e.getMessage(), e);
       throw new AppException(ErrorCode.GENERAL_EXCEPTION);
     }
