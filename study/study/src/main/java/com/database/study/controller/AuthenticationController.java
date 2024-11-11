@@ -47,6 +47,7 @@ public class AuthenticationController {
       throws JOSEException, ParseException {
     authenticationService.logout(request);
     return ApiResponse.<Void>builder()
+        .message("Logged out successfully!")
         .build();
   }
 }

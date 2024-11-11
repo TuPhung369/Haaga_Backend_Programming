@@ -31,7 +31,6 @@ public class CustomJwtDecoder implements JwtDecoder {
           .macAlgorithm(MacAlgorithm.HS512)
           .build();
     }
-
     Jwt decodedJwt = nimbusJwtDecoder.decode(token);
     // Perform additional checks, such as expiration time
     Date expirationTime = Date.from(decodedJwt.getExpiresAt());
@@ -39,25 +38,8 @@ public class CustomJwtDecoder implements JwtDecoder {
       log.warn("Token has expired: {}", token);
       throw new JwtException("Token has expired");
     }
-
     return decodedJwt;
   }
-
-  // Method to check if a token is valid
-  // public boolean isTokenValid(String token) {
-  // try {
-  // Jwt decodedJwt = decode(token);
-  // // Additional checks can be added here, like expiration time, issuer, etc.
-  // return decodedJwt != null;
-  // } catch (JwtException e) {
-  // // Handle or log the exception if needed
-  // return false;
-  // }
-  // }
-
-  // public JwtDecoder getJwtDecoder() {
-  // return nimbusJwtDecoder;
-  // }
 }
 
 // JwtDecoder jwtDecoder =

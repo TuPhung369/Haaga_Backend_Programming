@@ -51,14 +51,6 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
   }
 
-  // Handle general exceptions and return a structured error response
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception exception) {
-    log.error("General exception occurred: {}", exception.getMessage(), exception);
-    ApiResponse<Object> apiResponse = buildErrorResponse(ErrorCode.GENERAL_EXCEPTION);
-    return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-  }
-
   // Handle JwtException and return a structured error response
   @ExceptionHandler(JwtException.class)
   public ResponseEntity<ApiResponse<Object>> handleJwtException(JwtException exception) {
@@ -135,6 +127,14 @@ public class GlobalExceptionHandler {
     // log.warn("Validation error for field '{}': {}", field, message);
     ApiResponse<Object> apiResponse = buildErrorResponse(errorCode, detailedMessage);
     return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+  }
+
+  // Handle general exceptions and return a structured error response
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception exception) {
+    log.error("General exception occurred: {}", exception.getMessage(), exception);
+    ApiResponse<Object> apiResponse = buildErrorResponse(ErrorCode.GENERAL_EXCEPTION);
+    return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   private String mapToDetailedMessage(String messageCode, Map<String, Object> attributes) {
