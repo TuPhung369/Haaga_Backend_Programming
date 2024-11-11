@@ -25,7 +25,7 @@ public interface UserMapper {
       return null;
     }
     return roles.stream()
-        .map(role -> RoleResponse.builder() // Using builder here
+        .map(role -> RoleResponse.builder()
             .name(role.getName())
             .description(role.getDescription())
             .permissions(role.getPermissions() != null ? role.getPermissions().stream()

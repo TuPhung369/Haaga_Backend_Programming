@@ -76,9 +76,9 @@ public class ApplicationInitConfig {
         // Create 3 initial users (Admin, Manager, User) if not exists
         createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
             ENUMS.Role.ADMIN.name());
-        createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("2003-03-03"),
+        createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("1999-03-03"),
             ENUMS.Role.MANAGER.name());
-        createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("2006-06-06"),
+        createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
             ENUMS.Role.USER.name());
 
       } catch (Exception e) {

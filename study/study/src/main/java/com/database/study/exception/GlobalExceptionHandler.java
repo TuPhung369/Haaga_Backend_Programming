@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,13 +18,11 @@ import jakarta.validation.ConstraintViolation;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
-
-  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   // Utility method to build an error response based on the provided ErrorCode
   private ApiResponse<Object> buildErrorResponse(ErrorCode errorCode, String customMessage) {
@@ -48,16 +47,17 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(AppException.class)
   public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception) {
     log.error("Handling AppException: {}", exception.getErrorCode().getMessage(), exception);
-    ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode(), "");
+    ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode());
     return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
   }
 
-  // Handle general exceptions and return a structured error response
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception exception) {
-    log.error("General exception occurred: {}", exception.getMessage(), exception);
-    ApiResponse<Object> apiResponse = buildErrorResponse(ErrorCode.GENERAL_EXCEPTION);
-    return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+  // Handle JwtException and return a structured error response
+  @ExceptionHandler(JwtException.class)
+  public ResponseEntity<ApiResponse<Object>> handleJwtException(JwtException exception) {
+    log.error("JWT validation error: {}", exception.getMessage());
+    ApiResponse<Object> apiResponse = buildErrorResponse(ErrorCode.INVALID_TOKEN,
+        "JWT validation failed: " + exception.getMessage());
+    return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
   }
 
   // Handle AccessDeniedException and return a structured error response
@@ -68,8 +68,8 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(apiResponse, HttpStatus.FORBIDDEN);
   }
 
-  // Handle InsufficientAuthenticationException and return a structured error
-  // response
+  // Handle InsufficientAuthenticationException and roles or authorities, and
+  // additional authentication is required but not provided
   @ExceptionHandler(InsufficientAuthenticationException.class)
   public ResponseEntity<ApiResponse<Object>> handleInsufficientAuthenticationException(
       InsufficientAuthenticationException exception) {
@@ -77,21 +77,6 @@ public class GlobalExceptionHandler {
     ApiResponse<Object> apiResponse = buildErrorResponse(ErrorCode.UNAUTHORIZED_ACCESS);
     return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
   }
-
-  // // Build NEW response using the matched or fallback ErrorCode
-  // ApiResponse<Object> apiResponse = ApiResponse.<Object>builder()
-  // .code(errorCode.getCode())
-  // .message(errorCode.getMessage())
-  // .httpStatus(errorCode.getHttpStatus())
-  // .httpCode(errorCode.getHttpCode())
-  // .severity(errorCode.getSeverity())
-  // .build();
-
-  // Build response using the buildErrorResponse utility method
-  // ApiResponse<Object> apiResponse = buildErrorResponse(errorCode, message);
-
-  // return new ResponseEntity<>(apiResponse,HttpStatus.BAD_REQUEST);
-  // }
 
   // Handle validation exceptions and return a structured error response
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -117,14 +102,23 @@ public class GlobalExceptionHandler {
     String detailedMessage = mapToDetailedMessage(messageCode, attributes);
 
     switch (field) {
-      case "dob":
-        errorCode = ErrorCode.INVALID_DOB;
+      case "username":
+        errorCode = ErrorCode.USERNAME_LENGTH;
+        break;
+      case "password":
+        errorCode = ErrorCode.PASSWORD_MIN_LENGTH;
         break;
       case "firstname":
         errorCode = ErrorCode.FIRSTNAME_NOT_BLANK;
         break;
       case "lastname":
         errorCode = ErrorCode.LASTNAME_NOT_BLANK;
+        break;
+      case "dob":
+        errorCode = ErrorCode.INVALID_DOB;
+        break;
+      case "roles":
+        errorCode = ErrorCode.ROLES_NOT_NULL;
         break;
       default:
         break;
@@ -133,6 +127,14 @@ public class GlobalExceptionHandler {
     // log.warn("Validation error for field '{}': {}", field, message);
     ApiResponse<Object> apiResponse = buildErrorResponse(errorCode, detailedMessage);
     return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+  }
+
+  // Handle general exceptions and return a structured error response
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception exception) {
+    log.error("General exception occurred: {}", exception.getMessage(), exception);
+    ApiResponse<Object> apiResponse = buildErrorResponse(ErrorCode.GENERAL_EXCEPTION);
+    return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   private String mapToDetailedMessage(String messageCode, Map<String, Object> attributes) {

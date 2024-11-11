@@ -9,8 +9,7 @@ import com.database.study.dto.request.ApiResponse;
 
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +27,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -42,8 +42,6 @@ public class UserController {
     apiResponse.setResult(userResponse);
     return apiResponse;
   }
-
-  private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
   @GetMapping
   public List<UserResponse> getUsers() {

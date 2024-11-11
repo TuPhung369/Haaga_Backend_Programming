@@ -33,12 +33,14 @@ import lombok.experimental.FieldDefaults;
 
 import java.security.SecureRandom;
 import java.util.Date;
+import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.UUID;
+import org.springframework.transaction.annotation.Transactional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
@@ -52,21 +54,29 @@ public class AuthenticationService {
 
   protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
 
-  // Initialize the logger for the class
-  static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
-
   public AuthenticationResponse authenticate(AuthenticationRequest request) {
     var user = userRepository.findByUsername(request.getUsername())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-    log.info("Found user: {}", user.getUsername());
+
     boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
-    log.info("Password matches: {}", authenticated);
     if (!authenticated) {
       throw new AppException(ErrorCode.PASSWORD_MISMATCH);
     }
 
-    // Generate token
-    String token = generateToken(user);
+    // Check if there is a valid token for the user in the
+    // invalidatedTokenRepository
+    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByName(user.getUsername());
+    String token;
+    if (existingTokenOpt.isPresent() && existingTokenOpt.get().getExpiryTime().after(new Date())) {
+      token = existingTokenOpt.get().getToken();
+
+    } else {
+      token = generateToken(user);
+
+    }
+    // Delete all expired tokens before adding the new entry
+    invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    // Create and return the authentication response
     AuthenticationResponse response = AuthenticationResponse.builder()
         .token(token)
         .authenticated(true)
@@ -74,6 +84,7 @@ public class AuthenticationService {
     return response;
   }
 
+  @Transactional
   public void logout(LogoutRequest request) throws ParseException, JOSEException {
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     String formattedDate = sdf.format(new Date());
@@ -86,9 +97,10 @@ public class AuthenticationService {
 
     InvalidatedToken invalidatedToken = InvalidatedToken.builder()
         .id(jwtId)
+        .token(token)
         .expiryTime(expiryTime)
         .name(user.getUsername())
-        .description("Logged out at: " + formattedDate)
+        .description("Logged OUT at: " + formattedDate)
         .build();
     invalidatedTokenRepository.save(invalidatedToken);
   }

@@ -15,6 +15,8 @@ import org.springframework.http.HttpMethod;
 
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.database.study.security.JwtTokenFilter;
 
 import com.database.study.enums.ENUMS;
 
@@ -28,20 +30,25 @@ public class SecurityConfig {
   @Autowired
   private CustomJwtDecoder customJwtDecoder;
 
+  @Autowired
+  private JwtTokenFilter jwtTokenFilter;
+
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
     httpSecurity
+        .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.GET, "/users").hasRole(ENUMS.Role.ADMIN.name())
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2
             .jwt(jwtConfigurer -> {
-              jwtConfigurer.decoder(customJwtDecoder.getJwtDecoder())
+              jwtConfigurer.decoder(customJwtDecoder)
                   .jwtAuthenticationConverter(jwtAuthenticationConverter());
             })
             .authenticationEntryPoint(new JwtAuthenticationEntryPoint()))
         .csrf(AbstractHttpConfigurer::disable);
+
     return httpSecurity.build();
   }
 
