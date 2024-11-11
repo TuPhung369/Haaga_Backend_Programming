@@ -152,7 +152,7 @@ public class AuthenticationService {
       JWSObject jwsObject = new JWSObject(jwsHeader, payload);
       jwsObject.sign(new MACSigner(SECRET_KEY_BYTES)); // Make sure the key is correct!
       String token = jwsObject.serialize();
-      log.info("Generated token: {}", token);
+      // log.info("Generated token: {}", token);
 
       return token;
     } catch (Exception e) {
