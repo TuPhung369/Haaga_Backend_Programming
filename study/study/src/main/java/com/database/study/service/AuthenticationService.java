@@ -29,8 +29,6 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.JWSVerifier;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -92,9 +90,10 @@ public class AuthenticationService {
       String refreshToken = generateRefreshToken(user, jwtId);
       Date expiryTime = extractTokenExpiry(token);
       // log.info("New token expiry time: {}", expiryTime);
-
-      Instant expireInstant = expiryTime.toInstant().plus(SURPLUS_EXPIRE_TIME, ChronoUnit.HOURS);
-      Date expireRefreshTime = Date.from(expireInstant);
+      Date expireRefreshTime = extractTokenExpiry(refreshToken);
+      // Instant expireInstant = expiryTime.toInstant().plus(SURPLUS_EXPIRE_TIME,
+      // ChronoUnit.HOURS);
+      // Date expireRefreshTime = Date.from(expireInstant);
       // log.info("Refresh token expiry time: {}", expireRefreshTime);
 
       // Save the new token
@@ -128,7 +127,7 @@ public class AuthenticationService {
 
     // Retrieve the existing UUID from the token claims
     String uuid = signedToken.getJWTClaimsSet().getJWTID();
-    log.info("STEP 1: uuid from logout: {}", uuid);
+    // log.info("STEP 1: uuid from logout: {}", uuid);
     // Delete all expired tokens before adding the new entry
     invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
 
@@ -137,13 +136,14 @@ public class AuthenticationService {
     if (existingTokenOpt.isPresent()) {
       // Update only the description field
       InvalidatedToken existingToken = existingTokenOpt.get();
-      log.info("Existing description before update: {}", existingToken.getDescription());
+      // log.info("Existing description before update: {}",
+      // existingToken.getDescription());
       existingToken.setDescription("Logged OUT at: " + formattedDate);
       invalidatedTokenRepository.save(existingToken);
       invalidatedTokenRepository.flush(); // Flush using to changes the database
-      log.info("Updated description: {}", existingToken.getDescription());
+      // log.info("Updated description: {}", existingToken.getDescription());
     } else {
-      log.warn("Token with UUID {} not found in the repository.", uuid);
+      throw new AppException(ErrorCode.INVALID_TOKEN);
     }
   }
 
@@ -163,11 +163,14 @@ public class AuthenticationService {
     String jwtId = UUID.randomUUID().toString();
     String newAccessToken = generateToken(user, jwtId);
     String newRefreshToken = generateRefreshToken(user, jwtId);
-    SignedJWT signedNewAccessToken = verifyToken(newAccessToken);
+    // SignedJWT signedNewAccessToken = verifyToken(newAccessToken);
+    // SignedJWT signedNewRefreshToken = verifyToken(newRefreshToken);
 
-    Date expiryTime = signedNewAccessToken.getJWTClaimsSet().getExpirationTime();
-    Instant expireInstant = expiryTime.toInstant().plus(SURPLUS_EXPIRE_TIME, ChronoUnit.HOURS);
-    Date expireRefreshTime = Date.from(expireInstant);
+    Date expiryTime = extractTokenExpiry(newAccessToken);
+    Date expireRefreshTime = extractTokenExpiry(newRefreshToken);
+    // Instant expireInstant = expiryTime.toInstant().plus(SURPLUS_EXPIRE_TIME,
+    // ChronoUnit.HOURS);
+    // Date expireRefreshTime = Date.from(expireInstant);
 
     InvalidatedToken newInvalidatedToken = InvalidatedToken.builder()
         .id(jwtId)
