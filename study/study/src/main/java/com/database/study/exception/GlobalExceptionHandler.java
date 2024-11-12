@@ -43,9 +43,10 @@ public class GlobalExceptionHandler {
     return buildErrorResponse(errorCode, null);
   }
 
+ 
   // Handle custom AppException and return a structured error response
   @ExceptionHandler(AppException.class)
-  public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception) {
+  public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception, String customMessage) {
     log.error("Handling AppException: {}", exception.getErrorCode().getMessage(), exception);
     ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode());
     return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());

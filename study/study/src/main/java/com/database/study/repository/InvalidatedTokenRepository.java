@@ -12,5 +12,9 @@ public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedTok
 
   Optional<InvalidatedToken> findByName(String name);
 
+  void deleteByName(String name);
+
+  void deleteByToken(String token);
+
   void deleteAllByExpiryTimeBefore(Date date);
 }

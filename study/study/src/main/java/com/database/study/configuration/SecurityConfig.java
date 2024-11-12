@@ -25,7 +25,8 @@ import com.database.study.enums.ENUMS;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-  private final String[] PUBLIC_ENDPOINTS = { "/users", "/auth/token", "/auth/introspect", "/auth/logout" };
+  private final String[] PUBLIC_ENDPOINTS = { "/users", "/auth/token", "/auth/introspect", "/auth/logout",
+      "/auth/refreshToken" };
 
   @Autowired
   private CustomJwtDecoder customJwtDecoder;

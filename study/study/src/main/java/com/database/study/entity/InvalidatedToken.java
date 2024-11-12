@@ -20,7 +20,12 @@ public class InvalidatedToken {
 
   @Column(length = 500, nullable = false)
   String token;
+
+  @Column(length = 500)
+  String refreshToken;
+
   Date expiryTime;
+  Date expiryRefreshTime;
   String name;
   String description;
 }

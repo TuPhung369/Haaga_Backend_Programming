@@ -16,6 +16,9 @@ import com.database.study.service.AuthenticationService;
 import com.nimbusds.jose.JOSEException;
 import com.database.study.dto.request.IntrospectRequest;
 import com.database.study.dto.response.IntrospectResponse;
+import com.database.study.dto.response.RefreshTokenResponse;
+import com.database.study.dto.request.RefreshTokenRequest;
+
 import java.text.ParseException;
 
 @RestController
@@ -38,6 +41,15 @@ public class AuthenticationController {
       throws JOSEException, ParseException {
     var result = authenticationService.introspect(request);
     return ApiResponse.<IntrospectResponse>builder()
+        .result(result)
+        .build();
+  }
+
+  @PostMapping("/refreshToken")
+  ApiResponse<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request)
+      throws JOSEException, ParseException {
+    var result = authenticationService.refreshToken(request);
+    return ApiResponse.<RefreshTokenResponse>builder()
         .result(result)
         .build();
   }
