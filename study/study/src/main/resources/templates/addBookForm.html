@@ -1,0 +1,128 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add Book</title>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Add Book</h1>
+        
+        <!-- Form for adding book -->
+        <form th:object="${book}" th:action="@{/save}" method="post" id="addBookForm">
+            <!-- Title -->
+            <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" id="title" th:field="*{title}" class="form-control"/>
+                <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}" class="text-danger"></div>
+            </div>
+
+            <!-- Author -->
+            <div class="mb-3">
+                <label for="author" class="form-label">Author</label>
+                <input type="text" id="author" th:field="*{author}" class="form-control"/>
+                <div th:if="${#fields.hasErrors('author')}" th:errors="*{author}" class="text-danger"></div>
+            </div>
+
+            <!-- Category -->
+            <div class="mb-3">
+                <label for="category" class="form-label">Category</label>
+                <select id="category" th:field="*{category}" class="form-control">
+                    <option value="">-- Select Category --</option> <!-- Default option -->
+                    <option th:each="category : ${categories}" 
+                            th:value="${category.categoryId}" 
+                            th:text="${category.name}"></option>
+                </select>
+                <div th:if="${#fields.hasErrors('category')}" th:errors="*{category}" class="text-danger"></div>
+            </div>
+
+            <!-- Save Button -->
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+
+        <!-- Modal for success/error message -->
+        <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="messageModalLabel">Message</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <span id="modalMessage"></span>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="redirectToBookList" style="display: none;">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Handle form submission
+            $('#addBookForm').on('submit', function(event) {
+                event.preventDefault(); // Prevent the default form submission
+                
+                // Get form values
+                var title = $('#title').val();
+                var author = $('#author').val();
+                var category = $('#category').val();
+                var errorMessage = '';
+
+                // Client-side validation
+                if (!title) {
+                    errorMessage += 'Title is required.<br>';
+                }
+                if (!author) {
+                    errorMessage += 'Author is required.<br>';
+                }
+                if (!category) {
+                    errorMessage += 'Category must be chosen.<br>';
+                }
+
+                if (errorMessage) {
+                    // Show error message in modal
+                    $('#modalMessage').html(errorMessage);
+                    var myModal = new bootstrap.Modal(document.getElementById('messageModal'));
+                    myModal.show();
+                } else {
+                    // Proceed with AJAX submission if no errors
+                    $.ajax({
+                        type: 'POST',
+                        url: $(this).attr('action'),
+                        data: $(this).serialize(),
+                        success: function(response) {
+                            // Display success message
+                            $('#modalMessage').text('Book added successfully!');
+                            var myModal = new bootstrap.Modal(document.getElementById('messageModal'));
+                            $('#redirectToBookList').show(); // Show the redirect button
+                            myModal.show();
+
+                            // Redirect to the book list after 2 seconds
+                            setTimeout(function() {
+                                window.location.href = '/booklist'; // Change this URL if necessary
+                            }, 3000); // 1000 milliseconds = 1 seconds
+                        },
+                        error: function(xhr) {
+                            // Display error message from server
+                            $('#modalMessage').text('Error adding book: ' + xhr.responseText);
+                            var myModal = new bootstrap.Modal(document.getElementById('messageModal'));
+                            myModal.show();
+                        }
+                    });
+                }
+            });
+
+            // Redirect to the book list when the button is clicked
+            $('#redirectToBookList').on('click', function() {
+                window.location.href = '/booklist'; // Change this URL if necessary
+            });
+        });
+    </script>
+</body>
+</html>

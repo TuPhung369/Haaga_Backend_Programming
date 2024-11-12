@@ -26,7 +26,7 @@ import com.database.study.enums.ENUMS;
 public class SecurityConfig {
 
   private final String[] PUBLIC_ENDPOINTS = { "/users", "/auth/token", "/auth/introspect", "/auth/logout",
-      "/auth/refreshToken" };
+      "/auth/refreshToken", "login" };
 
   @Autowired
   private CustomJwtDecoder customJwtDecoder;
@@ -39,6 +39,7 @@ public class SecurityConfig {
     httpSecurity
         .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
+            .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.GET, "/users").hasRole(ENUMS.Role.ADMIN.name())
             .anyRequest().authenticated())

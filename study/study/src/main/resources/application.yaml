@@ -2,13 +2,15 @@ server:
   port: 9095
   servlet:
     context-path: /identify_service
-
 spring:
   profiles:
     active: dev # This sets the default active profile (can be overridden with environment variables)
   h2:
     console:
       enabled: true
+    thymeleaf:
+      prefix: classpath:/templates/
+      suffix: .html
   jpa:
     hibernate:
       ddl-auto: update
