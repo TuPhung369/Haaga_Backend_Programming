@@ -39,7 +39,7 @@ public class UserService {
   PasswordEncoder passwordEncoder;
   RoleRepository roleRepository;
 
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
   // match EXACTLY the permission name or ROLE_ADMIN also)
   public List<UserResponse> getUsers() {

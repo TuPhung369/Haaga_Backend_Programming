@@ -35,7 +35,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
       // Check if the token exists in the InvalidatedToken repository
       Optional<InvalidatedToken> invalidatedToken = invalidatedTokenRepository.findByToken(token);
-      if (invalidatedToken.isPresent()) {
+      if (!invalidatedToken.isPresent()) {
         throw new AppException(ErrorCode.INVALID_TOKEN); // Custom exception handling
       }
     }
