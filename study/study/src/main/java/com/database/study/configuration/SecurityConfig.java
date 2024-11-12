@@ -15,10 +15,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import com.database.study.security.JwtTokenFilter;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.lang.NonNull;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.database.study.enums.ENUMS;
 
@@ -29,7 +26,7 @@ public class SecurityConfig {
 
   private final String[] PUBLIC_ENDPOINTS = {
       "/users", "/auth/token", "/auth/introspect", "/auth/logout",
-      "/auth/refreshToken", "/login"
+      "/auth/refreshToken"
   };
 
   @Autowired
@@ -53,29 +50,22 @@ public class SecurityConfig {
                 .jwtAuthenticationConverter(jwtAuthenticationConverter()))
             .authenticationEntryPoint(new JwtAuthenticationEntryPoint()))
         .csrf(AbstractHttpConfigurer::disable)
-        .cors(cors -> cors.configurationSource(request -> new CorsConfiguration().applyPermitDefaultValues()));
+        .cors(cors -> cors.configurationSource(request -> {
+          CorsConfiguration corsConfiguration = new CorsConfiguration();
+          corsConfiguration.applyPermitDefaultValues();
+          corsConfiguration.addAllowedMethod(HttpMethod.PUT);
+          corsConfiguration.addAllowedMethod(HttpMethod.DELETE);
+          corsConfiguration.addAllowedMethod(HttpMethod.PATCH);
+          return corsConfiguration;
+        }));
 
     return httpSecurity.build();
   }
 
   @Bean
-  public WebMvcConfigurer corsConfigurer() {
-    return new WebMvcConfigurer() {
-      @Override
-      public void addCorsMappings(@NonNull CorsRegistry registry) {
-        registry.addMapping("/**")
-            .allowedOrigins("http://localhost:3000") // Adjust this to match your frontend URL
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-            .allowedHeaders("*")
-            .allowCredentials(true);
-      }
-    };
-  }
-
-  @Bean
   JwtAuthenticationConverter jwtAuthenticationConverter() {
     JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-    jwtGrantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+    jwtGrantedAuthoritiesConverter.setAuthorityPrefix(""); // Remove the default "SCOPE_" setAuthorityPrefix
     JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
     jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
     return jwtAuthenticationConverter;
