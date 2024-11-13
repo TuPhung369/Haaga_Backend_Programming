@@ -39,7 +39,6 @@ public class UserService {
   PasswordEncoder passwordEncoder;
   RoleRepository roleRepository;
 
-  @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
   // match EXACTLY the permission name or ROLE_ADMIN also)
   public List<UserResponse> getUsers() {
@@ -94,6 +93,7 @@ public class UserService {
     return userMapper.toUserResponse(user);
   }
 
+  @PreAuthorize("hasRole('ADMIN') || hasRole('MANAGER')")
   public UserResponse updateUser(UUID userId, UserCreationRequest request) {
     log.info("Updating user with ID: {}", userId);
     User existingUser = userRepository.findById(userId)
@@ -119,6 +119,7 @@ public class UserService {
     return userMapper.toUserResponse(updatedUser);
   }
 
+  @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
   public void deleteUser(UUID userId) {
     if (userRepository.existsById(userId)) {
       userRepository.deleteById(userId);
