@@ -1,0 +1,55 @@
+.custom-descriptions .ant-descriptions-title {
+  font-size: 24px; /* Adjust the font size as needed */
+  font-weight: bold; /* Optional: Make the title bold */
+}
+@keyframes colorChange {
+  0% { color: #ff0000; }   /* Red */
+  12.5% { color: #ff7f00; } /* Orange */
+  25% { color: #ffff00; }   /* Yellow */
+  37.5% { color: #7fff00; } /* Chartreuse Green */
+  50% { color: #00ff00; }   /* Green */
+  62.5% { color: #00ff7f; } /* Spring Green */
+  75% { color: #00ffff; }   /* Cyan */
+  87.5% { color: #007fff; } /* Azure */
+  100% { color: #0000ff; }  /* Blue */
+}
+
+@keyframes sizeChange {
+  0% { font-size: 30px; }
+  12.5% { font-size: 31px; }
+  25% { font-size: 32px; }
+  37.5% { font-size: 33px; }
+  50% { font-size: 34px; }
+  62.5% { font-size: 33px; }
+  75% { font-size: 32px; }
+  87.5% { font-size: 31px; }
+  100% { font-size: 30px; }
+}
+
+.animated-title {
+  margin: 0;
+  font-weight: bold;
+  animation: colorChange 5s infinite, sizeChange 5s infinite;
+}
+
+.custom-button {
+  margin-right: 60px;
+  background: linear-gradient(145deg, #92aaff, #0026fd);
+  box-shadow: 5px 5px 10px #1c1c1c, -5px -5px 10px #ffffff;
+  font-size: 26px;
+  font-family: 'Times New Roman', Times, serif;
+  border: none;
+  color: white;
+  font-weight: bold;
+  padding: 10px 20px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  -ms-border-radius: 10px;
+  -o-border-radius: 10px;
+}
+
+.custom-button:hover {
+  box-shadow: 5px 5px 15px #1c1c1c, -5px -5px 15px #ffffff;
+}

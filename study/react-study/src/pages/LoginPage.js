@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authenticateUser } from "../services/authService";
+import { Form, Input, Button, Alert, Typography, Layout, Card } from "antd";
+
+const { Title } = Typography;
+const { Content } = Layout;
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
@@ -13,20 +17,17 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Redirect authenticated users to /home
       navigate("/home");
     } else {
-      // Unauthenticated users stay on /login
       if (window.location.pathname !== "/login") {
         navigate("/login");
       }
     }
   }, [isAuthenticated, navigate]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (values) => {
     try {
-      const data = await authenticateUser(username, password);
+      const data = await authenticateUser(values.username, values.password);
       setIsAuthenticated(data.result.authenticated);
       localStorage.setItem("isAuthenticated", data.result.authenticated);
       localStorage.setItem("token", data.result.token);
@@ -39,37 +40,75 @@ const LoginPage = () => {
   };
 
   return (
-    <div>
-      <h1>Login</h1>
-      <form onSubmit={handleLogin}>
-        <div>
-          <label htmlFor="username">Username</label>
-          <input
-            type="text"
-            id="username"
-            name="username"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-          />
-        </div>
-        <div>
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      {error && <div style={{ color: "red" }}>{error}</div>}
-    </div>
+    <Layout
+      style={{
+        minHeight: "100vh",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Content style={{ maxWidth: 400, width: "100%" }}>
+        <Card style={{ boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}>
+          <Title
+            level={3}
+            style={{ textAlign: "center", marginBottom: "1.5rem" }}
+          >
+            Login
+          </Title>
+          <Form
+            layout="vertical"
+            onFinish={handleLogin}
+            initialValues={{ username: "", password: "" }}
+          >
+            <Form.Item
+              label="Username"
+              name="username"
+              rules={[
+                { required: true, message: "Please enter your username" },
+              ]}
+            >
+              <Input
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[
+                { required: true, message: "Please enter your password" },
+              ]}
+            >
+              <Input.Password
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </Form.Item>
+
+            {error && (
+              <Alert
+                message="Login Error"
+                description={error}
+                type="error"
+                showIcon
+                style={{ marginBottom: "1rem" }}
+              />
+            )}
+
+            <Form.Item>
+              <Button type="primary" htmlType="submit" block>
+                Login
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
+      </Content>
+    </Layout>
   );
 };
 

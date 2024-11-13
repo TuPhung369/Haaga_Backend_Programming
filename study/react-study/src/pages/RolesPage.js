@@ -1,69 +1,57 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAllUsers, deleteUser } from "../services/userService"; // Adjust imports as needed
+import { getAllRoles, deleteRole } from "../services/roleService"; // Adjust imports as needed
 import { Layout, Menu, Button, Table, Tag } from "antd";
 
 const { Header, Sider, Content, Footer } = Layout;
 
-const UserListPage = () => {
+const RolesPage = () => {
   const navigate = useNavigate();
-  const [allUsers, setAllUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
 
   useEffect(() => {
-    fetchAllUsers();
+    fetchRoles();
   }, []);
 
-  const fetchAllUsers = async () => {
+  const fetchRoles = async () => {
     try {
-      const response = await getAllUsers();
-      if (Array.isArray(response)) {
-        const allUsersData = response.map((user) => ({
-          id: user.id,
-          username: user.username,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          dob: user.dob,
-          roles: user.roles.map((role) => ({
-            name: role.name,
-            description: role.description,
-            permissions: role.permissions.map((permission) => ({
-              name: permission.name,
-              description: permission.description,
-            })),
+      const response = await getAllRoles();
+      if (Array.isArray(response.result)) {
+        const rolesData = response.result.map((role) => ({
+          name: role.name,
+          description: role.description,
+          permissions: role.permissions.map((permission) => ({
+            name: permission.name,
+            description: permission.description,
           })),
         }));
-        setAllUsers(allUsersData);
+        setRoles(rolesData);
       } else {
         console.error("Response is not an array");
-        setAllUsers([]);
+        setRoles([]);
       }
     } catch (error) {
-      console.error("Error fetching All Users:", error);
-      setAllUsers([]);
+      console.error("Error fetching roles:", error);
+      setRoles([]);
     }
   };
 
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteRole = async (roleName) => {
     try {
-      await deleteUser(userId);
-      setAllUsers((prevUsers) =>
-        prevUsers.filter((user) => user.id !== userId)
+      await deleteRole(roleName);
+      setRoles((prevRoles) =>
+        prevRoles.filter((role) => role.name !== roleName)
       );
     } catch (error) {
-      console.error("Error deleting user:", error);
+      console.error("Error deleting role:", error);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.setItem("isAuthenticated", "false");
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
-
-  const roleColors = {
-    ADMIN: "green",
-    MANAGER: "blue",
-    USER: "cyan",
+  const permissionColors = {
+    CREATE: "green",
+    READ: "blue",
+    UPDATE: "orange",
+    DELETE: "red",
   };
 
   return (
@@ -84,11 +72,15 @@ const UserListPage = () => {
           }}
         >
           <div style={{ flex: 1, textAlign: "center" }}>
-            <h1 style={{ margin: 0 }}>User List</h1>
+            <h1 style={{ margin: 0 }}>Role List</h1>
           </div>
           <Button
             style={{ marginRight: 60 }}
-            onClick={handleLogout}
+            onClick={() => {
+              localStorage.setItem("isAuthenticated", "false");
+              localStorage.removeItem("token");
+              navigate("/login");
+            }}
             type="primary"
           >
             Logout
@@ -100,7 +92,7 @@ const UserListPage = () => {
         <Sider width={200} className="site-layout-background">
           <Menu
             mode="inline"
-            defaultSelectedKeys={["1"]}
+            defaultSelectedKeys={["2"]}
             style={{ height: "100%", borderRight: 0 }}
             items={[
               {
@@ -129,38 +121,27 @@ const UserListPage = () => {
 
         <Layout style={{ padding: "0 24px 24px" }}>
           <Content style={{ margin: "24px 0" }}>
-            <Table dataSource={allUsers} rowKey="id">
-              <Table.Column title="ID" dataIndex="id" key="id" />
+            <Table dataSource={roles} rowKey="name">
+              <Table.Column title="Role Name" dataIndex="name" key="name" />
               <Table.Column
-                title="First Name"
-                dataIndex="firstname"
-                key="firstname"
+                title="Description"
+                dataIndex="description"
+                key="description"
               />
               <Table.Column
-                title="Last Name"
-                dataIndex="lastname"
-                key="lastname"
-              />
-              <Table.Column
-                title="Username"
-                dataIndex="username"
-                key="username"
-              />
-              <Table.Column title="Date of Birth" dataIndex="dob" key="dob" />
-              <Table.Column
-                title="Role"
-                key="roles"
+                title="Permissions"
+                key="permissions"
                 render={(text, record) =>
-                  record.roles && record.roles.length > 0
-                    ? record.roles.map((role) => (
+                  record.permissions && record.permissions.length > 0
+                    ? record.permissions.map((perm) => (
                         <Tag
-                          key={role.name}
-                          color={roleColors[role.name] || "default"}
+                          key={perm.name}
+                          color={permissionColors[perm.name] || "default"}
                         >
-                          {role.name}
+                          {perm.name}
                         </Tag>
                       ))
-                    : "No roles assigned"
+                    : "No permissions assigned"
                 }
               />
               <Table.Column
@@ -169,7 +150,7 @@ const UserListPage = () => {
                 render={(text, record) => (
                   <Tag
                     color="blue"
-                    onClick={() => navigate(`/users/${record.id}/edit`)}
+                    onClick={() => navigate(`/roles/${record.name}/edit`)}
                     style={{ cursor: "pointer" }}
                   >
                     Update
@@ -182,7 +163,7 @@ const UserListPage = () => {
                 render={(text, record) => (
                   <Tag
                     color="red"
-                    onClick={() => handleDeleteUser(record.id)}
+                    onClick={() => handleDeleteRole(record.name)}
                     style={{ cursor: "pointer" }}
                   >
                     Delete
@@ -200,5 +181,5 @@ const UserListPage = () => {
   );
 };
 
-export default UserListPage;
+export default RolesPage;
 

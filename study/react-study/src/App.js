@@ -9,6 +9,8 @@ import {
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage"; // Ensure you have created this component
 import UserListPage from "./pages/UserListPage";
+import RolesPage from "./pages/RolesPage";
+import PermissionsPage from "./pages/PermissionsPage";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -49,6 +51,22 @@ function App() {
           }
         />
         <Route
+          path="/permissions"
+          element={
+            <RequireAuth>
+              <PermissionsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/roles"
+          element={
+            <RequireAuth>
+              <RolesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="/home"
           element={
             <RequireAuth>
@@ -67,4 +85,5 @@ function App() {
 }
 
 export default App;
+
 

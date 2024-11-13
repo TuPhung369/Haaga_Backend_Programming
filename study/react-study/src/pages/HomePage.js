@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import "../css/HomePage.css";
 import { useNavigate } from "react-router-dom";
 import { getAllUsers, getMyInfo, deleteUser } from "../services/userService";
 import { getAllRoles } from "../services/roleService";
@@ -152,10 +153,12 @@ const HomePage = () => {
           }}
         >
           <div style={{ flex: 1, textAlign: "center" }}>
-            <h1 style={{ margin: 0 }}>Home Page</h1>
+            <h1 className="animated-title">
+              Welcome Spring Boot and ReactJS - FullStack
+            </h1>
           </div>
           <Button
-            style={{ marginRight: 60 }}
+            className="custom-button"
             onClick={handleLogout}
             type="primary"
           >
@@ -198,9 +201,13 @@ const HomePage = () => {
         <Layout style={{ padding: "0 24px 24px" }}>
           <Content style={{ margin: "24px 0" }}>
             {userInformation ? (
-              <Descriptions title="User Information" bordered>
+              <Descriptions
+                className="custom-descriptions"
+                title="User Information"
+                bordered
+              >
                 <Descriptions.Item label="First Name">
-                  {userInformation.lastname}
+                  {userInformation.firstname}
                 </Descriptions.Item>
                 <Descriptions.Item label="Last Name">
                   {userInformation.lastname}
@@ -242,7 +249,7 @@ const HomePage = () => {
               <p>Loading user information...</p>
             )}
 
-            <h2 className="mt-5">User List</h2>
+            <h2 style={{ marginTop: 25, fontSize: 25 }}>User List</h2>
             <Table dataSource={allUsers} rowKey="id">
               <Table.Column title="ID" dataIndex="id" key="id" />
               <Table.Column
