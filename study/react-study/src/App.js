@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage"; // Ensure you have created this component
+import UserListPage from "./pages/UserListPage";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -39,6 +40,14 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/userList"
+          element={
+            <RequireAuth>
+              <UserListPage />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/home"
           element={

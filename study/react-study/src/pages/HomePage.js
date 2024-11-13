@@ -123,14 +123,23 @@ const HomePage = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
-
+  const permissionColors = {
+    READ: "green",
+    WRITE: "blue",
+    DELETE: "red",
+    UPDATE: "cyan",
+  };
+  const roleColors = {
+    ADMIN: "green",
+    MANAGER: "blue",
+    UPDATE: "cyan",
+  };
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
         style={{
           background: "#001529",
           color: "white",
-          textAlign: "center",
           padding: "0 16px",
         }}
       >
@@ -142,8 +151,14 @@ const HomePage = () => {
             color: "white",
           }}
         >
-          <h1 style={{ marginLeft: 400 }}>Home Page</h1>
-          <Button onClick={handleLogout} type="primary">
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <h1 style={{ margin: 0 }}>Home Page</h1>
+          </div>
+          <Button
+            style={{ marginRight: 60 }}
+            onClick={handleLogout}
+            type="primary"
+          >
             Logout
           </Button>
         </div>
@@ -159,7 +174,7 @@ const HomePage = () => {
               {
                 key: "1",
                 label: "User List",
-                onClick: () => navigate("/users"),
+                onClick: () => navigate("/userList"),
               },
               {
                 key: "2",
@@ -184,12 +199,22 @@ const HomePage = () => {
           <Content style={{ margin: "24px 0" }}>
             {userInformation ? (
               <Descriptions title="User Information" bordered>
-                <Descriptions.Item label="Name">
-                  {userInformation.firstname} {userInformation.lastname}
+                <Descriptions.Item label="First Name">
+                  {userInformation.lastname}
+                </Descriptions.Item>
+                <Descriptions.Item label="Last Name">
+                  {userInformation.lastname}
                 </Descriptions.Item>
                 <Descriptions.Item label="Role">
                   {userInformation.roles && userInformation.roles.length > 0
-                    ? userInformation.roles[0].name
+                    ? userInformation.roles.map((role) => (
+                        <Tag
+                          key={role.name}
+                          color={roleColors[role.name] || "default"}
+                        >
+                          {role.name}
+                        </Tag>
+                      ))
                     : "No role assigned"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Username">
@@ -202,9 +227,14 @@ const HomePage = () => {
                   {userInformation.roles &&
                   userInformation.roles.length > 0 &&
                   userInformation.roles[0].permissions
-                    ? userInformation.roles[0].permissions
-                        .map((perm) => perm.name)
-                        .join(", ")
+                    ? userInformation.roles[0].permissions.map((perm) => (
+                        <Tag
+                          key={perm.name}
+                          color={permissionColors[perm.name] || "default"}
+                        >
+                          {perm.name}
+                        </Tag>
+                      ))
                     : "No permissions"}
                 </Descriptions.Item>
               </Descriptions>
@@ -216,11 +246,14 @@ const HomePage = () => {
             <Table dataSource={allUsers} rowKey="id">
               <Table.Column title="ID" dataIndex="id" key="id" />
               <Table.Column
-                title="Name"
-                key="name"
-                render={(text, record) =>
-                  `${record.firstname} ${record.lastname}`
-                }
+                title="First Name"
+                dataIndex="firstname"
+                key="firstname"
+              />
+              <Table.Column
+                title="Last Name"
+                dataIndex="lastname"
+                key="lastname"
               />
               <Table.Column
                 title="Username"
@@ -233,7 +266,14 @@ const HomePage = () => {
                 key="roles"
                 render={(text, record) =>
                   record.roles && record.roles.length > 0
-                    ? record.roles.map((role) => role.name).join(", ")
+                    ? record.roles.map((role) => (
+                        <Tag
+                          key={role.name}
+                          color={roleColors[role.name] || "default"}
+                        >
+                          {role.name}
+                        </Tag>
+                      ))
                     : "No roles assigned"
                 }
               />
