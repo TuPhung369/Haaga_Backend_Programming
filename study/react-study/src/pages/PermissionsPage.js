@@ -3,18 +3,25 @@ import { useNavigate } from "react-router-dom";
 import {
   getAllPermissions,
   deletePermission,
-} from "../services/permissionService"; // Adjust imports as needed
+  createPermission,
+} from "../services/permissionService";
+import { getMyInfo } from "../services/userService";
 import CustomButton from "../components/CustomButton";
-import { Layout, Menu, Table, Tag } from "antd";
+import { Layout, Menu, Table, Tag, Modal, Form, Input, Button } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
 
 const PermissionPage = () => {
   const navigate = useNavigate();
   const [permissions, setPermissions] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [userInformation, setUserInformation] = useState(null); // Add user information state
+  const [form] = Form.useForm();
 
   useEffect(() => {
     fetchPermissions();
+    fetchUserInformation(); // Fetch user information
   }, []);
 
   const fetchPermissions = async () => {
@@ -36,6 +43,17 @@ const PermissionPage = () => {
     }
   };
 
+  const fetchUserInformation = async () => {
+    try {
+      const response = await getMyInfo(); // Adjust the function to fetch user information
+      if (response && response.result) {
+        setUserInformation(response.result);
+      }
+    } catch (error) {
+      console.error("Error fetching user information:", error);
+    }
+  };
+
   const handleDeletePermission = async (permissionName) => {
     try {
       await deletePermission(permissionName);
@@ -48,11 +66,37 @@ const PermissionPage = () => {
       console.error("Error deleting permission:", error);
     }
   };
+
+  const handleAddPermission = async () => {
+    try {
+      const values = await form.validateFields();
+      await createPermission(values);
+      fetchPermissions();
+      setIsModalVisible(false);
+    } catch (error) {
+      console.error("Error adding permission:", error);
+    }
+  };
+
+  const showModal = () => {
+    setIsModalVisible(true);
+    form.resetFields();
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
+
   const handleLogout = () => {
     localStorage.setItem("isAuthenticated", "false");
     localStorage.removeItem("token");
     navigate("/login");
   };
+
+  const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
+  const isManager = userInformation?.roles.some(
+    (role) => role.name === "MANAGER"
+  );
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -90,12 +134,12 @@ const PermissionPage = () => {
               {
                 key: "1",
                 label: "Home",
-                onClick: () => navigate("/home"),
+                onClick: () => navigate("/"),
               },
               {
                 key: "2",
                 label: "User List",
-                onClick: () => navigate("/users"),
+                onClick: () => navigate("/userList"),
               },
               {
                 key: "3",
@@ -125,38 +169,65 @@ const PermissionPage = () => {
                 key="description"
               />
               <Table.Column
-                title="Edit"
-                key="edit"
-                render={(text, record) => (
-                  <Tag
-                    color="blue"
-                    onClick={() => navigate(`/permissions/${record.name}/edit`)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    Update
-                  </Tag>
-                )}
-              />
-              <Table.Column
                 title="Delete"
                 key="delete"
-                render={(text, record) => (
-                  <Tag
-                    color="red"
-                    onClick={() => handleDeletePermission(record.name)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    Delete
-                  </Tag>
-                )}
+                render={(text, record) =>
+                  isAdmin && (
+                    <Tag
+                      color="red"
+                      onClick={() => handleDeletePermission(record.name)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Delete
+                    </Tag>
+                  )
+                }
               />
             </Table>
+            {(isAdmin || isManager) && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={showModal}
+                style={{ marginTop: 16, alignSelf: "flex-start" }}
+              >
+                Add Permission
+              </Button>
+            )}
           </Content>
           <Footer style={{ textAlign: "center" }}>
             My Application ©{new Date().getFullYear()} Created by Tu Phung
           </Footer>
         </Layout>
       </Layout>
+
+      <Modal
+        title="Add Permission"
+        open={isModalVisible}
+        onOk={handleAddPermission}
+        onCancel={handleCancel}
+      >
+        <Form form={form} layout="vertical" name="permissionForm">
+          <Form.Item
+            name="name"
+            label="Permission Name"
+            rules={[
+              { required: true, message: "Please input the permission name!" },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="description"
+            label="Description"
+            rules={[
+              { required: true, message: "Please input the description!" },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Layout>
   );
 };

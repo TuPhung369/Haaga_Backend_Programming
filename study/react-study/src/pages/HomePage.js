@@ -37,8 +37,8 @@ const HomePage = () => {
   const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [form] = Form.useForm();
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => !!localStorage.getItem("token")
+  const [isAuthenticated, setIsAuthenticated] = useState(() =>
+    localStorage.getItem("isAuthenticated")
   );
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState(null);
@@ -178,8 +178,8 @@ const HomePage = () => {
   };
 
   const handleLogout = () => {
-    localStorage.setItem("isAuthenticated", "false");
     localStorage.removeItem("token");
+    setIsAuthenticated(false);
     navigate("/login");
   };
 
@@ -232,10 +232,6 @@ const HomePage = () => {
     try {
       const values = await form.validateFields();
       try {
-        console.log("Form values:", values);
-        console.log("isModeUpdate", isModeUpdate);
-        console.log("isModeNew", isModeNew);
-        console.log("isModeIdUpdate", isModeIdUpdate);
         if (isModeUpdate) {
           await updateUser(userInformation.id, values);
         }
@@ -246,8 +242,8 @@ const HomePage = () => {
           await updateUser(selectedUserId, values);
         }
         // Attempt the API update
-        fetchMyInfo(); // Refresh user info
-        fetchAllUsers(); // Refresh user list
+        fetchMyInfo();
+        fetchAllUsers();
         setIsModalVisible(false);
         setIsModeNew(false);
         setIsModeIdUpdate(false);

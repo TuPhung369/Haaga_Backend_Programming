@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Form, Input, Button, Alert, Typography, Layout, Card } from "antd";
 import { authenticateUser, introspectToken } from "../services/authService";
@@ -12,33 +12,23 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkToken = async () => {
-      const response = await introspectToken(localStorage.getItem("token"));
-      if (
-        localStorage.getItem("isAuthenticated") === "true" &&
-        response.result?.valid
-      ) {
-        navigate("/");
+  const handleLogin = useCallback(
+    async (values) => {
+      try {
+        const data = await authenticateUser(values.username, values.password);
+        const response = await introspectToken(data.result.token);
+        if (response.result?.valid) {
+          localStorage.setItem("isAuthenticated", data.result.authenticated);
+          localStorage.setItem("token", data.result.token);
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Error during login:", error);
+        setError(error.message || "An error occurred during login");
       }
-    };
-    checkToken();
-  }, [navigate]);
-
-  const handleLogin = async (values) => {
-    try {
-      const data = await authenticateUser(values.username, values.password);
-      const response = await introspectToken(data.result.token);
-      if (response.result?.valid) {
-        localStorage.setItem("isAuthenticated", data.result.authenticated);
-        localStorage.setItem("token", data.result.token);
-      }
-      navigate("/");
-    } catch (error) {
-      console.error("Error during login:", error);
-      setError(error.message || "An error occurred during login");
-    }
-  };
+    },
+    [navigate]
+  );
 
   return (
     <Layout
@@ -50,59 +40,34 @@ const LoginPage = () => {
     >
       <Content style={{ maxWidth: 400, width: "100%" }}>
         <Card style={{ boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}>
-          <Title
-            level={3}
-            style={{ textAlign: "center", marginBottom: "1.5rem" }}
-          >
-            Login
-          </Title>
+          <Title level={2}>Login</Title>
           <Form
-            layout="vertical"
+            name="login"
             onFinish={handleLogin}
-            initialValues={{ username: "", password: "" }}
+            layout="vertical"
+            style={{ maxWidth: "300px" }}
           >
             <Form.Item
-              label="Username"
               name="username"
+              label="Username"
               rules={[
-                { required: true, message: "Please enter your username" },
+                { required: true, message: "Please input your username!" },
               ]}
             >
-              <Input
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-              />
+              <Input />
             </Form.Item>
-
             <Form.Item
-              label="Password"
               name="password"
+              label="Password"
               rules={[
-                { required: true, message: "Please enter your password" },
+                { required: true, message: "Please input your password!" },
               ]}
             >
-              <Input.Password
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
+              <Input.Password />
             </Form.Item>
-
-            {error && (
-              <Alert
-                message="Login Error"
-                description={error}
-                type="error"
-                showIcon
-                style={{ marginBottom: "1rem" }}
-              />
-            )}
-
+            {error && <Alert message={error} type="error" />}
             <Form.Item>
-              <Button type="primary" htmlType="submit" block>
+              <Button type="primary" htmlType="submit">
                 Login
               </Button>
             </Form.Item>

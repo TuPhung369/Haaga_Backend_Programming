@@ -1,17 +1,44 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAllUsers, deleteUser } from "../services/userService"; // Adjust imports as needed
-import { Layout, Menu, Button, Table, Tag } from "antd";
+import {
+  getAllUsers,
+  deleteUser,
+  createUser,
+  getMyInfo,
+} from "../services/userService";
+import { getAllRoles } from "../services/roleService";
+import CustomButton from "../components/CustomButton";
+import {
+  Layout,
+  Menu,
+  Table,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Button,
+} from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
+const { Option } = Select;
 
 const UserListPage = () => {
   const navigate = useNavigate();
   const [allUsers, setAllUsers] = useState([]);
-
+  const [roles, setRoles] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [userInformation, setUserInformation] = useState(null);
+  const [form] = Form.useForm();
+  const [isAuthenticated, setIsAuthenticated] = useState(() =>
+    localStorage.getItem("isAuthenticated")
+  );
   useEffect(() => {
     fetchAllUsers();
-  }, []);
+    fetchUserInformation();
+    fetchRoles();
+  }, [isAuthenticated]);
 
   const fetchAllUsers = async () => {
     try {
@@ -43,6 +70,32 @@ const UserListPage = () => {
     }
   };
 
+  const fetchUserInformation = async () => {
+    try {
+      const response = await getMyInfo();
+      if (response && response.result) {
+        setUserInformation(response.result);
+      }
+    } catch (error) {
+      console.error("Error fetching user information:", error);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await getAllRoles();
+      if (Array.isArray(response.result)) {
+        setRoles(response.result);
+      } else {
+        console.error("Response is not an array");
+        setRoles([]);
+      }
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      setRoles([]);
+    }
+  };
+
   const handleDeleteUser = async (userId) => {
     try {
       await deleteUser(userId);
@@ -54,16 +107,48 @@ const UserListPage = () => {
     }
   };
 
+  const handleAddUser = async () => {
+    try {
+      const values = await form.validateFields();
+      await createUser(values);
+      fetchAllUsers();
+      setIsModalVisible(false);
+    } catch (error) {
+      console.error("Error adding user:", error);
+    }
+  };
+
+  const showModal = () => {
+    setIsModalVisible(true);
+    form.resetFields();
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
+
   const handleLogout = () => {
-    localStorage.setItem("isAuthenticated", "false");
     localStorage.removeItem("token");
+    setIsAuthenticated(false);
     navigate("/login");
   };
+
+  const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
+  const isManager = userInformation?.roles.some(
+    (role) => role.name === "MANAGER"
+  );
 
   const roleColors = {
     ADMIN: "green",
     MANAGER: "blue",
     USER: "cyan",
+  };
+
+  const permissionColors = {
+    CREATE: "green",
+    READ: "blue",
+    UPDATE: "orange",
+    DELETE: "red",
   };
 
   return (
@@ -86,13 +171,9 @@ const UserListPage = () => {
           <div style={{ flex: 1, textAlign: "center" }}>
             <h1 style={{ margin: 0 }}>User List</h1>
           </div>
-          <Button
-            style={{ marginRight: 60 }}
-            onClick={handleLogout}
-            type="primary"
-          >
+          <CustomButton onClick={handleLogout} type="primary">
             Logout
-          </Button>
+          </CustomButton>
         </div>
       </Header>
 
@@ -100,18 +181,18 @@ const UserListPage = () => {
         <Sider width={200} className="site-layout-background">
           <Menu
             mode="inline"
-            defaultSelectedKeys={["1"]}
+            defaultSelectedKeys={["2"]}
             style={{ height: "100%", borderRight: 0 }}
             items={[
               {
                 key: "1",
                 label: "Home",
-                onClick: () => navigate("/home"),
+                onClick: () => navigate("/"),
               },
               {
                 key: "2",
                 label: "User List",
-                onClick: () => navigate("/users"),
+                onClick: () => navigate("/userList"),
               },
               {
                 key: "3",
@@ -164,6 +245,26 @@ const UserListPage = () => {
                 }
               />
               <Table.Column
+                title="Permissions"
+                key="permissions"
+                render={(text, record) =>
+                  record.roles && record.roles.length > 0
+                    ? record.roles
+                        .flatMap((role) => role.permissions)
+                        .map((permission) => (
+                          <Tag
+                            key={permission.name}
+                            color={
+                              permissionColors[permission.name] || "default"
+                            }
+                          >
+                            {permission.name}
+                          </Tag>
+                        ))
+                    : "No permissions assigned"
+                }
+              />
+              <Table.Column
                 title="Edit"
                 key="edit"
                 render={(text, record) => (
@@ -179,23 +280,97 @@ const UserListPage = () => {
               <Table.Column
                 title="Delete"
                 key="delete"
-                render={(text, record) => (
-                  <Tag
-                    color="red"
-                    onClick={() => handleDeleteUser(record.id)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    Delete
-                  </Tag>
-                )}
+                render={(text, record) =>
+                  isAdmin && (
+                    <Tag
+                      color="red"
+                      onClick={() => handleDeleteUser(record.id)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Delete
+                    </Tag>
+                  )
+                }
               />
             </Table>
+            {(isAdmin || isManager) && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={showModal}
+                style={{ marginTop: 16, alignSelf: "flex-start" }}
+              >
+                Add User
+              </Button>
+            )}
           </Content>
           <Footer style={{ textAlign: "center" }}>
             My Application ©{new Date().getFullYear()} Created by Tu Phung
           </Footer>
         </Layout>
       </Layout>
+
+      <Modal
+        title="Add User"
+        open={isModalVisible}
+        onOk={handleAddUser}
+        onCancel={handleCancel}
+      >
+        <Form form={form} layout="vertical" name="userForm">
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[{ required: true, message: "Please input the username!" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[{ required: true, message: "Please input the password!" }]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            name="firstname"
+            label="First Name"
+            rules={[
+              { required: true, message: "Please input the first name!" },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="lastname"
+            label="Last Name"
+            rules={[{ required: true, message: "Please input the last name!" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="dob"
+            label="Date of Birth (YYYY-MM-DD)"
+            rules={[
+              { required: true, message: "Please input the date of birth!" },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="roles"
+            label="Role"
+            rules={[{ required: true, message: "Please select the role!" }]}
+          >
+            <Select mode="multiple" placeholder="Select roles">
+              {roles.map((role) => (
+                <Option key={role.name} value={role.name}>
+                  {role.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </Layout>
   );
 };

@@ -45,7 +45,7 @@ const AuthWrapper = ({ children }) => {
     };
 
     checkTokenValidity();
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
   return isAuthenticated ? children : null;
 };
@@ -63,7 +63,7 @@ const App = () => (
         }
       />
       <Route
-        path="/users"
+        path="/userList"
         element={
           <AuthWrapper>
             <UserListPage />
