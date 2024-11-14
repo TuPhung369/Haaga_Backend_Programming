@@ -19,7 +19,7 @@ const LoginPage = () => {
         localStorage.getItem("isAuthenticated") === "true" &&
         response.result?.valid
       ) {
-        navigate("/home");
+        navigate("/");
       }
     };
     checkToken();
@@ -33,7 +33,7 @@ const LoginPage = () => {
         localStorage.setItem("isAuthenticated", data.result.authenticated);
         localStorage.setItem("token", data.result.token);
       }
-      navigate("/home");
+      navigate("/");
     } catch (error) {
       console.error("Error during login:", error);
       setError(error.message || "An error occurred during login");

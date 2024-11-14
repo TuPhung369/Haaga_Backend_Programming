@@ -4,7 +4,8 @@ import {
   getAllPermissions,
   deletePermission,
 } from "../services/permissionService"; // Adjust imports as needed
-import { Layout, Menu, Button, Table, Tag } from "antd";
+import CustomButton from "../components/CustomButton";
+import { Layout, Menu, Table, Tag } from "antd";
 
 const { Header, Sider, Content, Footer } = Layout;
 
@@ -47,6 +48,11 @@ const PermissionPage = () => {
       console.error("Error deleting permission:", error);
     }
   };
+  const handleLogout = () => {
+    localStorage.setItem("isAuthenticated", "false");
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -68,17 +74,9 @@ const PermissionPage = () => {
           <div style={{ flex: 1, textAlign: "center" }}>
             <h1 style={{ margin: 0 }}>Permission List</h1>
           </div>
-          <Button
-            style={{ marginRight: 60 }}
-            onClick={() => {
-              localStorage.setItem("isAuthenticated", "false");
-              localStorage.removeItem("token");
-              navigate("/login");
-            }}
-            type="primary"
-          >
+          <CustomButton onClick={handleLogout} type="primary">
             Logout
-          </Button>
+          </CustomButton>
         </div>
       </Header>
 

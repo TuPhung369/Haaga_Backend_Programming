@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllRoles, deleteRole } from "../services/roleService"; // Adjust imports as needed
-import { Layout, Menu, Button, Table, Tag } from "antd";
+import CustomButton from "../components/CustomButton";
+import { Layout, Menu, Table, Tag } from "antd";
 
 const { Header, Sider, Content, Footer } = Layout;
 
@@ -53,7 +54,11 @@ const RolesPage = () => {
     UPDATE: "orange",
     DELETE: "red",
   };
-
+  const handleLogout = () => {
+    localStorage.setItem("isAuthenticated", "false");
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
@@ -74,17 +79,9 @@ const RolesPage = () => {
           <div style={{ flex: 1, textAlign: "center" }}>
             <h1 style={{ margin: 0 }}>Role List</h1>
           </div>
-          <Button
-            style={{ marginRight: 60 }}
-            onClick={() => {
-              localStorage.setItem("isAuthenticated", "false");
-              localStorage.removeItem("token");
-              navigate("/login");
-            }}
-            type="primary"
-          >
+          <CustomButton onClick={handleLogout} type="primary">
             Logout
-          </Button>
+          </CustomButton>
         </div>
       </Header>
 

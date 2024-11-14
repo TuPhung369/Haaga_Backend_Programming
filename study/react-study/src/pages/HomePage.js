@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import "../css/HomePage.css";
 import { useNavigate } from "react-router-dom";
+import CustomButton from "../components/CustomButton";
 import {
   getAllUsers,
   getMyInfo,
@@ -12,18 +13,20 @@ import {
   Descriptions,
   Layout,
   Menu,
-  Button,
   Table,
   Tag,
   Modal,
   Form,
   Input,
   Select,
+  notification,
 } from "antd";
 import { EditOutlined, UserAddOutlined } from "@ant-design/icons";
 
+const { confirm } = Modal;
 const { Header, Sider, Content, Footer } = Layout;
 const { Option } = Select;
+
 const HomePage = () => {
   const navigate = useNavigate();
   const [userInformation, setUserInformation] = useState(null);
@@ -32,15 +35,25 @@ const HomePage = () => {
   const [isModeNew, setIsModeNew] = useState(false);
   const [isModeUpdate, setIsModeUpdate] = useState(false);
   const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [form] = Form.useForm();
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => !!localStorage.getItem("token")
   );
+  const [api, contextHolder] = notification.useNotification();
+  const [notificationMessage, setNotificationMessage] = useState(null);
+
+  const openNotificationWithIcon = useCallback(
+    (type, message, description) => {
+      api[type]({
+        message: message,
+        description: description,
+      });
+    },
+    [api]
+  );
+
   useEffect(() => {
-    setIsModalVisible(false);
-    setIsModeNew(false);
-    setIsModeUpdate(false);
-    setIsModeIdUpdate(false);
     const handleStorageChange = (event) => {
       if (event.key === "token") {
         setIsAuthenticated(!!event.newValue);
@@ -52,6 +65,7 @@ const HomePage = () => {
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchMyInfo();
@@ -59,9 +73,20 @@ const HomePage = () => {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (notificationMessage) {
+      openNotificationWithIcon(
+        notificationMessage.type,
+        notificationMessage.message,
+        notificationMessage.description
+      );
+      setNotificationMessage(null); // Reset notification message
+    }
+  }, [notificationMessage, api, openNotificationWithIcon]);
+
   const fetchAllUsers = async () => {
     try {
-      const response = await getAllUsers(); // Assuming this returns an array of users
+      const response = await getAllUsers();
       if (Array.isArray(response)) {
         const allUsersData = response.map((user) => ({
           id: user.id,
@@ -121,9 +146,35 @@ const HomePage = () => {
       setAllUsers((prevUsers) =>
         prevUsers.filter((user) => user.id !== userId)
       );
+      setNotificationMessage({
+        type: "success",
+        message: "Success",
+        description: "User has been successfully deleted.",
+      });
     } catch (error) {
       console.error("Error deleting user:", error);
+      setNotificationMessage({
+        type: "error",
+        message: "Error",
+        description: "There was an error deleting the user.",
+      });
     }
+  };
+
+  const showDeleteConfirm = (userId) => {
+    confirm({
+      title: "Are you sure you want to delete this user?",
+      content: "This action cannot be undone.",
+      okText: "Yes",
+      okType: "danger",
+      cancelText: "No",
+      onOk() {
+        handleDeleteUser(userId);
+      },
+      onCancel() {
+        console.log("Cancel");
+      },
+    });
   };
 
   const handleLogout = () => {
@@ -131,6 +182,7 @@ const HomePage = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
+
   const showModalUpdate = () => {
     setIsModalVisible(true);
     setIsModeUpdate(true);
@@ -143,10 +195,12 @@ const HomePage = () => {
       roles: userInformation?.roles?.map((role) => role.name) || [],
     });
   };
+
   const showModalIdUpdate = (id) => {
     const user = allUsers.find((user) => user.id === id);
     if (user) {
       setIsModeIdUpdate(true);
+      setSelectedUserId(id);
       setIsModalVisible(true);
       form.setFieldsValue({
         username: user.username || "",
@@ -160,6 +214,7 @@ const HomePage = () => {
       console.error("User not found for ID:", id);
     }
   };
+
   const showModalNew = () => {
     setIsModalVisible(true);
     setIsModeNew(true);
@@ -175,8 +230,12 @@ const HomePage = () => {
 
   const handleOk = async () => {
     try {
-      const values = await form.validateFields(); // Initial form validation
+      const values = await form.validateFields();
       try {
+        console.log("Form values:", values);
+        console.log("isModeUpdate", isModeUpdate);
+        console.log("isModeNew", isModeNew);
+        console.log("isModeIdUpdate", isModeIdUpdate);
         if (isModeUpdate) {
           await updateUser(userInformation.id, values);
         }
@@ -184,12 +243,15 @@ const HomePage = () => {
           await createUser(values);
         }
         if (isModeIdUpdate) {
-          await updateUser(values.id, values);
+          await updateUser(selectedUserId, values);
         }
         // Attempt the API update
         fetchMyInfo(); // Refresh user info
         fetchAllUsers(); // Refresh user list
-        setIsModalVisible(false); // Close modal on success
+        setIsModalVisible(false);
+        setIsModeNew(false);
+        setIsModeIdUpdate(false);
+        setIsModeUpdate(false);
       } catch (updateError) {
         // Handling API error
         console.error("Error updating user:", updateError);
@@ -209,15 +271,18 @@ const HomePage = () => {
       console.log("Validation Failed:", validationError);
     }
   };
+
   const handleCancel = () => {
     setIsModalVisible(false);
   };
+
   const permissionColors = {
+    CREATE: "blue",
     READ: "green",
-    WRITE: "blue",
-    DELETE: "red",
     UPDATE: "cyan",
+    DELETE: "red",
   };
+
   const roleColors = {
     ADMIN: "green",
     MANAGER: "blue",
@@ -246,13 +311,9 @@ const HomePage = () => {
               Welcome Spring Boot and ReactJS - FullStack
             </h1>
           </div>
-          <Button
-            className="custom-button"
-            onClick={handleLogout}
-            type="primary"
-          >
+          <CustomButton onClick={handleLogout} type="primary">
             Logout
-          </Button>
+          </CustomButton>
         </div>
       </Header>
 
@@ -284,6 +345,7 @@ const HomePage = () => {
 
         <Layout style={{ padding: "0 24px 24px" }}>
           <Content style={{ margin: "24px 0" }}>
+            {contextHolder}
             {userInformation ? (
               <Descriptions
                 className="custom-descriptions"
@@ -474,6 +536,26 @@ const HomePage = () => {
                 }
               />
               <Table.Column
+                title="Permissions"
+                key="permissions"
+                render={(text, record) =>
+                  record.roles && record.roles.length > 0
+                    ? record.roles
+                        .flatMap((role) => role.permissions)
+                        .map((permission) => (
+                          <Tag
+                            key={permission.name}
+                            color={
+                              permissionColors[permission.name] || "default"
+                            }
+                          >
+                            {permission.name}
+                          </Tag>
+                        ))
+                    : "No permissions assigned"
+                }
+              />
+              <Table.Column
                 title="Edit"
                 key="edit"
                 render={(text, record) =>
@@ -499,7 +581,7 @@ const HomePage = () => {
                   ) && (
                     <Tag
                       color="red"
-                      onClick={() => handleDeleteUser(record.id)}
+                      onClick={() => showDeleteConfirm(record.id)}
                       style={{ cursor: "pointer" }}
                     >
                       Delete
