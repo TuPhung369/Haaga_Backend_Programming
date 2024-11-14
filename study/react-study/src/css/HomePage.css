@@ -3,15 +3,27 @@
   font-weight: bold; /* Optional: Make the title bold */
 }
 @keyframes colorChange {
-  0% { color: #ff0000; }   /* Red */
-  12.5% { color: #ff7f00; } /* Orange */
-  25% { color: #ffff00; }   /* Yellow */
-  37.5% { color: #7fff00; } /* Chartreuse Green */
-  50% { color: #00ff00; }   /* Green */
-  62.5% { color: #00ff7f; } /* Spring Green */
-  75% { color: #00ffff; }   /* Cyan */
-  87.5% { color: #007fff; } /* Azure */
-  100% { color: #0000ff; }  /* Blue */
+  0% { color: #ffffff; } 
+  5% { color: #e6f0ff; }
+  10% { color: #cce0ff; }
+  15% { color: #b3d1ff; }
+  20% { color: #99c2ff; }
+  25% { color: #80b3ff; }
+  30% { color: #66a3ff; }
+  35% { color: #4d94ff; }
+  40% { color: #3385ff; }
+  45% { color: #1a75ff; }
+  50% { color: #0066ff; }
+  55% { color: #0059e6; }
+  60% { color: #004dcc; }
+  65% { color: #0040b3; }
+  70% { color: #003399; }
+  75% { color: #002680; }
+  80% { color: #001966; }
+  85% { color: #000d4d; }
+  90% { color: #000033; }
+  95% { color: #00001a; }
+  100% { color: #0066ff; }
 }
 
 @keyframes sizeChange {
@@ -29,7 +41,8 @@
 .animated-title {
   margin: 0;
   font-weight: bold;
-  animation: colorChange 5s infinite, sizeChange 5s infinite;
+  animation: colorChange 15s infinite, sizeChange 15s infinite;
+  -webkit-animation: colorChange 15s infinite, sizeChange 15s infinite;
 }
 
 .custom-button {

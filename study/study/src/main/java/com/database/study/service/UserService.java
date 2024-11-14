@@ -4,6 +4,7 @@ import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import com.database.study.entity.User;
 import com.database.study.exception.AppException;
@@ -94,6 +95,7 @@ public class UserService {
   }
 
   @PreAuthorize("hasRole('ADMIN') || hasRole('MANAGER')")
+  @Transactional
   public UserResponse updateUser(UUID userId, UserCreationRequest request) {
     log.info("Updating user with ID: {}", userId);
     User existingUser = userRepository.findById(userId)

@@ -1,14 +1,31 @@
 import React, { useEffect, useState } from "react";
 import "../css/HomePage.css";
 import { useNavigate } from "react-router-dom";
-import { getAllUsers, getMyInfo, deleteUser } from "../services/userService";
+import {
+  getAllUsers,
+  getMyInfo,
+  deleteUser,
+  updateUser,
+} from "../services/userService";
 import { getAllRoles } from "../services/roleService";
 import { getAllPermissions } from "../services/permissionService";
 import { introspectToken } from "../services/authService"; // Example for fetching tokens (if needed)
-import { Descriptions, Layout, Menu, Button, Table, Tag } from "antd";
+import {
+  Descriptions,
+  Layout,
+  Menu,
+  Button,
+  Table,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  Select,
+} from "antd";
+import { EditOutlined } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
-
+const { Option } = Select;
 const HomePage = () => {
   const navigate = useNavigate();
   const [userInformation, setUserInformation] = useState(null);
@@ -16,6 +33,8 @@ const HomePage = () => {
   const [roles, setRoles] = useState([]);
   const [permissionsList, setPermissionsList] = useState([]);
   const [tokenList, setTokenList] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     fetchMyInfo();
@@ -124,6 +143,36 @@ const HomePage = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
+  const showModal = () => {
+    setIsModalVisible(true);
+    form.setFieldsValue({
+      username: userInformation?.username || "",
+      password: "",
+      firstname: userInformation?.firstname || "",
+      lastname: userInformation?.lastname || "",
+      dob: userInformation?.dob || "",
+      roles: userInformation?.roles?.map((role) => role.name) || [],
+    });
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      try {
+        await updateUser(userInformation.id, values);
+        fetchMyInfo();
+        fetchAllUsers();
+        setIsModalVisible(false);
+      } catch (updateError) {
+        console.error("Error updating user:", updateError);
+      }
+    } catch (validationError) {
+      console.log("Validation Failed:", validationError);
+    }
+  };
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
   const permissionColors = {
     READ: "green",
     WRITE: "blue",
@@ -135,6 +184,7 @@ const HomePage = () => {
     MANAGER: "blue",
     UPDATE: "cyan",
   };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
@@ -203,7 +253,22 @@ const HomePage = () => {
             {userInformation ? (
               <Descriptions
                 className="custom-descriptions"
-                title="User Information"
+                title={
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "start",
+                      alignItems: "center",
+                    }}
+                  >
+                    User Information
+                    <EditOutlined
+                      onClick={showModal}
+                      style={{ cursor: "pointer", marginLeft: "10px" }}
+                    />
+                  </div>
+                }
                 bordered
               >
                 <Descriptions.Item label="First Name">
@@ -248,7 +313,76 @@ const HomePage = () => {
             ) : (
               <p>Loading user information...</p>
             )}
-
+            <Modal
+              title="Edit User Information"
+              open={isModalVisible}
+              onOk={handleOk}
+              onCancel={handleCancel}
+            >
+              <Form form={form} layout="vertical" name="userForm">
+                <Form.Item
+                  name="username"
+                  label="Username"
+                  rules={[
+                    { required: true, message: "Please input the username!" },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  name="password"
+                  label="Password"
+                  rules={[
+                    { required: true, message: "Please input the password!" },
+                  ]}
+                >
+                  <Input.Password />
+                </Form.Item>
+                <Form.Item
+                  name="firstname"
+                  label="First Name"
+                  rules={[
+                    { required: true, message: "Please input the first name!" },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  name="lastname"
+                  label="Last Name"
+                  rules={[
+                    { required: true, message: "Please input the last name!" },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  name="dob"
+                  label="Date of Birth"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input the date of birth!",
+                    },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  name="roles"
+                  label="Role"
+                  rules={[
+                    { required: true, message: "Please select the role!" },
+                  ]}
+                >
+                  <Select mode="multiple" placeholder="Select roles">
+                    <Option value="ADMIN">ADMIN</Option>
+                    <Option value="MANAGER">MANAGER</Option>
+                    <Option value="UPDATE">UPDATE</Option>
+                  </Select>
+                </Form.Item>
+              </Form>
+            </Modal>
             <h2 style={{ marginTop: 25, fontSize: 25 }}>User List</h2>
             <Table dataSource={allUsers} rowKey="id">
               <Table.Column title="ID" dataIndex="id" key="id" />

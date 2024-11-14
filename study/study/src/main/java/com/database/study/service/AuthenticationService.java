@@ -186,6 +186,7 @@ public class AuthenticationService {
 
     RefreshTokenResponse response = RefreshTokenResponse.builder()
         .token(newAccessToken)
+        .refreshToken(newRefreshToken)
         .authenticated(true)
         .build();
     return response;

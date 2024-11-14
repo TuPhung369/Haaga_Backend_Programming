@@ -1,83 +1,81 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   BrowserRouter as Router,
   Route,
   Routes,
   Navigate,
-  useLocation,
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
-import HomePage from "./pages/HomePage"; // Ensure you have created this component
+import HomePage from "./pages/HomePage";
 import UserListPage from "./pages/UserListPage";
 import RolesPage from "./pages/RolesPage";
 import PermissionsPage from "./pages/PermissionsPage";
+import { introspectToken, refreshToken } from "./services/authService";
+import { jwtDecode } from "jwt-decode";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem("isAuthenticated") === "true"
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Monitor changes to localStorage in case you log in/out from other tabs
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setIsAuthenticated(localStorage.getItem("isAuthenticated") === "true");
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
+  const checkTokenValidity = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    const currentTime = Date.now() / 1000;
+    const tenMinutesFromNow = currentTime + 600;
+    if (token) {
+      try {
+        const introspectResponse = await introspectToken(token);
+        const decodedToken = jwtDecode(token);
+        if (
+          introspectResponse.result.valid ||
+          decodedToken.exp < tenMinutesFromNow
+        ) {
+          setIsAuthenticated(true);
+        } else {
+          const response = await refreshToken(token);
+          const decodedRefreshToken = jwtDecode(response.result.refreshToken);
+          if (decodedRefreshToken.exp < tenMinutesFromNow) {
+            setIsAuthenticated(false);
+            localStorage.clear();
+          } else {
+            localStorage.setItem("token", response.token);
+            setIsAuthenticated(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking token validity:", error);
+        setIsAuthenticated(false);
+      }
+    } else {
+      setIsAuthenticated(false);
+    }
   }, []);
 
-  const RequireAuth = ({ children }) => {
-    const location = useLocation();
-    if (!isAuthenticated) {
-      // Redirect unauthenticated users to the login page
-      return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-    return children;
-  };
+  useEffect(() => {
+    checkTokenValidity();
+  }, [checkTokenValidity]);
 
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
-          path="/userList"
-          element={
-            <RequireAuth>
-              <UserListPage />
-            </RequireAuth>
-          }
+          path="/home"
+          element={isAuthenticated ? <HomePage /> : <Navigate to="/login" />}
         />
         <Route
-          path="/permissions"
+          path="/users"
           element={
-            <RequireAuth>
-              <PermissionsPage />
-            </RequireAuth>
+            isAuthenticated ? <UserListPage /> : <Navigate to="/login" />
           }
         />
         <Route
           path="/roles"
-          element={
-            <RequireAuth>
-              <RolesPage />
-            </RequireAuth>
-          }
+          element={isAuthenticated ? <RolesPage /> : <Navigate to="/login" />}
         />
         <Route
-          path="/home"
+          path="/permissions"
           element={
-            <RequireAuth>
-              <HomePage />
-            </RequireAuth>
+            isAuthenticated ? <PermissionsPage /> : <Navigate to="/login" />
           }
-        />
-        {/* Add a catch-all route or other routes as needed */}
-        <Route
-          path="*"
-          element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
         />
       </Routes>
     </Router>
@@ -85,5 +83,4 @@ function App() {
 }
 
 export default App;
-
 
