@@ -30,11 +30,17 @@ const HomePage = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
+  const [isModeUpdate, setIsModeUpdate] = useState(false);
+  const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
   const [form] = Form.useForm();
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => !!localStorage.getItem("token")
   );
   useEffect(() => {
+    setIsModalVisible(false);
+    setIsModeNew(false);
+    setIsModeUpdate(false);
+    setIsModeIdUpdate(false);
     const handleStorageChange = (event) => {
       if (event.key === "token") {
         setIsAuthenticated(!!event.newValue);
@@ -127,7 +133,7 @@ const HomePage = () => {
   };
   const showModalUpdate = () => {
     setIsModalVisible(true);
-    setIsModeNew(false);
+    setIsModeUpdate(true);
     form.setFieldsValue({
       username: userInformation?.username || "",
       password: "",
@@ -136,6 +142,23 @@ const HomePage = () => {
       dob: userInformation?.dob || "",
       roles: userInformation?.roles?.map((role) => role.name) || [],
     });
+  };
+  const showModalIdUpdate = (id) => {
+    const user = allUsers.find((user) => user.id === id);
+    if (user) {
+      setIsModeIdUpdate(true);
+      setIsModalVisible(true);
+      form.setFieldsValue({
+        username: user.username || "",
+        password: "",
+        firstname: user.firstname || "",
+        lastname: user.lastname || "",
+        dob: user.dob || "",
+        roles: user.roles?.map((role) => role.name) || [],
+      });
+    } else {
+      console.error("User not found for ID:", id);
+    }
   };
   const showModalNew = () => {
     setIsModalVisible(true);
@@ -154,11 +177,14 @@ const HomePage = () => {
     try {
       const values = await form.validateFields(); // Initial form validation
       try {
-        if (!isModeNew) {
+        if (isModeUpdate) {
           await updateUser(userInformation.id, values);
         }
         if (isModeNew) {
           await createUser(values);
+        }
+        if (isModeIdUpdate) {
+          await updateUser(values.id, values);
         }
         // Attempt the API update
         fetchMyInfo(); // Refresh user info
@@ -456,7 +482,7 @@ const HomePage = () => {
                   ) && (
                     <Tag
                       color="blue"
-                      onClick={() => navigate(`/users/${record.id}/edit`)}
+                      onClick={() => showModalIdUpdate(record.id)}
                       style={{ cursor: "pointer" }}
                     >
                       Update
