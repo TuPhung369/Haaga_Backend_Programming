@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { authenticateUser } from "../services/authService";
 import { Form, Input, Button, Alert, Typography, Layout, Card } from "antd";
+import { authenticateUser, introspectToken } from "../services/authService";
 
 const { Title } = Typography;
 const { Content } = Layout;
@@ -10,32 +10,33 @@ const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem("isAuthenticated") === "true"
-  );
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/home");
-    } else {
-      if (window.location.pathname !== "/login") {
-        navigate("/login");
+    const checkToken = async () => {
+      const response = await introspectToken(localStorage.getItem("token"));
+      if (
+        localStorage.getItem("isAuthenticated") === "true" &&
+        response.result?.valid
+      ) {
+        navigate("/home");
       }
-    }
-  }, [isAuthenticated, navigate]);
+    };
+    checkToken();
+  }, [navigate]);
 
   const handleLogin = async (values) => {
     try {
       const data = await authenticateUser(values.username, values.password);
-      setIsAuthenticated(data.result.authenticated);
-      localStorage.setItem("isAuthenticated", data.result.authenticated);
-      localStorage.setItem("token", data.result.token);
+      const response = await introspectToken(data.result.token);
+      if (response.result?.valid) {
+        localStorage.setItem("isAuthenticated", data.result.authenticated);
+        localStorage.setItem("token", data.result.token);
+      }
       navigate("/home");
     } catch (error) {
-      setError("Invalid username or password");
-      setIsAuthenticated(false);
-      localStorage.setItem("isAuthenticated", "false");
+      console.error("Error during login:", error);
+      setError(error.message || "An error occurred during login");
     }
   };
 

@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedToken, String> {
   Optional<InvalidatedToken> findByToken(String token);
 
+  Optional<InvalidatedToken> findByRefreshToken(String token);
+
   Optional<InvalidatedToken> findByName(String name);
 
   void deleteByName(String name);

@@ -1,86 +1,94 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Route,
   Routes,
-  Navigate,
+  useNavigate,
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import UserListPage from "./pages/UserListPage";
 import RolesPage from "./pages/RolesPage";
 import PermissionsPage from "./pages/PermissionsPage";
-import { introspectToken, refreshToken } from "./services/authService";
-import { jwtDecode } from "jwt-decode";
+import { introspectToken } from "./services/authService";
 
-function App() {
+const AuthWrapper = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const checkTokenValidity = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    const currentTime = Date.now() / 1000;
-    const tenMinutesFromNow = currentTime + 600;
-    if (token) {
-      try {
-        const introspectResponse = await introspectToken(token);
-        const decodedToken = jwtDecode(token);
-        if (
-          introspectResponse.result.valid ||
-          decodedToken.exp < tenMinutesFromNow
-        ) {
-          setIsAuthenticated(true);
-        } else {
-          const response = await refreshToken(token);
-          const decodedRefreshToken = jwtDecode(response.result.refreshToken);
-          if (decodedRefreshToken.exp < tenMinutesFromNow) {
-            setIsAuthenticated(false);
-            localStorage.clear();
-          } else {
-            localStorage.setItem("token", response.token);
-            setIsAuthenticated(true);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking token validity:", error);
-        setIsAuthenticated(false);
-      }
-    } else {
-      setIsAuthenticated(false);
-    }
-  }, []);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    checkTokenValidity();
-  }, [checkTokenValidity]);
+    const checkTokenValidity = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const response = await introspectToken(token);
+          if (
+            response.result?.valid &&
+            localStorage.getItem("isAuthenticated")
+          ) {
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem("token");
+            setIsAuthenticated(false);
+            navigate("/login");
+          }
+        } catch (error) {
+          console.error("Error during token introspection:", error);
+          localStorage.removeItem("token");
+          setIsAuthenticated(false);
+          navigate("/login");
+        }
+      } else {
+        setIsAuthenticated(false);
+        navigate("/login");
+      }
+    };
 
-  return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/home"
-          element={isAuthenticated ? <HomePage /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/users"
-          element={
-            isAuthenticated ? <UserListPage /> : <Navigate to="/login" />
-          }
-        />
-        <Route
-          path="/roles"
-          element={isAuthenticated ? <RolesPage /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/permissions"
-          element={
-            isAuthenticated ? <PermissionsPage /> : <Navigate to="/login" />
-          }
-        />
-      </Routes>
-    </Router>
-  );
-}
+    checkTokenValidity();
+  }, [navigate]);
+
+  return isAuthenticated ? children : null;
+};
+
+const App = () => (
+  <Router>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/home"
+        element={
+          <AuthWrapper>
+            <HomePage />
+          </AuthWrapper>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <AuthWrapper>
+            <UserListPage />
+          </AuthWrapper>
+        }
+      />
+      <Route
+        path="/roles"
+        element={
+          <AuthWrapper>
+            <RolesPage />
+          </AuthWrapper>
+        }
+      />
+      <Route
+        path="/permissions"
+        element={
+          <AuthWrapper>
+            <PermissionsPage />
+          </AuthWrapper>
+        }
+      />
+    </Routes>
+  </Router>
+);
 
 export default App;
 

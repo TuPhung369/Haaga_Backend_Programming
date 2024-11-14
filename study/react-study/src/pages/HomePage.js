@@ -7,9 +7,6 @@ import {
   deleteUser,
   updateUser,
 } from "../services/userService";
-import { getAllRoles } from "../services/roleService";
-import { getAllPermissions } from "../services/permissionService";
-import { introspectToken } from "../services/authService"; // Example for fetching tokens (if needed)
 import {
   Descriptions,
   Layout,
@@ -30,19 +27,29 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [userInformation, setUserInformation] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [permissionsList, setPermissionsList] = useState([]);
-  const [tokenList, setTokenList] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
-
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => !!localStorage.getItem("token")
+  );
   useEffect(() => {
-    fetchMyInfo();
-    fetchAllUsers();
-    fetchRoles();
-    fetchPermissions();
-    fetchTokens();
+    const handleStorageChange = (event) => {
+      if (event.key === "token") {
+        setIsAuthenticated(!!event.newValue);
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMyInfo();
+      fetchAllUsers();
+    }
+  }, [isAuthenticated]);
 
   const fetchAllUsers = async () => {
     try {
@@ -100,33 +107,6 @@ const HomePage = () => {
     }
   };
 
-  const fetchRoles = async () => {
-    try {
-      const response = await getAllRoles();
-      setRoles(response.result);
-    } catch (error) {
-      console.error("Error fetching roles:", error);
-    }
-  };
-
-  const fetchPermissions = async () => {
-    try {
-      const response = await getAllPermissions();
-      setPermissionsList(response.result);
-    } catch (error) {
-      console.error("Error fetching permissions:", error);
-    }
-  };
-
-  const fetchTokens = async () => {
-    try {
-      const response = await introspectToken(); // Replace with your specific token logic
-      setTokenList(response.result);
-    } catch (error) {
-      console.error("Error fetching tokens:", error);
-    }
-  };
-
   const handleDeleteUser = async (userId) => {
     try {
       await deleteUser(userId);
@@ -157,16 +137,29 @@ const HomePage = () => {
 
   const handleOk = async () => {
     try {
-      const values = await form.validateFields();
+      const values = await form.validateFields(); // Initial form validation
+
       try {
-        await updateUser(userInformation.id, values);
-        fetchMyInfo();
-        fetchAllUsers();
-        setIsModalVisible(false);
+        await updateUser(userInformation.id, values); // Attempt the API update
+        fetchMyInfo(); // Refresh user info
+        fetchAllUsers(); // Refresh user list
+        setIsModalVisible(false); // Close modal on success
       } catch (updateError) {
+        // Handling API error
         console.error("Error updating user:", updateError);
+
+        if (updateError.message) {
+          // Simulate validation error on a specific field or general error
+          form.setFields([
+            {
+              name: "customField", // Replace with a field name you want to show the error on
+              errors: [updateError.message],
+            },
+          ]);
+        }
       }
     } catch (validationError) {
+      // Handle form validation errors
       console.log("Validation Failed:", validationError);
     }
   };
