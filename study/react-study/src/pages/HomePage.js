@@ -6,6 +6,7 @@ import {
   getMyInfo,
   deleteUser,
   updateUser,
+  createUser,
 } from "../services/userService";
 import {
   Descriptions,
@@ -19,7 +20,7 @@ import {
   Input,
   Select,
 } from "antd";
-import { EditOutlined } from "@ant-design/icons";
+import { EditOutlined, UserAddOutlined } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
 const { Option } = Select;
@@ -28,6 +29,7 @@ const HomePage = () => {
   const [userInformation, setUserInformation] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isModeNew, setIsModeNew] = useState(false);
   const [form] = Form.useForm();
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => !!localStorage.getItem("token")
@@ -123,8 +125,9 @@ const HomePage = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
-  const showModal = () => {
+  const showModalUpdate = () => {
     setIsModalVisible(true);
+    setIsModeNew(false);
     form.setFieldsValue({
       username: userInformation?.username || "",
       password: "",
@@ -134,13 +137,30 @@ const HomePage = () => {
       roles: userInformation?.roles?.map((role) => role.name) || [],
     });
   };
+  const showModalNew = () => {
+    setIsModalVisible(true);
+    setIsModeNew(true);
+    form.setFieldsValue({
+      username: "",
+      password: "",
+      firstname: "",
+      lastname: "",
+      dob: "",
+      roles: [],
+    });
+  };
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields(); // Initial form validation
-
       try {
-        await updateUser(userInformation.id, values); // Attempt the API update
+        if (!isModeNew) {
+          await updateUser(userInformation.id, values);
+        }
+        if (isModeNew) {
+          await createUser(values);
+        }
+        // Attempt the API update
         fetchMyInfo(); // Refresh user info
         fetchAllUsers(); // Refresh user list
         setIsModalVisible(false); // Close modal on success
@@ -175,7 +195,7 @@ const HomePage = () => {
   const roleColors = {
     ADMIN: "green",
     MANAGER: "blue",
-    UPDATE: "cyan",
+    USER: "cyan",
   };
 
   return (
@@ -232,11 +252,6 @@ const HomePage = () => {
                 label: "Permission List",
                 onClick: () => navigate("/permissions"),
               },
-              {
-                key: "4",
-                label: "Token List",
-                onClick: () => navigate("/tokens"),
-              },
             ]}
           />
         </Sider>
@@ -257,7 +272,7 @@ const HomePage = () => {
                   >
                     User Information
                     <EditOutlined
-                      onClick={showModal}
+                      onClick={showModalUpdate}
                       style={{ cursor: "pointer", marginLeft: "10px" }}
                     />
                   </div>
@@ -351,7 +366,7 @@ const HomePage = () => {
                 </Form.Item>
                 <Form.Item
                   name="dob"
-                  label="Date of Birth"
+                  label="Date of Birth (YYYY-MM-DD)"
                   rules={[
                     {
                       required: true,
@@ -371,12 +386,33 @@ const HomePage = () => {
                   <Select mode="multiple" placeholder="Select roles">
                     <Option value="ADMIN">ADMIN</Option>
                     <Option value="MANAGER">MANAGER</Option>
-                    <Option value="UPDATE">UPDATE</Option>
+                    <Option value="USER">USER</Option>
                   </Select>
                 </Form.Item>
               </Form>
             </Modal>
-            <h2 style={{ marginTop: 25, fontSize: 25 }}>User List</h2>
+            <h2 style={{ marginTop: 25, fontSize: 25 }}>
+              <Descriptions
+                className="custom-descriptions"
+                title={
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "start",
+                      alignItems: "center",
+                    }}
+                  >
+                    User List
+                    <UserAddOutlined
+                      onClick={showModalNew}
+                      style={{ cursor: "pointer", marginLeft: "10px" }}
+                    />
+                  </div>
+                }
+                bordered
+              ></Descriptions>
+            </h2>
             <Table dataSource={allUsers} rowKey="id">
               <Table.Column title="ID" dataIndex="id" key="id" />
               <Table.Column
