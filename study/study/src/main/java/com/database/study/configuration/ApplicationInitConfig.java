@@ -2,7 +2,9 @@ package com.database.study.configuration;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.entity.User;
@@ -80,6 +82,21 @@ public class ApplicationInitConfig {
             ENUMS.Role.MANAGER.name());
         createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
             ENUMS.Role.USER.name());
+            
+        // Generate 100 users with the same password and random roles
+        Random random = new Random();
+        ENUMS.Role[] roles = ENUMS.Role.values();
+
+        IntStream.rangeClosed(1, 100).forEach(i -> {
+          ENUMS.Role randomRole = roles[random.nextInt(roles.length)];
+          String username = randomRole.name() + "Tom" + i;
+          String password = "Thanhcong6(";
+          String firstName = "User" + i;
+          String lastName = randomRole.name();
+          LocalDate dob = LocalDate.parse("1998-01-01").plusDays(i);
+          String role = randomRole.name();
+          createUserIfNotExists(username, password, firstName, lastName, dob, role);
+        });
 
       } catch (Exception e) {
         log.error("Error during application initialization", e);

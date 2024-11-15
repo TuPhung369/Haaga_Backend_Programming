@@ -1,0 +1,26 @@
+.login-page .layout-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  padding: 20px;
+}
+
+.login-page .card-container {
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.login-page .card-container:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.login-page .ant-input,
+.login-page .ant-input-password {
+  border-radius: 5px;
+}
+
+.login-page-modal-form-item {
+  margin-bottom: 15px;
+}

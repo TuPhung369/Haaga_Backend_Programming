@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import com.database.study.security.JwtTokenFilter;
 import org.springframework.web.cors.CorsConfiguration;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -23,7 +24,7 @@ public class SecurityConfig {
 
   private final String[] PUBLIC_ENDPOINTS = {
       "/users", "/auth/token", "/auth/introspect", "/auth/logout",
-      "/auth/refreshToken"
+      "/auth/refreshToken", "/auth/resetPassword"
   };
 
   @Autowired

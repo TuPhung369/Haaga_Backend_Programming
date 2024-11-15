@@ -18,6 +18,7 @@ import com.database.study.dto.request.IntrospectRequest;
 import com.database.study.dto.response.IntrospectResponse;
 import com.database.study.dto.response.RefreshTokenResponse;
 import com.database.study.dto.request.RefreshTokenRequest;
+import com.database.study.dto.request.ResetPasswordRequest;
 
 import java.text.ParseException;
 
@@ -61,5 +62,10 @@ public class AuthenticationController {
     return ApiResponse.<Void>builder()
         .message("Logged out successfully!")
         .build();
+  }
+
+  @PostMapping("/resetPassword")
+  public ApiResponse<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
+    return authenticationService.resetPassword(request);
   }
 }

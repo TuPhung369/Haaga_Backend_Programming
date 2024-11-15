@@ -4,14 +4,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.database.study.dto.request.ApiResponse;
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.request.LogoutRequest;
+import com.database.study.dto.request.ResetPasswordRequest;
 import com.database.study.dto.request.IntrospectRequest;
 import com.database.study.dto.request.RefreshTokenRequest;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.dto.response.IntrospectResponse;
 import com.database.study.dto.response.RefreshTokenResponse;
 import com.database.study.entity.InvalidatedToken;
+import com.database.study.entity.User;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.repository.InvalidatedTokenRepository;
@@ -116,6 +119,19 @@ public class AuthenticationService {
         .authenticated(true)
         .build();
     return response;
+  }
+
+  public ApiResponse<Void> resetPassword(ResetPasswordRequest request) {
+    User user = userRepository.findByUsername(request.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    String encodedPassword = passwordEncoder.encode(request.getNewPassword());
+    user.setPassword(encodedPassword);
+    userRepository.save(user);
+
+    return ApiResponse.<Void>builder()
+        .message("Password reset successfully!")
+        .build();
   }
 
   @Transactional

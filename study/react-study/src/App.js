@@ -6,6 +6,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/HomePage";
 import UserListPage from "./pages/UserListPage";
 import RolesPage from "./pages/RolesPage";
@@ -24,7 +25,6 @@ const AuthWrapper = ({ children }) => {
           const response = await introspectToken(token);
           if (response.result?.valid) {
             setIsAuthenticated(true);
-            navigate("/");
           } else {
             localStorage.removeItem("token");
             setIsAuthenticated(false);
@@ -52,6 +52,7 @@ const App = () => (
   <Router>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/resetpassword" element={<ResetPasswordPage />} />
       <Route
         path="/"
         element={
