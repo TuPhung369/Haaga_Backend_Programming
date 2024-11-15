@@ -82,7 +82,7 @@ public class ApplicationInitConfig {
             ENUMS.Role.MANAGER.name());
         createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
             ENUMS.Role.USER.name());
-            
+
         // Generate 100 users with the same password and random roles
         Random random = new Random();
         ENUMS.Role[] roles = ENUMS.Role.values();
