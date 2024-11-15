@@ -22,11 +22,9 @@ const AuthWrapper = ({ children }) => {
       if (token) {
         try {
           const response = await introspectToken(token);
-          if (
-            response.result?.valid &&
-            localStorage.getItem("isAuthenticated")
-          ) {
+          if (response.result?.valid) {
             setIsAuthenticated(true);
+            navigate("/");
           } else {
             localStorage.removeItem("token");
             setIsAuthenticated(false);

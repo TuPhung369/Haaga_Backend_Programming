@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Form, Input, Button, Alert, Typography, Layout, Card } from "antd";
 import { authenticateUser, introspectToken } from "../services/authService";
@@ -7,28 +7,33 @@ const { Title } = Typography;
 const { Content } = Layout;
 
 const LoginPage = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
-  const handleLogin = useCallback(
-    async (values) => {
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+    }
+  }, [navigate]);
+
+  const handleLogin = (values) => {
+    const login = async () => {
       try {
         const data = await authenticateUser(values.username, values.password);
         const response = await introspectToken(data.result.token);
-        if (response.result?.valid) {
-          localStorage.setItem("isAuthenticated", data.result.authenticated);
+        if (response.result?.valid || localStorage.getItem("isAuthenticated")) {
           localStorage.setItem("token", data.result.token);
-          navigate("/");
+          window.location.href = "/"; // Use window.location.href to navigate
         }
       } catch (error) {
         console.error("Error during login:", error);
         setError(error.message || "An error occurred during login");
       }
-    },
-    [navigate]
-  );
+    };
+    login();
+  };
 
   return (
     <Layout

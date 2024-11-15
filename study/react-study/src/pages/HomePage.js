@@ -37,9 +37,8 @@ const HomePage = () => {
   const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [form] = Form.useForm();
-  const [isAuthenticated, setIsAuthenticated] = useState(() =>
-    localStorage.getItem("isAuthenticated")
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState(null);
 
@@ -54,20 +53,9 @@ const HomePage = () => {
   );
 
   useEffect(() => {
-    const handleStorageChange = (event) => {
-      if (event.key === "token") {
-        setIsAuthenticated(!!event.newValue);
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) {
+    if (localStorage.getItem("token")) {
+      setIsAuthenticated(true);
+      localStorage.setItem("isAuthenticated", true);
       fetchMyInfo();
       fetchAllUsers();
     }
