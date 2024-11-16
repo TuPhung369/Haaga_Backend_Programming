@@ -8,22 +8,25 @@ public class ENUMS {
   @Getter
   @AllArgsConstructor
   public enum Role {
-    ADMIN("Administrator - Full access to the system"),
-    USER("Regular User - Limited access"),
-    MANAGER("Manager - Can oversee and manage user activities");
+    ADMIN("Administrator - Full access to the system", "green"),
+    USER("Regular User - Limited access", "cyan"),
+    MANAGER("Manager - Can oversee and manage user activities", "blue");
 
     private final String description;
+    private final String color;
   }
 
   @Getter
   @AllArgsConstructor
   public enum Permission {
-    CREATE("Permission to create data"),
-    READ("Permission to read data"),
-    UPDATE("Permission to update existing data"),
-    DELETE("Permission to delete data");
+    CREATE("Permission to create data",
+        "blue"),
+    READ("Permission to read data", "green"),
+    UPDATE("Permission to update existing data", "cyan"),
+    DELETE("Permission to delete data", "red");
 
     private final String description;
+    private final String color;
   }
 
   @Getter

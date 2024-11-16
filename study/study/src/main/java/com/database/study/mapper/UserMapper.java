@@ -28,8 +28,10 @@ public interface UserMapper {
         .map(role -> RoleResponse.builder()
             .name(role.getName())
             .description(role.getDescription())
+            .color(role.getColor())
             .permissions(role.getPermissions() != null ? role.getPermissions().stream()
-                .map(permission -> new PermissionResponse(permission.getName(), permission.getDescription()))
+                .map(permission -> new PermissionResponse(permission.getName(), permission.getDescription(),
+                    permission.getColor()))
                 .collect(Collectors.toSet()) : null)
             .build())
         .collect(Collectors.toSet());

@@ -9,6 +9,8 @@ import {
   updateUser,
   createUser,
 } from "../services/userService";
+import { getAllRoles } from "../services/roleService";
+import { getAllPermissions } from "../services/permissionService";
 import {
   Descriptions,
   Layout,
@@ -31,6 +33,8 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [userInformation, setUserInformation] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
+  const [allRoles, setAllRoles] = useState([]);
+  const [allPermissions, setAllPermissions] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
   const [isModeUpdate, setIsModeUpdate] = useState(false);
@@ -53,15 +57,6 @@ const HomePage = () => {
   );
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      setIsAuthenticated(true);
-      localStorage.setItem("isAuthenticated", true);
-      fetchMyInfo();
-      fetchAllUsers();
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
     if (notificationMessage) {
       openNotificationWithIcon(
         notificationMessage.type,
@@ -72,7 +67,7 @@ const HomePage = () => {
     }
   }, [notificationMessage, api, openNotificationWithIcon]);
 
-  const fetchAllUsers = async () => {
+  const fetchAllUsers = useCallback(async () => {
     try {
       const response = await getAllUsers();
       if (Array.isArray(response)) {
@@ -85,9 +80,11 @@ const HomePage = () => {
           roles: user.roles.map((role) => ({
             name: role.name,
             description: role.description,
+            color: role.color,
             permissions: role.permissions.map((permission) => ({
               name: permission.name,
               description: permission.description,
+              color: permission.color,
             })),
           })),
         }));
@@ -100,9 +97,9 @@ const HomePage = () => {
       console.error("Error fetching All Users:", error);
       setAllUsers([]);
     }
-  };
+  }, []);
 
-  const fetchMyInfo = async () => {
+  const fetchMyInfo = useCallback(async () => {
     try {
       const response = await getMyInfo();
       if (response && response.result) {
@@ -115,9 +112,11 @@ const HomePage = () => {
           roles: response.result.roles.map((role) => ({
             name: role.name,
             description: role.description,
+            color: role.color,
             permissions: role.permissions.map((permission) => ({
               name: permission.name,
               description: permission.description,
+              color: permission.color,
             })),
           })),
         };
@@ -126,7 +125,69 @@ const HomePage = () => {
     } catch (error) {
       console.error("Error fetching user info:", error);
     }
-  };
+  }, []);
+
+  const fetchRoles = useCallback(async () => {
+    try {
+      const response = await getAllRoles();
+      if (response && Array.isArray(response.result)) {
+        const allRolesData = response.result.map((role) => ({
+          name: role.name,
+          description: role.description,
+          color: role.color,
+          permissions: role.permissions.map((permission) => ({
+            name: permission.name,
+            description: permission.description,
+            color: permission.color,
+          })),
+        }));
+        setAllRoles(allRolesData);
+      } else {
+        console.error("Response is not an array");
+        setAllRoles([]);
+      }
+    } catch (error) {
+      console.error("Error fetching All Roles:", error);
+      setAllRoles([]);
+    }
+  }, []);
+
+  const fetchPermissions = useCallback(async () => {
+    try {
+      const response = await getAllPermissions();
+      if (response && Array.isArray(response.result)) {
+        const allPermissionsData = response.result.map((permission) => ({
+          name: permission.name,
+          description: permission.description,
+          color: permission.color,
+        }));
+        setAllPermissions(allPermissionsData);
+      } else {
+        console.error("Response is not an array");
+        setAllPermissions([]);
+      }
+    } catch (error) {
+      console.error("Error fetching All Permissions:", error);
+      setAllPermissions([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      setIsAuthenticated(true);
+      localStorage.setItem("isAuthenticated", true);
+      fetchMyInfo();
+      fetchAllUsers();
+      fetchRoles();
+      fetchPermissions();
+    }
+  }, [
+    isAuthenticated,
+    fetchRoles,
+    fetchPermissions,
+    fetchMyInfo,
+    fetchAllUsers,
+  ]);
 
   const handleDeleteUser = async (userId) => {
     try {
@@ -260,19 +321,6 @@ const HomePage = () => {
     setIsModalVisible(false);
   };
 
-  const permissionColors = {
-    CREATE: "blue",
-    READ: "green",
-    UPDATE: "cyan",
-    DELETE: "red",
-  };
-
-  const roleColors = {
-    ADMIN: "green",
-    MANAGER: "blue",
-    USER: "cyan",
-  };
-
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
@@ -360,10 +408,7 @@ const HomePage = () => {
                 <Descriptions.Item label="Role">
                   {userInformation.roles && userInformation.roles.length > 0
                     ? userInformation.roles.map((role) => (
-                        <Tag
-                          key={role.name}
-                          color={roleColors[role.name] || "default"}
-                        >
+                        <Tag key={role.name} color={role.color}>
                           {role.name}
                         </Tag>
                       ))
@@ -380,10 +425,7 @@ const HomePage = () => {
                   userInformation.roles.length > 0 &&
                   userInformation.roles[0].permissions
                     ? userInformation.roles[0].permissions.map((perm) => (
-                        <Tag
-                          key={perm.name}
-                          color={permissionColors[perm.name] || "default"}
-                        >
+                        <Tag key={perm.name} color={perm.color}>
                           {perm.name}
                         </Tag>
                       ))
@@ -456,9 +498,11 @@ const HomePage = () => {
                   ]}
                 >
                   <Select mode="multiple" placeholder="Select roles">
-                    <Option value="ADMIN">ADMIN</Option>
-                    <Option value="MANAGER">MANAGER</Option>
-                    <Option value="USER">USER</Option>
+                    {allRoles.map((role) => (
+                      <Option key={role.name} value={role.name}>
+                        {role.name}
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Form>
@@ -477,8 +521,9 @@ const HomePage = () => {
                   >
                     User List
                     {userInformation &&
-                    (userInformation.roles === "MANAGER" ||
-                      userInformation.roles === "ADMIN") ? (
+                    userInformation.roles.some(
+                      (role) => role.name === "MANAGER" || role.name === "ADMIN"
+                    ) ? (
                       <UserAddOutlined
                         onClick={showModalNew}
                         style={{ cursor: "pointer", marginLeft: "10px" }}
@@ -513,10 +558,7 @@ const HomePage = () => {
                 render={(text, record) =>
                   record.roles && record.roles.length > 0
                     ? record.roles.map((role) => (
-                        <Tag
-                          key={role.name}
-                          color={roleColors[role.name] || "default"}
-                        >
+                        <Tag key={role.name} color={role.color}>
                           {role.name}
                         </Tag>
                       ))
@@ -531,12 +573,7 @@ const HomePage = () => {
                     ? record.roles
                         .flatMap((role) => role.permissions)
                         .map((permission) => (
-                          <Tag
-                            key={permission.name}
-                            color={
-                              permissionColors[permission.name] || "default"
-                            }
-                          >
+                          <Tag key={permission.name} color={permission.color}>
                             {permission.name}
                           </Tag>
                         ))

@@ -20,6 +20,8 @@ import {
   resetPassword,
   registerUser,
 } from "../services/authService";
+import { getAllRoles } from "../services/roleService";
+import { getAllPermissions } from "../services/permissionService";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import "../css/LoginPage.css";
 import validateInput from "../utils/validateInput"; // Import the validateInput function
@@ -38,7 +40,11 @@ const LoginPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
-  const [dob, setDob] = useState(moment("1987-07-07", "YYYY-MM-DD")); // Default date of birth
+  const [dob, setDob] = useState(moment("1987-07-07", "YYYY-MM-DD"));
+  const [roles, setRoles] = useState([]);
+  const [permissions, setPermissions] = useState([]);
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [firstnameError, setFirstnameError] = useState("");
@@ -55,6 +61,19 @@ const LoginPage = () => {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    const loadRolesAndPermissions = async () => {
+      try {
+        const roleData = await getAllRoles();
+        const permissionData = await getAllPermissions();
+        setRoles(roleData);
+        setPermissions(permissionData);
+      } catch (err) {
+        console.error("Failed to fetch roles or permissions", err);
+      }
+    };
+    loadRolesAndPermissions();
+  }, []);
   const handleLogin = (values) => {
     const login = async () => {
       try {

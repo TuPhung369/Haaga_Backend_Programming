@@ -20,6 +20,7 @@ public class Role {
   @Column(unique = true)
   String name;
   String description;
+  String color;
 
   @ManyToMany(fetch = FetchType.EAGER)
   Set<Permission> permissions;

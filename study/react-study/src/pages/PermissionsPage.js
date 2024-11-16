@@ -7,10 +7,46 @@ import {
 } from "../services/permissionService";
 import { getMyInfo } from "../services/userService";
 import CustomButton from "../components/CustomButton";
-import { Layout, Menu, Table, Tag, Modal, Form, Input, Button } from "antd";
+import {
+  Layout,
+  Menu,
+  Table,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  Button,
+  Select,
+} from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
+const { Option } = Select;
+export const permissionColors = [
+  "#ff4d4f",
+  "#1890ff",
+  "#52c41a",
+  "#faad14",
+  "#13c2c2",
+  "#722ed1",
+  "#eb2f96",
+  "#fa541c",
+  "#2f54eb",
+  "#a0d911",
+];
+
+export const permissionOptions = [
+  { name: "CREATE", description: "Create permission", color: "#ff4d4f" },
+  { name: "READ", description: "Read permission", color: "#1890ff" },
+  { name: "UPDATE", description: "Update permission", color: "#52c41a" },
+  { name: "DELETE", description: "Delete permission", color: "#faad14" },
+  { name: "APPROVE", description: "Approve permission", color: "#13c2c2" },
+  { name: "MANAGE", description: "Manage permission", color: "#722ed1" },
+  { name: "REJECT", description: "REJECT permission", color: "#eb2f96" },
+  { name: "UPLOAD", description: "UPLOAD permission", color: "#fa541c" },
+  { name: "SHARE", description: "Share permission", color: "#2f54eb" },
+  { name: "DOWNLOAD", description: "Download permission", color: "#a0d911" },
+];
 
 const PermissionPage = () => {
   const navigate = useNavigate();
@@ -27,10 +63,11 @@ const PermissionPage = () => {
   const fetchPermissions = async () => {
     try {
       const response = await getAllPermissions();
-      if (Array.isArray(response.result)) {
+      if (response && Array.isArray(response.result)) {
         const permissionsData = response.result.map((permission) => ({
           name: permission.name,
           description: permission.description,
+          color: permission.color,
         }));
         setPermissions(permissionsData);
       } else {
@@ -97,6 +134,16 @@ const PermissionPage = () => {
   const isManager = userInformation?.roles.some(
     (role) => role.name === "MANAGER"
   );
+
+  const handlePermissionChange = (value) => {
+    const selectedPermission = permissionOptions.find(
+      (permission) => permission.name === value
+    );
+    form.setFieldsValue({
+      description: selectedPermission ? selectedPermission.description : "",
+      color: selectedPermission ? selectedPermission.color : "",
+    });
+  };
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -169,6 +216,16 @@ const PermissionPage = () => {
                 key="description"
               />
               <Table.Column
+                title="Color"
+                dataIndex="color"
+                key="color"
+                render={(text) => (
+                  <Tag color={text} style={{ cursor: "pointer" }}>
+                    {text}
+                  </Tag>
+                )}
+              />
+              <Table.Column
                 title="Delete"
                 key="delete"
                 render={(text, record) =>
@@ -215,7 +272,16 @@ const PermissionPage = () => {
               { required: true, message: "Please input the permission name!" },
             ]}
           >
-            <Input />
+            <Select
+              placeholder="Select a permission"
+              onChange={handlePermissionChange}
+            >
+              {permissionOptions.map((permission) => (
+                <Option key={permission.name} value={permission.name}>
+                  {permission.name}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item
             name="description"
@@ -225,6 +291,19 @@ const PermissionPage = () => {
             ]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            name="color"
+            label="Color"
+            rules={[{ required: true, message: "Please select the color!" }]}
+          >
+            <Select placeholder="Select a color">
+              {permissionColors.map((color) => (
+                <Option key={color} value={color}>
+                  <Tag color={color}>{color}</Tag>
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

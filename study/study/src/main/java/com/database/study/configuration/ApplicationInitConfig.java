@@ -49,15 +49,20 @@ public class ApplicationInitConfig {
     return args -> {
       try {
         // Create roles if not exists
-        createRoleIfNotExists(ENUMS.Role.ADMIN.name(), ENUMS.Role.ADMIN.getDescription());
-        createRoleIfNotExists(ENUMS.Role.MANAGER.name(), ENUMS.Role.MANAGER.getDescription());
-        createRoleIfNotExists(ENUMS.Role.USER.name(), ENUMS.Role.USER.getDescription());
+        createRoleIfNotExists(ENUMS.Role.ADMIN.name(), ENUMS.Role.ADMIN.getDescription(), ENUMS.Role.ADMIN.getColor());
+        createRoleIfNotExists(ENUMS.Role.MANAGER.name(), ENUMS.Role.MANAGER.getDescription(),
+            ENUMS.Role.MANAGER.getColor());
+        createRoleIfNotExists(ENUMS.Role.USER.name(), ENUMS.Role.USER.getDescription(), ENUMS.Role.USER.getColor());
 
         // Create permissions if not exists
-        createPermissionIfNotExists(ENUMS.Permission.CREATE.name(), ENUMS.Permission.CREATE.getDescription());
-        createPermissionIfNotExists(ENUMS.Permission.READ.name(), ENUMS.Permission.READ.getDescription());
-        createPermissionIfNotExists(ENUMS.Permission.UPDATE.name(), ENUMS.Permission.UPDATE.getDescription());
-        createPermissionIfNotExists(ENUMS.Permission.DELETE.name(), ENUMS.Permission.DELETE.getDescription());
+        createPermissionIfNotExists(ENUMS.Permission.CREATE.name(), ENUMS.Permission.CREATE.getDescription(),
+            ENUMS.Permission.CREATE.getColor());
+        createPermissionIfNotExists(ENUMS.Permission.READ.name(), ENUMS.Permission.READ.getDescription(),
+            ENUMS.Permission.READ.getColor());
+        createPermissionIfNotExists(ENUMS.Permission.UPDATE.name(), ENUMS.Permission.UPDATE.getDescription(),
+            ENUMS.Permission.UPDATE.getColor());
+        createPermissionIfNotExists(ENUMS.Permission.DELETE.name(), ENUMS.Permission.DELETE.getDescription(),
+            ENUMS.Permission.DELETE.getColor());
 
         // entityManager.clear() isolates changes, prevents unintended persistence, and
         // ensures independent execution by detaching entities between different
@@ -76,32 +81,40 @@ public class ApplicationInitConfig {
         assignPermissionToRole(ENUMS.Role.USER.name(), ENUMS.Permission.UPDATE.name());
 
         // Create 3 initial users (Admin, Manager, User) if not exists
-        createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
-            ENUMS.Role.ADMIN.name());
-        createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("1999-03-03"),
-            ENUMS.Role.MANAGER.name());
-        createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
-            ENUMS.Role.USER.name());
+        boolean isAdminTomExists = checkUserExists("adminTom");
 
-        // Generate 100 users with the same password and random roles
-        Random random = new Random();
-        ENUMS.Role[] roles = ENUMS.Role.values();
+        if (!isAdminTomExists) {
+          createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
+              ENUMS.Role.ADMIN.name());
+          createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("1999-03-03"),
+              ENUMS.Role.MANAGER.name());
+          createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
+              ENUMS.Role.USER.name());
 
-        IntStream.rangeClosed(1, 100).forEach(i -> {
-          ENUMS.Role randomRole = roles[random.nextInt(roles.length)];
-          String username = randomRole.name() + "Tom" + i;
-          String password = "Thanhcong6(";
-          String firstName = "User" + i;
-          String lastName = randomRole.name();
-          LocalDate dob = LocalDate.parse("1998-01-01").plusDays(i);
-          String role = randomRole.name();
-          createUserIfNotExists(username, password, firstName, lastName, dob, role);
-        });
+          // Generate 100 users with the same password and random roles
+          Random random = new Random();
+          ENUMS.Role[] roles = ENUMS.Role.values();
+
+          IntStream.rangeClosed(1, 100).forEach(i -> {
+            ENUMS.Role randomRole = roles[random.nextInt(roles.length)];
+            String username = randomRole.name() + "Tom" + i;
+            String password = "Thanhcong6(";
+            String firstName = "User" + i;
+            String lastName = randomRole.name();
+            LocalDate dob = LocalDate.parse("1998-01-01").plusDays(i);
+            String role = randomRole.name();
+            createUserIfNotExists(username, password, firstName, lastName, dob, role);
+          });
+        }
 
       } catch (Exception e) {
         log.error("Error during application initialization", e);
       }
     };
+  }
+
+  private boolean checkUserExists(String username) {
+    return userRepository.existsByUsername(username);
   }
 
   private void createUserIfNotExists(String username, String password, String firstname, String lastname, LocalDate dob,
@@ -125,27 +138,30 @@ public class ApplicationInitConfig {
       user.setRoles(roleEntities);
       userRepository.save(user);
       log.warn("{} user created with\nUsername: {}\nPassword: {}", roleName, user.getUsername(), password);
+      // log.warn("{} user created", user);
     }
   }
 
   // Create role if not exists
-  void createRoleIfNotExists(String roleName, String description) {
+  void createRoleIfNotExists(String roleName, String description, String color) {
     if (roleRepository.findByName(roleName).isEmpty()) {
       // log.info("Creating role: {}", roleName);
       Role role = new Role();
       role.setName(roleName);
       role.setDescription(description);
+      role.setColor(color);
       roleRepository.save(role);
       // log.info("Role '{}' created", roleName);
     }
   }
 
   // Create permission if not exists
-  void createPermissionIfNotExists(String permissionName, String description) {
+  void createPermissionIfNotExists(String permissionName, String description, String color) {
     if (permissionRepository.findByName(permissionName).isEmpty()) {
       Permission permission = new Permission();
       permission.setName(permissionName);
       permission.setDescription(description);
+      permission.setColor(color);
       permissionRepository.save(permission);
     }
   }

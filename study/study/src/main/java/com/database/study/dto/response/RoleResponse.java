@@ -16,10 +16,13 @@ import java.util.Set;
 public class RoleResponse {
   String name;
   String description;
+  String color;
+
   Set<PermissionResponse> permissions;
 
-  public RoleResponse(String name, String description) {
+  public RoleResponse(String name, String description, String color) {
     this.name = name;
     this.description = description;
+    this.color = color;
   }
 }

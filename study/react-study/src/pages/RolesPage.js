@@ -20,6 +20,30 @@ import { PlusOutlined } from "@ant-design/icons";
 const { Header, Sider, Content, Footer } = Layout;
 const { Option } = Select;
 
+export const roleColors = [
+  "#ff4d4f",
+  "#1890ff",
+  "#52c41a",
+  "#faad14",
+  "#13c2c2",
+  "#722ed1",
+  "#eb2f96",
+  "#fa541c",
+  "#2f54eb",
+  "#a0d911",
+];
+
+export const roleOptions = [
+  { name: "USER", description: "User role", color: "#52c41a" },
+  { name: "ADMIN", description: "Admin role", color: "#ff4d4f" },
+  { name: "MANAGER", description: "Manager role", color: "#1890ff" },
+  { name: "DEVELOPER", description: "Developer role", color: "#faad14" },
+  { name: "DESIGNER", description: "Designer role", color: "#13c2c2" },
+  { name: "TESTER", description: "Tester role", color: "#722ed1" },
+  { name: "DEVOPS", description: "DevOps role", color: "#eb2f96" },
+  { name: "SUPPORT", description: "Support role", color: "#fa541c" },
+];
+
 const RolesPage = () => {
   const navigate = useNavigate();
   const [roles, setRoles] = useState([]);
@@ -37,13 +61,15 @@ const RolesPage = () => {
   const fetchRoles = async () => {
     try {
       const response = await getAllRoles();
-      if (Array.isArray(response.result)) {
+      if (response && Array.isArray(response.result)) {
         const rolesData = response.result.map((role) => ({
           name: role.name,
           description: role.description,
+          color: role.color,
           permissions: role.permissions.map((permission) => ({
             name: permission.name,
             description: permission.description,
+            color: permission.color,
           })),
         }));
         setRoles(rolesData);
@@ -125,11 +151,12 @@ const RolesPage = () => {
     (role) => role.name === "MANAGER"
   );
 
-  const permissionColors = {
-    CREATE: "green",
-    READ: "blue",
-    UPDATE: "orange",
-    DELETE: "red",
+  const handleRoleChange = (value) => {
+    const selectedRole = roleOptions.find((role) => role.name === value);
+    form.setFieldsValue({
+      description: selectedRole ? selectedRole.description : "",
+      color: selectedRole ? selectedRole.color : "",
+    });
   };
 
   return (
@@ -199,15 +226,22 @@ const RolesPage = () => {
                 key="description"
               />
               <Table.Column
+                title="Color"
+                dataIndex="color"
+                key="color"
+                render={(text) => (
+                  <Tag color={text} style={{ cursor: "pointer" }}>
+                    {text}
+                  </Tag>
+                )}
+              />
+              <Table.Column
                 title="Permissions"
                 key="permissions"
                 render={(text, record) =>
                   record.permissions && record.permissions.length > 0
                     ? record.permissions.map((perm) => (
-                        <Tag
-                          key={perm.name}
-                          color={permissionColors[perm.name] || "default"}
-                        >
+                        <Tag key={perm.name} color={perm.color || "blue"}>
                           {perm.name}
                         </Tag>
                       ))
@@ -259,7 +293,13 @@ const RolesPage = () => {
             label="Role Name"
             rules={[{ required: true, message: "Please input the role name!" }]}
           >
-            <Input />
+            <Select placeholder="Select a role" onChange={handleRoleChange}>
+              {roleOptions.map((role) => (
+                <Option key={role.name} value={role.name}>
+                  {role.name}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item
             name="description"
@@ -269,6 +309,19 @@ const RolesPage = () => {
             ]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            name="color"
+            label="Color"
+            rules={[{ required: true, message: "Please select the color!" }]}
+          >
+            <Select placeholder="Select a color">
+              {roleColors.map((color) => (
+                <Option key={color} value={color}>
+                  <Tag color={color}>{color}</Tag>
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item
             name="permissions"
