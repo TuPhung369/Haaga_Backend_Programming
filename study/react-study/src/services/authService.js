@@ -19,7 +19,6 @@ export const introspectToken = async (token) => {
 
 export const registerUser = async (userData) => {
   try {
-    console.log("STEP 1: userData", userData);
     const response = await axios.post(
       `${API_BASE_URL}/auth/register`,
       userData, // Send userData directly
@@ -29,7 +28,6 @@ export const registerUser = async (userData) => {
         },
       }
     );
-    console.log("STEP 2: response", response);
     return response.data;
   } catch (error) {
     console.error("Error during registration:", error);

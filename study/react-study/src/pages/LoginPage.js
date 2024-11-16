@@ -20,8 +20,6 @@ import {
   resetPassword,
   registerUser,
 } from "../services/authService";
-import { getAllRoles } from "../services/roleService";
-import { getAllPermissions } from "../services/permissionService";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import "../css/LoginPage.css";
 import validateInput from "../utils/validateInput"; // Import the validateInput function
@@ -41,10 +39,6 @@ const LoginPage = () => {
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [dob, setDob] = useState(moment("1987-07-07", "YYYY-MM-DD"));
-  const [roles, setRoles] = useState([]);
-  const [permissions, setPermissions] = useState([]);
-  const [selectedRoles, setSelectedRoles] = useState([]);
-  const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [firstnameError, setFirstnameError] = useState("");
@@ -61,19 +55,6 @@ const LoginPage = () => {
     }
   }, [navigate]);
 
-  useEffect(() => {
-    const loadRolesAndPermissions = async () => {
-      try {
-        const roleData = await getAllRoles();
-        const permissionData = await getAllPermissions();
-        setRoles(roleData);
-        setPermissions(permissionData);
-      } catch (err) {
-        console.error("Failed to fetch roles or permissions", err);
-      }
-    };
-    loadRolesAndPermissions();
-  }, []);
   const handleLogin = (values) => {
     const login = async () => {
       try {
@@ -128,9 +109,11 @@ const LoginPage = () => {
       });
       setIsForgotPasswordModalVisible(false);
     } catch (error) {
+      const serverError = error.response?.data;
       notification.error({
-        message: "Error",
-        description: error.message || "An error occurred during password reset",
+        message: `Error ${serverError?.httpCode || ""}`,
+        description:
+          serverError?.message || "An error occurred during password reset",
       });
     }
   };
@@ -146,7 +129,6 @@ const LoginPage = () => {
   };
 
   const handleRegisterConfirm = async () => {
-    console.log("Register button clicked");
     setUsernameError("");
     setPasswordError("");
     setFirstnameError("");
@@ -160,7 +142,6 @@ const LoginPage = () => {
       dob: dob.format("YYYY-MM-DD"),
       roles: ["User"],
     };
-    console.log("STEP 3: userData", userData);
     if (newPassword !== confirmPassword) {
       notification.error({
         message: "Error",
@@ -204,9 +185,11 @@ const LoginPage = () => {
       });
       setIsRegisterModalVisible(false);
     } catch (error) {
+      const serverError = error.response?.data;
       notification.error({
-        message: "Error",
-        description: error.message || "An error occurred during registration",
+        message: `Error ${serverError?.httpCode || ""}`,
+        description:
+          serverError?.message || "An error occurred during password reset",
       });
     }
   };
@@ -219,7 +202,7 @@ const LoginPage = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(to bottom right, #f0f2f5, #b3cde0)",
+        background: "linear-gradient(to bottom right, #F0F2F5, #B3CDE0)",
       }}
     >
       <Content
@@ -304,8 +287,8 @@ const LoginPage = () => {
                     className="login-page-register-button"
                     style={{
                       width: "100%",
-                      backgroundColor: "#1890ff",
-                      borderColor: "#1890ff",
+                      backgroundColor: "#1890FF",
+                      borderColor: "#1890FF",
                     }}
                   >
                     Register
@@ -318,11 +301,11 @@ const LoginPage = () => {
                     className="login-page-forgot-button"
                     style={{
                       width: "100%",
-                      backgroundColor: "#40a9ff",
-                      borderColor: "#40a9ff",
+                      backgroundColor: "#40A9FF",
+                      borderColor: "##40A9FF",
                     }}
                   >
-                    Forgot Password?
+                    Forgot Password
                   </Button>
                 </Col>
               </Row>

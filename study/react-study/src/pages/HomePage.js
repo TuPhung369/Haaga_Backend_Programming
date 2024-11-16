@@ -10,7 +10,6 @@ import {
   createUser,
 } from "../services/userService";
 import { getAllRoles } from "../services/roleService";
-import { getAllPermissions } from "../services/permissionService";
 import {
   Descriptions,
   Layout,
@@ -34,12 +33,12 @@ const HomePage = () => {
   const [userInformation, setUserInformation] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [allRoles, setAllRoles] = useState([]);
-  const [allPermissions, setAllPermissions] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
   const [isModeUpdate, setIsModeUpdate] = useState(false);
   const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [isDisabled, setIsDisabled] = useState(false);
   const [form] = Form.useForm();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -121,6 +120,7 @@ const HomePage = () => {
           })),
         };
         setUserInformation(userData);
+        console.log("User Information:", userData);
       }
     } catch (error) {
       console.error("Error fetching user info:", error);
@@ -152,26 +152,6 @@ const HomePage = () => {
     }
   }, []);
 
-  const fetchPermissions = useCallback(async () => {
-    try {
-      const response = await getAllPermissions();
-      if (response && Array.isArray(response.result)) {
-        const allPermissionsData = response.result.map((permission) => ({
-          name: permission.name,
-          description: permission.description,
-          color: permission.color,
-        }));
-        setAllPermissions(allPermissionsData);
-      } else {
-        console.error("Response is not an array");
-        setAllPermissions([]);
-      }
-    } catch (error) {
-      console.error("Error fetching All Permissions:", error);
-      setAllPermissions([]);
-    }
-  }, []);
-
   useEffect(() => {
     if (localStorage.getItem("token")) {
       setIsAuthenticated(true);
@@ -179,15 +159,8 @@ const HomePage = () => {
       fetchMyInfo();
       fetchAllUsers();
       fetchRoles();
-      fetchPermissions();
     }
-  }, [
-    isAuthenticated,
-    fetchRoles,
-    fetchPermissions,
-    fetchMyInfo,
-    fetchAllUsers,
-  ]);
+  }, [isAuthenticated, fetchRoles, fetchMyInfo, fetchAllUsers]);
 
   const handleDeleteUser = async (userId) => {
     try {
@@ -321,6 +294,19 @@ const HomePage = () => {
     setIsModalVisible(false);
   };
 
+  const getAvailableRoles = () => {
+    if (!userInformation) return [];
+    const userRoles = userInformation.roles.map((role) => role.name);
+    if (userRoles.includes("ADMIN")) {
+      return ["ADMIN", "MANAGER", "USER"];
+    } else if (userRoles.includes("MANAGER")) {
+      return ["MANAGER", "USER"];
+    } else if (userRoles.includes("USER")) {
+      return ["USER"];
+    }
+    return ["USER"];
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
@@ -449,7 +435,13 @@ const HomePage = () => {
                     { required: true, message: "Please input the username!" },
                   ]}
                 >
-                  <Input />
+                  <Input
+                    readOnly={!isDisabled}
+                    disabled={isDisabled}
+                    onFocus={() => setIsDisabled(true)}
+                    onBlur={() => setIsDisabled(false)}
+                    style={{ cursor: isDisabled ? "not-allowed" : "text" }}
+                  />
                 </Form.Item>
                 <Form.Item
                   name="password"
@@ -498,11 +490,13 @@ const HomePage = () => {
                   ]}
                 >
                   <Select mode="multiple" placeholder="Select roles">
-                    {allRoles.map((role) => (
-                      <Option key={role.name} value={role.name}>
-                        {role.name}
-                      </Option>
-                    ))}
+                    {allRoles
+                      .filter((role) => getAvailableRoles().includes(role.name))
+                      .map((role) => (
+                        <Option key={role.name} value={role.name}>
+                          {role.name}
+                        </Option>
+                      ))}
                   </Select>
                 </Form.Item>
               </Form>
