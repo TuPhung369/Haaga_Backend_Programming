@@ -68,7 +68,7 @@ const HomePage = () => {
         notificationMessage.message,
         notificationMessage.description
       );
-      setNotificationMessage(null); // Reset notification message
+      setNotificationMessage(null);
     }
   }, [notificationMessage, api, openNotificationWithIcon]);
 
@@ -476,10 +476,14 @@ const HomePage = () => {
                     }}
                   >
                     User List
-                    <UserAddOutlined
-                      onClick={showModalNew}
-                      style={{ cursor: "pointer", marginLeft: "10px" }}
-                    />
+                    {userInformation &&
+                    (userInformation.roles === "MANAGER" ||
+                      userInformation.roles === "ADMIN") ? (
+                      <UserAddOutlined
+                        onClick={showModalNew}
+                        style={{ cursor: "pointer", marginLeft: "10px" }}
+                      />
+                    ) : null}
                   </div>
                 }
                 bordered

@@ -8,16 +8,21 @@ import com.database.study.dto.request.ApiResponse;
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.request.LogoutRequest;
 import com.database.study.dto.request.ResetPasswordRequest;
+import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.request.IntrospectRequest;
 import com.database.study.dto.request.RefreshTokenRequest;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.dto.response.IntrospectResponse;
 import com.database.study.dto.response.RefreshTokenResponse;
 import com.database.study.entity.InvalidatedToken;
+import com.database.study.entity.Role;
 import com.database.study.entity.User;
+import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
+import com.database.study.mapper.UserMapper;
 import com.database.study.repository.InvalidatedTokenRepository;
+import com.database.study.repository.RoleRepository;
 import com.database.study.repository.UserRepository;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -40,11 +45,15 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.ArrayList;
 import java.util.Base64;
 import org.springframework.transaction.annotation.Transactional;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.util.List;
+import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,6 +64,8 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthenticationService {
   UserRepository userRepository;
   PasswordEncoder passwordEncoder;
+  RoleRepository roleRepository;
+  UserMapper userMapper;
   InvalidatedTokenRepository invalidatedTokenRepository;
 
   // protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
@@ -131,6 +142,36 @@ public class AuthenticationService {
 
     return ApiResponse.<Void>builder()
         .message("Password reset successfully!")
+        .build();
+  }
+
+  @Transactional
+  public ApiResponse<Void> register(UserCreationRequest request) {
+    if (userRepository.existsByUsername(request.getUsername())) {
+      throw new AppException(ErrorCode.USER_EXISTS);
+    }
+
+    User user = userMapper.toUser(request);
+    user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+    // Set default role as USER if roles are not provided or empty
+    List<String> roles = request.getRoles();
+    if (roles == null || roles.isEmpty()) {
+      roles = new ArrayList<>();
+      roles.add(ENUMS.Role.USER.name());
+    }
+
+    // Fetch Role entities based on role names
+    Set<Role> roleEntities = roles.stream()
+        .map(roleName -> roleRepository.findByName(roleName)
+            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+        .collect(Collectors.toSet());
+    user.setRoles(roleEntities);
+
+    userRepository.save(user);
+
+    return ApiResponse.<Void>builder()
+        .message("User registered successfully!")
         .build();
   }
 

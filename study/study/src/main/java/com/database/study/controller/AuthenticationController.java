@@ -19,6 +19,7 @@ import com.database.study.dto.response.IntrospectResponse;
 import com.database.study.dto.response.RefreshTokenResponse;
 import com.database.study.dto.request.RefreshTokenRequest;
 import com.database.study.dto.request.ResetPasswordRequest;
+import com.database.study.dto.request.UserCreationRequest;
 
 import java.text.ParseException;
 
@@ -67,5 +68,10 @@ public class AuthenticationController {
   @PostMapping("/resetPassword")
   public ApiResponse<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
     return authenticationService.resetPassword(request);
+  }
+
+  @PostMapping("/register")
+  public ApiResponse<Void> register(@RequestBody UserCreationRequest request) {
+    return authenticationService.register(request);
   }
 }
