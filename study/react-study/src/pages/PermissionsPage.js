@@ -15,37 +15,37 @@ import {
   Modal,
   Form,
   Input,
-  Button,
   Select,
+  Descriptions,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusCircleOutlined } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
 const { Option } = Select;
 export const permissionColors = [
-  "#ff4d4f",
-  "#1890ff",
-  "#52c41a",
-  "#faad14",
-  "#13c2c2",
-  "#722ed1",
-  "#eb2f96",
-  "#fa541c",
-  "#2f54eb",
-  "#a0d911",
+  "#FF4D4F",
+  "#1890FF",
+  "#52C41A",
+  "#FAAD14",
+  "#13C2C2",
+  "#722ED1",
+  "#EB2F96",
+  "#FA541C",
+  "#2F54EB",
+  "#A0D911",
 ];
 
 export const permissionOptions = [
-  { name: "CREATE", description: "Create permission", color: "#ff4d4f" },
-  { name: "READ", description: "Read permission", color: "#1890ff" },
-  { name: "UPDATE", description: "Update permission", color: "#52c41a" },
-  { name: "DELETE", description: "Delete permission", color: "#faad14" },
-  { name: "APPROVE", description: "Approve permission", color: "#13c2c2" },
-  { name: "MANAGE", description: "Manage permission", color: "#722ed1" },
-  { name: "REJECT", description: "REJECT permission", color: "#eb2f96" },
-  { name: "UPLOAD", description: "UPLOAD permission", color: "#fa541c" },
-  { name: "SHARE", description: "Share permission", color: "#2f54eb" },
-  { name: "DOWNLOAD", description: "Download permission", color: "#a0d911" },
+  { name: "CREATE", description: "Create permission", color: "#FF4D4F" },
+  { name: "READ", description: "Read permission", color: "#1890FF" },
+  { name: "UPDATE", description: "Update permission", color: "#52C41A" },
+  { name: "DELETE", description: "Delete permission", color: "#FAAD14" },
+  { name: "APPROVE", description: "Approve permission", color: "#13C2C2" },
+  { name: "MANAGE", description: "Manage permission", color: "#722ED1" },
+  { name: "REJECT", description: "REJECT permission", color: "#EB2F96" },
+  { name: "UPLOAD", description: "UPLOAD permission", color: "#FA541C" },
+  { name: "SHARE", description: "Share permission", color: "#2F54EB" },
+  { name: "DOWNLOAD", description: "Download permission", color: "#A0D911" },
 ];
 
 const PermissionPage = () => {
@@ -204,6 +204,30 @@ const PermissionPage = () => {
 
         <Layout style={{ padding: "0 24px 24px" }}>
           <Content style={{ margin: "24px 0" }}>
+            <h2 style={{ marginTop: 25, fontSize: 25 }}>
+              <Descriptions
+                className="custom-descriptions"
+                title={
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "start",
+                      alignItems: "center",
+                    }}
+                  >
+                    Permission List
+                    {userInformation && (isAdmin || isManager) ? (
+                      <PlusCircleOutlined
+                        onClick={showModal}
+                        style={{ cursor: "pointer", marginLeft: "10px" }}
+                      />
+                    ) : null}
+                  </div>
+                }
+                bordered
+              ></Descriptions>
+            </h2>
             <Table dataSource={permissions} rowKey="name">
               <Table.Column
                 title="Permission Name"
@@ -241,16 +265,6 @@ const PermissionPage = () => {
                 }
               />
             </Table>
-            {(isAdmin || isManager) && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={showModal}
-                style={{ marginTop: 16, alignSelf: "flex-start" }}
-              >
-                Add Permission
-              </Button>
-            )}
           </Content>
           <Footer style={{ textAlign: "center" }}>
             My Application ©{new Date().getFullYear()} Created by Tu Phung
@@ -312,4 +326,6 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
+
+
 

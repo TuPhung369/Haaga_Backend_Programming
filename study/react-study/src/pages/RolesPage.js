@@ -13,35 +13,35 @@ import {
   Form,
   Input,
   Select,
-  Button,
+  Descriptions,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusCircleOutlined } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
 const { Option } = Select;
 
 export const roleColors = [
-  "#ff4d4f",
-  "#1890ff",
-  "#52c41a",
-  "#faad14",
-  "#13c2c2",
-  "#722ed1",
-  "#eb2f96",
-  "#fa541c",
-  "#2f54eb",
-  "#a0d911",
+  "#FF4D4F",
+  "#1890FF",
+  "#52C41A",
+  "#FAAD14",
+  "#13C2C2",
+  "#722ED1",
+  "#EB2F96",
+  "#FA541C",
+  "#2F54EB",
+  "#A0D911",
 ];
 
 export const roleOptions = [
-  { name: "USER", description: "User role", color: "#52c41a" },
-  { name: "ADMIN", description: "Admin role", color: "#ff4d4f" },
-  { name: "MANAGER", description: "Manager role", color: "#1890ff" },
-  { name: "DEVELOPER", description: "Developer role", color: "#faad14" },
-  { name: "DESIGNER", description: "Designer role", color: "#13c2c2" },
-  { name: "TESTER", description: "Tester role", color: "#722ed1" },
-  { name: "DEVOPS", description: "DevOps role", color: "#eb2f96" },
-  { name: "SUPPORT", description: "Support role", color: "#fa541c" },
+  { name: "USER", description: "User role", color: "#52C41A" },
+  { name: "ADMIN", description: "Admin role", color: "#FF4D4F" },
+  { name: "MANAGER", description: "Manager role", color: "#1890FF" },
+  { name: "DEVELOPER", description: "Developer role", color: "#FAAD14" },
+  { name: "DESIGNER", description: "Designer role", color: "#13C2C2" },
+  { name: "TESTER", description: "Tester role", color: "#722ED1" },
+  { name: "DEVOPS", description: "DevOps role", color: "#EB2F96" },
+  { name: "SUPPORT", description: "Support role", color: "#FA541C" },
 ];
 
 const RolesPage = () => {
@@ -218,6 +218,30 @@ const RolesPage = () => {
 
         <Layout style={{ padding: "0 24px 24px" }}>
           <Content style={{ margin: "24px 0" }}>
+            <h2 style={{ marginTop: 25, fontSize: 25 }}>
+              <Descriptions
+                className="custom-descriptions"
+                title={
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "start",
+                      alignItems: "center",
+                    }}
+                  >
+                    Role List
+                    {userInformation && (isAdmin || isManager) ? (
+                      <PlusCircleOutlined
+                        onClick={showModal}
+                        style={{ cursor: "pointer", marginLeft: "10px" }}
+                      />
+                    ) : null}
+                  </div>
+                }
+                bordered
+              ></Descriptions>
+            </h2>
             <Table dataSource={roles} rowKey="name">
               <Table.Column title="Role Name" dataIndex="name" key="name" />
               <Table.Column
@@ -264,16 +288,6 @@ const RolesPage = () => {
                 }
               />
             </Table>
-            {(isAdmin || isManager) && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={showModal}
-                style={{ marginTop: 16, alignSelf: "flex-start" }}
-              >
-                Add Role
-              </Button>
-            )}
           </Content>
           <Footer style={{ textAlign: "center" }}>
             My Application ©{new Date().getFullYear()} Created by Tu Phung

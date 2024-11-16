@@ -307,6 +307,10 @@ const HomePage = () => {
     return ["USER"];
   };
 
+  const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
+  const isManager = userInformation?.roles.some(
+    (role) => role.name === "MANAGER"
+  );
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
@@ -344,16 +348,21 @@ const HomePage = () => {
             items={[
               {
                 key: "1",
+                label: "Home",
+                onClick: () => navigate("/"),
+              },
+              {
+                key: "2",
                 label: "User List",
                 onClick: () => navigate("/userList"),
               },
               {
-                key: "2",
+                key: "3",
                 label: "Role List",
                 onClick: () => navigate("/roles"),
               },
               {
-                key: "3",
+                key: "4",
                 label: "Permission List",
                 onClick: () => navigate("/permissions"),
               },
@@ -514,10 +523,7 @@ const HomePage = () => {
                     }}
                   >
                     User List
-                    {userInformation &&
-                    userInformation.roles.some(
-                      (role) => role.name === "MANAGER" || role.name === "ADMIN"
-                    ) ? (
+                    {userInformation && (isAdmin || isManager) ? (
                       <UserAddOutlined
                         onClick={showModalNew}
                         style={{ cursor: "pointer", marginLeft: "10px" }}
@@ -578,9 +584,7 @@ const HomePage = () => {
                 title="Edit"
                 key="edit"
                 render={(text, record) =>
-                  userInformation.roles.some(
-                    (role) => role.name === "ADMIN" || role.name === "MANAGER"
-                  ) && (
+                  (isAdmin || isManager) && (
                     <Tag
                       color="blue"
                       onClick={() => showModalIdUpdate(record.id)}
@@ -595,9 +599,7 @@ const HomePage = () => {
                 title="Delete"
                 key="delete"
                 render={(text, record) =>
-                  userInformation.roles.some(
-                    (role) => role.name === "ADMIN"
-                  ) && (
+                  isAdmin && (
                     <Tag
                       color="red"
                       onClick={() => showDeleteConfirm(record.id)}
