@@ -72,10 +72,10 @@ const LoginPage = () => {
     login();
   };
 
-  const handleGoogleLogin = () => {
-    window.location.href =
-      "http://localhost:9095/identify_service/oauth2/authorization/google";
-  };
+  // const handleGoogleLogin = () => {
+  //   window.location.href =
+  //     "http://localhost:9095/identify_service/oauth2/authorization/google";
+  // };
 
   const handleForgotPassword = () => {
     setUsername("");
