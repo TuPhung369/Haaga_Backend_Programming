@@ -120,7 +120,6 @@ const HomePage = () => {
           })),
         };
         setUserInformation(userData);
-        console.log("User Information:", userData);
       }
     } catch (error) {
       console.error("Error fetching user info:", error);

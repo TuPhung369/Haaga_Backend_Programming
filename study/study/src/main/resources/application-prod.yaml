@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: "jdbc:mysql://35.228.131.221:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
+    url: "jdbc:mysql://35.228.135.251:3306/identify_service?useSSL=false&allowPublicKeyRetrieval=true"
     username: root
-    password: root
+    password: springboot369
   #  driver-class-name: com.mysql.cj.jdbc.Driver
   # sql:
   #   init:

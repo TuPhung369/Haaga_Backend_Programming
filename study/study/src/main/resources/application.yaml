@@ -3,8 +3,8 @@ server:
   servlet:
     context-path: /identify_service
 spring:
-  profiles:
-    active: dev # This sets the default active profile (can be overridden with environment variables)
+  # profiles:
+  #   active: prod # prod || dev
   h2:
     console:
       enabled: true
@@ -15,7 +15,25 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${OAUTH_CLIENT_ID}
+            client-secret: ${OAUTH_CLIENT_SECRET}
+            scope: openid, email, profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
 logging:
   level:
     root: INFO # Global log level
@@ -23,5 +41,6 @@ logging:
     "[org.hibernate.SQL]": WARN # Show SQL queries
     "[org.hibernate.type]": TRACE # Show SQL parameters
     "[org.springframework]": DEBUG # Spring framework logs
-
+    "[org.springframework.security]": DEBUG
+    "[org.springframework.security.oauth2]": DEBUG
 

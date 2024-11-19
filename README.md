@@ -90,3 +90,12 @@ link check the front end `http://softala.haaga-helia.fi:9095/login`
    Active: active (running) since Thu 2024-10-31 11:16:38 UTC; 12min ago`
 
 ### Change the name of dataBase on Google
+
+### Fix the error Access Denied root@localhost mySql at localhost
+
+- Step 1: create the the text file `mysql-init.txt` and move it C/
+- Step 2: step server mySql
+- Step 3: open cmd as `Administrator` at the `C:\Program Files\MySQL\MySQL Server 9.0\bin` and run the command
+`mysqld --defaults-file="C:\\ProgramData\\MySQL\\MySQL Server 9.0\\my.ini" --init-file=c:\\mysql-init.txt --console`
+- Step 4: start server mySql
+- Step 5: `mysql -u root -p`

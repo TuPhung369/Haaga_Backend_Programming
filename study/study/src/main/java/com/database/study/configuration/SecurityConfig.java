@@ -38,10 +38,13 @@ public class SecurityConfig {
     httpSecurity
         .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(authorize -> authorize
+            .requestMatchers("/oauth2/**", "/login/oauth2/**", "/protected/**").permitAll()
             .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
-            // .requestMatchers(HttpMethod.GET, "/users").hasRole(ENUMS.Role.ADMIN.name())
             .anyRequest().authenticated())
+        .oauth2Login(oauth2 -> oauth2
+            .defaultSuccessUrl("/", true)
+            .failureUrl("/login?error"))
         .oauth2ResourceServer(oauth2 -> oauth2
             .jwt(jwt -> jwt
                 .decoder(customJwtDecoder)

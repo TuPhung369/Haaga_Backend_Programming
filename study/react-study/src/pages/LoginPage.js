@@ -62,7 +62,7 @@ const LoginPage = () => {
         const response = await introspectToken(data.result.token);
         if (response.result?.valid || localStorage.getItem("isAuthenticated")) {
           localStorage.setItem("token", data.result.token);
-          window.location.href = "/";
+          window.location.href = "http://localhost:3000";
         }
       } catch (error) {
         console.error("Error during login:", error);
@@ -70,6 +70,11 @@ const LoginPage = () => {
       }
     };
     login();
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href =
+      "http://localhost:9095/identify_service/oauth2/authorization/google";
   };
 
   const handleForgotPassword = () => {
@@ -278,6 +283,20 @@ const LoginPage = () => {
                 Login
               </Button>
             </Form.Item>
+            {/* <Form.Item>
+              <Button
+                type="primary"
+                onClick={handleGoogleLogin}
+                className="login-page-google-button"
+                style={{
+                  width: "100%",
+                  borderRadius: "5px",
+                  marginBottom: "15px",
+                }}
+              >
+                Login Google
+              </Button>
+            </Form.Item> */}
             <Form.Item>
               <Row justify="space-between">
                 <Col span={11}>

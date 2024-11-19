@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Route,
@@ -43,13 +43,25 @@ const AuthWrapper = ({ children }) => {
     };
 
     checkTokenValidity();
-  }, [isAuthenticated, navigate]);
+  }, [navigate]);
 
   return isAuthenticated ? children : null;
 };
 
-const App = () => (
-  <Router>
+const App = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    if (token) {
+      localStorage.setItem("token", token);
+      navigate("/");
+    }
+  }, [navigate]);
+
+  return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/resetpassword" element={<ResetPasswordPage />} />
@@ -86,8 +98,13 @@ const App = () => (
         }
       />
     </Routes>
+  );
+};
+
+const Root = () => (
+  <Router>
+    <App />
   </Router>
 );
 
-export default App;
-
+export default Root;
