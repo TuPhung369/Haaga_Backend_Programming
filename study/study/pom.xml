@@ -132,10 +132,10 @@
 
         <!-- Spring Boot Starter Security for authentication -->
         <dependency>
-            <groupId>io.github.cdimascio</groupId>
-            <artifactId>java-dotenv</artifactId>
-            <version>5.2.2</version>
-        </dependency>
+    <groupId>io.github.cdimascio</groupId>
+    <artifactId>java-dotenv</artifactId>
+    <version>5.2.2</version>
+</dependency>
 
         <!-- Spring Boot Starter OAuth2 Resource Server -->
         <dependency>
