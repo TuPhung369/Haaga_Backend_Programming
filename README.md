@@ -99,3 +99,44 @@ link check the front end `http://softala.haaga-helia.fi:9095/login`
 `mysqld --defaults-file="C:\\ProgramData\\MySQL\\MySQL Server 9.0\\my.ini" --init-file=c:\\mysql-init.txt --console`
 - Step 4: start server mySql
 - Step 5: `mysql -u root -p`
+
++-------------------+       +-------------------+       +-------------------+
+|                   |       |                   |       |                   |
+|   React App       |       |   Spring Boot     |       |     Google        |
+|                   |       |                   |       |                   |
++-------------------+       +-------------------+       +-------------------+
+          |                           |                           |
+          | 1. User clicks "Login"    |                           |
+          +-------------------------->+                           |
+          |                           |                           |
+          |                           | 2. Redirect to Google     |
+          |                           +-------------------------->+
+          |                           |                           |
+          |                           |                           |
+          |                           | 3. User logs in and       |
+          |                           |    grants permissions     |
+          |                           |                           |
+          |                           |                           |
+          |                           | 4. Redirect back to React |
+          |                           |    with authorization code|
+          |<--------------------------+<--------------------------+
+          |                           |                           |
+          | 5. Handle redirect,       |                           |
+          |    send code to backend   |                           |
+          +-------------------------->+                           |
+          |                           |                           |
+          |                           | 6. Exchange code for token|
+          |                           +-------------------------->+
+          |                           |                           |
+          |                           | 7. Validate token         |
+          |                           +<--------------------------+
+          |                           |                           |
+          | 8. Store token, navigate  |                           |
+          |    to home page           |                           |
+          +<--------------------------+                           |
+          |                           |                           |
++-------------------+       +-------------------+       +-------------------+
+|                   |       |                   |       |                   |
+|   React App       |       |   Spring Boot     |       |     Google        |
+|                   |       |                   |       |                   |
++-------------------+       +-------------------+       +-------------------+

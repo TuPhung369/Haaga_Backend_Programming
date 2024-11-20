@@ -11,6 +11,7 @@ import HomePage from "./pages/HomePage";
 import UserListPage from "./pages/UserListPage";
 import RolesPage from "./pages/RolesPage";
 import PermissionsPage from "./pages/PermissionsPage";
+import OAuth2RedirectHandler from "./components/OAuth2RedirectHandler";
 import { introspectToken } from "./services/authService";
 
 const AuthWrapper = ({ children }) => {
@@ -48,23 +49,12 @@ const AuthWrapper = ({ children }) => {
   return isAuthenticated ? children : null;
 };
 
-const App = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-
-    if (token) {
-      localStorage.setItem("token", token);
-      navigate("/");
-    }
-  }, [navigate]);
-
-  return (
+const App = () => (
+  <Router>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/resetpassword" element={<ResetPasswordPage />} />
+      <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
       <Route
         path="/"
         element={
@@ -98,13 +88,7 @@ const App = () => {
         }
       />
     </Routes>
-  );
-};
-
-const Root = () => (
-  <Router>
-    <App />
   </Router>
 );
 
-export default Root;
+export default App;

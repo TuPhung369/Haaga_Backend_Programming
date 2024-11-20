@@ -1,45 +1,41 @@
 package com.database.study.controller;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.database.study.dto.request.ApiResponse;
-
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import com.database.study.dto.request.*;
+import com.database.study.dto.response.*;
+import com.database.study.service.AuthenticationService;
+import com.database.study.service.GoogleTokenValidationService;
+import com.nimbusds.jose.JOSEException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import com.database.study.dto.request.AuthenticationRequest;
-import com.database.study.dto.response.AuthenticationResponse;
-import com.database.study.dto.request.LogoutRequest;
-import com.database.study.service.AuthenticationService;
-import com.nimbusds.jose.JOSEException;
-import com.database.study.dto.request.IntrospectRequest;
-import com.database.study.dto.response.IntrospectResponse;
-import com.database.study.dto.response.RefreshTokenResponse;
-import com.database.study.dto.request.RefreshTokenRequest;
-import com.database.study.dto.request.ResetPasswordRequest;
-import com.database.study.dto.request.UserCreationRequest;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.text.ParseException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
-  AuthenticationService authenticationService;
 
+  // Dependency injection
+  AuthenticationService authenticationService;
+  GoogleTokenValidationService googleTokenValidationService;
+
+  // Authenticate user and generate token
   @PostMapping("/token")
-  ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
+  public ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
     var result = authenticationService.authenticate(request);
     return ApiResponse.<AuthenticationResponse>builder()
         .result(result)
         .build();
   }
 
+  // Introspect token
   @PostMapping("/introspect")
-  ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
+  public ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
       throws JOSEException, ParseException {
     var result = authenticationService.introspect(request);
     return ApiResponse.<IntrospectResponse>builder()
@@ -47,8 +43,9 @@ public class AuthenticationController {
         .build();
   }
 
+  // Refresh token
   @PostMapping("/refreshToken")
-  ApiResponse<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request)
+  public ApiResponse<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request)
       throws JOSEException, ParseException {
     var result = authenticationService.refreshToken(request);
     return ApiResponse.<RefreshTokenResponse>builder()
@@ -56,8 +53,9 @@ public class AuthenticationController {
         .build();
   }
 
+  // Logout user
   @PostMapping("/logout")
-  ApiResponse<Void> logout(@RequestBody LogoutRequest request)
+  public ApiResponse<Void> logout(@RequestBody LogoutRequest request)
       throws JOSEException, ParseException {
     authenticationService.logout(request);
     return ApiResponse.<Void>builder()
@@ -65,13 +63,28 @@ public class AuthenticationController {
         .build();
   }
 
+  // Reset user password
   @PostMapping("/resetPassword")
   public ApiResponse<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
     return authenticationService.resetPassword(request);
   }
 
+  // Register a new user
   @PostMapping("/register")
   public ApiResponse<Void> register(@RequestBody UserCreationRequest request) {
     return authenticationService.register(request);
   }
+
+  // Validate Google ID token
+  @PostMapping("/google/token")
+  public ResponseEntity<?> validateGoogleToken(@RequestBody Map<String, String> body) {
+    String idToken = body.get("id_token");
+    try {
+      Jwt jwt = googleTokenValidationService.validateGoogleIdToken(idToken);
+      return ResponseEntity.ok(jwt.getClaims());
+    } catch (RuntimeException e) {
+      return ResponseEntity.badRequest().body(e.getMessage());
+    }
+  }
+
 }

@@ -72,10 +72,10 @@ const LoginPage = () => {
     login();
   };
 
-  // const handleGoogleLogin = () => {
-  //   window.location.href =
-  //     "http://localhost:9095/identify_service/oauth2/authorization/google";
-  // };
+  const handleGoogleLogin = () => {
+    window.location.href =
+      "http://localhost:9095/identify_service/oauth2/authorization/google";
+  };
 
   const handleForgotPassword = () => {
     setUsername("");
@@ -283,7 +283,7 @@ const LoginPage = () => {
                 Login
               </Button>
             </Form.Item>
-            {/* <Form.Item>
+            <Form.Item>
               <Button
                 type="primary"
                 onClick={handleGoogleLogin}
@@ -296,7 +296,7 @@ const LoginPage = () => {
               >
                 Login Google
               </Button>
-            </Form.Item> */}
+            </Form.Item>
             <Form.Item>
               <Row justify="space-between">
                 <Col span={11}>
