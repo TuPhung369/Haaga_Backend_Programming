@@ -83,7 +83,7 @@ public class OAuth2TokenController {
   @GetMapping("/redirect")
   public ApiResponse<AuthenticationResponse> handleGoogleRedirect(@RequestParam("code") String code) {
     log.info("Authorization code received: " + code);
-    
+
     // Step 2.1: Prepare Token Exchange Request
     RestTemplate restTemplate = new RestTemplate();
     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -113,8 +113,8 @@ public class OAuth2TokenController {
         Map<String, String> responseBody = response.getBody();
         log.info("STEP 2: Token exchange response: " + responseBody);
 
-        if (responseBody == null) {
-          throw new AppException("Token exchange response body is null");
+        if (responseBody == null || !responseBody.containsKey("id_token")) {
+          throw new AppException("Token exchange failed: No ID token in response.");
         }
         String idToken = responseBody.get("id_token");
         log.info("STEP 3: ID token received: " + idToken);
@@ -146,7 +146,7 @@ public class OAuth2TokenController {
 
         return ApiResponse.<AuthenticationResponse>builder()
             .result(authResponse)
-            .message("Authentication successful")
+            .message("Created Token from Google ID Token")
             .build();
       } else {
         throw new AppException("Token exchange failed with response: " + response.getStatusCode());
