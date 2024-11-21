@@ -83,7 +83,7 @@ public class UserService {
     return userMapper.toUserResponse(user);
   }
 
-  @PostAuthorize("returnObject.username == authentication.name or hasRole('ADMIN')")
+  @PostAuthorize("hasRole('ADMIN')")
   public UserResponse getUserById(UUID userId) {
     log.info("Fetching user by ID: {}", userId);
     User user = userRepository.findById(userId)

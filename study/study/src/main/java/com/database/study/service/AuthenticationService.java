@@ -285,7 +285,7 @@ public class AuthenticationService {
     return signedJWT;
   }
 
-  private String generateToken(com.database.study.entity.User user, String jwtId) {
+  public String generateToken(com.database.study.entity.User user, String jwtId) {
     try {
       JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512); // Use HS512 algorithm
       JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()

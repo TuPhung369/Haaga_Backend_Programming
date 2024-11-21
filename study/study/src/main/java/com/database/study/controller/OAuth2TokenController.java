@@ -3,12 +3,13 @@ package com.database.study.controller;
 import com.database.study.service.GoogleUserInfoService;
 import com.database.study.service.GoogleTokenValidationService;
 import com.database.study.service.AuthenticationService;
+import com.database.study.entity.Role;
 import com.database.study.entity.User;
 import com.database.study.exception.AppException;
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.response.AuthenticationResponse;
-import com.database.study.dto.response.ApiResponse;
 import com.database.study.repository.UserRepository;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
@@ -30,6 +31,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
+import java.time.LocalDate;
+import java.util.Collections;
 
 @Slf4j
 @RestController
@@ -81,8 +84,7 @@ public class OAuth2TokenController {
    * Step 2: Handle Google Redirect
    */
   @GetMapping("/redirect")
-  public ApiResponse<AuthenticationResponse> handleGoogleRedirect(@RequestParam("code") String code) {
-    log.info("Authorization code received: " + code);
+  public ResponseEntity<?> handleGoogleRedirect(@RequestParam("code") String code) {
 
     // Step 2.1: Prepare Token Exchange Request
     RestTemplate restTemplate = new RestTemplate();
@@ -100,7 +102,6 @@ public class OAuth2TokenController {
 
     try {
       // Step 2.2: Exchange Authorization Code for Token
-      log.info("STEP 1: Exchanging authorization code for token...");
       ResponseEntity<Map<String, String>> response = restTemplate.exchange(
           tokenUri,
           HttpMethod.POST,
@@ -111,27 +112,36 @@ public class OAuth2TokenController {
       // Step 2.3: Validate Response
       if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
         Map<String, String> responseBody = response.getBody();
-        log.info("STEP 2: Token exchange response: " + responseBody);
 
         if (responseBody == null || !responseBody.containsKey("id_token")) {
           throw new AppException("Token exchange failed: No ID token in response.");
         }
         String idToken = responseBody.get("id_token");
-        log.info("STEP 3: ID token received: " + idToken);
 
         // Step 3: Validate ID Token and Extract User Information
         Jwt jwt = tokenValidationService.validateGoogleIdToken(idToken);
         String email = jwt.getClaimAsString("email");
         String username = email.split("@")[0];
-        log.info("STEP 4: User email: " + email + ", username: " + username);
+        String firstName = jwt.getClaimAsString("given_name");
+        String lastName = jwt.getClaimAsString("family_name");
+        String birthdate = jwt.getClaimAsString("birthdate");
 
         // Step 4: Create or Retrieve User
         User user = userRepository.findByUsername(username)
             .orElseGet(() -> {
-              User newUser = new User();
-              newUser.setUsername(username);
-              newUser.setPassword(passwordEncoder.encode(idToken)); // Use idToken as password
+              // Step 1: Create a new user instance
+              User newUser = User.builder()
+                  .username(username)
+                  .password(passwordEncoder.encode(idToken))
+                  .firstname(firstName)
+                  .lastname(lastName + "Google")
+                  .dob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9))
+                  .roles(Collections.singleton(new Role("USER")))
+                  .build();
+
               log.info("STEP 5: Creating new user: " + newUser);
+
+              // Step 2: Save the new user to the repository
               return userRepository.save(newUser);
             });
 
@@ -140,29 +150,21 @@ public class OAuth2TokenController {
         authRequest.setUsername(user.getUsername());
         authRequest.setPassword(idToken);
 
-        log.info("STEP 6: Authenticating user: " + user.getUsername());
         AuthenticationResponse authResponse = authenticationService.authenticate(authRequest);
-        log.info("STEP 7: Authentication successful for user: " + user.getUsername());
+        // Step 2: Redirect to Client-Side with Token
+        // Step 6: Redirect to Client-Side with Generated Token
+        String redirectUrl = String.format("http://localhost:3000/oauths/redirect?token=%s", authResponse.getToken());
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
 
-        return ApiResponse.<AuthenticationResponse>builder()
-            .result(authResponse)
-            .message("Created Token from Google ID Token")
-            .build();
       } else {
         throw new AppException("Token exchange failed with response: " + response.getStatusCode());
       }
     } catch (HttpClientErrorException | HttpServerErrorException e) {
       log.error("Error exchanging token: " + e.getResponseBodyAsString(), e);
-      return ApiResponse.<AuthenticationResponse>builder()
-          .result(null)
-          .message(e.getResponseBodyAsString())
-          .build();
+      return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
     } catch (Exception e) {
       log.error("Unexpected error exchanging token", e);
-      return ApiResponse.<AuthenticationResponse>builder()
-          .result(null)
-          .message("An unexpected error occurred: " + e.getMessage())
-          .build();
+      return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
     }
   }
 }

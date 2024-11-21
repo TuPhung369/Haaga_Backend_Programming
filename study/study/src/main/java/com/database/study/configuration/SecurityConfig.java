@@ -35,7 +35,8 @@ public class SecurityConfig {
   private final String[] PUBLIC_ENDPOINTS = {
       "/users", "/auth/token", "/auth/introspect", "/auth/logout",
       "/auth/refreshToken", "/auth/resetPassword", "/auth/register", "auth/google/token", "/oauth2/**", "\r\n" + //
-          "https://accounts.google.com/o/oauth2/**"
+          "https://accounts.google.com/o/oauth2/**",
+      "o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token"
   };
 
   @Autowired
@@ -50,13 +51,11 @@ public class SecurityConfig {
     httpSecurity
         .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(authorize -> authorize
-            .requestMatchers("o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token")
-            .permitAll()
             .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
             .anyRequest().authenticated())
         .oauth2Login(oauth2 -> oauth2
-            .defaultSuccessUrl(oauth2RedirectUrl, true)
+            .defaultSuccessUrl("http://localhost:3000/oauth2/redirect", true)
             .failureUrl("/login?error"))
         .oauth2ResourceServer(oauth2 -> oauth2
             .jwt(jwt -> jwt

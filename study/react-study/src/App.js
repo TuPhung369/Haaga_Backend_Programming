@@ -27,18 +27,16 @@ const AuthWrapper = ({ children }) => {
           if (response.result?.valid) {
             setIsAuthenticated(true);
           } else {
+            console.warn("Invalid token, redirecting to login...");
             localStorage.removeItem("token");
-            setIsAuthenticated(false);
             navigate("/login");
           }
         } catch (error) {
           console.error("Error during token introspection:", error);
           localStorage.removeItem("token");
-          setIsAuthenticated(false);
           navigate("/login");
         }
       } else {
-        setIsAuthenticated(false);
         navigate("/login");
       }
     };
@@ -54,7 +52,7 @@ const App = () => (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/resetpassword" element={<ResetPasswordPage />} />
-      <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
+      <Route path="/oauths/redirect" element={<OAuth2RedirectHandler />} />
       <Route
         path="/"
         element={
@@ -92,3 +90,4 @@ const App = () => (
 );
 
 export default App;
+

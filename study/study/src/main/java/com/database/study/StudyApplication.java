@@ -25,6 +25,7 @@ public class StudyApplication {
 		String baseUrl = dotenv.get("BASE_URL");
 		String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
 		String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
+		String clientRedirectUri = dotenv.get("CLIENT_REDIRECT_URI");
 		String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
 		String googleAuthUrl = dotenv.get("GOOGLE_AUTH_URL");
 		String desktopClientId = dotenv.get("DESKTOP_CLIENT_ID");
@@ -40,11 +41,6 @@ public class StudyApplication {
 			return; // Exit application
 		}
 
-		// Debugging: Print key environment variables (optional)
-		System.out.println("Loaded DB_URL: " + dbUrl);
-		System.out.println("Loaded OAUTH2_CLIENT_ID: " + oauth2ClientId);
-		System.out.println("Loaded BASE_URL: " + baseUrl);
-
 		// Set system properties from environment variables
 		setSystemProperty("DB_URL", dbUrl);
 		setSystemProperty("DB_USERNAME", dbUsername);
@@ -52,6 +48,7 @@ public class StudyApplication {
 		setSystemProperty("BASE_URL", baseUrl);
 		setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
 		setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
+		setSystemProperty("CLIENT_REDIRECT_URI", clientRedirectUri);
 		setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
 		setSystemProperty("GOOGLE_AUTH_URL", googleAuthUrl);
 		setSystemProperty("DESKTOP_CLIENT_ID", desktopClientId);

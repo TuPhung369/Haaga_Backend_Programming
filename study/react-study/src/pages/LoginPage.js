@@ -21,6 +21,7 @@ import {
   registerUser,
 } from "../services/authService";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
+import { FcGoogle } from "react-icons/fc";
 import "../css/LoginPage.css";
 import validateInput from "../utils/validateInput"; // Import the validateInput function
 import moment from "moment";
@@ -83,16 +84,6 @@ const LoginPage = () => {
 
     window.location.href = authorizationUri;
   };
-const params = new URLSearchParams(window.location.search);
-const code = params.get("code");
-
-if (code) {
-  // Send code to server
-  fetch("http://localhost:9095/oauth2/redirect?code=" + code)
-    .then((response) => response.json())
-    .then((data) => console.log("Authentication successful", data))
-    .catch((error) => console.error("Error during authentication", error));
-}
 
   const handleForgotPassword = () => {
     setUsername("");
@@ -291,12 +282,7 @@ if (code) {
               />
             )}
             <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                className="login-page-button"
-                style={{ width: "100%", borderRadius: "5px" }}
-              >
+              <Button type="primary" htmlType="submit" className="login-button">
                 Login
               </Button>
             </Form.Item>
@@ -304,14 +290,10 @@ if (code) {
               <Button
                 type="primary"
                 onClick={handleGoogleLogin}
-                className="login-page-google-button"
-                style={{
-                  width: "100%",
-                  borderRadius: "5px",
-                  marginBottom: "15px",
-                }}
+                className="google-login-button"
               >
-                Login Google
+                <FcGoogle style={{ marginRight: "10px", fontSize: "24px" }} />
+                Login with Google
               </Button>
             </Form.Item>
             <Form.Item>
