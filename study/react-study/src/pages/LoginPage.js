@@ -73,9 +73,26 @@ const LoginPage = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href =
-      "http://localhost:9095/identify_service/oauth2/authorization/google";
+    const clientId =
+      "554408537759-8k7isdfv7otikvre8trvvl5ek073e6aa.apps.googleusercontent.com";
+    const redirectUri =
+      "http://localhost:9095/identify_service/oauth2/redirect";
+    const scope = "openid email profile";
+    const responseType = "code";
+    const authorizationUri = `https://accounts.google.com/o/oauth2/auth?response_type=${responseType}&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
+
+    window.location.href = authorizationUri;
   };
+const params = new URLSearchParams(window.location.search);
+const code = params.get("code");
+
+if (code) {
+  // Send code to server
+  fetch("http://localhost:9095/oauth2/redirect?code=" + code)
+    .then((response) => response.json())
+    .then((data) => console.log("Authentication successful", data))
+    .catch((error) => console.error("Error during authentication", error));
+}
 
   const handleForgotPassword = () => {
     setUsername("");

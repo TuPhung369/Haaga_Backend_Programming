@@ -12,30 +12,29 @@ import com.database.study.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import java.util.Map;
-import java.util.logging.Logger;
-import java.util.logging.Level;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.Map;
+
+@Slf4j
 @RestController
 @RequestMapping("/oauth2")
 public class OAuth2TokenController {
-
-  private static final Logger logger = Logger.getLogger(OAuth2TokenController.class.getName());
 
   @Value("${spring.security.oauth2.client.provider.google.token-uri}")
   private String tokenUri;
@@ -45,6 +44,9 @@ public class OAuth2TokenController {
 
   @Value("${spring.security.oauth2.client.registration.google.client-secret}")
   private String clientSecret;
+
+  @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+  private String redirectUri;
 
   private final GoogleUserInfoService userInfoService;
   private final GoogleTokenValidationService tokenValidationService;
@@ -64,73 +66,99 @@ public class OAuth2TokenController {
     this.passwordEncoder = passwordEncoder;
   }
 
+  /**
+   * Step 1: Initiate Google Authorization
+   */
   @GetMapping("/authorization/google")
   public ResponseEntity<?> initiateGoogleAuthorization() {
-    String authorizationUri = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=" + clientId +
-        "&redirect_uri=http://localhost:9095/identify_service/oauth2/redirect&scope=openid%20email%20profile";
+    String authorizationUri = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=" +
+        clientId + "&redirect_uri=" + redirectUri + "&scope=openid%20email%20profile";
+
     return ResponseEntity.status(302).header("Location", authorizationUri).build();
   }
 
-  @PostMapping("/redirect")
+  /**
+   * Step 2: Handle Google Redirect
+   */
+  @GetMapping("/redirect")
   public ApiResponse<AuthenticationResponse> handleGoogleRedirect(@RequestParam("code") String code) {
+    log.info("Authorization code received: " + code);
+    
+    // Step 2.1: Prepare Token Exchange Request
     RestTemplate restTemplate = new RestTemplate();
-
     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
     params.add("code", code);
     params.add("client_id", clientId);
     params.add("client_secret", clientSecret);
-    params.add("redirect_uri", "http://localhost:9095/identify_service/oauth2/redirect");
+    params.add("redirect_uri", redirectUri);
     params.add("grant_type", "authorization_code");
 
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
     try {
-      logger.info("STEP 1: Exchanging authorization code for token with params: " + params);
-      Map<String, String> response = restTemplate.exchange(tokenUri, HttpMethod.POST, new HttpEntity<>(params),
-          new ParameterizedTypeReference<Map<String, String>>() {
-          }).getBody();
-      logger.info("STEP 2: Token exchange response: " + response);
-
-      if (response == null) {
-        throw new AppException("Token exchange response is null");
-      }
-
-      String idToken = response.get("id_token");
-      logger.info("STEP 3: ID token received: " + idToken);
-      Jwt jwt = tokenValidationService.validateGoogleIdToken(idToken);
-
-      String email = jwt.getClaimAsString("email");
-      String username = email.split("@")[0];
-      logger.info("STEP 4: User email: " + email + ", username: " + username);
-
-      User user = userRepository.findByUsername(username)
-          .orElseGet(() -> {
-            // Create a new user if not exists
-            User newUser = new User();
-            newUser.setUsername(username);
-            newUser.setPassword(passwordEncoder.encode(idToken)); // Use idToken as password
-            logger.info("STEP 5: Creating new user: " + newUser);
-            return userRepository.save(newUser);
+      // Step 2.2: Exchange Authorization Code for Token
+      log.info("STEP 1: Exchanging authorization code for token...");
+      ResponseEntity<Map<String, String>> response = restTemplate.exchange(
+          tokenUri,
+          HttpMethod.POST,
+          request,
+          new ParameterizedTypeReference<>() {
           });
 
-      AuthenticationRequest authRequest = new AuthenticationRequest();
-      authRequest.setUsername(user.getUsername());
-      authRequest.setPassword(idToken); // Use idToken as password
-      logger.info("STEP 6: Authenticating user: " + user.getUsername());
+      // Step 2.3: Validate Response
+      if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+        Map<String, String> responseBody = response.getBody();
+        log.info("STEP 2: Token exchange response: " + responseBody);
 
-      AuthenticationResponse authResponse = authenticationService.authenticate(authRequest);
-      logger.info("STEP 7: Authentication successful for user: " + user.getUsername());
+        if (responseBody == null) {
+          throw new AppException("Token exchange response body is null");
+        }
+        String idToken = responseBody.get("id_token");
+        log.info("STEP 3: ID token received: " + idToken);
 
-      return ApiResponse.<AuthenticationResponse>builder()
-          .result(authResponse)
-          .message("Authentication successful")
-          .build();
+        // Step 3: Validate ID Token and Extract User Information
+        Jwt jwt = tokenValidationService.validateGoogleIdToken(idToken);
+        String email = jwt.getClaimAsString("email");
+        String username = email.split("@")[0];
+        log.info("STEP 4: User email: " + email + ", username: " + username);
+
+        // Step 4: Create or Retrieve User
+        User user = userRepository.findByUsername(username)
+            .orElseGet(() -> {
+              User newUser = new User();
+              newUser.setUsername(username);
+              newUser.setPassword(passwordEncoder.encode(idToken)); // Use idToken as password
+              log.info("STEP 5: Creating new user: " + newUser);
+              return userRepository.save(newUser);
+            });
+
+        // Step 5: Authenticate User and Return Tokens
+        AuthenticationRequest authRequest = new AuthenticationRequest();
+        authRequest.setUsername(user.getUsername());
+        authRequest.setPassword(idToken);
+
+        log.info("STEP 6: Authenticating user: " + user.getUsername());
+        AuthenticationResponse authResponse = authenticationService.authenticate(authRequest);
+        log.info("STEP 7: Authentication successful for user: " + user.getUsername());
+
+        return ApiResponse.<AuthenticationResponse>builder()
+            .result(authResponse)
+            .message("Authentication successful")
+            .build();
+      } else {
+        throw new AppException("Token exchange failed with response: " + response.getStatusCode());
+      }
     } catch (HttpClientErrorException | HttpServerErrorException e) {
-      logger.log(Level.SEVERE, "Error exchanging token: " + e.getResponseBodyAsString(), e);
+      log.error("Error exchanging token: " + e.getResponseBodyAsString(), e);
       return ApiResponse.<AuthenticationResponse>builder()
           .result(null)
           .message(e.getResponseBodyAsString())
           .build();
     } catch (Exception e) {
-      logger.log(Level.SEVERE, "Unexpected error exchanging token", e);
+      log.error("Unexpected error exchanging token", e);
       return ApiResponse.<AuthenticationResponse>builder()
           .result(null)
           .message("An unexpected error occurred: " + e.getMessage())
