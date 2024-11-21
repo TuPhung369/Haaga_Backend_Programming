@@ -46,14 +46,12 @@ public class UserController {
   @GetMapping
   public List<UserResponse> getUsers() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
     if (authentication == null || !authentication.isAuthenticated()) {
       log.warn("No authenticated user found");
       return List.of(); // Return an empty list or handle it as appropriate
     }
-
-    authentication.getAuthorities().forEach(authority -> log.info(authority.getAuthority()));
-
+    // authentication.getAuthorities().forEach(authority ->
+    // authority.getAuthority());
     List<UserResponse> users = userService.getUsers();
     return users;
   }
