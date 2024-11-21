@@ -145,13 +145,11 @@ public class ApplicationInitConfig {
   // Create role if not exists
   void createRoleIfNotExists(String roleName, String description, String color) {
     if (roleRepository.findByName(roleName).isEmpty()) {
-      // log.info("Creating role: {}", roleName);
       Role role = new Role();
       role.setName(roleName);
       role.setDescription(description);
       role.setColor(color);
       roleRepository.save(role);
-      // log.info("Role '{}' created", roleName);
     }
   }
 

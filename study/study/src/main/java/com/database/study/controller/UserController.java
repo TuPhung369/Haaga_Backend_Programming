@@ -52,7 +52,6 @@ public class UserController {
       return List.of(); // Return an empty list or handle it as appropriate
     }
 
-    log.info("User: {}", authentication.getName());
     authentication.getAuthorities().forEach(authority -> log.info(authority.getAuthority()));
 
     List<UserResponse> users = userService.getUsers();

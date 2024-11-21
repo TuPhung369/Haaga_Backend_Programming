@@ -22,7 +22,7 @@ import {
 } from "../services/authService";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { FcGoogle } from "react-icons/fc";
-import "../css/LoginPage.css";
+import "../styles/LoginPage.css";
 import validateInput from "../utils/validateInput"; // Import the validateInput function
 import moment from "moment";
 

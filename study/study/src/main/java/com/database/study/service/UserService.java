@@ -43,7 +43,6 @@ public class UserService {
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
   // match EXACTLY the permission name or ROLE_ADMIN also)
   public List<UserResponse> getUsers() {
-    log.info("In method getUsers with role ADMIN");
     return userRepository.findAll().stream()
         .map(userMapper::toUserResponse)
         .toList();
@@ -71,7 +70,6 @@ public class UserService {
         .collect(Collectors.toSet());
     user.setRoles(roleEntities);
 
-    log.info("User before saving: {}", user);
     user = userRepository.save(user);
     return userMapper.toUserResponse(user);
   }
@@ -85,7 +83,6 @@ public class UserService {
 
   @PostAuthorize("hasRole('ADMIN')")
   public UserResponse getUserById(UUID userId) {
-    log.info("Fetching user by ID: {}", userId);
     User user = userRepository.findById(userId)
         .orElseThrow(() -> {
           log.error("User with ID {} not found", userId);
@@ -97,7 +94,6 @@ public class UserService {
   @PreAuthorize("hasRole('ADMIN') || hasRole('MANAGER')")
   @Transactional
   public UserResponse updateUser(UUID userId, UserCreationRequest request) {
-    log.info("Updating user with ID: {}", userId);
     User existingUser = userRepository.findById(userId)
         .orElseThrow(() -> {
           log.error("User with ID {} not found", userId);

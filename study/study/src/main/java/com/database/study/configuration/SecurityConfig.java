@@ -47,7 +47,6 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-    log.info("STEP 100: Configuring security filter chain");
     httpSecurity
         .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(authorize -> authorize

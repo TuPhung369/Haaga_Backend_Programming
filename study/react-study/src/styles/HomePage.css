@@ -1,0 +1,46 @@
+.custom-descriptions .ant-descriptions-title {
+  font-size: 24px; /* Adjust the font size as needed */
+  font-weight: bold; /* Optional: Make the title bold */
+}
+@keyframes colorChange {
+  0% { color: #ffffff; } 
+  5% { color: #e6f0ff; }
+  10% { color: #cce0ff; }
+  15% { color: #b3d1ff; }
+  20% { color: #99c2ff; }
+  25% { color: #80b3ff; }
+  30% { color: #66a3ff; }
+  35% { color: #4d94ff; }
+  40% { color: #3385ff; }
+  45% { color: #1a75ff; }
+  50% { color: #0066ff; }
+  55% { color: #0059e6; }
+  60% { color: #004dcc; }
+  65% { color: #0040b3; }
+  70% { color: #003399; }
+  75% { color: #002680; }
+  80% { color: #001966; }
+  85% { color: #000d4d; }
+  90% { color: #000033; }
+  95% { color: #00001a; }
+  100% { color: #0066ff; }
+}
+
+@keyframes sizeChange {
+  0% { font-size: 30px; }
+  12.5% { font-size: 31px; }
+  25% { font-size: 32px; }
+  37.5% { font-size: 33px; }
+  50% { font-size: 34px; }
+  62.5% { font-size: 33px; }
+  75% { font-size: 32px; }
+  87.5% { font-size: 31px; }
+  100% { font-size: 30px; }
+}
+
+.animated-title {
+  margin: 0;
+  font-weight: bold;
+  animation: colorChange 15s infinite, sizeChange 15s infinite;
+  -webkit-animation: colorChange 15s infinite, sizeChange 15s infinite;
+}

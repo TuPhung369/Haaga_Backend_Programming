@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import "../css/HomePage.css";
+import "../styles/HomePage.css";
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../components/CustomButton";
 import {

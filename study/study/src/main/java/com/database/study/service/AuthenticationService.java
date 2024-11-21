@@ -86,29 +86,23 @@ public class AuthenticationService {
     if (!authenticated) {
       throw new AppException(ErrorCode.PASSWORD_MISMATCH);
     }
-    // log.info("Deleting all expired tokens before storing a new token");
     invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
 
-    // log.info("Checking for existing tokens for user: {}", user.getUsername());
     Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByName(user.getUsername());
     String token;
     String jwtId;
     if (existingTokenOpt.isPresent() && existingTokenOpt.get().getExpiryTime().after(new Date())) {
       token = existingTokenOpt.get().getToken();
       jwtId = existingTokenOpt.get().getId();
-      // log.info("Reusing existing token with jwtId: {}", jwtId);
     } else {
       jwtId = UUID.randomUUID().toString();
-      // log.info("Generating new token with jwtId: {}", jwtId);
       token = generateToken(user, jwtId);
       String refreshToken = generateRefreshToken(user, jwtId);
       Date expiryTime = extractTokenExpiry(token);
-      // log.info("New token expiry time: {}", expiryTime);
       Date expireRefreshTime = extractTokenExpiry(refreshToken);
       // Instant expireInstant = expiryTime.toInstant().plus(SURPLUS_EXPIRE_TIME,
       // ChronoUnit.HOURS);
       // Date expireRefreshTime = Date.from(expireInstant);
-      // log.info("Refresh token expiry time: {}", expireRefreshTime);
 
       // Save the new token
       InvalidatedToken newToken = InvalidatedToken.builder()
@@ -120,7 +114,6 @@ public class AuthenticationService {
           .name(user.getUsername())
           .description("Newly issued token")
           .build();
-      // log.info("Saving new token with jwtId: {}", jwtId);
       invalidatedTokenRepository.save(newToken);
     }
 
@@ -184,7 +177,6 @@ public class AuthenticationService {
 
     // Retrieve the existing UUID from the token claims
     String uuid = signedToken.getJWTClaimsSet().getJWTID();
-    // log.info("STEP 1: uuid from logout: {}", uuid);
     // Delete all expired tokens before adding the new entry
     invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
 
@@ -193,12 +185,10 @@ public class AuthenticationService {
     if (existingTokenOpt.isPresent()) {
       // Update only the description field
       InvalidatedToken existingToken = existingTokenOpt.get();
-      // log.info("Existing description before update: {}",
       // existingToken.getDescription());
       existingToken.setDescription("Logged OUT at: " + formattedDate);
       invalidatedTokenRepository.save(existingToken);
       invalidatedTokenRepository.flush(); // Flush using to changes the database
-      // log.info("Updated description: {}", existingToken.getDescription());
     } else {
       throw new AppException(ErrorCode.INVALID_TOKEN);
     }
@@ -250,35 +240,25 @@ public class AuthenticationService {
 
   public IntrospectResponse introspect(IntrospectRequest request) {
     String token = request.getToken();
-    // log.info("STEP 6.1: Introspect - Received token: {}", token);
     boolean isValid;
     try {
-      // log.info("STEP 6.2: Introspect - Verifying token...");
       verifyToken(token);
-      // log.info("STEP 6.3: Introspect - Token verified successfully.");
       isValid = true;
     } catch (Exception e) {
-      // log.error("STEP 6.4: Introspect - Token verification failed: {}",
       // e.getMessage(), e);
       isValid = false;
     }
     IntrospectResponse response = IntrospectResponse.builder()
         .valid(isValid)
         .build();
-    // log.info("STEP 6.5: Introspect - Response: {}", response);
     return response;
   }
 
   private SignedJWT verifyToken(String token) throws ParseException, JOSEException {
-    // log.info("STEP 1: token from verifyToken: {}", token);
     SignedJWT signedJWT = SignedJWT.parse(token);
-    // log.info("STEP 2: signedJWT from verifyToken: {}", signedJWT);
     JWSVerifier verifier = new MACVerifier(SECRET_KEY_BYTES);
-    // log.info("STEP 3: verifier from verifyToken: {}", verifier);
     Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-    // log.info("STEP 4: expiryTime from verifyToken: {}", expiryTime);
     boolean verified = signedJWT.verify(verifier) && expiryTime.after(new Date());
-    // log.info("STEP 5: verified from verifyToken: {}", verified);
     if (!verified) {
       throw new AppException(ErrorCode.INVALID_TOKEN);
     }
@@ -301,7 +281,6 @@ public class AuthenticationService {
       JWSObject jwsObject = new JWSObject(jwsHeader, payload);
       jwsObject.sign(new MACSigner(SECRET_KEY_BYTES)); // Make sure the key is correct!
       String token = jwsObject.serialize();
-      // log.info("Generated token: {}", token);
 
       return token;
     } catch (Exception e) {
@@ -326,7 +305,6 @@ public class AuthenticationService {
       JWSObject jwsObject = new JWSObject(jwsHeader, payload);
       jwsObject.sign(new MACSigner(SECRET_KEY_BYTES));
       String token = jwsObject.serialize();
-      // log.info("Generated token: {}", token);
 
       return token;
     } catch (Exception e) {
