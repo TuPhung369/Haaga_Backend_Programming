@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.database.study.service.PermissionService;
 import com.database.study.dto.request.PermissionRequest;
+import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.PermissionResponse;
-import com.database.study.dto.request.ApiResponse;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

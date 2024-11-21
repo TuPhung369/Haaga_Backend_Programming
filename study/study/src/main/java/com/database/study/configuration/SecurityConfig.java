@@ -19,11 +19,13 @@ import com.database.study.security.JwtTokenFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@Slf4j
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
@@ -32,7 +34,7 @@ public class SecurityConfig {
 
   private final String[] PUBLIC_ENDPOINTS = {
       "/users", "/auth/token", "/auth/introspect", "/auth/logout",
-      "/auth/refreshToken", "/auth/resetPassword", "/auth/register", "auth/google/token"
+      "/auth/refreshToken", "/auth/resetPassword", "/auth/register", "auth/google/token", "/oauth2/**"
   };
 
   @Autowired
@@ -43,10 +45,11 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+    log.info("STEP 100: Configuring security filter chain");
     httpSecurity
         .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(authorize -> authorize
-            .requestMatchers("o/oauth2**", "/oauth2/**", "/login/oauth2/**", "/protected/**", "/google/token")
+            .requestMatchers("o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token")
             .permitAll()
             .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()

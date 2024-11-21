@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
-
 @Data
 @AllArgsConstructor
 @Builder
@@ -14,5 +13,7 @@ import lombok.experimental.FieldDefaults;
 public class AuthenticationRequest {
   String username;
   String password;
-  
+
+  public AuthenticationRequest() {
+  }
 }

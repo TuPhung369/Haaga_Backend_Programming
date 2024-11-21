@@ -8,6 +8,10 @@ public class AppException extends RuntimeException {
     this.errorCode = errorCode;
   }
 
+  public AppException(String message) {
+    super(message);
+  }
+
   public ErrorCode getErrorCode() {
     return errorCode;
   }

@@ -2,7 +2,8 @@ package com.database.study.configuration;
 
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.http.MediaType;
-import com.database.study.dto.request.ApiResponse;
+
+import com.database.study.dto.response.ApiResponse;
 import com.database.study.exception.ErrorCode;
 
 import jakarta.servlet.http.HttpServletRequest;

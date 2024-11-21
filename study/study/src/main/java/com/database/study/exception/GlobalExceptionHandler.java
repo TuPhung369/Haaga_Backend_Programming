@@ -9,7 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import com.database.study.dto.request.ApiResponse;
+
+import com.database.study.dto.response.ApiResponse;
 import com.database.study.enums.ENUMS;
 
 import org.springframework.validation.FieldError;

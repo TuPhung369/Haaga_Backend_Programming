@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.database.study.service.RoleService;
 import com.database.study.dto.request.RoleRequest;
+import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.RoleResponse;
-import com.database.study.dto.request.ApiResponse;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
