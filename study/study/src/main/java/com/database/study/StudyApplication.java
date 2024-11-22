@@ -33,10 +33,10 @@ public class StudyApplication {
 		String googleAuthUrl = dotenv.get("GOOGLE_AUTH_URL");
 		String desktopClientId = dotenv.get("DESKTOP_CLIENT_ID");
 		String desktopClientSecret = dotenv.get("DESKTOP_CLIENT_SECRET");
-		String githubAppId = dotenv.get("GITHUB_APP_ID");
 		String githubClientId = dotenv.get("GITHUB_CLIENT_ID");
 		String githubClientSecret = dotenv.get("GITHUB_CLIENT_SECRET");
 		String githubRedirectUri = dotenv.get("GITHUB_REDIRECT_URI");
+		String clientGitRedirectUri = dotenv.get("CLIENTGIT_REDIRECT_URI");
 
 		if (dbUrl == null || dbUsername == null || dbPassword == null || oauth2ClientId == null
 				|| oauth2ClientSecret == null) {
@@ -59,10 +59,10 @@ public class StudyApplication {
 		setSystemProperty("GOOGLE_AUTH_URL", googleAuthUrl);
 		setSystemProperty("DESKTOP_CLIENT_ID", desktopClientId);
 		setSystemProperty("DESKTOP_CLIENT_SECRET", desktopClientSecret);
-		setSystemProperty("GITHUB_APP_ID", githubAppId);
 		setSystemProperty("GITHUB_CLIENT_ID", githubClientId);
 		setSystemProperty("GITHUB_CLIENT_SECRET", githubClientSecret);
 		setSystemProperty("GITHUB_REDIRECT_URI", githubRedirectUri);
+		setSystemProperty("CLIENTGIT_REDIRECT_URI", clientGitRedirectUri);
 
 		// Start the application
 		SpringApplication.run(StudyApplication.class, args);

@@ -22,6 +22,7 @@ import {
 } from "../services/authService";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa";
 import "../styles/LoginPage.css";
 import validateInput from "../utils/validateInput"; // Import the validateInput function
 import moment from "moment";
@@ -84,7 +85,15 @@ const LoginPage = () => {
 
     window.location.href = authorizationUri;
   };
+  const handleGitHubLogin = () => {
+    const clientId = "Iv23lifJ8TSn63WgT6Wt";
+    const redirectUri =
+      "http://localhost:9095/identify_service/oauthGit/redirect";
+    const scope = "user";
+    const authorizationUri = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
 
+    window.location.href = authorizationUri;
+  };
   const handleForgotPassword = () => {
     setUsername("");
     setConfirmPassword("");
@@ -294,6 +303,27 @@ const LoginPage = () => {
               >
                 <FcGoogle style={{ marginRight: "10px", fontSize: "24px" }} />
                 Login with Google
+              </Button>
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                onClick={handleGitHubLogin}
+                className="login-page-github-button"
+                style={{
+                  width: "100%",
+                  borderRadius: "5px",
+                  marginBottom: "15px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "black",
+                  color: "white",
+                  border: "1px solid #ccc",
+                }}
+              >
+                <FaGithub style={{ marginRight: "10px", fontSize: "24px" }} />
+                Login with GitHub
               </Button>
             </Form.Item>
             <Form.Item>
