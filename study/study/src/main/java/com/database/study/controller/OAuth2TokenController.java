@@ -5,12 +5,22 @@ import com.database.study.service.GoogleTokenValidationService;
 import com.database.study.service.AuthenticationService;
 import com.database.study.entity.Role;
 import com.database.study.entity.User;
+import com.database.study.entity.Permission;
+import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
+import com.database.study.exception.ErrorCode;
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.repository.UserRepository;
+import com.database.study.repository.RoleRepository;
 
 import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Map;
+import java.time.LocalDate;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
@@ -31,10 +41,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
-import java.time.LocalDate;
-import java.util.Collections;
-
 @Slf4j
 @RestController
 @RequestMapping("/oauth2")
@@ -52,22 +58,22 @@ public class OAuth2TokenController {
   @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
   private String redirectUri;
 
-  private final GoogleUserInfoService userInfoService;
-  private final GoogleTokenValidationService tokenValidationService;
+  private final GoogleTokenValidationService googleTokenValidationService;
   private final AuthenticationService authenticationService;
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final RoleRepository roleRepository;
 
   public OAuth2TokenController(GoogleUserInfoService userInfoService,
-      GoogleTokenValidationService tokenValidationService,
+      GoogleTokenValidationService googleTokenValidationService,
       AuthenticationService authenticationService,
       UserRepository userRepository,
-      PasswordEncoder passwordEncoder) {
-    this.userInfoService = userInfoService;
-    this.tokenValidationService = tokenValidationService;
+      PasswordEncoder passwordEncoder, RoleRepository roleRepository) {
+    this.googleTokenValidationService = googleTokenValidationService;
     this.authenticationService = authenticationService;
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
+    this.roleRepository = roleRepository;
   }
 
   /**
@@ -120,7 +126,7 @@ public class OAuth2TokenController {
         String idToken = responseBody.get("id_token");
 
         // Step 3: Validate ID Token and Extract User Information
-        Jwt jwt = tokenValidationService.validateGoogleIdToken(idToken);
+        Jwt jwt = googleTokenValidationService.validateGoogleIdToken(idToken);
         String email = jwt.getClaimAsString("email");
         String username = email.split("@")[0];
         String firstName = jwt.getClaimAsString("given_name");
@@ -130,21 +136,41 @@ public class OAuth2TokenController {
         // Step 4: Create or Retrieve User
         User user = userRepository.findByUsername(username)
             .orElseGet(() -> {
-              // Step 1: Create a new user instance
+              // Step 1: Prepare default roles if none exist
+              Set<Role> roles = new HashSet<>();
+              roles.add(new Role(ENUMS.Role.USER.name()));
 
-              String jwtId = UUID.randomUUID().toString();
-              log.info("STEP 6: Generating token for user: jwtId" + jwtId);
+              // Fetch Role entities and their associated permissions
+              Set<Role> roleEntities = roles.stream()
+                  .map(roleName -> {
+                    Role role = roleRepository.findByName(roleName.getName())
+                        .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+
+                    // Ensure permissions are set for the role
+                    Set<Permission> permissions = role.getPermissions();
+                    if (permissions == null || permissions.isEmpty()) {
+                      throw new AppException("Permissions not defined for role: " + roleName);
+                    }
+
+                    // Log the associated permissions for debugging
+                    log.info("Permissions for role {}: {}", roleName, permissions);
+
+                    return role;
+                  })
+                  .collect(Collectors.toSet());
+
+              // Create a new user instance
               User newUser = User.builder()
-                  .id(UUID.fromString(jwtId))
+                  .id(UUID.randomUUID())
                   .username(username)
                   .password(passwordEncoder.encode(idToken))
                   .firstname(firstName)
                   .lastname(lastName + "Google")
                   .dob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9))
-                  .roles(Collections.singleton(new Role("USER")))
+                  .roles(roleEntities)
                   .build();
 
-              log.info("STEP 5: Creating new user: " + newUser);
+              log.info("STEP 5: Creating new user: {}", newUser);
 
               // Step 2: Save the new user to the repository
               userRepository.save(newUser);
@@ -155,9 +181,6 @@ public class OAuth2TokenController {
 
         // Generate token using either the existing or newly created user
         // log.info("STEP 6: Generating token for user: user.getId()" + user.getId());
-        // String jwtId = user.getId() != null ? user.getId().toString() :
-        // UUID.randomUUID().toString();
-        // String token = authenticationService.generateToken(user, jwtId);
 
         // Step 5: Authenticate User and Return Tokens
         AuthenticationRequest authRequest = new AuthenticationRequest();
@@ -167,13 +190,10 @@ public class OAuth2TokenController {
         AuthenticationResponse authResponse = authenticationService.authenticate(authRequest);
         // Step 2: Redirect to Client-Side with Token
         // Step 6: Redirect to Client-Side with Generated Token
-        // log.info("STEP 6: 1 Redirecting to client-side with token: " + token);
         log.info("STEP 6: 2 Redirecting to client-side with token: " + authResponse.getToken());
-        // String redirectUrl =
-        // String.format("http://localhost:3000/oauths/redirect?token=%s", token);
-        String redirectUrl = String.format("http://localhost:3000/oauths/redirect?token=%s", authResponse.getToken());
+        String redirectUrl = String.format("http://localhost:3000/oauths/redirect?token=%s",
+            authResponse.getToken());
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
-
       } else {
         throw new AppException("Token exchange failed with response: " + response.getStatusCode());
       }
