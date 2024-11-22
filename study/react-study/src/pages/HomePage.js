@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import "../styles/HomePage.css";
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../components/CustomButton";
-import UserListPage from "./UserListPage";
 import {
   getAllUsers,
   getMyInfo,
