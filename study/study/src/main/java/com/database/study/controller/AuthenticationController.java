@@ -4,8 +4,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.database.study.dto.request.*;
 import com.database.study.dto.response.*;
+import com.database.study.security.GoogleTokenValidation;
 import com.database.study.service.AuthenticationService;
-import com.database.study.service.GoogleTokenValidationService;
 import com.nimbusds.jose.JOSEException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -22,7 +22,7 @@ public class AuthenticationController {
 
   // Dependency injection
   AuthenticationService authenticationService;
-  GoogleTokenValidationService googleTokenValidationService;
+  GoogleTokenValidation googleTokenValidationService;
 
   // Authenticate user and generate token
   @PostMapping("/token")

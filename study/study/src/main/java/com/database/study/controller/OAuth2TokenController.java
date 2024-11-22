@@ -1,7 +1,5 @@
 package com.database.study.controller;
 
-import com.database.study.service.GoogleUserInfoService;
-import com.database.study.service.GoogleTokenValidationService;
 import com.database.study.service.AuthenticationService;
 import com.database.study.entity.Role;
 import com.database.study.entity.User;
@@ -12,6 +10,7 @@ import com.database.study.exception.ErrorCode;
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.repository.UserRepository;
+import com.database.study.security.GoogleTokenValidation;
 import com.database.study.repository.RoleRepository;
 
 import java.util.UUID;
@@ -58,18 +57,18 @@ public class OAuth2TokenController {
   @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
   private String redirectUri;
 
-  private final GoogleTokenValidationService googleTokenValidationService;
+  private final GoogleTokenValidation googleTokenValidation;
   private final AuthenticationService authenticationService;
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final RoleRepository roleRepository;
 
-  public OAuth2TokenController(GoogleUserInfoService userInfoService,
-      GoogleTokenValidationService googleTokenValidationService,
+  public OAuth2TokenController(
+      GoogleTokenValidation googleTokenValidation,
       AuthenticationService authenticationService,
       UserRepository userRepository,
       PasswordEncoder passwordEncoder, RoleRepository roleRepository) {
-    this.googleTokenValidationService = googleTokenValidationService;
+    this.googleTokenValidation = googleTokenValidation;
     this.authenticationService = authenticationService;
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
@@ -126,7 +125,7 @@ public class OAuth2TokenController {
         String idToken = responseBody.get("id_token");
 
         // Step 3: Validate ID Token and Extract User Information
-        Jwt jwt = googleTokenValidationService.validateGoogleIdToken(idToken);
+        Jwt jwt = googleTokenValidation.validateGoogleIdToken(idToken);
         String email = jwt.getClaimAsString("email");
         String username = email.split("@")[0];
         String firstName = jwt.getClaimAsString("given_name");
