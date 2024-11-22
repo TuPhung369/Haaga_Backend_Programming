@@ -10,6 +10,7 @@ import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.repository.UserRepository;
 
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
@@ -130,7 +131,11 @@ public class OAuth2TokenController {
         User user = userRepository.findByUsername(username)
             .orElseGet(() -> {
               // Step 1: Create a new user instance
+
+              String jwtId = UUID.randomUUID().toString();
+              log.info("STEP 6: Generating token for user: jwtId" + jwtId);
               User newUser = User.builder()
+                  .id(UUID.fromString(jwtId))
                   .username(username)
                   .password(passwordEncoder.encode(idToken))
                   .firstname(firstName)
@@ -142,8 +147,17 @@ public class OAuth2TokenController {
               log.info("STEP 5: Creating new user: " + newUser);
 
               // Step 2: Save the new user to the repository
-              return userRepository.save(newUser);
+              userRepository.save(newUser);
+
+              // Return the new user
+              return newUser;
             });
+
+        // Generate token using either the existing or newly created user
+        // log.info("STEP 6: Generating token for user: user.getId()" + user.getId());
+        // String jwtId = user.getId() != null ? user.getId().toString() :
+        // UUID.randomUUID().toString();
+        // String token = authenticationService.generateToken(user, jwtId);
 
         // Step 5: Authenticate User and Return Tokens
         AuthenticationRequest authRequest = new AuthenticationRequest();
@@ -153,6 +167,10 @@ public class OAuth2TokenController {
         AuthenticationResponse authResponse = authenticationService.authenticate(authRequest);
         // Step 2: Redirect to Client-Side with Token
         // Step 6: Redirect to Client-Side with Generated Token
+        // log.info("STEP 6: 1 Redirecting to client-side with token: " + token);
+        log.info("STEP 6: 2 Redirecting to client-side with token: " + authResponse.getToken());
+        // String redirectUrl =
+        // String.format("http://localhost:3000/oauths/redirect?token=%s", token);
         String redirectUrl = String.format("http://localhost:3000/oauths/redirect?token=%s", authResponse.getToken());
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
 
