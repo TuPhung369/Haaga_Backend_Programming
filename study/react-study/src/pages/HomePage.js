@@ -7,6 +7,7 @@ import {
   getMyInfo,
   deleteUser,
   updateUser,
+  updateMyInfo,
   createUser,
 } from "../services/userService";
 import { getAllRoles } from "../services/roleService";
@@ -22,7 +23,11 @@ import {
   Select,
   notification,
 } from "antd";
-import { EditOutlined, UserAddOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  UserAddOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 
 const { confirm } = Modal;
 const { Header, Sider, Content, Footer } = Layout;
@@ -254,7 +259,7 @@ const HomePage = () => {
       const values = await form.validateFields();
       try {
         if (isModeUpdate) {
-          await updateUser(userInformation.id, values);
+          await updateMyInfo(userInformation.id, values);
         }
         if (isModeNew) {
           await createUser(values);
@@ -453,11 +458,21 @@ const HomePage = () => {
                   ]}
                 >
                   <Input
-                    readOnly={!isDisabled}
-                    disabled={isDisabled}
-                    onFocus={() => setIsDisabled(true)}
-                    onBlur={() => setIsDisabled(false)}
-                    style={{ cursor: isDisabled ? "not-allowed" : "text" }}
+                    readOnly={isModeNew ? false : isDisabled}
+                    disabled={isModeNew ? false : isDisabled}
+                    onFocus={() => {
+                      if (!isModeNew) {
+                        setIsDisabled(true);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!isModeNew) {
+                        setIsDisabled(false);
+                      }
+                    }}
+                    style={{
+                      cursor: isDisabled && !isModeNew ? "not-allowed" : "text",
+                    }}
                   />
                 </Form.Item>
                 <Form.Item
@@ -600,7 +615,12 @@ const HomePage = () => {
                 }
               />
               <Table.Column
-                title="Edit"
+                title={
+                  <span>
+                    Edit
+                    <EditOutlined style={{ marginLeft: 8 }} />
+                  </span>
+                }
                 key="edit"
                 render={(text, record) =>
                   (isAdmin || isManager) && (
@@ -615,7 +635,12 @@ const HomePage = () => {
                 }
               />
               <Table.Column
-                title="Delete"
+                title={
+                  <span>
+                    Delete
+                    <DeleteOutlined style={{ marginLeft: 8 }} />
+                  </span>
+                }
                 key="delete"
                 render={(text, record) =>
                   isAdmin && (

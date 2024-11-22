@@ -18,7 +18,7 @@ import {
   Select,
   Descriptions,
 } from "antd";
-import { PlusCircleOutlined } from "@ant-design/icons";
+import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
 const { Option } = Select;
@@ -250,7 +250,12 @@ const PermissionPage = () => {
                 )}
               />
               <Table.Column
-                title="Delete"
+                title={
+                  <span>
+                    Delete
+                    <DeleteOutlined style={{ marginLeft: 8 }} />
+                  </span>
+                }
                 key="delete"
                 render={(text, record) =>
                   isAdmin && (
@@ -326,6 +331,4 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
-
-
 

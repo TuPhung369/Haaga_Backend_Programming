@@ -75,7 +75,25 @@ export const updateUser = async (userId, userData) => {
     }
   }
 };
-
+export const updateMyInfo = async (userId, userData) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}/users/updateMyInfo/${userId}`,
+      userData,
+      {
+        headers,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating user:", error);
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw error;
+    }
+  }
+};
 export const deleteUser = async (userId) => {
   try {
     const response = await axios.delete(`${API_BASE_URL}/users/${userId}`, {

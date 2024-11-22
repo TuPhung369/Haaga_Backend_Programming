@@ -21,7 +21,11 @@ import {
   Select,
   notification,
 } from "antd";
-import { UserAddOutlined } from "@ant-design/icons";
+import {
+  UserAddOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 
 const { confirm } = Modal;
 const { Header, Sider, Content, Footer } = Layout;
@@ -516,7 +520,12 @@ const UserListPage = () => {
                 }
               />
               <Table.Column
-                title="Edit"
+                title={
+                  <span>
+                    Edit
+                    <EditOutlined style={{ marginLeft: 8 }} />
+                  </span>
+                }
                 key="edit"
                 render={(text, record) =>
                   (isAdmin || isManager) && (
@@ -531,7 +540,12 @@ const UserListPage = () => {
                 }
               />
               <Table.Column
-                title="Delete"
+                title={
+                  <span>
+                    Delete
+                    <DeleteOutlined style={{ marginLeft: 8 }} />
+                  </span>
+                }
                 key="delete"
                 render={(text, record) =>
                   isAdmin && (

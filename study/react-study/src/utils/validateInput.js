@@ -56,7 +56,7 @@ const validateInput = (input) => {
     } else {
       const dob = new Date(input.dob);
       const age = new Date().getFullYear() - dob.getFullYear();
-      if (age < 16) {
+      if (age < 6) {
         errors.dob = validationMessages.INVALID_DOB;
       }
     }

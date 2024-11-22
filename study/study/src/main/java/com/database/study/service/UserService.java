@@ -82,6 +82,7 @@ public class UserService {
   }
 
   @PostAuthorize("hasRole('ADMIN')")
+  @Transactional
   public UserResponse getUserById(UUID userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> {
@@ -117,7 +118,33 @@ public class UserService {
     return userMapper.toUserResponse(updatedUser);
   }
 
+  @Transactional
+  public UserResponse updateMyInfo(UUID userId, UserCreationRequest request) {
+    User existingUser = userRepository.findById(userId)
+        .orElseThrow(() -> {
+          log.error("User with ID {} not found", userId);
+          throw new AppException(ErrorCode.USER_NOT_FOUND);
+        });
+
+    userMapper.updateUser(existingUser, request);
+    existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+
+    // Update roles
+    List<String> roles = request.getRoles();
+    if (roles != null && !roles.isEmpty()) {
+      Set<Role> roleEntities = roles.stream()
+          .map(roleName -> roleRepository.findByName(roleName)
+              .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+          .collect(Collectors.toSet());
+      existingUser.setRoles(roleEntities);
+    }
+
+    User updatedUser = userRepository.save(existingUser);
+    return userMapper.toUserResponse(updatedUser);
+  }
+
   @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
+  @Transactional
   public void deleteUser(UUID userId) {
     if (userRepository.existsById(userId)) {
       userRepository.deleteById(userId);
