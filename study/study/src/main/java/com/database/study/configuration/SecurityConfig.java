@@ -32,12 +32,9 @@ public class SecurityConfig {
   @Value("${OAUTH2_REDIRECT_URI}")
   private String oauth2RedirectUrl;
 
-  private final String[] PUBLIC_ENDPOINTS = {
-      "/users", "/auth/token", "/auth/introspect", "/auth/logout",
-      "/auth/refreshToken", "/auth/resetPassword", "/auth/register", "auth/google/token", "/oauth2/**", "\r\n" + //
-          "https://accounts.google.com/o/oauth2/**",
-      "o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token"
-  };
+  private final String[] PUBLIC_ENDPOINTS = { "/users", "/auth/token", "/auth/introspect", "/auth/logout",
+      "/auth/refreshToken", "/auth/resetPassword", "/auth/register", "auth/google/token", "/oauth2/**",
+      "https://accounts.google.com/o/oauth2/**", "o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token" };
 
   @Autowired
   private CustomJwtDecoder customJwtDecoder;

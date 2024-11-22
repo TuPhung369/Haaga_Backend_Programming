@@ -189,7 +189,6 @@ public class OAuth2TokenController {
         AuthenticationResponse authResponse = authenticationService.authenticate(authRequest);
         // Step 2: Redirect to Client-Side with Token
         // Step 6: Redirect to Client-Side with Generated Token
-        log.info("STEP 6: 2 Redirecting to client-side with token: " + authResponse.getToken());
         String redirectUrl = String.format("http://localhost:3000/oauths/redirect?token=%s",
             authResponse.getToken());
         return ResponseEntity.status(302).header("Location", redirectUrl).build();

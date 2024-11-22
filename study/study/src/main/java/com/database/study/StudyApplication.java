@@ -11,7 +11,7 @@ public class StudyApplication {
 
 	public static void main(String[] args) {
 		// Load environment variables from .env file
-		Dotenv dotenv = Dotenv.configure().load();
+		Dotenv dotenv = Dotenv.configure().directory("../resources").load();
 
 		if (dotenv == null) {
 			System.err.println("Dotenv failed to load the .env file.");
@@ -33,7 +33,6 @@ public class StudyApplication {
 		String googleAuthUrl = dotenv.get("GOOGLE_AUTH_URL");
 		String desktopClientId = dotenv.get("DESKTOP_CLIENT_ID");
 		String desktopClientSecret = dotenv.get("DESKTOP_CLIENT_SECRET");
-		String githubAppId = dotenv.get("GITHUB_APP_ID");
 		String githubClientId = dotenv.get("GITHUB_CLIENT_ID");
 		String githubClientSecret = dotenv.get("GITHUB_CLIENT_SECRET");
 		String githubRedirectUri = dotenv.get("GITHUB_REDIRECT_URI");
@@ -59,7 +58,6 @@ public class StudyApplication {
 		setSystemProperty("GOOGLE_AUTH_URL", googleAuthUrl);
 		setSystemProperty("DESKTOP_CLIENT_ID", desktopClientId);
 		setSystemProperty("DESKTOP_CLIENT_SECRET", desktopClientSecret);
-		setSystemProperty("GITHUB_APP_ID", githubAppId);
 		setSystemProperty("GITHUB_CLIENT_ID", githubClientId);
 		setSystemProperty("GITHUB_CLIENT_SECRET", githubClientSecret);
 		setSystemProperty("GITHUB_REDIRECT_URI", githubRedirectUri);
