@@ -11,7 +11,7 @@ public class StudyApplication {
 
 	public static void main(String[] args) {
 		// Load environment variables from .env file
-		Dotenv dotenv = Dotenv.configure().directory("../resources").load();
+		Dotenv dotenv = Dotenv.configure().load();
 
 		if (dotenv == null) {
 			System.err.println("Dotenv failed to load the .env file.");

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import "../styles/HomePage.css";
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../components/CustomButton";
+import UserListPage from "./UserListPage";
 import {
   getAllUsers,
   getMyInfo,
@@ -415,14 +416,23 @@ const HomePage = () => {
                   {userInformation.dob}
                 </Descriptions.Item>
                 <Descriptions.Item label="Permissions">
-                  {userInformation.roles &&
-                  userInformation.roles.length > 0 &&
-                  userInformation.roles[0].permissions
-                    ? userInformation.roles[0].permissions.map((perm) => (
-                        <Tag key={perm.name} color={perm.color}>
-                          {perm.name}
-                        </Tag>
-                      ))
+                  {userInformation.roles && userInformation.roles.length > 0
+                    ? [
+                        ...new Set(
+                          userInformation.roles.flatMap((role) =>
+                            role.permissions.map((perm) => perm.name)
+                          )
+                        ),
+                      ].map((permName) => {
+                        const perm = userInformation.roles
+                          .flatMap((role) => role.permissions)
+                          .find((p) => p.name === permName);
+                        return (
+                          <Tag key={perm.name} color={perm.color}>
+                            {perm.name}
+                          </Tag>
+                        );
+                      })
                     : "No permissions"}
                 </Descriptions.Item>
               </Descriptions>
@@ -569,13 +579,24 @@ const HomePage = () => {
                 key="permissions"
                 render={(text, record) =>
                   record.roles && record.roles.length > 0
-                    ? record.roles
-                        .flatMap((role) => role.permissions)
-                        .map((permission) => (
+                    ? [
+                        ...new Set(
+                          record.roles.flatMap((role) =>
+                            role.permissions.map(
+                              (permission) => permission.name
+                            )
+                          )
+                        ),
+                      ].map((permName) => {
+                        const permission = record.roles
+                          .flatMap((role) => role.permissions)
+                          .find((p) => p.name === permName);
+                        return (
                           <Tag key={permission.name} color={permission.color}>
                             {permission.name}
                           </Tag>
-                        ))
+                        );
+                      })
                     : "No permissions assigned"
                 }
               />

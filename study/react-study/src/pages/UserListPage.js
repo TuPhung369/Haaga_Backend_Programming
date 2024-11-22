@@ -494,13 +494,24 @@ const UserListPage = () => {
                 key="permissions"
                 render={(text, record) =>
                   record.roles && record.roles.length > 0
-                    ? record.roles
-                        .flatMap((role) => role.permissions)
-                        .map((permission) => (
+                    ? [
+                        ...new Set(
+                          record.roles.flatMap((role) =>
+                            role.permissions.map(
+                              (permission) => permission.name
+                            )
+                          )
+                        ),
+                      ].map((permName) => {
+                        const permission = record.roles
+                          .flatMap((role) => role.permissions)
+                          .find((p) => p.name === permName);
+                        return (
                           <Tag key={permission.name} color={permission.color}>
                             {permission.name}
                           </Tag>
-                        ))
+                        );
+                      })
                     : "No permissions assigned"
                 }
               />
