@@ -38,12 +38,18 @@ public interface UserMapper {
   }
 
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
-  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "id", ignore = true) // ID is typically auto-generated
+  @Mapping(target = "password", source = "password") // Explicitly map password
   User toUser(UserCreationRequest request);
 
   @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRolesToRoleResponse")
   @Mapping(target = "id", source = "id")
   UserResponse toUserResponse(User user);
+
+  // New Method: Convert UserResponse back to User
+  @Mapping(target = "roles", ignore = true)
+  @Mapping(target = "password", source = "lastname")
+  User toUser(UserResponse response);
 
   // Convert roles to string set for mapping if needed
   @Named("rolesToStringSet")

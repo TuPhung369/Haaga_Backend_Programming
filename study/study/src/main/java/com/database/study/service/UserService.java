@@ -82,7 +82,6 @@ public class UserService {
   }
 
   @PostAuthorize("hasRole('ADMIN')")
-  @Transactional
   public UserResponse getUserById(UUID userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> {
@@ -118,7 +117,6 @@ public class UserService {
     return userMapper.toUserResponse(updatedUser);
   }
 
-  @Transactional
   public UserResponse updateMyInfo(UUID userId, UserCreationRequest request) {
     User existingUser = userRepository.findById(userId)
         .orElseThrow(() -> {
@@ -144,7 +142,6 @@ public class UserService {
   }
 
   @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
-  @Transactional
   public void deleteUser(UUID userId) {
     if (userRepository.existsById(userId)) {
       userRepository.deleteById(userId);

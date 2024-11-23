@@ -1,13 +1,10 @@
 package com.database.study.entity;
 
-import java.util.Set;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.Set;
 
 @Entity
 @Data
@@ -17,16 +14,19 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Role {
   @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  Long id;
+
   @Column(unique = true)
   String name;
   String description;
   String color;
 
   @ManyToMany(fetch = FetchType.EAGER)
+  @JoinTable(name = "role_permissions", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
   Set<Permission> permissions;
 
   public Role(String name) {
     this.name = name;
   }
-
 }

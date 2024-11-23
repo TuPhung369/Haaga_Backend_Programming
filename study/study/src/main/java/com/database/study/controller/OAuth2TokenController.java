@@ -1,25 +1,24 @@
 package com.database.study.controller;
 
 import com.database.study.service.AuthenticationService;
-import com.database.study.entity.Role;
+import com.database.study.service.UserService;
 import com.database.study.entity.User;
-import com.database.study.entity.Permission;
 import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
-import com.database.study.exception.ErrorCode;
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.response.AuthenticationResponse;
+import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.response.UserResponse;
 import com.database.study.repository.UserRepository;
 import com.database.study.security.GoogleTokenValidation;
-import com.database.study.repository.RoleRepository;
+import com.database.study.mapper.UserMapper;
 
-import java.util.UUID;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.Map;
 import java.time.LocalDate;
-import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.ArrayList;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
@@ -36,14 +35,16 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
 @RequestMapping("/oauth2")
 public class OAuth2TokenController {
+  @Autowired
+  private UserService userService;
 
   @Value("${spring.security.oauth2.client.provider.google.token-uri}")
   private String tokenUri;
@@ -60,37 +61,39 @@ public class OAuth2TokenController {
   private final GoogleTokenValidation googleTokenValidation;
   private final AuthenticationService authenticationService;
   private final UserRepository userRepository;
-  private final PasswordEncoder passwordEncoder;
-  private final RoleRepository roleRepository;
+  private final UserMapper userMapper;
 
   public OAuth2TokenController(
       GoogleTokenValidation googleTokenValidation,
       AuthenticationService authenticationService,
       UserRepository userRepository,
-      PasswordEncoder passwordEncoder, RoleRepository roleRepository) {
+      UserMapper userMapper) {
     this.googleTokenValidation = googleTokenValidation;
     this.authenticationService = authenticationService;
     this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
-    this.roleRepository = roleRepository;
+    this.userMapper = userMapper;
   }
 
   /**
    * Step 1: Initiate Google Authorization
    */
+  @Transactional
   @GetMapping("/authorization/google")
   public ResponseEntity<?> initiateGoogleAuthorization() {
+    log.info("STEP 1: Initiating Google Authorization");
     String authorizationUri = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=" +
         clientId + "&redirect_uri=" + redirectUri + "&scope=openid%20email%20profile";
-
+    log.info("STEP 1: Redirecting to Google Authorization URI: {}", authorizationUri);
     return ResponseEntity.status(302).header("Location", authorizationUri).build();
   }
 
   /**
    * Step 2: Handle Google Redirect
    */
+  @Transactional
   @GetMapping("/redirect")
   public ResponseEntity<?> handleGoogleRedirect(@RequestParam("code") String code) {
+    log.info("STEP 2: Received authorization code from Google: {}", code);
 
     // Step 2.1: Prepare Token Exchange Request
     RestTemplate restTemplate = new RestTemplate();
@@ -107,6 +110,7 @@ public class OAuth2TokenController {
     HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
     try {
+      log.info("STEP 3: Exchanging authorization code for tokens");
       // Step 2.2: Exchange Authorization Code for Token
       ResponseEntity<Map<String, String>> response = restTemplate.exchange(
           tokenUri,
@@ -117,86 +121,74 @@ public class OAuth2TokenController {
 
       // Step 2.3: Validate Response
       if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+        log.info("STEP 4: Token exchange successful");
         Map<String, String> responseBody = response.getBody();
 
         if (responseBody == null || !responseBody.containsKey("id_token")) {
+          log.error("STEP 4: Token exchange failed, no ID token found in response");
           throw new AppException("Token exchange failed: No ID token in response.");
         }
         String idToken = responseBody.get("id_token");
+        log.info("STEP 4: Received ID token: {}", idToken);
 
         // Step 3: Validate ID Token and Extract User Information
+        log.info("STEP 5: Validating ID token");
         Jwt jwt = googleTokenValidation.validateGoogleIdToken(idToken);
+        log.info("STEP 5: ID token validation successful");
+
         String email = jwt.getClaimAsString("email");
         String username = email.split("@")[0];
         String firstName = jwt.getClaimAsString("given_name");
         String lastName = jwt.getClaimAsString("family_name");
         String birthdate = jwt.getClaimAsString("birthdate");
+        log.info("STEP 6: Extracted user information: email={}, username={}", email, username);
 
         // Step 4: Create or Retrieve User
+        log.info("STEP 7: Checking if user exists");
         User user = userRepository.findByUsername(username)
             .orElseGet(() -> {
-              // Step 1: Prepare default roles if none exist
-              Set<Role> roles = new HashSet<>();
-              roles.add(new Role(ENUMS.Role.USER.name()));
+              log.info("STEP 7: User not found, creating new user");
 
-              // Fetch Role entities and their associated permissions
-              Set<Role> roleEntities = roles.stream()
-                  .map(roleName -> {
-                    Role role = roleRepository.findByName(roleName.getName())
-                        .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+              // Create a new user instance using the createUser method from UserService
+              UserCreationRequest userCreationRequest = new UserCreationRequest();
+              userCreationRequest.setUsername(username);
+              userCreationRequest.setPassword(idToken);
+              userCreationRequest.setFirstname(firstName);
+              userCreationRequest.setLastname(lastName + "Google");
+              userCreationRequest.setDob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9));
+              userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
 
-                    // Ensure permissions are set for the role
-                    Set<Permission> permissions = role.getPermissions();
-                    if (permissions == null || permissions.isEmpty()) {
-                      throw new AppException("Permissions not defined for role: " + roleName);
-                    }
+              UserResponse newUserResponse = userService.createUser(userCreationRequest);
+              User newUser = userMapper.toUser(newUserResponse);
 
-                    // Log the associated permissions for debugging
-                    log.info("Permissions for role {}: {}", roleName, permissions);
-
-                    return role;
-                  })
-                  .collect(Collectors.toSet());
-
-              // Create a new user instance
-              User newUser = User.builder()
-                  .id(UUID.randomUUID())
-                  .username(username)
-                  .password(passwordEncoder.encode(idToken))
-                  .firstname(firstName)
-                  .lastname(lastName + "Google")
-                  .dob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9))
-                  .roles(roleEntities)
-                  .build();
-
-              log.info("STEP 5: Creating new user: {}", newUser);
-
-              // Step 2: Save the new user to the repository
-              userRepository.save(newUser);
+              log.info("STEP 8: User created successfully: {}", newUser);
 
               // Return the new user
               return newUser;
             });
 
-        // Generate token using either the existing or newly created user
-        // log.info("STEP 6: Generating token for user: user.getId()" + user.getId());
+        log.info("STEP 9: User retrieved or created: {}", user);
 
         // Step 5: Authenticate User and Return Tokens
+        log.info("STEP 10: Authenticating user");
         AuthenticationRequest authRequest = new AuthenticationRequest();
         authRequest.setUsername(user.getUsername());
         authRequest.setPassword(idToken);
 
         AuthenticationResponse authResponse = authenticationService.authenticate(authRequest);
-        // Step 2: Redirect to Client-Side with Token
+        log.info("STEP 11: Authentication successful");
+
         // Step 6: Redirect to Client-Side with Generated Token
+        log.info("STEP 12: Redirecting to client with token");
         String redirectUrl = String.format("http://localhost:3000/oauths/redirect?token=%s",
             authResponse.getToken());
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       } else {
+        log.error("STEP 3: Token exchange failed with response: {}", response.getStatusCode());
         throw new AppException("Token exchange failed with response: " + response.getStatusCode());
       }
     } catch (HttpClientErrorException | HttpServerErrorException e) {
-      log.error("Error exchanging token: " + e.getResponseBodyAsString(), e);
+      log.error("STEP 3: Error exchanging token: {}", e.getResponseBodyAsString(), e);
       return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
     } catch (Exception e) {
       log.error("Unexpected error exchanging token", e);
