@@ -14,10 +14,11 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserResponse {
   UUID id;
+  String email;
   String username;
   String firstname;
   String lastname;
   LocalDate dob;
-  
+
   Set<RoleResponse> roles;
 }

@@ -1,5 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import CustomButton from "../components/CustomButton";
+import Highlighter from "react-highlight-words";
 import {
   getAllUsers,
   getMyInfo,
@@ -8,7 +10,6 @@ import {
   createUser,
 } from "../services/userService";
 import { getAllRoles } from "../services/roleService";
-import CustomButton from "../components/CustomButton";
 import {
   Descriptions,
   Layout,
@@ -19,13 +20,16 @@ import {
   Form,
   Input,
   Select,
+  Button,
   notification,
 } from "antd";
 import {
   UserAddOutlined,
   EditOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
+import validateInput from "../utils/validateInput";
 
 const { confirm } = Modal;
 const { Header, Sider, Content, Footer } = Layout;
@@ -47,6 +51,10 @@ const UserListPage = () => {
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState(null);
 
+  const [searchText, setSearchText] = useState("");
+  const [searchedColumn, setSearchedColumn] = useState("");
+  const searchInput = useRef(null);
+
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
       api[type]({
@@ -56,6 +64,7 @@ const UserListPage = () => {
     },
     [api]
   );
+
   useEffect(() => {
     if (notificationMessage) {
       openNotificationWithIcon(
@@ -77,6 +86,7 @@ const UserListPage = () => {
           firstname: user.firstname,
           lastname: user.lastname,
           dob: user.dob,
+          email: user.email,
           roles: user.roles.map((role) => ({
             name: role.name,
             description: role.description,
@@ -109,6 +119,7 @@ const UserListPage = () => {
           firstname: response.result.firstname,
           lastname: response.result.lastname,
           dob: response.result.dob,
+          email: response.result.email,
           roles: response.result.roles.map((role) => ({
             name: role.name,
             description: role.description,
@@ -121,7 +132,6 @@ const UserListPage = () => {
           })),
         };
         setUserInformation(userData);
-        console.log("User Information:", userData);
       }
     } catch (error) {
       console.error("Error fetching user info:", error);
@@ -218,6 +228,7 @@ const UserListPage = () => {
         firstname: user.firstname || "",
         lastname: user.lastname || "",
         dob: user.dob || "",
+        email: user.email || "",
         roles: user.roles?.map((role) => role.name) || [],
       });
     } else {
@@ -234,6 +245,7 @@ const UserListPage = () => {
       firstname: "",
       lastname: "",
       dob: "",
+      email: "",
       roles: [],
     });
   };
@@ -241,6 +253,27 @@ const UserListPage = () => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+      // Validate input
+      const errors = validateInput({
+        username: values.username,
+        password: values.password,
+        firstname: values.firstname,
+        lastname: values.lastname,
+        dob: values.dob,
+        email: values.email,
+      });
+
+      if (Object.keys(errors).length > 0) {
+        // Set form errors
+        form.setFields(
+          Object.keys(errors).map((key) => ({
+            name: key,
+            errors: [errors[key]],
+          }))
+        );
+        return;
+      }
+
       try {
         if (isModeNew) {
           await createUser(values);
@@ -289,6 +322,83 @@ const UserListPage = () => {
       return ["USER"];
     }
     return ["USER"];
+  };
+
+  const getColumnSearchProps = (dataIndex) => ({
+    filterDropdown: ({
+      setSelectedKeys,
+      selectedKeys,
+      confirm,
+      clearFilters,
+    }) => (
+      <div style={{ padding: 8 }}>
+        <Input
+          ref={(node) => {
+            searchInput.current = node; // Correctly assign the ref
+          }}
+          placeholder={`Search ${dataIndex}`}
+          value={selectedKeys[0]}
+          onChange={(e) =>
+            setSelectedKeys(e.target.value ? [e.target.value] : [])
+          }
+          onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+          style={{ marginBottom: 8, display: "block" }}
+        />
+        <Button
+          type="primary"
+          onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
+          icon={<SearchOutlined />}
+          size="small"
+          style={{ width: 90, marginRight: 8 }}
+        >
+          Search
+        </Button>
+        <Button
+          onClick={() => handleReset(clearFilters)}
+          size="small"
+          style={{ width: 90 }}
+        >
+          Reset
+        </Button>
+      </div>
+    ),
+    filterIcon: (filtered) => (
+      <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+    ),
+    onFilter: (value, record) =>
+      record[dataIndex].toString().toLowerCase().includes(value.toLowerCase()),
+    filterDropdownProps: {
+      onOpenChange: (visible) => {
+        if (visible) {
+          setTimeout(() => searchInput.current.select(), 100);
+        }
+      },
+    },
+    render: (text) =>
+      searchedColumn === dataIndex ? (
+        <Highlighter
+          highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
+          searchWords={[searchText]}
+          autoEscape
+          textToHighlight={text ? text.toString() : ""}
+        />
+      ) : (
+        text
+      ),
+  });
+
+  const handleSearch = (selectedKeys, confirm, dataIndex) => {
+    confirm();
+    setSearchText(selectedKeys[0]);
+    setSearchedColumn(dataIndex);
+  };
+
+  const handleReset = (clearFilters) => {
+    clearFilters(); // Clear the Ant Design filters
+    setSearchText(""); // Reset the search text state
+    setSearchedColumn(""); // Reset the searched column state
+    fetchAllUsers(); // Fetch the latest data from the server
+    console.log("Filters reset, data reloaded.");
   };
 
   const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
@@ -390,6 +500,15 @@ const UserListPage = () => {
                   <Input.Password />
                 </Form.Item>
                 <Form.Item
+                  name="email"
+                  label="Email"
+                  rules={[
+                    { required: true, message: "Please input the email!" },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item
                   name="firstname"
                   label="First Name"
                   rules={[
@@ -463,7 +582,13 @@ const UserListPage = () => {
               ></Descriptions>
             </h2>
             <Table dataSource={allUsers} rowKey="id">
-              <Table.Column title="ID" dataIndex="id" key="id" />
+              <Table.Column
+                title="Email"
+                dataIndex="email"
+                key="email"
+                sorter={(a, b) => a.email.localeCompare(b.email)}
+                {...getColumnSearchProps("email")}
+              />
               <Table.Column
                 title="First Name"
                 dataIndex="firstname"
@@ -478,6 +603,8 @@ const UserListPage = () => {
                 title="Username"
                 dataIndex="username"
                 key="username"
+                sorter={(a, b) => a.username.localeCompare(b.username)}
+                {...getColumnSearchProps("username")}
               />
               <Table.Column title="Date of Birth" dataIndex="dob" key="dob" />
               <Table.Column

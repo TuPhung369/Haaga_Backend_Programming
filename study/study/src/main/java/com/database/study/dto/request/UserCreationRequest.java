@@ -23,6 +23,10 @@ import jakarta.validation.constraints.NotNull;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserCreationRequest {
 
+  @NotBlank(message = "EMAIL_NOT_BLANK")
+  @Pattern(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", message = "EMAIL_INVALID")
+  String email;
+
   @Size(min = 5, max = 20, message = "USERNAME_LENGTH")
   String username;
 
