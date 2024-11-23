@@ -2,6 +2,7 @@ package com.database.study.service;
 
 import java.util.HashSet;
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.database.study.dto.request.RoleRequest;
@@ -19,9 +20,10 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class RoleService {
-  RoleRepository roleRepository;
-  RoleMapper roleMapper;
-  PermissionRepository permissionRepository;
+
+  final RoleRepository roleRepository;
+  final RoleMapper roleMapper;
+  final PermissionRepository permissionRepository;
 
   public RoleResponse createRole(RoleRequest request) {
     var role = roleMapper.toRole(request);
