@@ -39,6 +39,7 @@ public interface UserMapper {
 
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   @Mapping(target = "id", ignore = true) // ID is typically auto-generated
+  @Mapping(target = "email", source = "email") // Map email explicitly
   @Mapping(target = "password", source = "password") // Explicitly map password
   User toUser(UserCreationRequest request);
 

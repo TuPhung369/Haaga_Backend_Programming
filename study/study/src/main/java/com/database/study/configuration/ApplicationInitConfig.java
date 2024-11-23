@@ -85,10 +85,13 @@ public class ApplicationInitConfig {
 
         if (!isAdminTomExists) {
           createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
+              "tuphung010787@gmail.com",
               ENUMS.Role.ADMIN.name());
           createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("1999-03-03"),
+              "tuphung010787@gmail.com",
               ENUMS.Role.MANAGER.name());
           createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
+              "tuphung010787@gmail.com",
               ENUMS.Role.USER.name());
 
           // Generate 100 users with the same password and random roles
@@ -102,8 +105,9 @@ public class ApplicationInitConfig {
             String firstName = "User" + i;
             String lastName = randomRole.name();
             LocalDate dob = LocalDate.parse("1998-01-01").plusDays(i);
+            String email = username + "@gmail.com";
             String role = randomRole.name();
-            createUserIfNotExists(username, password, firstName, lastName, dob, role);
+            createUserIfNotExists(username, password, firstName, lastName, dob, email, role);
           });
         }
 
@@ -117,8 +121,15 @@ public class ApplicationInitConfig {
     return userRepository.existsByUsername(username);
   }
 
-  private void createUserIfNotExists(String username, String password, String firstname, String lastname, LocalDate dob,
+  private void createUserIfNotExists(
+      String username,
+      String password,
+      String firstname,
+      String lastname,
+      LocalDate dob,
+      String email,
       String roleName) {
+
     if (userRepository.findByUsername(username).isEmpty()) {
       UserCreationRequest userRequest = new UserCreationRequest();
       userRequest.setUsername(username);
@@ -126,6 +137,7 @@ public class ApplicationInitConfig {
       userRequest.setFirstname(firstname);
       userRequest.setLastname(lastname);
       userRequest.setDob(dob);
+      userRequest.setEmail(email);
 
       User user = userMapper.toUser(userRequest);
       user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
@@ -136,9 +148,10 @@ public class ApplicationInitConfig {
           .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
       roleEntities.add(role);
       user.setRoles(roleEntities);
+
       userRepository.save(user);
-      log.warn("{} user created with\nUsername: {}\nPassword: {}", roleName, user.getUsername(), password);
-      // log.warn("{} user created", user);
+      log.warn("{} user created with\nUsername: {}\nEmail: {}\nPassword: {}", roleName, user.getUsername(),
+          user.getEmail(), password);
     }
   }
 

@@ -34,6 +34,8 @@ public class ENUMS {
   public enum ErrorMessages {
     GENERAL_EXCEPTION("General server error"),
     INVALID_REQUEST("Invalid request"),
+    EMAIL_NOT_BLANK("Email cannot be blank"),
+    EMAIL_INVALID("Invalid email address"),
     USERNAME_LENGTH("Username must be between {min} and {max} characters long"),
     PASSWORD_MIN_LENGTH("Password must be at least {min} characters long"),
     PASSWORD_VALIDATION(

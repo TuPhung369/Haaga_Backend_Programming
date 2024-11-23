@@ -23,7 +23,7 @@ import {
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { FcGoogle } from "react-icons/fc";
 import "../styles/LoginPage.css";
-import validateInput from "../utils/validateInput"; // Import the validateInput function
+import validateInput from "../utils/validateInput";
 import moment from "moment";
 
 const { Title, Text } = Typography;
@@ -40,11 +40,13 @@ const LoginPage = () => {
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [dob, setDob] = useState(moment("1987-07-07", "YYYY-MM-DD"));
+  const [email, setEmail] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [firstnameError, setFirstnameError] = useState("");
   const [lastnameError, setLastnameError] = useState("");
   const [dobError, setDobError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -138,6 +140,7 @@ const LoginPage = () => {
     setFirstname("");
     setLastname("");
     setDob(moment("1987-07-07", "YYYY-MM-DD"));
+    setEmail("");
     setIsRegisterModalVisible(true);
   };
 
@@ -147,12 +150,14 @@ const LoginPage = () => {
     setFirstnameError("");
     setLastnameError("");
     setDobError("");
+    setEmailError("");
     const userData = {
       username,
       password: newPassword,
       firstname,
       lastname,
       dob: dob.format("YYYY-MM-DD"),
+      email,
       roles: ["User"],
     };
     if (newPassword !== confirmPassword) {
@@ -169,6 +174,7 @@ const LoginPage = () => {
       firstname,
       lastname,
       dob: dob ? dob.format("YYYY-MM-DD") : null,
+      email,
     });
 
     if (errors.username) {
@@ -185,6 +191,9 @@ const LoginPage = () => {
     }
     if (errors.dob) {
       setDobError(errors.dob);
+    }
+    if (errors.email) {
+      setEmailError(errors.email);
     }
     if (Object.keys(errors).length > 0) {
       return;
@@ -458,6 +467,23 @@ const LoginPage = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
                 autoComplete="new-password"
+              />
+            </label>
+          </Form.Item>
+          <Form.Item
+            validateStatus={emailError ? "error" : ""}
+            help={emailError}
+            className="login-page-modal-form-item"
+          >
+            <label htmlFor="register-email">
+              <Text strong>Email</Text>
+              <Input
+                id="register-email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                autoComplete="email"
               />
             </label>
           </Form.Item>

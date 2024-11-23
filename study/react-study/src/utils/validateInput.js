@@ -6,8 +6,10 @@ const validationMessages = {
   FIRSTNAME_NOT_BLANK: "First name cannot be blank.",
   LASTNAME_NOT_BLANK: "Last name cannot be blank.",
   DOB_REQUIRED: "Date of birth is required.",
-  INVALID_DOB: "You must be at least 16 years old.",
+  INVALID_DOB: "You must be at least 6 years old.",
   ROLES_NOT_NULL: "Roles cannot be null.",
+  EMAIL_INVALID: "Email must be a valid email address.",
+  EMAIL_NOT_BLANK: "Email cannot be blank.",
 };
 
 const validateInput = (input) => {
@@ -66,6 +68,17 @@ const validateInput = (input) => {
   if (input.roles !== undefined) {
     if (!input.roles || input.roles.length === 0) {
       errors.roles = validationMessages.ROLES_NOT_NULL;
+    }
+  }
+
+  // Validate email
+  if (input.email !== undefined) {
+    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/; // Regex for email validation
+    if (!input.email || !emailPattern.test(input.email)) {
+      errors.email = validationMessages.EMAIL_INVALID;
+    }
+    if (!input.email || input.email.trim() === "") {
+      errors.email = validationMessages.EMAIL_NOT_BLANK;
     }
   }
 
