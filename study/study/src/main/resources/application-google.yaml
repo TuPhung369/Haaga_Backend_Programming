@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    url: ${DB_URL_GOOGLE}
+    username: ${DB_USERNAME_GOOGLE}
+    password: ${DB_PASSWORD_GOOGLE}
+

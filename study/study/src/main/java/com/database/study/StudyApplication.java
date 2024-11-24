@@ -19,9 +19,12 @@ public class StudyApplication {
 		}
 
 		// Load and validate environment variables
-		String dbUrl = dotenv.get("DB_URL");
-		String dbUsername = dotenv.get("DB_USERNAME");
-		String dbPassword = dotenv.get("DB_PASSWORD");
+		String dbUrlGoogle = dotenv.get("DB_URL_GOOGLE");
+		String dbUsernameGoogle = dotenv.get("DB_USERNAME_GOOGLE");
+		String dbPasswordGoogle = dotenv.get("DB_PASSWORD_GOOGLE");
+		String dbUrlAws = dotenv.get("DB_URL_AWS");
+		String dbUsernameAws = dotenv.get("DB_USERNAME_AWS");
+		String dbPasswordAws = dotenv.get("DB_PASSWORD_AWS");
 		String dbUrlDev = dotenv.get("DB_URL_DEV");
 		String dbUsernameDev = dotenv.get("DB_USERNAME_DEV");
 		String dbPasswordDev = dotenv.get("DB_PASSWORD_DEV");
@@ -37,16 +40,19 @@ public class StudyApplication {
 		String githubClientSecret = dotenv.get("GITHUB_CLIENT_SECRET");
 		String githubRedirectUri = dotenv.get("GITHUB_REDIRECT_URI");
 
-		if (dbUrl == null || dbUsername == null || dbPassword == null || oauth2ClientId == null
-				|| oauth2ClientSecret == null) {
+		if (dbUrlGoogle == null || dbUsernameGoogle == null || dbPasswordGoogle == null || oauth2ClientId == null
+				|| oauth2ClientSecret == null || dbUrlAws == null || dbUsernameAws == null || dbPasswordAws == null) {
 			System.err.println("Required environment variables are missing. Please check your .env file.");
 			return; // Exit application
 		}
 
 		// Set system properties from environment variables
-		setSystemProperty("DB_URL", dbUrl);
-		setSystemProperty("DB_USERNAME", dbUsername);
-		setSystemProperty("DB_PASSWORD", dbPassword);
+		setSystemProperty("DB_URL_GOOGLE", dbUrlGoogle);
+		setSystemProperty("DB_USERNAME_GOOGLE", dbUsernameGoogle);
+		setSystemProperty("DB_PASSWORD_GOOGLE", dbPasswordGoogle);
+		setSystemProperty("DB_URL_AWS", dbUrlAws);
+		setSystemProperty("DB_USERNAME_AWS", dbUsernameAws);
+		setSystemProperty("DB_PASSWORD_AWS", dbPasswordAws);
 		setSystemProperty("DB_URL_DEV", dbUrlDev);
 		setSystemProperty("DB_USERNAME_DEV", dbUsernameDev);
 		setSystemProperty("DB_PASSWORD_DEV", dbPasswordDev);

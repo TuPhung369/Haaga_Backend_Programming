@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    url: ${DB_URL_AWS}
+    username: ${DB_USERNAME_AWS}
+    password: ${DB_PASSWORD_AWS}
+
