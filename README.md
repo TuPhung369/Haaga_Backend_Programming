@@ -145,7 +145,7 @@ link check the front end `http://softala.haaga-helia.fi:9095/login`
 
 - step 1: access the folder pemFiles
 - `chmod 400 "spingboot369.pem"` run this command for active access
-- `ssh -i "spingboot369.pem" ec2-user@ec2-16-170-143-177.eu-north-1.compute.amazonaws.com` for access via pem file.
+- `ssh -i "spingboot369.pem" ec2-user@ec2-16-170-143-177.eu-north-1.compute.amazonaws.com` for accessing via pem file.
 - check the version java at server `java --version`
 - install the version java same with application
   - `sudo rpm --import https://yum.corretto.aws/corretto.key`
