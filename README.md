@@ -140,3 +140,17 @@ link check the front end `http://softala.haaga-helia.fi:9095/login`
 |   React App       |       |   Spring Boot     |       |     Google        |
 |                   |       |                   |       |                   |
 +-------------------+       +-------------------+       +-------------------+
+
+### AWS running the server cloud (EC2)
+
+- step 1: access the folder pemFiles
+- `chmod 400 "spingboot369.pem"` run this command for active access
+- `ssh -i "spingboot369.pem" ec2-user@ec2-16-170-143-177.eu-north-1.compute.amazonaws.com` for access via pem file.
+- check the version java at server `java --version`
+- install the version java same with application
+  - `sudo rpm --import https://yum.corretto.aws/corretto.key`
+  - `sudo curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo`
+  - `sudo yum install -y java-21-amazon-corretto`
+- go to application run with MAVEN at lifecycle with install run to create `jar`
+- cd to folder `target`
+-`scp -i  ../../pemFiles/spingboot369.pem study-0.0.1-SNAPSHOT.jar ec2-user@ec2-16-170-143-177.eu-north-1.compute.amazonaws.com:/home/ec2-user`

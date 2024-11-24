@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:9095/identify_service"; // Update this to your backend server URL
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 export const authenticateUser = async (username, password) => {
   try {
