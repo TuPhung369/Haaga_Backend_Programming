@@ -40,6 +40,6 @@ public class RoleService {
   }
 
   public void deleteRole(String role) {
-    roleRepository.deleteById(role);
+    roleRepository.deleteById(Long.parseLong(role));
   }
 }
