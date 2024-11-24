@@ -154,3 +154,5 @@ link check the front end `http://softala.haaga-helia.fi:9095/login`
 - go to application run with MAVEN at lifecycle with install run to create `jar`
 - cd to folder `target`
 -`scp -i  ../../pemFiles/spingboot369.pem study-0.0.1-SNAPSHOT.jar ec2-user@ec2-16-170-143-177.eu-north-1.compute.amazonaws.com:/home/ec2-user`
+
+### Deploy AWS amplify

@@ -29,8 +29,14 @@ import java.util.List;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
+  @Value("${CLIENT_REDIRECT_URI}")
+  private String clientRedirectUrl;
+
   @Value("${OAUTH2_REDIRECT_URI}")
   private String oauth2RedirectUrl;
+
+  @Value("${MY_DOMAIN}")
+  private String myDomain;
 
   private final String[] PUBLIC_ENDPOINTS = { "/users/**", "/auth/token", "/auth/introspect", "/auth/logout",
       "/auth/refreshToken", "/auth/resetPassword", "/auth/register", "auth/google/token", "/oauth2/**",
@@ -51,7 +57,7 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
             .anyRequest().authenticated())
         .oauth2Login(oauth2 -> oauth2
-            .defaultSuccessUrl("http://localhost:3000/oauth2/redirect", true)
+            .defaultSuccessUrl(clientRedirectUrl, true)
             .failureUrl("/login?error"))
         .oauth2ResourceServer(oauth2 -> oauth2
             .jwt(jwt -> jwt
@@ -67,7 +73,7 @@ public class SecurityConfig {
   @Bean
   CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+    configuration.setAllowedOrigins(List.of(myDomain));
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
     configuration.setAllowCredentials(true);
     configuration.addAllowedHeader("*");

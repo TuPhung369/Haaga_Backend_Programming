@@ -28,6 +28,7 @@ public class StudyApplication {
 		String dbUrlDev = dotenv.get("DB_URL_DEV");
 		String dbUsernameDev = dotenv.get("DB_USERNAME_DEV");
 		String dbPasswordDev = dotenv.get("DB_PASSWORD_DEV");
+		String myDomain = dotenv.get("MY_DOMAIN");
 		String baseUrl = dotenv.get("BASE_URL");
 		String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
 		String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
@@ -56,6 +57,7 @@ public class StudyApplication {
 		setSystemProperty("DB_URL_DEV", dbUrlDev);
 		setSystemProperty("DB_USERNAME_DEV", dbUsernameDev);
 		setSystemProperty("DB_PASSWORD_DEV", dbPasswordDev);
+		setSystemProperty("MY_DOMAIN", myDomain);
 		setSystemProperty("BASE_URL", baseUrl);
 		setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
 		setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);

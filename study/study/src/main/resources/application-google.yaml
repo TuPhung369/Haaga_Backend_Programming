@@ -3,4 +3,5 @@ spring:
     url: ${DB_URL_GOOGLE}
     username: ${DB_USERNAME_GOOGLE}
     password: ${DB_PASSWORD_GOOGLE}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 

@@ -1,8 +1,9 @@
 import axios from "axios";
 
-const baseUrl = "http://localhost:9095/identify_service";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 const instance = axios.create({
-  baseURL: baseUrl,
+  baseURL: API_BASE_URL,
   withCredentials: true, // Enable if needed for cross-origin requests with cookies
 });
 

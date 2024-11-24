@@ -5,6 +5,7 @@ import { GlobalContext } from "../GlobalContext";
 const OAuth2RedirectHandler = () => {
   const { setLoginSocial } = useContext(GlobalContext);
   const navigate = useNavigate();
+  const baseUrl = process.env.REACT_APP_BASE_URL;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -17,12 +18,12 @@ const OAuth2RedirectHandler = () => {
       localStorage.setItem("isAuthenticated", "true");
       setLoginSocial(true);
       // Navigate to the home page
-      window.location.href = "http://localhost:3000";
+      window.location.href = `${baseUrl}`;
     } else {
       console.error("No token found in the URL");
       navigate("/login");
     }
-  }, [navigate, setLoginSocial]);
+  }, [navigate, setLoginSocial, baseUrl]);
 
   return <div>Processing authentication...</div>; // Loading indicator
 };
