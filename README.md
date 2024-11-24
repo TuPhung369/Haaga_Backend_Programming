@@ -155,4 +155,34 @@ link check the front end `http://softala.haaga-helia.fi:9095/login`
 - cd to folder `target`
 -`scp -i  ../../pemFiles/spingboot369.pem study-0.0.1-SNAPSHOT.jar ec2-user@ec2-16-170-143-177.eu-north-1.compute.amazonaws.com:/home/ec2-user`
 
+### Deploy S3 (AWS)
+
+- create bucket
+- remove `Block public` & `click turn off`
+- go to bucket and tab `permission`
+- edit Bucket policy
+
+```javascript
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "PublicReadGetObject",
+          "Effect": "Allow",
+          "Principal": "*",
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::springbootidentifyservice/*"
+      }
+  ]
+}
+```
+
+- save change
+- go to `Properties`
+- go to `Static Website` -> enable -> index.html, index.html -> save
+- go to `Objects` tab -> `Upload`
+- choose file `json` and `html`
+- upload -> close
+- `Upload Folder` -> `static` folder -> upload
+  
 ### Deploy AWS amplify
