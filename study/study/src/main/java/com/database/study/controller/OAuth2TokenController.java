@@ -58,9 +58,6 @@ public class OAuth2TokenController {
   @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
   private String redirectUri;
 
-  @Value("${CLIENT_REDIRECT_URI}")
-  private String clientRedirectUrl;
-
   private final GoogleTokenValidation googleTokenValidation;
   private final AuthenticationService authenticationService;
   private final UserRepository userRepository;
@@ -184,7 +181,8 @@ public class OAuth2TokenController {
 
         // Step 6: Redirect to Client-Side with Generated Token
         log.info("STEP 12: Redirecting to client with token");
-        String redirectUrl = String.format("%s?token=%s", clientRedirectUrl, authResponse.getToken());
+        String redirectUrl = String.format("http://localhost:3000/oauths/redirect?token=%s",
+            authResponse.getToken());
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       } else {
         log.error("STEP 3: Token exchange failed with response: {}", response.getStatusCode());

@@ -7,7 +7,7 @@ spring:
     active: aws # google || aws || dev
   h2:
     console:
-      enabled: false # true for development, false for production
+      enabled: true # true for development, false for production
   jpa:
     hibernate:
       ddl-auto: update
