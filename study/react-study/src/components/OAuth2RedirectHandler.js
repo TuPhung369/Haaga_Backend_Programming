@@ -1,7 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { GlobalContext } from "../GlobalContext";
 
 const OAuth2RedirectHandler = () => {
+  const { setLoginSocial } = useContext(GlobalContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -10,19 +12,17 @@ const OAuth2RedirectHandler = () => {
 
     if (token) {
       console.log("Token received:", token);
-
       // Store the token in local storage
       localStorage.setItem("token", token);
       localStorage.setItem("isAuthenticated", "true");
-
+      setLoginSocial(true);
       // Navigate to the home page
-      console.log("Navigating to home...");
       window.location.href = "http://localhost:3000";
     } else {
       console.error("No token found in the URL");
       navigate("/login");
     }
-  }, [navigate]);
+  }, [navigate, setLoginSocial]);
 
   return <div>Processing authentication...</div>; // Loading indicator
 };
