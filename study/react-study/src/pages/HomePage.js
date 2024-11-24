@@ -1,4 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useContext,
+} from "react";
+import { GlobalContext } from "../GlobalContext";
 import "../styles/HomePage.css";
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../components/CustomButton";
@@ -57,6 +64,7 @@ const HomePage = () => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
+  const { loginSocial } = useContext(GlobalContext);
 
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
@@ -82,6 +90,7 @@ const HomePage = () => {
   const fetchAllUsers = useCallback(async () => {
     try {
       const response = await getAllUsers();
+      console.log("loginSocial:", loginSocial);
       if (Array.isArray(response)) {
         const allUsersData = response.map((user) => ({
           id: user.id,
@@ -110,7 +119,7 @@ const HomePage = () => {
       console.error("Error fetching All Users:", error);
       setAllUsers([]);
     }
-  }, []);
+  }, [loginSocial]);
 
   const fetchMyInfo = useCallback(async () => {
     try {
@@ -500,10 +509,12 @@ const HomePage = () => {
                     }}
                   >
                     User Information
-                    <EditOutlined
-                      onClick={showModalUpdate}
-                      style={{ cursor: "pointer", marginLeft: "10px" }}
-                    />
+                    {!loginSocial && (
+                      <EditOutlined
+                        onClick={showModalUpdate}
+                        style={{ cursor: "pointer", marginLeft: "10px" }}
+                      />
+                    )}
                   </div>
                 }
                 bordered

@@ -54,7 +54,9 @@ const LoginPage = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      navigate("/");
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
     } else {
       localStorage.removeItem("isAuthenticated");
     }
@@ -81,7 +83,6 @@ const LoginPage = () => {
     const scope = "openid email profile";
     const responseType = "code";
     const authorizationUri = `https://accounts.google.com/o/oauth2/auth?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
-
     window.location.href = authorizationUri;
   };
 
