@@ -4,7 +4,7 @@ server:
     context-path: /identify_service
 spring:
   profiles:
-    active: dev # prod || dev
+    active: prod # prod || dev
   h2:
     console:
       enabled: true

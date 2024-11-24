@@ -30,6 +30,8 @@ const { Title, Text } = Typography;
 const { Content } = Layout;
 
 const LoginPage = () => {
+  const oauth2ClientId = process.env.REACT_APP_OAUTH2_CLIENT_ID;
+  const oauth2RedirectUri = process.env.REACT_APP_OAUTH2_REDIRECT_URI;
   const [error, setError] = useState("");
   const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] =
     useState(false);
@@ -76,13 +78,9 @@ const LoginPage = () => {
   };
 
   const handleGoogleLogin = () => {
-    const clientId =
-      "554408537759-8k7isdfv7otikvre8trvvl5ek073e6aa.apps.googleusercontent.com";
-    const redirectUri =
-      "http://localhost:9095/identify_service/oauth2/redirect";
     const scope = "openid email profile";
     const responseType = "code";
-    const authorizationUri = `https://accounts.google.com/o/oauth2/auth?response_type=${responseType}&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
+    const authorizationUri = `https://accounts.google.com/o/oauth2/auth?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
 
     window.location.href = authorizationUri;
   };

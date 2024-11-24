@@ -1,8 +1,4 @@
 spring:
-  # driver-class-name: com.mysql.cj.jdbc.Driver
-  # batch:
-  #   jdbc:
-  #     initialize-schema: "always"
   datasource:
     url: ${DB_URL_DEV}
     username: ${DB_USERNAME_DEV}
