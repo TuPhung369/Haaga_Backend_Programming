@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URI;
+const API_BASE_URI = process.env.REACT_APP_API_BASE_URI;
 const getAuthHeader = () => {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -13,7 +13,7 @@ const headers = {
 export const createPermission = async (permissionData) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/permissions`,
+      `${API_BASE_URI}/permissions`,
       permissionData,
       { headers }
     );
@@ -26,7 +26,7 @@ export const createPermission = async (permissionData) => {
 
 export const getAllPermissions = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/permissions`, {
+    const response = await axios.get(`${API_BASE_URI}/permissions`, {
       headers,
     });
     return response.data;
@@ -39,7 +39,7 @@ export const getAllPermissions = async () => {
 export const deletePermission = async (permission) => {
   try {
     const response = await axios.delete(
-      `${API_BASE_URL}/permissions/${permission}`,
+      `${API_BASE_URI}/permissions/${permission}`,
       { headers }
     );
     return response.data;

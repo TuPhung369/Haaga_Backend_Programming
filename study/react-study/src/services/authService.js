@@ -1,11 +1,11 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URI;
+const API_BASE_URI = process.env.REACT_APP_API_BASE_URI;
 
 export const authenticateUser = async (username, password) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/auth/token`,
+      `${API_BASE_URI}/auth/token`,
       { username, password },
       {
         headers: {
@@ -22,7 +22,7 @@ export const authenticateUser = async (username, password) => {
 export const introspectToken = async (token) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/auth/introspect`,
+      `${API_BASE_URI}/auth/introspect`,
       { token },
       {
         headers: {
@@ -39,7 +39,7 @@ export const introspectToken = async (token) => {
 export const registerUser = async (userData) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/auth/register`,
+      `${API_BASE_URI}/auth/register`,
       userData,
       {
         headers: {
@@ -56,7 +56,7 @@ export const registerUser = async (userData) => {
 export const resetPassword = async (username, newPassword) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/auth/resetPassword`,
+      `${API_BASE_URI}/auth/resetPassword`,
       { username, newPassword },
       {
         headers: {
@@ -73,7 +73,7 @@ export const resetPassword = async (username, newPassword) => {
 export const logoutUser = async (token) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/auth/logout`,
+      `${API_BASE_URI}/auth/logout`,
       { token },
       { headers: { "Content-Type": "application/json" } }
     );
@@ -86,7 +86,7 @@ export const logoutUser = async (token) => {
 export const exchangeAuthorizationCode = async (code) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/oauth2/token`,
+      `${API_BASE_URI}/oauth2/token`,
       { code },
       {
         headers: {
@@ -103,7 +103,7 @@ export const exchangeAuthorizationCode = async (code) => {
 export const validateGoogleToken = async (idToken) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/google/token`,
+      `${API_BASE_URI}/google/token`,
       { id_token: idToken },
       {
         headers: {

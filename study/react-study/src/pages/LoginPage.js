@@ -32,6 +32,7 @@ const { Content } = Layout;
 const LoginPage = () => {
   const oauth2ClientId = process.env.REACT_APP_OAUTH2_CLIENT_ID;
   const oauth2RedirectUri = process.env.REACT_APP_OAUTH2_REDIRECT_URI;
+  const appBaseUri = process.env.REACT_APP_BASE_URI;
   const [error, setError] = useState("");
   const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] =
     useState(false);
@@ -69,7 +70,7 @@ const LoginPage = () => {
         const response = await introspectToken(data.result.token);
         if (response.result?.valid || localStorage.getItem("isAuthenticated")) {
           localStorage.setItem("token", data.result.token);
-          window.location.href = "http://localhost:3000";
+          window.location.href = appBaseUri;
         }
       } catch (error) {
         console.error("Error during login:", error);

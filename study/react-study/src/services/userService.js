@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URI;
+const API_BASE_URI = process.env.REACT_APP_API_BASE_URI;
 
 const getAuthHeader = () => {
   const token = localStorage.getItem("token");
@@ -14,7 +14,7 @@ const headers = {
 
 export const createUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/users`, userData, {
+    const response = await axios.post(`${API_BASE_URI}/users`, userData, {
       headers,
     });
     return response.data;
@@ -26,7 +26,7 @@ export const createUser = async (userData) => {
 
 export const getAllUsers = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/users`, { headers });
+    const response = await axios.get(`${API_BASE_URI}/users`, { headers });
     return response.data;
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -36,7 +36,7 @@ export const getAllUsers = async () => {
 
 export const getMyInfo = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/users/myInfo`, {
+    const response = await axios.get(`${API_BASE_URI}/users/myInfo`, {
       headers,
     });
     return response.data;
@@ -48,7 +48,7 @@ export const getMyInfo = async () => {
 
 export const getUserById = async (userId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/users/${userId}`, {
+    const response = await axios.get(`${API_BASE_URI}/users/${userId}`, {
       headers,
     });
     return response.data;
@@ -61,7 +61,7 @@ export const getUserById = async (userId) => {
 export const updateUser = async (userId, userData) => {
   try {
     const response = await axios.put(
-      `${API_BASE_URL}/users/${userId}`,
+      `${API_BASE_URI}/users/${userId}`,
       userData,
       { headers }
     );
@@ -78,7 +78,7 @@ export const updateUser = async (userId, userData) => {
 export const updateMyInfo = async (userId, userData) => {
   try {
     const response = await axios.put(
-      `${API_BASE_URL}/users/updateMyInfo/${userId}`,
+      `${API_BASE_URI}/users/updateMyInfo/${userId}`,
       userData,
       {
         headers,
@@ -96,7 +96,7 @@ export const updateMyInfo = async (userId, userData) => {
 };
 export const deleteUser = async (userId) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/users/${userId}`, {
+    const response = await axios.delete(`${API_BASE_URI}/users/${userId}`, {
       headers,
     });
     return response.data;
