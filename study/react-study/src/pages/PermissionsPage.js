@@ -125,8 +125,7 @@ const PermissionPage = () => {
   };
 
   const handleLogout = () => {
-    localStorage.setItem("isAuthenticated", "false");
-    localStorage.removeItem("token");
+    localStorage.clear();
     navigate("/login");
   };
 

@@ -211,8 +211,7 @@ const UserListPage = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    setIsAuthenticated(false);
+    localStorage.clear();
     navigate("/login");
   };
 

@@ -1,24 +1,19 @@
 package com.database.study.controller;
 
 import com.database.study.service.AuthenticationService;
-import com.database.study.service.UserService;
 import com.database.study.entity.User;
 import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.response.AuthenticationResponse;
-import com.database.study.dto.request.UserCreationRequest;
-import com.database.study.dto.response.UserResponse;
 import com.database.study.repository.UserRepository;
 import com.database.study.security.GoogleTokenValidation;
-import com.database.study.mapper.UserMapper;
+import com.database.study.repository.RoleRepository;
 
 import java.util.Map;
 import java.time.LocalDate;
 import java.util.Collections;
-import java.util.ArrayList;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
@@ -43,8 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/oauth2")
 public class OAuth2TokenController {
-  @Autowired
-  private UserService userService;
 
   @Value("${spring.security.oauth2.client.provider.google.token-uri}")
   private String tokenUri;
@@ -61,17 +54,17 @@ public class OAuth2TokenController {
   private final GoogleTokenValidation googleTokenValidation;
   private final AuthenticationService authenticationService;
   private final UserRepository userRepository;
-  private final UserMapper userMapper;
+  private final RoleRepository roleRepository;
 
   public OAuth2TokenController(
       GoogleTokenValidation googleTokenValidation,
       AuthenticationService authenticationService,
       UserRepository userRepository,
-      UserMapper userMapper) {
+      RoleRepository roleRepository) {
     this.googleTokenValidation = googleTokenValidation;
     this.authenticationService = authenticationService;
     this.userRepository = userRepository;
-    this.userMapper = userMapper;
+    this.roleRepository = roleRepository;
   }
 
   /**
@@ -149,23 +142,24 @@ public class OAuth2TokenController {
             .orElseGet(() -> {
               log.info("STEP 7: User not found, creating new user");
 
-              // Create a new user instance using the createUser method from UserService
-              UserCreationRequest userCreationRequest = new UserCreationRequest();
-              userCreationRequest.setUsername(username);
-              userCreationRequest.setPassword(idToken);
-              userCreationRequest.setFirstname(firstName);
-              userCreationRequest.setLastname(lastName + "Google");
-              userCreationRequest.setDob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9));
-              userCreationRequest.setEmail(email);
-              userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
+              // Create a new user instance using builder()
+              User newUser = User.builder()
+                  .username(username)
+                  .password(idToken) // Assuming idToken as the password for now
+                  .firstname(firstName)
+                  .lastname(lastName + "Google")
+                  .dob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9))
+                  .email(email)
+                  .roles(Collections.singleton(
+                      roleRepository.findByName(ENUMS.Role.USER.name())
+                          .orElseThrow(() -> new RuntimeException("Role not found: " + ENUMS.Role.USER.name()))))
+                  .build();
 
-              UserResponse newUserResponse = userService.createUser(userCreationRequest);
-              User newUser = userMapper.toUser(newUserResponse);
+              // Save the new user to the repository
+              User savedUser = userRepository.save(newUser);
+              log.info("STEP 8: User created successfully: {}", savedUser);
 
-              log.info("STEP 8: User created successfully: {}", newUser);
-
-              // Return the new user
-              return newUser;
+              return savedUser;
             });
 
         log.info("STEP 9: User retrieved or created: {}", user);
