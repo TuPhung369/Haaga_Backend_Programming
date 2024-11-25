@@ -85,14 +85,11 @@ public class ApplicationInitConfig {
 
         if (!isAdminTomExists) {
           createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
-              "tuphung010787@gmail.com",
-              ENUMS.Role.ADMIN.name());
+              "tuphung010787@gmail.com", ENUMS.Role.ADMIN.name());
           createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("1999-03-03"),
-              "tuphung010787@gmail.com",
-              ENUMS.Role.MANAGER.name());
+              "tuphung010787@gmail.com", ENUMS.Role.MANAGER.name());
           createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
-              "tuphung010787@gmail.com",
-              ENUMS.Role.USER.name());
+              "tuphung010787@gmail.com", ENUMS.Role.USER.name());
 
           // Generate 100 users with the same password and random roles
           Random random = new Random();

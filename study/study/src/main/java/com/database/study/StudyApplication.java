@@ -19,26 +19,35 @@ public class StudyApplication {
 		}
 
 		// Load and validate environment variables
-		String dbUrlGoogle = dotenv.get("DB_URL_GOOGLE");
-		String dbUsernameGoogle = dotenv.get("DB_USERNAME_GOOGLE");
-		String dbPasswordGoogle = dotenv.get("DB_PASSWORD_GOOGLE");
-		String dbUrlAws = dotenv.get("DB_URL_AWS");
-		String dbUsernameAws = dotenv.get("DB_USERNAME_AWS");
-		String dbPasswordAws = dotenv.get("DB_PASSWORD_AWS");
 		String dbUrlDev = dotenv.get("DB_URL_DEV");
 		String dbUsernameDev = dotenv.get("DB_USERNAME_DEV");
 		String dbPasswordDev = dotenv.get("DB_PASSWORD_DEV");
-		String baseUrl = dotenv.get("BASE_URL");
+
+		String dbUrlGoogle = dotenv.get("DB_URL_GOOGLE");
+		String dbUsernameGoogle = dotenv.get("DB_USERNAME_GOOGLE");
+		String dbPasswordGoogle = dotenv.get("DB_PASSWORD_GOOGLE");
+
+		String dbUrlAws = dotenv.get("DB_URL_AWS");
+		String dbUsernameAws = dotenv.get("DB_USERNAME_AWS");
+		String dbPasswordAws = dotenv.get("DB_PASSWORD_AWS");
+
 		String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
 		String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
-		String clientRedirectUri = dotenv.get("CLIENT_REDIRECT_URI");
-		String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
-		String googleAuthUrl = dotenv.get("GOOGLE_AUTH_URL");
+
 		String desktopClientId = dotenv.get("DESKTOP_CLIENT_ID");
 		String desktopClientSecret = dotenv.get("DESKTOP_CLIENT_SECRET");
+
 		String githubClientId = dotenv.get("GITHUB_CLIENT_ID");
 		String githubClientSecret = dotenv.get("GITHUB_CLIENT_SECRET");
+
+		String baseUrl = dotenv.get("BASE_URL");
+
+		String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
 		String githubRedirectUri = dotenv.get("GITHUB_REDIRECT_URI");
+
+		String appBaseUri = dotenv.get("APP_BASE_URI");
+		String clientRedirectUri = dotenv.get("CLIENT_REDIRECT_URI");
+		String clientGitRedirectUri = dotenv.get("CLIENT_GIT_REDIRECT_URI");
 
 		if (dbUrlGoogle == null || dbUsernameGoogle == null || dbPasswordGoogle == null || oauth2ClientId == null
 				|| oauth2ClientSecret == null || dbUrlAws == null || dbUsernameAws == null || dbPasswordAws == null) {
@@ -47,26 +56,35 @@ public class StudyApplication {
 		}
 
 		// Set system properties from environment variables
-		setSystemProperty("DB_URL_GOOGLE", dbUrlGoogle);
-		setSystemProperty("DB_USERNAME_GOOGLE", dbUsernameGoogle);
-		setSystemProperty("DB_PASSWORD_GOOGLE", dbPasswordGoogle);
-		setSystemProperty("DB_URL_AWS", dbUrlAws);
-		setSystemProperty("DB_USERNAME_AWS", dbUsernameAws);
-		setSystemProperty("DB_PASSWORD_AWS", dbPasswordAws);
 		setSystemProperty("DB_URL_DEV", dbUrlDev);
 		setSystemProperty("DB_USERNAME_DEV", dbUsernameDev);
 		setSystemProperty("DB_PASSWORD_DEV", dbPasswordDev);
-		setSystemProperty("BASE_URL", baseUrl);
+
+		setSystemProperty("DB_URL_GOOGLE", dbUrlGoogle);
+		setSystemProperty("DB_USERNAME_GOOGLE", dbUsernameGoogle);
+		setSystemProperty("DB_PASSWORD_GOOGLE", dbPasswordGoogle);
+
+		setSystemProperty("DB_URL_AWS", dbUrlAws);
+		setSystemProperty("DB_USERNAME_AWS", dbUsernameAws);
+		setSystemProperty("DB_PASSWORD_AWS", dbPasswordAws);
+
 		setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
 		setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
-		setSystemProperty("CLIENT_REDIRECT_URI", clientRedirectUri);
-		setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
-		setSystemProperty("GOOGLE_AUTH_URL", googleAuthUrl);
+
 		setSystemProperty("DESKTOP_CLIENT_ID", desktopClientId);
 		setSystemProperty("DESKTOP_CLIENT_SECRET", desktopClientSecret);
+
 		setSystemProperty("GITHUB_CLIENT_ID", githubClientId);
 		setSystemProperty("GITHUB_CLIENT_SECRET", githubClientSecret);
+
+		setSystemProperty("BASE_URL", baseUrl);
+
+		setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
 		setSystemProperty("GITHUB_REDIRECT_URI", githubRedirectUri);
+
+		setSystemProperty("APP_BASE_URI", appBaseUri);
+		setSystemProperty("CLIENT_REDIRECT_URI", clientRedirectUri);
+		setSystemProperty("CLIENT_GIT_REDIRECT_URI", clientGitRedirectUri);
 
 		// Start the application
 		SpringApplication.run(StudyApplication.class, args);
