@@ -3,4 +3,4 @@ spring:
     url: ${DB_URL_DEV}
     username: ${DB_USERNAME_DEV}
     password: ${DB_PASSWORD_DEV}
-
+    driver-class-name: com.mysql.cj.jdbc.Driver
