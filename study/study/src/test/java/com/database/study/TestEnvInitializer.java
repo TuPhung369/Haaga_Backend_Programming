@@ -7,7 +7,7 @@ public class TestEnvInitializer {
   @BeforeAll
   static void loadEnv() {
     Dotenv dotenv = Dotenv.configure()
-        .directory("./") // Location of your .env file
+        .directory("./")
         .ignoreIfMalformed()
         .ignoreIfMissing()
         .load();

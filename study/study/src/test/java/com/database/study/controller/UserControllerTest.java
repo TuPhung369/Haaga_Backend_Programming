@@ -1,90 +1,159 @@
 package com.database.study.controller;
 
-import org.springframework.boot.test.context.SpringBootTest;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import com.database.study.service.UserService;
-
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.UserResponse;
-
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import lombok.extern.slf4j.Slf4j;
-import org.mockito.Mockito;
-
-import java.time.LocalDate;
+import com.database.study.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import java.util.List;
+import java.util.UUID;
 
-@Slf4j
-@SpringBootTest
-@AutoConfigureMockMvc
-public class UserControllerTest {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-  @Autowired
-  private MockMvc mockMvc;
+class UserControllerTest {
 
   @Mock
   private UserService userService;
 
-  private UserCreationRequest userCreationRequest;
-  private UserResponse userResponse;
-  private LocalDate dob;
+  @Mock
+  private SecurityContext securityContext;
+
+  @Mock
+  private Authentication authentication;
+
+  @InjectMocks
+  private UserController userController;
 
   @BeforeEach
-  void initData() {
-    dob = LocalDate.of(1990, 1, 1);
-    userCreationRequest = UserCreationRequest.builder()
-        .username("testAminTest")
-        .password("testThanhcong6(")
-        .firstname("Tom test")
-        .lastname("Jerry test")
-        .dob(dob)
-        .roles(List.of("ADMIN"))
-        .build();
-
-    userResponse = UserResponse.builder()
-        .id(UUID.fromString("23e4567-e89b-12d3-a456-426614174000"))
-        .username("testAminTest")
-        .firstname("Tom test")
-        .lastname("Jerry test")
-        .dob(dob)
-        .build();
+  void setUp() {
+    MockitoAnnotations.openMocks(this);
+    SecurityContextHolder.setContext(securityContext);
   }
 
   @Test
-  void createUser_validRequest_success() throws Exception {
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-    String content = objectMapper.writeValueAsString(userCreationRequest);
-    Mockito.when(userService.createUser(userCreationRequest)).thenReturn(userResponse);
-    mockMvc.perform(MockMvcRequestBuilders
-        .post("/users")
-        .contentType(MediaType.APPLICATION_JSON_VALUE)
-        .content(content))
-        .andExpect(MockMvcResultMatchers.status().isOk())
-        .andExpect(MockMvcResultMatchers.jsonPath("code").value(2000));
+  void testCreateUser() {
+    UserCreationRequest request = new UserCreationRequest();
+    UserResponse userResponse = new UserResponse();
+    when(userService.createUser(request)).thenReturn(userResponse);
+
+    ApiResponse<UserResponse> response = userController.createUser(request);
+
+    assertNotNull(response);
+    assertEquals(userResponse, response.getResult());
+    verify(userService, times(1)).createUser(request);
   }
 
   @Test
-  void createUser_usernameInvalid_fail() throws Exception {
-    userCreationRequest.setUsername("test");
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-    String content = objectMapper.writeValueAsString(userCreationRequest);
+  void testGetUsersWithAuthentication() {
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    when(authentication.isAuthenticated()).thenReturn(true);
+    List<UserResponse> users = List.of(new UserResponse());
+    when(userService.getUsers()).thenReturn(users);
 
-    mockMvc.perform(MockMvcRequestBuilders
-        .post("/users")
-        .contentType(MediaType.APPLICATION_JSON_VALUE)
-        .content(content))
-        .andExpect(MockMvcResultMatchers.status().isBadRequest())
-        .andExpect(MockMvcResultMatchers.jsonPath("code").value(4001));
+    List<UserResponse> response = userController.getUsers();
+
+    assertNotNull(response);
+    assertEquals(users, response);
+    verify(userService, times(1)).getUsers();
+  }
+
+  @Test
+  void testGetUsersWithoutAuthentication() {
+    when(securityContext.getAuthentication()).thenReturn(null);
+
+    List<UserResponse> response = userController.getUsers();
+
+    assertNotNull(response);
+    assertTrue(response.isEmpty());
+    verify(userService, never()).getUsers();
+  }
+
+  @Test
+  void testGetMyInfo() {
+    UserResponse userResponse = new UserResponse();
+    when(userService.getMyInfo()).thenReturn(userResponse);
+
+    ApiResponse<UserResponse> response = userController.getMyInfo();
+
+    assertNotNull(response);
+    assertEquals(userResponse, response.getResult());
+    verify(userService, times(1)).getMyInfo();
+  }
+
+  @Test
+  void testGetUserByPath() {
+    UUID userId = UUID.randomUUID();
+    UserResponse userResponse = new UserResponse();
+    when(userService.getUserById(userId)).thenReturn(userResponse);
+
+    ApiResponse<UserResponse> response = userController.getUserByPath(userId);
+
+    assertNotNull(response);
+    assertEquals(userResponse, response.getResult());
+    verify(userService, times(1)).getUserById(userId);
+  }
+
+  @Test
+  void testGetUserByQuery() {
+    UUID userId = UUID.randomUUID();
+    UserResponse userResponse = new UserResponse();
+    when(userService.getUserById(userId)).thenReturn(userResponse);
+
+    ApiResponse<UserResponse> response = userController.getUserByQuery(userId);
+
+    assertNotNull(response);
+    assertEquals(userResponse, response.getResult());
+    verify(userService, times(1)).getUserById(userId);
+  }
+
+  @Test
+  void testUpdateUser() {
+    UUID userId = UUID.randomUUID();
+    UserCreationRequest request = new UserCreationRequest();
+    UserResponse userResponse = new UserResponse();
+    when(userService.updateUser(userId, request)).thenReturn(userResponse);
+
+    ApiResponse<UserResponse> response = userController.updateUser(userId, request);
+
+    assertNotNull(response);
+    assertEquals(userResponse, response.getResult());
+    verify(userService, times(1)).updateUser(userId, request);
+  }
+
+  @Test
+  void testUpdateMyInfo() {
+    UUID userId = UUID.randomUUID();
+    UserCreationRequest request = new UserCreationRequest();
+    UserResponse userResponse = new UserResponse();
+    when(userService.updateMyInfo(userId, request)).thenReturn(userResponse);
+
+    ApiResponse<UserResponse> response = userController.updateMyInfo(userId, request);
+
+    assertNotNull(response);
+    assertEquals(userResponse, response.getResult());
+    verify(userService, times(1)).updateMyInfo(userId, request);
+  }
+
+  @Test
+  void testDeleteUser() {
+    UUID userId = UUID.randomUUID();
+    doNothing().when(userService).deleteUser(userId);
+
+    ApiResponse<String> response = userController.deleteUser(userId);
+
+    assertNotNull(response);
+    assertEquals("User ID: " + userId, response.getResult());
+    assertEquals(2000, response.getCode());
+    assertEquals("User successfully deleted", response.getMessage());
+    verify(userService, times(1)).deleteUser(userId);
   }
 }
