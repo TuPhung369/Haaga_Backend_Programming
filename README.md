@@ -187,5 +187,5 @@ link check the front end `http://softala.haaga-helia.fi:9095/login`
   
 ### JACOCO: report for unit test
 
-`mvn jacoco:test report` run this command for running jacoco or `mvn clean test jacoco:report -X`
+`mvn clean test jacoco:report` or `mvn jacoco:test report` run this command for running jacoco or `mvn clean test jacoco:report -X`
 cd `target/site/jacoco` run command `start index.html`

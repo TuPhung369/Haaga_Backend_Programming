@@ -271,7 +271,7 @@
                     </execution>
                     <execution>
                         <id>report</id>
-                        <phase>test</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
@@ -279,7 +279,11 @@
                 </executions>
                 <configuration>
                     <excludes>
-                        <exclude>com/database/study/**/dto/**</exclude>
+                        <exclude>com/database/study/dto/**</exclude>
+                        <exclude>com/database/study/entity/**</exclude>
+                        <exclude>com/database/study/mapper/**</exclude>
+                        <exclude>com/database/study/repository/**</exclude>
+                        <exclude>com/database/study/configuration/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
