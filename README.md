@@ -1,5 +1,10 @@
 # Haaga_Backend_Programming
 
+## Start the program
+
+- Step 1: go to study/study/ src/ main ... -> right click on the `StudyApplication.java` choose `Run Java` -> need to change the application.yaml (profile to dev `Data Base`)
+- Step 2: go to study/react-study --> `npm run start` -> login with normal account `adminTom` `Thanhcong6(`
+
 BackEnd Programming
 Important `Enable the` `Spring Boot DashBoard` Extension.
 using this command for clean `mvn clean install -DskipTests`
