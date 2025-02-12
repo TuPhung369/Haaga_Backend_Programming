@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../components/CustomButton";
 import Sidebar from "../components/Sidebar";
@@ -107,18 +107,17 @@ const UserListPage = () => {
           name: role,
           users: roleCounts[role],
         }));
+        setBarChartData(barChartData);
+
         const totalUsers = Object.values(roleCounts).reduce(
           (sum, count) => sum + count,
           0
         );
-
         const pieChartData = Object.keys(roleCounts).map((role) => ({
           name: role,
           value: (roleCounts[role] / totalUsers) * 100,
         }));
-        console.log(pieChartData);
         setPieChartData(pieChartData);
-        setBarChartData(barChartData);
       } else {
         console.error("Response is not an array");
         setAllUsers([]);
@@ -199,10 +198,10 @@ const UserListPage = () => {
     navigate("/login");
   };
 
-  const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
-  const isManager = userInformation?.roles.some(
-    (role) => role.name === "MANAGER"
-  );
+  // const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
+  // const isManager = userInformation?.roles.some(
+  //   (role) => role.name === "MANAGER"
+  // );
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -236,61 +235,110 @@ const UserListPage = () => {
         <Sidebar defaultSelectedKey="2" />
 
         <Layout style={{ padding: "0 24px 24px" }}>
-          <Content style={{ margin: "24px 0" }}>
+          <Content
+            style={{ margin: "24px 0" }}
+            className="flex flex-col items-center"
+          >
             {contextHolder}
-            <h2>Total Users by Role</h2>
-            <ResponsiveContainer width="50%" height={400}>
-              <BarChart
-                data={barChartData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <XAxis dataKey="name" angle={0} textAnchor="end" height={70} />
-                <YAxis />
-                <Tooltip />
+            <div className="flex flex-col items-center">
+              {/* Row 1 - Bar Chart */}
+              <div className="flex justify-center w-full mb-8">
+                <div className="w-1/2">
+                  <h2>Total Users by Role</h2>
+                  <ResponsiveContainer width="50%" height={400}>
+                    <BarChart
+                      data={barChartData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <XAxis
+                        dataKey="name"
+                        angle={0}
+                        textAnchor="end"
+                        height={70}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="users" name="Total Users">
+                        {barChartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                        <LabelList
+                          dataKey="users"
+                          position="top"
+                          fill="#000"
+                          style={{ fontSize: "14px", fontWeight: "bold" }}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-                <Bar dataKey="users" name="Total Users">
-                  {barChartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                  <LabelList
-                    dataKey="users"
-                    position="top"
-                    fill="#000"
-                    style={{ fontSize: "14px", fontWeight: "bold" }}
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+              {/* Row 2 - Pie Charts */}
+              <div className="flex flex-row justify-center w-full mb-8">
+                <div className="w-1/2 px-4">
+                  <h2>Role Distribution</h2>
+                  <ResponsiveContainer width="50%" height={400}>
+                    <PieChart>
+                      <Pie
+                        data={pieChartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={150}
+                        fill="#8884d8"
+                        label={({ name, value }) =>
+                          `${name}: ${parseFloat(value).toFixed(1)}%`
+                        }
+                      >
+                        {pieChartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[(index + 4) % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
 
-            <h2>Role Distribution</h2>
-            <ResponsiveContainer width="50%" height={400}>
-              <PieChart>
-                <Pie
-                  data={pieChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={150}
-                  fill="#8884d8"
-                  label={({ name, value }) =>
-                    `${name}: ${parseFloat(value).toFixed(1)}%`
-                  }
-                >
-                  {pieChartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[(index + 4) % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+                <div className="w-1/2 px-4">
+                  <h2>Role Distribution (with Inner Radius)</h2>
+                  <ResponsiveContainer width="50%" height={400}>
+                    <PieChart>
+                      <Pie
+                        data={pieChartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={150}
+                        innerRadius={70}
+                        fill="#8884d8"
+                        label={({ name, value }) =>
+                          `${name}: ${parseFloat(value).toFixed(1)}%`
+                        }
+                      >
+                        {pieChartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[(index + 3) % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
           </Content>
           <Footer style={{ textAlign: "center" }}>
             My Application ©{new Date().getFullYear()} Created by Tu Phung
