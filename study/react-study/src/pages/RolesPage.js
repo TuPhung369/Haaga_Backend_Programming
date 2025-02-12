@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { getAllRoles, deleteRole, createRole } from "../services/roleService";
 import { getAllPermissions } from "../services/permissionService";
 import { getMyInfo } from "../services/userService";
+import Sidebar from "../components/Sidebar";
 import CustomButton from "../components/CustomButton";
 import {
   Layout,
-  Menu,
   Table,
   Tag,
   Modal,
@@ -17,7 +17,7 @@ import {
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 
-const { Header, Sider, Content, Footer } = Layout;
+const { Header, Content, Footer } = Layout;
 const { Option } = Select;
 
 export const roleColors = [
@@ -186,35 +186,7 @@ const RolesPage = () => {
       </Header>
 
       <Layout>
-        <Sider width={200} className="site-layout-background">
-          <Menu
-            mode="inline"
-            defaultSelectedKeys={["3"]}
-            style={{ height: "100%", borderRight: 0 }}
-            items={[
-              {
-                key: "1",
-                label: "Home",
-                onClick: () => navigate("/"),
-              },
-              {
-                key: "2",
-                label: "User List",
-                onClick: () => navigate("/userList"),
-              },
-              {
-                key: "3",
-                label: "Role List",
-                onClick: () => navigate("/roles"),
-              },
-              {
-                key: "4",
-                label: "Permission List",
-                onClick: () => navigate("/permissions"),
-              },
-            ]}
-          />
-        </Sider>
+        <Sidebar defaultSelectedKey="2" />
 
         <Layout style={{ padding: "0 24px 24px" }}>
           <Content style={{ margin: "24px 0" }}>

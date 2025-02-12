@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../components/CustomButton";
 import Highlighter from "react-highlight-words";
+import Sidebar from "../components/Sidebar";
+
 import {
   getAllUsers,
   getMyInfo,
@@ -13,7 +15,6 @@ import { getAllRoles } from "../services/roleService";
 import {
   Descriptions,
   Layout,
-  Menu,
   Table,
   Tag,
   Modal,
@@ -32,7 +33,7 @@ import {
 import validateInput from "../utils/validateInput";
 
 const { confirm } = Modal;
-const { Header, Sider, Content, Footer } = Layout;
+const { Header, Content, Footer } = Layout;
 const { Option } = Select;
 
 const UserListPage = () => {
@@ -435,35 +436,7 @@ const UserListPage = () => {
       </Header>
 
       <Layout>
-        <Sider width={200} className="site-layout-background">
-          <Menu
-            mode="inline"
-            defaultSelectedKeys={["2"]}
-            style={{ height: "100%", borderRight: 0 }}
-            items={[
-              {
-                key: "1",
-                label: "Home",
-                onClick: () => navigate("/"),
-              },
-              {
-                key: "2",
-                label: "User List",
-                onClick: () => navigate("/userList"),
-              },
-              {
-                key: "3",
-                label: "Role List",
-                onClick: () => navigate("/roles"),
-              },
-              {
-                key: "4",
-                label: "Permission List",
-                onClick: () => navigate("/permissions"),
-              },
-            ]}
-          />
-        </Sider>
+        <Sidebar defaultSelectedKey="2" />
 
         <Layout style={{ padding: "0 24px 24px" }}>
           <Content style={{ margin: "24px 0" }}>

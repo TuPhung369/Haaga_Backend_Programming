@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
 import {
   getAllPermissions,
   deletePermission,
@@ -9,7 +10,6 @@ import { getMyInfo } from "../services/userService";
 import CustomButton from "../components/CustomButton";
 import {
   Layout,
-  Menu,
   Table,
   Tag,
   Modal,
@@ -20,7 +20,7 @@ import {
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 
-const { Header, Sider, Content, Footer } = Layout;
+const { Header, Content, Footer } = Layout;
 const { Option } = Select;
 export const permissionColors = [
   "#FF4D4F",
@@ -172,35 +172,7 @@ const PermissionPage = () => {
       </Header>
 
       <Layout>
-        <Sider width={200} className="site-layout-background">
-          <Menu
-            mode="inline"
-            defaultSelectedKeys={["4"]}
-            style={{ height: "100%", borderRight: 0 }}
-            items={[
-              {
-                key: "1",
-                label: "Home",
-                onClick: () => navigate("/"),
-              },
-              {
-                key: "2",
-                label: "User List",
-                onClick: () => navigate("/userList"),
-              },
-              {
-                key: "3",
-                label: "Role List",
-                onClick: () => navigate("/roles"),
-              },
-              {
-                key: "4",
-                label: "Permission List",
-                onClick: () => navigate("/permissions"),
-              },
-            ]}
-          />
-        </Sider>
+        <Sidebar defaultSelectedKey="2" />
 
         <Layout style={{ padding: "0 24px 24px" }}>
           <Content style={{ margin: "24px 0" }}>

@@ -12,6 +12,7 @@ import UserListPage from "./pages/UserListPage";
 import RolesPage from "./pages/RolesPage";
 import PermissionsPage from "./pages/PermissionsPage";
 import OAuth2RedirectHandler from "./components/OAuth2RedirectHandler";
+import StatisticPage from "./pages/StatisticPage";
 import { introspectToken } from "./services/authService";
 
 const AuthWrapper = ({ children }) => {
@@ -82,6 +83,14 @@ const App = () => (
         element={
           <AuthWrapper>
             <PermissionsPage />
+          </AuthWrapper>
+        }
+      />
+      <Route
+        path="/statistics"
+        element={
+          <AuthWrapper>
+            <StatisticPage />
           </AuthWrapper>
         }
       />
