@@ -95,7 +95,7 @@ public class ApplicationInitConfig {
           Random random = new Random();
           ENUMS.Role[] roles = ENUMS.Role.values();
 
-          IntStream.rangeClosed(1, 100).forEach(i -> {
+          IntStream.rangeClosed(1, 300).forEach(i -> {
             ENUMS.Role randomRole = roles[random.nextInt(roles.length)];
             String username = randomRole.name() + "Tom" + i;
             String password = "Thanhcong6(";

@@ -1,5 +1,12 @@
 import { Layout, Menu } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
+import {
+  HomeOutlined,
+  UserOutlined,
+  TeamOutlined,
+  LockOutlined,
+  BarChartOutlined,
+} from "@ant-design/icons";
 
 const { Sider } = Layout;
 
@@ -8,17 +15,26 @@ const Sidebar = ({ defaultSelectedKey }) => {
   const location = useLocation();
 
   const menuItems = [
-    { key: "1", label: "Home", path: "/" },
-    { key: "2", label: "User List", path: "/userList" },
-    { key: "3", label: "Role List", path: "/roles" },
-    { key: "4", label: "Permission List", path: "/permissions" },
-    { key: "5", label: "Statistics", path: "/statistics" },
+    { key: "1", label: "Home", path: "/", icon: <HomeOutlined /> },
+    { key: "2", label: "User List", path: "/userList", icon: <UserOutlined /> },
+    { key: "3", label: "Role List", path: "/roles", icon: <TeamOutlined /> },
+    {
+      key: "4",
+      label: "Permission List",
+      path: "/permissions",
+      icon: <LockOutlined />,
+    },
+    {
+      key: "5",
+      label: "Statistics",
+      path: "/statistics",
+      icon: <BarChartOutlined />,
+    },
   ];
 
   return (
     <Sider
       width={200}
-      height="100%"
       style={{ borderColor: "transparent" }}
       className="site-layout-background"
     >
@@ -31,8 +47,8 @@ const Sidebar = ({ defaultSelectedKey }) => {
         ]}
         style={{ height: "100%", borderRight: 0 }}
       >
-        {menuItems.map(({ key, label, path }) => (
-          <Menu.Item key={key} onClick={() => navigate(path)}>
+        {menuItems.map(({ key, label, path, icon }) => (
+          <Menu.Item key={key} icon={icon} onClick={() => navigate(path)}>
             {label}
           </Menu.Item>
         ))}

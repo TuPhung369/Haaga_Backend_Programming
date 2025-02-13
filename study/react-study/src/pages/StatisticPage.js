@@ -231,7 +231,10 @@ const UserListPage = () => {
     }
     return null;
   };
-
+  const yAxisStartQuantity =
+    0.5 * Math.min(...quantityChartData.map((d) => d.value));
+  const yAxisStartPercent =
+    0.8 * Math.min(...percentChartData.map((d) => d.value));
   return (
     <Layout
       style={{
@@ -281,7 +284,7 @@ const UserListPage = () => {
                     textAnchor="middle"
                     height={70}
                   />
-                  <YAxis />
+                  <YAxis domain={[yAxisStartQuantity, "auto"]} />
                   <Tooltip content={CustomTooltipQuantity} />
                   <Bar dataKey="value" name="Total Users">
                     {quantityChartData.map((entry, index) => (
@@ -320,7 +323,7 @@ const UserListPage = () => {
                     textAnchor="middle"
                     height={70}
                   />
-                  <YAxis />
+                  <YAxis domain={[yAxisStartPercent, "auto"]} />
                   <Tooltip content={CustomTooltipPercent} />
                   <Bar dataKey="value" name="Total Users">
                     {percentChartData.map((entry, index) => (
@@ -350,7 +353,7 @@ const UserListPage = () => {
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <XAxis dataKey="name" />
-                  <YAxis />
+                  <YAxis domain={[yAxisStartQuantity, "auto"]} />
                   <Tooltip content={CustomTooltipQuantity} />
                   <Line
                     type="monotone"
@@ -395,7 +398,7 @@ const UserListPage = () => {
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <XAxis dataKey="name" />
-                  <YAxis />
+                  <YAxis domain={[yAxisStartPercent, "auto"]} />
                   <Tooltip content={CustomTooltipPercent} />
                   <Line
                     type="monotone"
@@ -526,13 +529,29 @@ const UserListPage = () => {
                     height={70}
                   />
 
-                  {/* Y Axis */}
-                  <YAxis />
+                  {/* Left Y Axis (for Quantity) */}
+                  <YAxis
+                    yAxisId="left"
+                    domain={[yAxisStartQuantity, "auto"]}
+                    label={{
+                      value: "Total Users",
+                      angle: -90,
+                      position: "insideLeft",
+                    }}
+                  />
+
+                  {/* Right Y Axis (for Percentages) */}
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    domain={[yAxisStartPercent, "auto"]}
+                    label={{ value: "%", angle: -90, position: "insideRight" }}
+                  />
 
                   <Tooltip content={CustomTooltipPercent} />
 
                   {/* Bar for Total Users */}
-                  <Bar dataKey="value" name="Total Users">
+                  <Bar dataKey="value" name="Total Users" yAxisId="left">
                     {quantityChartData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
@@ -542,7 +561,7 @@ const UserListPage = () => {
                     <LabelList
                       dataKey="value"
                       position="middle"
-                      fill={COLORS[8]}
+                      fill={COLORS[13]}
                       style={{
                         fontSize: "14px",
                         fontWeight: "bold",
@@ -556,7 +575,8 @@ const UserListPage = () => {
                     type="monotone"
                     data={percentChartData}
                     dataKey="value"
-                    stroke={COLORS[3]}
+                    yAxisId="right"
+                    stroke={COLORS[4]}
                     strokeWidth={2}
                     dot={{ r: 5 }}
                     label={({ x, y, value, index }) => {
@@ -577,7 +597,7 @@ const UserListPage = () => {
                               : x
                           }
                           y={y - 15}
-                          fill={COLORS[0]}
+                          fill={COLORS[2]}
                           textAnchor={textAnchor}
                           fontSize={14}
                           fontWeight="bold"
