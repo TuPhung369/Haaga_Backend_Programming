@@ -87,20 +87,25 @@ const UserListPage = () => {
         }, {});
 
         // Map role counts to chartData
-        const quantityChartData = Object.keys(roleCounts).map((role) => ({
-          name: role,
-          value: roleCounts[role],
-        }));
+        const quantityChartData = Object.keys(roleCounts)
+          .map((role) => ({
+            name: role,
+            value: roleCounts[role],
+          }))
+          .sort((a, b) => a.value - b.value);
+
         setQuantityChartData(quantityChartData);
 
         const totalUsers = Object.values(roleCounts).reduce(
           (sum, count) => sum + count,
           0
         );
-        const percentChartData = Object.keys(roleCounts).map((role) => ({
-          name: role,
-          value: (roleCounts[role] / totalUsers) * 100,
-        }));
+        const percentChartData = Object.keys(roleCounts)
+          .map((role) => ({
+            name: role,
+            value: (roleCounts[role] / totalUsers) * 100,
+          }))
+          .sort((a, b) => a.value - b.value);
         setPercentChartData(percentChartData);
       } else {
         console.error("Response is not an array");
@@ -180,17 +185,105 @@ const UserListPage = () => {
   // const isManager = userInformation?.roles.some(
   //   (role) => role.name === "MANAGER"
   // );
-  const renderCustomBarLabel = ({ x, y, width, value }) => (
-    <text
-      x={x + width / 2}
-      y={y - 10}
-      fill={COLORS[13]}
-      textAnchor="middle"
-      style={{ fontSize: "14px", fontWeight: "bold" }}
-    >
-      {`${parseFloat(value).toFixed(1)}%`}
-    </text>
-  );
+  const customBarQuantityLabel = ({ x, y, width, value, index }) => {
+    const color = COLORS[index % COLORS.length];
+
+    return (
+      <text
+        x={x + width / 2}
+        y={y - 10}
+        fill={color}
+        textAnchor="middle"
+        fontSize="14px"
+        fontWeight="bold"
+      >
+        {value}
+      </text>
+    );
+  };
+  const customBarPercentLabel = ({ x, y, width, value, index }) => {
+    const color = COLORS[(index + 6) % COLORS.length];
+
+    return (
+      <text
+        x={x + width / 2}
+        y={y - 10}
+        fill={color}
+        textAnchor="middle"
+        fontSize="14px"
+        fontWeight="bold"
+      >
+        {`${parseFloat(value).toFixed(1)}%`}
+      </text>
+    );
+  };
+  const customLineQuantityLabel = ({ x, y, value, index }) => {
+    const color = COLORS[index % COLORS.length];
+
+    // Set textAnchor based on index position `end, middle, start`
+    const textAnchor =
+      index === 0
+        ? "start"
+        : index === quantityChartData.length - 1
+        ? "end"
+        : "middle";
+
+    // Adjust x position slightly for first and last labels
+    const adjustedX =
+      index === 0 ? x + 5 : index === quantityChartData.length - 1 ? x + 0 : x;
+    const adjustedY =
+      index === 0
+        ? y - 10
+        : index === quantityChartData.length - 1
+        ? y - 10
+        : y - 10;
+    return (
+      <text
+        x={adjustedX}
+        y={adjustedY}
+        fill={color}
+        textAnchor={textAnchor}
+        fontSize="14px"
+        fontWeight="bold"
+      >
+        {value}
+      </text>
+    );
+  };
+  const customLinePercentLabel = ({ x, y, value, index }) => {
+    const color = COLORS[(index + 6) % COLORS.length];
+
+    // Set textAnchor based on index position `end, middle, start`
+    const textAnchor =
+      index === 0
+        ? "start"
+        : index === percentChartData.length - 1
+        ? "end"
+        : "middle";
+
+    // Adjust x position slightly for first and last labels
+    const adjustedX =
+      index === 0 ? x - 0 : index === percentChartData.length - 1 ? x + 0 : x;
+    const adjustedY =
+      index === 0
+        ? y - 20
+        : index === percentChartData.length - 1
+        ? y - 10
+        : y - 10;
+    return (
+      <text
+        x={adjustedX}
+        y={adjustedY}
+        fill={color}
+        textAnchor={textAnchor}
+        fontSize="14px"
+        fontWeight="bold"
+      >
+        {`${parseFloat(value).toFixed(1)}%`}
+      </text>
+    );
+  };
+
   const CustomTooltipQuantity = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -285,6 +378,21 @@ const UserListPage = () => {
                     textAnchor="middle"
                     height={70}
                     interval={0}
+                    tick={({ x, y, payload, index }) => {
+                      const color = COLORS[index % COLORS.length];
+
+                      return (
+                        <text
+                          x={x}
+                          y={y + 15}
+                          fill={color}
+                          textAnchor="middle"
+                          fontSize="14px"
+                        >
+                          {payload.value}
+                        </text>
+                      );
+                    }}
                   />
                   <YAxis domain={[yAxisStartQuantity, "auto"]} />
                   <Tooltip content={CustomTooltipQuantity} />
@@ -298,8 +406,7 @@ const UserListPage = () => {
                     <LabelList
                       dataKey="value"
                       position="top"
-                      fill={COLORS[13]}
-                      style={{ fontSize: "14px", fontWeight: "bold" }}
+                      content={customBarQuantityLabel}
                     />
                   </Bar>
                 </BarChart>
@@ -326,7 +433,23 @@ const UserListPage = () => {
                     textAnchor="middle"
                     height={70}
                     interval={0}
+                    tick={({ x, y, payload, index }) => {
+                      const color = COLORS[(index + 6) % COLORS.length];
+
+                      return (
+                        <text
+                          x={x}
+                          y={y + 15}
+                          fill={color}
+                          textAnchor="middle"
+                          fontSize="14px"
+                        >
+                          {payload.value}
+                        </text>
+                      );
+                    }}
                   />
+
                   <YAxis domain={[yAxisStartPercent, "auto"]} />
                   <Tooltip content={CustomTooltipPercent} />
                   <Bar dataKey="value" name="Total Users">
@@ -339,7 +462,7 @@ const UserListPage = () => {
                     <LabelList
                       dataKey="value"
                       position="top"
-                      content={renderCustomBarLabel}
+                      content={customBarPercentLabel}
                     />
                   </Bar>
                 </BarChart>
@@ -356,37 +479,44 @@ const UserListPage = () => {
                   data={quantityChartData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
-                  <XAxis dataKey="name" />
+                  <XAxis
+                    dataKey="name"
+                    tickMargin={10}
+                    angle={0}
+                    textAnchor="middle"
+                    height={70}
+                    interval={0}
+                    tick={({ x, y, payload, index }) => {
+                      const color = COLORS[index % COLORS.length];
+
+                      return (
+                        <text
+                          x={x}
+                          y={y + 15}
+                          fill={color}
+                          textAnchor="middle"
+                          fontSize="14px"
+                        >
+                          {payload.value}
+                        </text>
+                      );
+                    }}
+                  />
                   <YAxis domain={[yAxisStartQuantity, "auto"]} />
                   <Tooltip content={CustomTooltipQuantity} />
                   <Line
                     type="monotone"
                     dataKey="value"
-                    stroke={COLORS[0]}
+                    stroke={COLORS[2]}
                     strokeWidth={2}
                     dot={{ r: 5 }}
-                    label={({ x, y, value, index }) => {
-                      const textAnchor =
-                        index === 0
-                          ? "start"
-                          : index === percentChartData.length - 1
-                          ? "end"
-                          : "middle";
-
-                      return (
-                        <text
-                          x={x}
-                          y={y - 10}
-                          fill={COLORS[13]}
-                          textAnchor={textAnchor}
-                          fontSize={14}
-                          fontWeight="bold"
-                        >
-                          {value}
-                        </text>
-                      );
-                    }}
-                  />
+                  >
+                    <LabelList
+                      dataKey="value"
+                      position="top"
+                      content={customLineQuantityLabel}
+                    />
+                  </Line>
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -401,7 +531,29 @@ const UserListPage = () => {
                   data={percentChartData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
-                  <XAxis dataKey="name" />
+                  <XAxis
+                    dataKey="name"
+                    tickMargin={10}
+                    angle={0}
+                    textAnchor="middle"
+                    height={70}
+                    interval={0}
+                    tick={({ x, y, payload, index }) => {
+                      const color = COLORS[(index + 6) % COLORS.length];
+
+                      return (
+                        <text
+                          x={x}
+                          y={y + 15}
+                          fill={color}
+                          textAnchor="middle"
+                          fontSize="14px"
+                        >
+                          {payload.value}
+                        </text>
+                      );
+                    }}
+                  />
                   <YAxis domain={[yAxisStartPercent, "auto"]} />
                   <Tooltip content={CustomTooltipPercent} />
                   <Line
@@ -410,34 +562,20 @@ const UserListPage = () => {
                     stroke={COLORS[2]}
                     strokeWidth={2}
                     dot={{ r: 5 }}
-                    label={({ x, y, value, index }) => {
-                      const textAnchor =
-                        index === 0
-                          ? "start"
-                          : index === percentChartData.length - 1
-                          ? "end"
-                          : "middle";
-
-                      return (
-                        <text
-                          x={x}
-                          y={y - 10}
-                          fill={COLORS[13]}
-                          textAnchor={textAnchor}
-                          fontSize={14}
-                          fontWeight="bold"
-                        >
-                          {parseFloat(value).toFixed(1)}%
-                        </text>
-                      );
-                    }}
-                  />
+                  >
+                    {/* Apply LabelList to LineChart */}
+                    <LabelList
+                      dataKey="value"
+                      position="top"
+                      content={customLinePercentLabel}
+                    />
+                  </Line>
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Row 2 - Pie Charts */}
+          {/* Row 2 - Pie Charts and ComposedChart */}
           <div
             style={{
               display: "flex",
@@ -528,9 +666,26 @@ const UserListPage = () => {
                   {/* X Axis */}
                   <XAxis
                     dataKey="name"
+                    tickMargin={10}
                     angle={0}
                     textAnchor="middle"
                     height={70}
+                    interval={0}
+                    tick={({ x, y, payload, index }) => {
+                      const color = COLORS[index % COLORS.length];
+
+                      return (
+                        <text
+                          x={x}
+                          y={y + 15}
+                          fill={color}
+                          textAnchor="middle"
+                          fontSize="14px"
+                        >
+                          {payload.value}
+                        </text>
+                      );
+                    }}
                   />
 
                   {/* Left Y Axis (for Quantity) */}
