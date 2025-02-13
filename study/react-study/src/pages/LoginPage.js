@@ -44,6 +44,7 @@ const LoginPage = () => {
   const [lastname, setLastname] = useState("");
   const [dob, setDob] = useState(moment("1987-07-07", "YYYY-MM-DD"));
   const [email, setEmail] = useState("");
+  const [rememberMe, setRememberMe] = useState(false); // State for "Remember me" checkbox
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [firstnameError, setFirstnameError] = useState("");
@@ -70,6 +71,9 @@ const LoginPage = () => {
         const response = await introspectToken(data.result.token);
         if (response.result?.valid || localStorage.getItem("isAuthenticated")) {
           localStorage.setItem("token", data.result.token);
+          if (rememberMe) {
+            localStorage.setItem("isAuthenticated", "true");
+          }
           window.location.href = appBaseUri;
         }
       } catch (error) {
@@ -224,7 +228,6 @@ const LoginPage = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(to bottom right, #F0F2F5, #B3CDE0)",
       }}
     >
       <Content
@@ -242,9 +245,13 @@ const LoginPage = () => {
           <Title
             level={2}
             className="login-page-title"
-            style={{ textAlign: "center", marginBottom: "20px" }}
+            style={{
+              textAlign: "center",
+              marginBottom: "20px",
+              color: "#FFFFFF",
+            }}
           >
-            Login to Your Account
+            Login
           </Title>
           <Form
             name="login"
@@ -258,24 +265,22 @@ const LoginPage = () => {
           >
             <Form.Item name="username" className="login-page-form-item">
               <label htmlFor="login-username">
-                <Text strong>Username</Text>
                 <Input
                   id="login-username"
                   name="username"
                   prefix={<UserOutlined className="site-form-item-icon" />}
-                  placeholder="Enter your username"
+                  placeholder="Enter your Username"
                   autoComplete="username"
                 />
               </label>
             </Form.Item>
             <Form.Item name="password" className="login-page-form-item">
               <label htmlFor="login-password">
-                <Text strong>Password</Text>
                 <Input.Password
                   id="login-password"
                   name="password"
                   prefix={<LockOutlined className="site-form-item-icon" />}
-                  placeholder="Enter your password"
+                  placeholder="Enter your Password"
                   autoComplete="current-password"
                 />
               </label>
@@ -290,6 +295,44 @@ const LoginPage = () => {
                 className="login-page-alert"
               />
             )}
+            <Form.Item>
+              <Row justify="space-between">
+                <Col span={11}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      id="rememberMe"
+                      checked={rememberMe}
+                      onChange={() => setRememberMe(!rememberMe)} // Toggle "remember me"
+                      style={{ marginRight: "8px" }}
+                    />
+                    <span
+                      style={{
+                        color: "#FFFFFF",
+                        fontWeight: 500,
+                        fontSize: "16px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remember me
+                    </span>
+                  </div>
+                </Col>
+                <Col span={11}>
+                  <span
+                    style={{
+                      color: "#FFFFFF",
+                      fontWeight: 500,
+                      fontSize: "16px",
+                      cursor: "pointer",
+                    }}
+                    onClick={handleForgotPassword}
+                  >
+                    Forgot Password?
+                  </span>
+                </Col>
+              </Row>
+            </Form.Item>
             <Form.Item>
               <Button type="primary" htmlType="submit" className="login-button">
                 Login
@@ -306,41 +349,26 @@ const LoginPage = () => {
               </Button>
             </Form.Item>
             <Form.Item>
-              <Row justify="space-between">
-                <Col span={11}>
-                  <Button
-                    type="primary"
-                    onClick={handleRegister}
-                    className="login-page-register-button"
-                    style={{
-                      width: "100%",
-                      backgroundColor: "#1890FF",
-                      borderColor: "#1890FF",
-                    }}
-                  >
-                    Register
-                  </Button>
-                </Col>
-                <Col span={11}>
-                  <Button
-                    type="primary"
-                    onClick={handleForgotPassword}
-                    className="login-page-forgot-button"
-                    style={{
-                      width: "100%",
-                      backgroundColor: "#40A9FF",
-                      borderColor: "##40A9FF",
-                    }}
-                  >
-                    Forgot Password
-                  </Button>
-                </Col>
+              <Row justify="center">
+                <span
+                  style={{
+                    color: "#FFFFFF",
+                    fontWeight: 500,
+                    fontSize: "16px",
+                    cursor: "pointer",
+                  }}
+                  onClick={handleRegister}
+                >
+                  Don't have an account?{" "}
+                  <span style={{ fontWeight: "bold" }}>Register</span>
+                </span>
               </Row>
             </Form.Item>
           </Form>
         </Card>
       </Content>
 
+      {/* Forgot Password Modal */}
       <Modal
         title="Reset Your Password"
         open={isForgotPasswordModalVisible}
@@ -407,6 +435,7 @@ const LoginPage = () => {
         </Form>
       </Modal>
 
+      {/* Register Modal */}
       <Modal
         title="Register"
         open={isRegisterModalVisible}
@@ -437,53 +466,6 @@ const LoginPage = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 autoComplete="username"
-              />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={passwordError ? "error" : ""}
-            help={passwordError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-password">
-              <Text strong>Password</Text>
-              <Input.Password
-                id="register-password"
-                name="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter your password"
-                autoComplete="new-password"
-              />
-            </label>
-          </Form.Item>
-          <Form.Item className="login-page-modal-form-item">
-            <label htmlFor="register-confirm-password">
-              <Text strong>Confirm Password</Text>
-              <Input.Password
-                id="register-confirm-password"
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                autoComplete="new-password"
-              />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={emailError ? "error" : ""}
-            help={emailError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-email">
-              <Text strong>Email</Text>
-              <Input
-                id="register-email"
-                name="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                autoComplete="email"
               />
             </label>
           </Form.Item>
@@ -530,12 +512,56 @@ const LoginPage = () => {
               <Text strong>Date of Birth</Text>
               <DatePicker
                 id="register-dob"
-                name="dob"
                 value={dob}
                 onChange={(date) => setDob(date)}
-                format="YYYY-MM-DD"
-                placeholder="Select your date of birth"
                 style={{ width: "100%" }}
+              />
+            </label>
+          </Form.Item>
+          <Form.Item
+            validateStatus={emailError ? "error" : ""}
+            help={emailError}
+            className="login-page-modal-form-item"
+          >
+            <label htmlFor="register-email">
+              <Text strong>Email</Text>
+              <Input
+                id="register-email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                autoComplete="email"
+              />
+            </label>
+          </Form.Item>
+          <Form.Item
+            validateStatus={passwordError ? "error" : ""}
+            help={passwordError}
+            className="login-page-modal-form-item"
+          >
+            <label htmlFor="register-password">
+              <Text strong>Password</Text>
+              <Input.Password
+                id="register-password"
+                name="newPassword"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter your password"
+                autoComplete="new-password"
+              />
+            </label>
+          </Form.Item>
+          <Form.Item className="login-page-modal-form-item">
+            <label htmlFor="register-confirm-password">
+              <Text strong>Confirm Password</Text>
+              <Input.Password
+                id="register-confirm-password"
+                name="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                autoComplete="new-password"
               />
             </label>
           </Form.Item>
