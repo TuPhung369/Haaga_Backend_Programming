@@ -44,7 +44,7 @@ const LoginPage = () => {
   const [lastname, setLastname] = useState("");
   const [dob, setDob] = useState(moment("1987-07-07", "YYYY-MM-DD"));
   const [email, setEmail] = useState("");
-  const [rememberMe, setRememberMe] = useState(false); // State for "Remember me" checkbox
+  const [rememberMe, setRememberMe] = useState(false);
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [firstnameError, setFirstnameError] = useState("");
@@ -58,7 +58,7 @@ const LoginPage = () => {
     if (token) {
       setTimeout(() => {
         navigate("/");
-      }, 3000);
+      }, 100);
     } else {
       localStorage.removeItem("isAuthenticated");
     }
@@ -69,10 +69,12 @@ const LoginPage = () => {
       try {
         const data = await authenticateUser(values.username, values.password);
         const response = await introspectToken(data.result.token);
-        if (response.result?.valid || localStorage.getItem("isAuthenticated")) {
+        if (response.result?.valid) {
           localStorage.setItem("token", data.result.token);
           if (rememberMe) {
             localStorage.setItem("isAuthenticated", "true");
+          } else {
+            localStorage.removeItem("isAuthenticated"); // Ensure it's removed
           }
           window.location.href = appBaseUri;
         }
@@ -303,7 +305,7 @@ const LoginPage = () => {
                       type="checkbox"
                       id="rememberMe"
                       checked={rememberMe}
-                      onChange={() => setRememberMe(!rememberMe)} // Toggle "remember me"
+                      onChange={() => setRememberMe(!rememberMe)}
                       style={{ marginRight: "8px" }}
                     />
                     <span
