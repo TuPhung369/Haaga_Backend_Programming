@@ -18,25 +18,8 @@ import {
 } from "recharts";
 import { getAllRoles } from "../services/roleService";
 import { Layout, notification } from "antd";
-
+import { COLORS } from "../utils/constant";
 const { Content } = Layout;
-
-const COLORS = [
-  "#0088FE",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
-  "#FF6699",
-  "#66B3FF",
-  "#FFAA99",
-  "#FFCC00",
-  "#FF6600",
-  "#CC99FF",
-  "#FF3366",
-  "#00B3B3",
-  "#FFFFFF",
-  "#000000",
-];
 
 const UserListPage = () => {
   const [userInformation, setUserInformation] = useState(null);
@@ -539,7 +522,7 @@ const UserListPage = () => {
                   <XAxis
                     dataKey="name"
                     angle={0}
-                    textAnchor="end"
+                    textAnchor="middle"
                     height={70}
                   />
 
