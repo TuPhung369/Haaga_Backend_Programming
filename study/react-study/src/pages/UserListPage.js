@@ -1,8 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import CustomButton from "../components/CustomButton";
 import Highlighter from "react-highlight-words";
-import Sidebar from "../components/Sidebar";
 
 import {
   getAllUsers,
@@ -33,11 +30,10 @@ import {
 import validateInput from "../utils/validateInput";
 
 const { confirm } = Modal;
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 const { Option } = Select;
 
 const UserListPage = () => {
-  const navigate = useNavigate();
   const [userInformation, setUserInformation] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [allRoles, setAllRoles] = useState([]);
@@ -209,12 +205,6 @@ const UserListPage = () => {
         console.log("Cancel");
       },
     });
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setIsAuthenticated(false);
-    navigate("/login");
   };
 
   const showModalIdUpdate = (id) => {
@@ -408,264 +398,219 @@ const UserListPage = () => {
   );
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header
-        style={{
-          background: "#001529",
-          color: "white",
-          padding: "0 16px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            color: "white",
-          }}
+    <Layout style={{ padding: "0 24px 24px" }}>
+      <Content style={{ margin: "24px 0" }}>
+        {contextHolder}
+        <Modal
+          title="Edit User Information"
+          open={isModalVisible}
+          onOk={handleOk}
+          onCancel={handleCancel}
         >
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <h1 className="animated-title">
-              Welcome Spring Boot and ReactJS - FullStack
-            </h1>
-          </div>
-          <CustomButton onClick={handleLogout} type="primary">
-            Logout
-          </CustomButton>
-        </div>
-      </Header>
-
-      <Layout>
-        <Sidebar defaultSelectedKey="2" />
-
-        <Layout style={{ padding: "0 24px 24px" }}>
-          <Content style={{ margin: "24px 0" }}>
-            {contextHolder}
-            <Modal
-              title="Edit User Information"
-              open={isModalVisible}
-              onOk={handleOk}
-              onCancel={handleCancel}
+          <Form form={form} layout="vertical" name="userForm">
+            <Form.Item
+              name="username"
+              label="Username"
+              rules={[
+                { required: true, message: "Please input the username!" },
+              ]}
             >
-              <Form form={form} layout="vertical" name="userForm">
-                <Form.Item
-                  name="username"
-                  label="Username"
-                  rules={[
-                    { required: true, message: "Please input the username!" },
-                  ]}
-                >
-                  <Input
-                    readOnly={!isDisabled}
-                    disabled={isDisabled}
-                    onFocus={() => setIsDisabled(true)}
-                    onBlur={() => setIsDisabled(false)}
-                    style={{ cursor: isDisabled ? "not-allowed" : "text" }}
+              <Input
+                readOnly={!isDisabled}
+                disabled={isDisabled}
+                onFocus={() => setIsDisabled(true)}
+                onBlur={() => setIsDisabled(false)}
+                style={{ cursor: isDisabled ? "not-allowed" : "text" }}
+              />
+            </Form.Item>
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: "Please input the password!" },
+              ]}
+            >
+              <Input.Password />
+            </Form.Item>
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[{ required: true, message: "Please input the email!" }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              name="firstname"
+              label="First Name"
+              rules={[
+                { required: true, message: "Please input the first name!" },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              name="lastname"
+              label="Last Name"
+              rules={[
+                { required: true, message: "Please input the last name!" },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              name="dob"
+              label="Date of Birth (YYYY-MM-DD)"
+              rules={[
+                {
+                  required: true,
+                  message: "Please input the date of birth!",
+                },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              name="roles"
+              label="Role"
+              rules={[{ required: true, message: "Please select the role!" }]}
+            >
+              <Select mode="multiple" placeholder="Select roles">
+                {allRoles
+                  .filter((role) => getAvailableRoles().includes(role.name))
+                  .map((role) => (
+                    <Option key={role.name} value={role.name}>
+                      {role.name}
+                    </Option>
+                  ))}
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
+        <h2 style={{ marginTop: 25, fontSize: 25 }}>
+          <Descriptions
+            className="custom-descriptions"
+            title={
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "start",
+                  alignItems: "center",
+                }}
+              >
+                User List
+                {userInformation && (isAdmin || isManager) ? (
+                  <UserAddOutlined
+                    onClick={showModalNew}
+                    style={{ cursor: "pointer", marginLeft: "10px" }}
                   />
-                </Form.Item>
-                <Form.Item
-                  name="password"
-                  label="Password"
-                  rules={[
-                    { required: true, message: "Please input the password!" },
-                  ]}
-                >
-                  <Input.Password />
-                </Form.Item>
-                <Form.Item
-                  name="email"
-                  label="Email"
-                  rules={[
-                    { required: true, message: "Please input the email!" },
-                  ]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  name="firstname"
-                  label="First Name"
-                  rules={[
-                    { required: true, message: "Please input the first name!" },
-                  ]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  name="lastname"
-                  label="Last Name"
-                  rules={[
-                    { required: true, message: "Please input the last name!" },
-                  ]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  name="dob"
-                  label="Date of Birth (YYYY-MM-DD)"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please input the date of birth!",
-                    },
-                  ]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  name="roles"
-                  label="Role"
-                  rules={[
-                    { required: true, message: "Please select the role!" },
-                  ]}
-                >
-                  <Select mode="multiple" placeholder="Select roles">
-                    {allRoles
-                      .filter((role) => getAvailableRoles().includes(role.name))
-                      .map((role) => (
-                        <Option key={role.name} value={role.name}>
-                          {role.name}
-                        </Option>
-                      ))}
-                  </Select>
-                </Form.Item>
-              </Form>
-            </Modal>
-            <h2 style={{ marginTop: 25, fontSize: 25 }}>
-              <Descriptions
-                className="custom-descriptions"
-                title={
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      justifyContent: "start",
-                      alignItems: "center",
-                    }}
-                  >
-                    User List
-                    {userInformation && (isAdmin || isManager) ? (
-                      <UserAddOutlined
-                        onClick={showModalNew}
-                        style={{ cursor: "pointer", marginLeft: "10px" }}
-                      />
-                    ) : null}
-                  </div>
-                }
-                bordered
-              ></Descriptions>
-            </h2>
-            <Table dataSource={allUsers} rowKey="id">
-              <Table.Column
-                title="Email"
-                dataIndex="email"
-                key="email"
-                sorter={(a, b) => a.email.localeCompare(b.email)}
-                {...getColumnSearchProps("email")}
-              />
-              <Table.Column
-                title="First Name"
-                dataIndex="firstname"
-                key="firstname"
-              />
-              <Table.Column
-                title="Last Name"
-                dataIndex="lastname"
-                key="lastname"
-              />
-              <Table.Column
-                title="Username"
-                dataIndex="username"
-                key="username"
-                sorter={(a, b) => a.username.localeCompare(b.username)}
-                {...getColumnSearchProps("username")}
-              />
-              <Table.Column title="Date of Birth" dataIndex="dob" key="dob" />
-              <Table.Column
-                title="Role"
-                key="roles"
-                render={(text, record) =>
-                  record.roles && record.roles.length > 0
-                    ? record.roles.map((role) => (
-                        <Tag key={role.name} color={role.color}>
-                          {role.name}
-                        </Tag>
-                      ))
-                    : "No roles assigned"
-                }
-              />
-              <Table.Column
-                title="Permissions"
-                key="permissions"
-                render={(text, record) =>
-                  record.roles && record.roles.length > 0
-                    ? [
-                        ...new Set(
-                          record.roles.flatMap((role) =>
-                            role.permissions.map(
-                              (permission) => permission.name
-                            )
-                          )
-                        ),
-                      ].map((permName) => {
-                        const permission = record.roles
-                          .flatMap((role) => role.permissions)
-                          .find((p) => p.name === permName);
-                        return (
-                          <Tag key={permission.name} color={permission.color}>
-                            {permission.name}
-                          </Tag>
-                        );
-                      })
-                    : "No permissions assigned"
-                }
-              />
-              <Table.Column
-                title={
-                  <span>
-                    Edit
-                    <EditOutlined style={{ marginLeft: 8 }} />
-                  </span>
-                }
-                key="edit"
-                render={(text, record) =>
-                  (isAdmin || isManager) && (
-                    <Tag
-                      color="blue"
-                      onClick={() => showModalIdUpdate(record.id)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      Update
+                ) : null}
+              </div>
+            }
+            bordered
+          ></Descriptions>
+        </h2>
+        <Table dataSource={allUsers} rowKey="id">
+          <Table.Column
+            title="Email"
+            dataIndex="email"
+            key="email"
+            sorter={(a, b) => a.email.localeCompare(b.email)}
+            {...getColumnSearchProps("email")}
+          />
+          <Table.Column
+            title="First Name"
+            dataIndex="firstname"
+            key="firstname"
+          />
+          <Table.Column title="Last Name" dataIndex="lastname" key="lastname" />
+          <Table.Column
+            title="Username"
+            dataIndex="username"
+            key="username"
+            sorter={(a, b) => a.username.localeCompare(b.username)}
+            {...getColumnSearchProps("username")}
+          />
+          <Table.Column title="Date of Birth" dataIndex="dob" key="dob" />
+          <Table.Column
+            title="Role"
+            key="roles"
+            render={(text, record) =>
+              record.roles && record.roles.length > 0
+                ? record.roles.map((role) => (
+                    <Tag key={role.name} color={role.color}>
+                      {role.name}
                     </Tag>
-                  )
-                }
-              />
-              <Table.Column
-                title={
-                  <span>
-                    Delete
-                    <DeleteOutlined style={{ marginLeft: 8 }} />
-                  </span>
-                }
-                key="delete"
-                render={(text, record) =>
-                  isAdmin && (
-                    <Tag
-                      color="red"
-                      onClick={() => showDeleteConfirm(record.id)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      Delete
-                    </Tag>
-                  )
-                }
-              />
-            </Table>
-          </Content>
-          <Footer style={{ textAlign: "center" }}>
-            My Application ©{new Date().getFullYear()} Created by Tu Phung
-          </Footer>
-        </Layout>
-      </Layout>
+                  ))
+                : "No roles assigned"
+            }
+          />
+          <Table.Column
+            title="Permissions"
+            key="permissions"
+            render={(text, record) =>
+              record.roles && record.roles.length > 0
+                ? [
+                    ...new Set(
+                      record.roles.flatMap((role) =>
+                        role.permissions.map((permission) => permission.name)
+                      )
+                    ),
+                  ].map((permName) => {
+                    const permission = record.roles
+                      .flatMap((role) => role.permissions)
+                      .find((p) => p.name === permName);
+                    return (
+                      <Tag key={permission.name} color={permission.color}>
+                        {permission.name}
+                      </Tag>
+                    );
+                  })
+                : "No permissions assigned"
+            }
+          />
+          <Table.Column
+            title={
+              <span>
+                Edit
+                <EditOutlined style={{ marginLeft: 8 }} />
+              </span>
+            }
+            key="edit"
+            render={(text, record) =>
+              (isAdmin || isManager) && (
+                <Tag
+                  color="blue"
+                  onClick={() => showModalIdUpdate(record.id)}
+                  style={{ cursor: "pointer" }}
+                >
+                  Update
+                </Tag>
+              )
+            }
+          />
+          <Table.Column
+            title={
+              <span>
+                Delete
+                <DeleteOutlined style={{ marginLeft: 8 }} />
+              </span>
+            }
+            key="delete"
+            render={(text, record) =>
+              isAdmin && (
+                <Tag
+                  color="red"
+                  onClick={() => showDeleteConfirm(record.id)}
+                  style={{ cursor: "pointer" }}
+                >
+                  Delete
+                </Tag>
+              )
+            }
+          />
+        </Table>
+      </Content>
     </Layout>
   );
 };

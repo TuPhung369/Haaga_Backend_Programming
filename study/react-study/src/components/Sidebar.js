@@ -1,10 +1,11 @@
 import { Layout, Menu } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const { Sider } = Layout;
 
-const Sidebar = ({ defaultSelectedKey }: { defaultSelectedKey?: string }) => {
+const Sidebar = ({ defaultSelectedKey }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const menuItems = [
     { key: "1", label: "Home", path: "/" },
@@ -18,7 +19,11 @@ const Sidebar = ({ defaultSelectedKey }: { defaultSelectedKey?: string }) => {
     <Sider width={200} className="site-layout-background">
       <Menu
         mode="inline"
-        defaultSelectedKeys={[defaultSelectedKey || "1"]}
+        selectedKeys={[
+          menuItems.find((item) => item.path === location.pathname)?.key ||
+            defaultSelectedKey ||
+            "1",
+        ]}
         style={{ height: "100%", borderRight: 0 }}
       >
         {menuItems.map(({ key, label, path }) => (
@@ -32,3 +37,4 @@ const Sidebar = ({ defaultSelectedKey }: { defaultSelectedKey?: string }) => {
 };
 
 export default Sidebar;
+

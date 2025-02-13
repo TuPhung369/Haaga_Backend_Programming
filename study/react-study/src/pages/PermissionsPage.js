@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 import {
   getAllPermissions,
   deletePermission,
   createPermission,
 } from "../services/permissionService";
 import { getMyInfo } from "../services/userService";
-import CustomButton from "../components/CustomButton";
 import {
   Layout,
   Table,
@@ -20,7 +17,7 @@ import {
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 const { Option } = Select;
 export const permissionColors = [
   "#FF4D4F",
@@ -49,7 +46,6 @@ export const permissionOptions = [
 ];
 
 const PermissionPage = () => {
-  const navigate = useNavigate();
   const [permissions, setPermissions] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [userInformation, setUserInformation] = useState(null); // Add user information state
@@ -124,12 +120,6 @@ const PermissionPage = () => {
     setIsModalVisible(false);
   };
 
-  const handleLogout = () => {
-    localStorage.setItem("isAuthenticated", "false");
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
-
   const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
   const isManager = userInformation?.roles.some(
     (role) => role.name === "MANAGER"
@@ -146,108 +136,71 @@ const PermissionPage = () => {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header
-        style={{
-          background: "#001529",
-          color: "white",
-          padding: "0 16px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            color: "white",
-          }}
-        >
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <h1 style={{ margin: 0 }}>Permission List</h1>
-          </div>
-          <CustomButton onClick={handleLogout} type="primary">
-            Logout
-          </CustomButton>
-        </div>
-      </Header>
-
-      <Layout>
-        <Sidebar defaultSelectedKey="2" />
-
-        <Layout style={{ padding: "0 24px 24px" }}>
-          <Content style={{ margin: "24px 0" }}>
-            <h2 style={{ marginTop: 25, fontSize: 25 }}>
-              <Descriptions
-                className="custom-descriptions"
-                title={
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      justifyContent: "start",
-                      alignItems: "center",
-                    }}
-                  >
-                    Permission List
-                    {userInformation && (isAdmin || isManager) ? (
-                      <PlusCircleOutlined
-                        onClick={showModal}
-                        style={{ cursor: "pointer", marginLeft: "10px" }}
-                      />
-                    ) : null}
-                  </div>
-                }
-                bordered
-              ></Descriptions>
-            </h2>
-            <Table dataSource={permissions} rowKey="name">
-              <Table.Column
-                title="Permission Name"
-                dataIndex="name"
-                key="name"
-              />
-              <Table.Column
-                title="Description"
-                dataIndex="description"
-                key="description"
-              />
-              <Table.Column
-                title="Color"
-                dataIndex="color"
-                key="color"
-                render={(text) => (
-                  <Tag color={text} style={{ cursor: "pointer" }}>
-                    {text}
-                  </Tag>
-                )}
-              />
-              <Table.Column
-                title={
-                  <span>
-                    Delete
-                    <DeleteOutlined style={{ marginLeft: 8 }} />
-                  </span>
-                }
-                key="delete"
-                render={(text, record) =>
-                  isAdmin && (
-                    <Tag
-                      color="red"
-                      onClick={() => handleDeletePermission(record.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      Delete
-                    </Tag>
-                  )
-                }
-              />
-            </Table>
-          </Content>
-          <Footer style={{ textAlign: "center" }}>
-            My Application ©{new Date().getFullYear()} Created by Tu Phung
-          </Footer>
-        </Layout>
-      </Layout>
+    <Layout style={{ padding: "0 24px 24px" }}>
+      <Content style={{ margin: "24px 0" }}>
+        <h2 style={{ marginTop: 25, fontSize: 25 }}>
+          <Descriptions
+            className="custom-descriptions"
+            title={
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "start",
+                  alignItems: "center",
+                }}
+              >
+                Permission List
+                {userInformation && (isAdmin || isManager) ? (
+                  <PlusCircleOutlined
+                    onClick={showModal}
+                    style={{ cursor: "pointer", marginLeft: "10px" }}
+                  />
+                ) : null}
+              </div>
+            }
+            bordered
+          ></Descriptions>
+        </h2>
+        <Table dataSource={permissions} rowKey="name">
+          <Table.Column title="Permission Name" dataIndex="name" key="name" />
+          <Table.Column
+            title="Description"
+            dataIndex="description"
+            key="description"
+          />
+          <Table.Column
+            title="Color"
+            dataIndex="color"
+            key="color"
+            render={(text) => (
+              <Tag color={text} style={{ cursor: "pointer" }}>
+                {text}
+              </Tag>
+            )}
+          />
+          <Table.Column
+            title={
+              <span>
+                Delete
+                <DeleteOutlined style={{ marginLeft: 8 }} />
+              </span>
+            }
+            key="delete"
+            render={(text, record) =>
+              isAdmin && (
+                <Tag
+                  color="red"
+                  onClick={() => handleDeletePermission(record.name)}
+                  style={{ cursor: "pointer" }}
+                >
+                  Delete
+                </Tag>
+              )
+            }
+          />
+        </Table>
+      </Content>
 
       <Modal
         title="Add Permission"

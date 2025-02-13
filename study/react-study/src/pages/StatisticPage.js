@@ -1,7 +1,4 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import CustomButton from "../components/CustomButton";
-import Sidebar from "../components/Sidebar";
 import { getAllUsers, getMyInfo } from "../services/userService";
 import {
   BarChart,
@@ -19,7 +16,7 @@ import {
 import { getAllRoles } from "../services/roleService";
 import { Layout, notification } from "antd";
 
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 
 const COLORS = [
   "#0088FE",
@@ -37,7 +34,6 @@ const COLORS = [
 ];
 
 const UserListPage = () => {
-  const navigate = useNavigate();
   const [userInformation, setUserInformation] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [allRoles, setAllRoles] = useState([]);
@@ -192,159 +188,194 @@ const UserListPage = () => {
     }
   }, [isAuthenticated, fetchRoles, fetchMyInfo, fetchAllUsers]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setIsAuthenticated(false);
-    navigate("/login");
-  };
-
   // const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
   // const isManager = userInformation?.roles.some(
   //   (role) => role.name === "MANAGER"
   // );
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header
+    <Layout
+      style={{
+        width: "100%",
+        padding: "0 24px 24px",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <Content
         style={{
-          background: "#001529",
-          color: "white",
-          padding: "0 16px",
+          width: "100%",
+          margin: "24px 0",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "space-between",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            color: "white",
-          }}
-        >
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <h1 className="animated-title">
-              Welcome Spring Boot and ReactJS - FullStack
-            </h1>
-          </div>
-          <CustomButton onClick={handleLogout} type="primary">
-            Logout
-          </CustomButton>
-        </div>
-      </Header>
-
-      <Layout>
-        <Sidebar defaultSelectedKey="2" />
-
-        <Layout style={{ padding: "0 24px 24px" }}>
-          <Content
-            style={{ margin: "24px 0" }}
-            className="flex flex-col items-center"
+        {contextHolder}
+        <div>
+          {/* Row 1 - Bar Chart */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "left",
+            }}
           >
-            {contextHolder}
-            <div className="flex flex-col items-center">
-              {/* Row 1 - Bar Chart */}
-              <div className="flex justify-center w-full mb-8">
-                <div className="w-1/2">
-                  <h2>Total Users by Role</h2>
-                  <ResponsiveContainer width="50%" height={400}>
-                    <BarChart
-                      data={barChartData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <XAxis
-                        dataKey="name"
-                        angle={0}
-                        textAnchor="end"
-                        height={70}
+            <div
+              style={{
+                width: "100%",
+                margin: "0 10px",
+              }}
+            >
+              <h2>Total Users by Role</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={barChartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <XAxis
+                    dataKey="name"
+                    angle={0}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="users" name="Total Users">
+                    {barChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
                       />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="users" name="Total Users">
-                        {barChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                        <LabelList
-                          dataKey="users"
-                          position="top"
-                          fill="#000"
-                          style={{ fontSize: "14px", fontWeight: "bold" }}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Row 2 - Pie Charts */}
-              <div className="flex flex-row justify-center w-full mb-8">
-                <div className="w-1/2 px-4">
-                  <h2>Role Distribution</h2>
-                  <ResponsiveContainer width="50%" height={400}>
-                    <PieChart>
-                      <Pie
-                        data={pieChartData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={150}
-                        fill="#8884d8"
-                        label={({ name, value }) =>
-                          `${name}: ${parseFloat(value).toFixed(1)}%`
-                        }
-                      >
-                        {pieChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[(index + 4) % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="w-1/2 px-4">
-                  <h2>Role Distribution (with Inner Radius)</h2>
-                  <ResponsiveContainer width="50%" height={400}>
-                    <PieChart>
-                      <Pie
-                        data={pieChartData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={150}
-                        innerRadius={70}
-                        fill="#8884d8"
-                        label={({ name, value }) =>
-                          `${name}: ${parseFloat(value).toFixed(1)}%`
-                        }
-                      >
-                        {pieChartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[(index + 3) % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+                    ))}
+                    <LabelList
+                      dataKey="users"
+                      position="top"
+                      fill="#000"
+                      style={{ fontSize: "14px", fontWeight: "bold" }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          </Content>
-          <Footer style={{ textAlign: "center" }}>
-            My Application ©{new Date().getFullYear()} Created by Tu Phung
-          </Footer>
-        </Layout>
-      </Layout>
+            <div
+              style={{
+                width: "100%",
+                margin: "0 10px",
+              }}
+            >
+              <h2>Total Users by Role</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={barChartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <XAxis
+                    dataKey="name"
+                    angle={0}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="users" name="Total Users">
+                    {barChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[(index + 6) % COLORS.length]}
+                      />
+                    ))}
+                    <LabelList
+                      dataKey="users"
+                      position="top"
+                      fill="#000"
+                      style={{ fontSize: "14px", fontWeight: "bold" }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Row 2 - Pie Charts */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "left",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                margin: "0 10px",
+              }}
+            >
+              <h2>Role Distribution</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={150}
+                    fill="#8884d8"
+                    label={({ name, value }) =>
+                      `${name}: ${parseFloat(value).toFixed(1)}%`
+                    }
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[(index + 4) % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div
+              style={{
+                width: "100%",
+                margin: "0 10px",
+              }}
+            >
+              <h2>Role Distribution (with Inner Radius)</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={150}
+                    innerRadius={70}
+                    fill="#8884d8"
+                    label={({ name, value }) =>
+                      `${name}: ${parseFloat(value).toFixed(1)}%`
+                    }
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[(index + 3) % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </Content>
     </Layout>
   );
 };

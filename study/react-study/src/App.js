@@ -13,7 +13,12 @@ import RolesPage from "./pages/RolesPage";
 import PermissionsPage from "./pages/PermissionsPage";
 import OAuth2RedirectHandler from "./components/OAuth2RedirectHandler";
 import StatisticPage from "./pages/StatisticPage";
+import HeaderCustom from "./components/HeaderCustom";
+import Sidebar from "./components/Sidebar";
 import { introspectToken } from "./services/authService";
+import { Layout } from "antd";
+
+const { Content, Footer } = Layout;
 
 const AuthWrapper = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -58,7 +63,18 @@ const App = () => (
         path="/"
         element={
           <AuthWrapper>
-            <HomePage />
+            <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+              <HeaderCustom />
+              <Layout>
+                <Sidebar />
+                <Content style={{ padding: "0" }}>
+                  <HomePage />
+                </Content>
+              </Layout>
+              <Footer style={{ textAlign: "center", background: "white" }}>
+                The Application ©2024 Created by Tu Phung
+              </Footer>
+            </Layout>
           </AuthWrapper>
         }
       />
@@ -66,7 +82,18 @@ const App = () => (
         path="/userList"
         element={
           <AuthWrapper>
-            <UserListPage />
+            <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+              <HeaderCustom />
+              <Layout>
+                <Sidebar />
+                <Content style={{ padding: "0" }}>
+                  <UserListPage />
+                </Content>
+              </Layout>
+              <Footer style={{ textAlign: "center", background: "white" }}>
+                The Application ©2024 Created by Tu Phung
+              </Footer>
+            </Layout>
           </AuthWrapper>
         }
       />
@@ -74,7 +101,18 @@ const App = () => (
         path="/roles"
         element={
           <AuthWrapper>
-            <RolesPage />
+            <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+              <HeaderCustom />
+              <Layout>
+                <Sidebar />
+                <Content style={{ padding: "0" }}>
+                  <RolesPage />
+                </Content>
+              </Layout>
+              <Footer style={{ textAlign: "center", background: "white" }}>
+                The Application ©2024 Created by Tu Phung
+              </Footer>
+            </Layout>
           </AuthWrapper>
         }
       />
@@ -82,7 +120,18 @@ const App = () => (
         path="/permissions"
         element={
           <AuthWrapper>
-            <PermissionsPage />
+            <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+              <HeaderCustom />
+              <Layout>
+                <Sidebar />
+                <Content style={{ padding: "0" }}>
+                  <PermissionsPage />
+                </Content>
+              </Layout>
+              <Footer style={{ textAlign: "center", background: "white" }}>
+                The Application ©2024 Created by Tu Phung
+              </Footer>
+            </Layout>
           </AuthWrapper>
         }
       />
@@ -90,7 +139,18 @@ const App = () => (
         path="/statistics"
         element={
           <AuthWrapper>
-            <StatisticPage />
+            <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+              <HeaderCustom />
+              <Layout>
+                <Sidebar />
+                <Content style={{ padding: "0" }}>
+                  <StatisticPage />
+                </Content>
+              </Layout>
+              <Footer style={{ textAlign: "center", background: "white" }}>
+                The Application ©2024 Created by Tu Phung
+              </Footer>
+            </Layout>
           </AuthWrapper>
         }
       />
