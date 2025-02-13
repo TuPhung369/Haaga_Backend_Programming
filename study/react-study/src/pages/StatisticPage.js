@@ -1,17 +1,20 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { getAllUsers, getMyInfo } from "../services/userService";
 import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
   BarChart,
   Bar,
+  LineChart,
+  Line,
+  ComposedChart,
   XAxis,
   YAxis,
   Tooltip,
   Legend,
   LabelList,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 import { getAllRoles } from "../services/roleService";
 import { Layout, notification } from "antd";
@@ -31,6 +34,8 @@ const COLORS = [
   "#CC99FF",
   "#FF3366",
   "#00B3B3",
+  "#FFFFFF",
+  "#000000",
 ];
 
 const UserListPage = () => {
@@ -43,8 +48,8 @@ const UserListPage = () => {
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState(null);
 
-  const [barChartData, setBarChartData] = useState([]);
-  const [pieChartData, setPieChartData] = useState([]);
+  const [quantityChartData, setQuantityChartData] = useState([]);
+  const [percentChartData, setPercentChartData] = useState([]);
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
       api[type]({
@@ -99,21 +104,21 @@ const UserListPage = () => {
         }, {});
 
         // Map role counts to chartData
-        const barChartData = Object.keys(roleCounts).map((role) => ({
+        const quantityChartData = Object.keys(roleCounts).map((role) => ({
           name: role,
-          users: roleCounts[role],
+          value: roleCounts[role],
         }));
-        setBarChartData(barChartData);
+        setQuantityChartData(quantityChartData);
 
         const totalUsers = Object.values(roleCounts).reduce(
           (sum, count) => sum + count,
           0
         );
-        const pieChartData = Object.keys(roleCounts).map((role) => ({
+        const percentChartData = Object.keys(roleCounts).map((role) => ({
           name: role,
           value: (roleCounts[role] / totalUsers) * 100,
         }));
-        setPieChartData(pieChartData);
+        setPercentChartData(percentChartData);
       } else {
         console.error("Response is not an array");
         setAllUsers([]);
@@ -192,6 +197,57 @@ const UserListPage = () => {
   // const isManager = userInformation?.roles.some(
   //   (role) => role.name === "MANAGER"
   // );
+  const renderCustomBarLabel = ({ x, y, width, value }) => (
+    <text
+      x={x + width / 2}
+      y={y - 10}
+      fill={COLORS[13]}
+      textAnchor="middle"
+      style={{ fontSize: "14px", fontWeight: "bold" }}
+    >
+      {`${parseFloat(value).toFixed(1)}%`}
+    </text>
+  );
+  const CustomTooltipQuantity = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "10px",
+            borderRadius: "5px",
+            boxShadow: "0px 0px 5px rgba(0, 0, 0, 0.2)",
+          }}
+        >
+          <p>
+            <strong>Total Users</strong>: {label} Role is{" "}
+            <strong>{payload[0].value}</strong>
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+  const CustomTooltipPercent = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "10px",
+            borderRadius: "5px",
+            boxShadow: "0px 0px 5px rgba(0, 0, 0, 0.2)",
+          }}
+        >
+          <p>
+            <strong>Role Distribution</strong>: {label} with{" "}
+            <strong>{parseFloat(payload[0].value).toFixed(1)}%</strong>
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <Layout
@@ -217,41 +273,44 @@ const UserListPage = () => {
           <div
             style={{
               display: "flex",
+              height: "450px",
               flexDirection: "row",
               alignItems: "left",
             }}
           >
             <div
+              className="Bar Chart show by Quantity"
               style={{
                 width: "100%",
+                height: "400px",
                 margin: "0 10px",
               }}
             >
-              <h2>Total Users by Role</h2>
+              <h2>Total Users (Bar)</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart
-                  data={barChartData}
+                  data={quantityChartData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <XAxis
                     dataKey="name"
                     angle={0}
-                    textAnchor="end"
+                    textAnchor="middle"
                     height={70}
                   />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="users" name="Total Users">
-                    {barChartData.map((entry, index) => (
+                  <Tooltip content={CustomTooltipQuantity} />
+                  <Bar dataKey="value" name="Total Users">
+                    {quantityChartData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
                       />
                     ))}
                     <LabelList
-                      dataKey="users"
+                      dataKey="value"
                       position="top"
-                      fill="#000"
+                      fill={COLORS[13]}
                       style={{ fontSize: "14px", fontWeight: "bold" }}
                     />
                   </Bar>
@@ -259,40 +318,131 @@ const UserListPage = () => {
               </ResponsiveContainer>
             </div>
             <div
+              className="Bar Chart show by Percent"
               style={{
                 width: "100%",
+                height: "400px",
                 margin: "0 10px",
               }}
             >
-              <h2>Total Users by Role</h2>
+              <h2>Total Users (Bar %)</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart
-                  data={barChartData}
+                  data={percentChartData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <XAxis
                     dataKey="name"
                     angle={0}
-                    textAnchor="end"
+                    textAnchor="middle"
                     height={70}
                   />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="users" name="Total Users">
-                    {barChartData.map((entry, index) => (
+                  <Tooltip content={CustomTooltipPercent} />
+                  <Bar dataKey="value" name="Total Users">
+                    {percentChartData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[(index + 6) % COLORS.length]}
                       />
                     ))}
                     <LabelList
-                      dataKey="users"
+                      dataKey="value"
                       position="top"
-                      fill="#000"
-                      style={{ fontSize: "14px", fontWeight: "bold" }}
+                      content={renderCustomBarLabel}
                     />
                   </Bar>
                 </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div
+              className="Line Chart show by Quantity"
+              style={{ width: "100%", height: "400px", margin: "0 10px" }}
+            >
+              <h2>Total Users (Line)</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart
+                  data={quantityChartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip content={CustomTooltipQuantity} />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={COLORS[0]}
+                    strokeWidth={2}
+                    dot={{ r: 5 }}
+                    label={({ x, y, value, index }) => {
+                      const textAnchor =
+                        index === 0
+                          ? "start"
+                          : index === percentChartData.length - 1
+                          ? "end"
+                          : "middle";
+
+                      return (
+                        <text
+                          x={x}
+                          y={y - 10}
+                          fill={COLORS[13]}
+                          textAnchor={textAnchor}
+                          fontSize={14}
+                          fontWeight="bold"
+                        >
+                          {value}
+                        </text>
+                      );
+                    }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div
+              className="Line Chart show by Percent"
+              style={{ width: "100%", height: "400px", margin: "0 10px" }}
+            >
+              <h2>Total Users (Line %)</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart
+                  data={percentChartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip content={CustomTooltipPercent} />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={COLORS[2]}
+                    strokeWidth={2}
+                    dot={{ r: 5 }}
+                    label={({ x, y, value, index }) => {
+                      const textAnchor =
+                        index === 0
+                          ? "start"
+                          : index === percentChartData.length - 1
+                          ? "end"
+                          : "middle";
+
+                      return (
+                        <text
+                          x={x}
+                          y={y - 10}
+                          fill={COLORS[13]}
+                          textAnchor={textAnchor}
+                          fontSize={14}
+                          fontWeight="bold"
+                        >
+                          {parseFloat(value).toFixed(1)}%
+                        </text>
+                      );
+                    }}
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -308,6 +458,7 @@ const UserListPage = () => {
             <div
               style={{
                 width: "100%",
+                height: "400px",
                 margin: "0 10px",
               }}
             >
@@ -315,25 +466,23 @@ const UserListPage = () => {
               <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie
-                    data={pieChartData}
+                    data={percentChartData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius={150}
-                    fill="#8884d8"
-                    label={({ name, value }) =>
-                      `${name}: ${parseFloat(value).toFixed(1)}%`
-                    }
+                    fill={COLORS[0]}
+                    label={({ value }) => `${parseFloat(value).toFixed(1)}%`}
                   >
-                    {pieChartData.map((entry, index) => (
+                    {percentChartData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[(index + 4) % COLORS.length]}
                       />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip content={CustomTooltipPercent} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -349,28 +498,113 @@ const UserListPage = () => {
               <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie
-                    data={pieChartData}
+                    data={percentChartData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius={150}
                     innerRadius={70}
-                    fill="#8884d8"
-                    label={({ name, value }) =>
-                      `${name}: ${parseFloat(value).toFixed(1)}%`
-                    }
+                    fill={COLORS[0]}
+                    label={({ value }) => `${parseFloat(value).toFixed(1)}%`}
                   >
-                    {pieChartData.map((entry, index) => (
+                    {percentChartData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[(index + 3) % COLORS.length]}
                       />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip content={CustomTooltipPercent} />
                   <Legend />
                 </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Composed Chart (Bar + Line) */}
+            <div
+              style={{
+                width: "100%",
+                height: "400px",
+                margin: "0 10px",
+              }}
+            >
+              <h2>Total Users (Bar + Line)</h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <ComposedChart
+                  data={quantityChartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  {/* X Axis */}
+                  <XAxis
+                    dataKey="name"
+                    angle={0}
+                    textAnchor="end"
+                    height={70}
+                  />
+
+                  {/* Y Axis */}
+                  <YAxis />
+
+                  <Tooltip content={CustomTooltipPercent} />
+
+                  {/* Bar for Total Users */}
+                  <Bar dataKey="value" name="Total Users">
+                    {quantityChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                    <LabelList
+                      dataKey="value"
+                      position="middle"
+                      fill={COLORS[8]}
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        color: "blue",
+                      }}
+                    />
+                  </Bar>
+
+                  {/* Line for Percent */}
+                  <Line
+                    type="monotone"
+                    data={percentChartData}
+                    dataKey="value"
+                    stroke={COLORS[3]}
+                    strokeWidth={2}
+                    dot={{ r: 5 }}
+                    label={({ x, y, value, index }) => {
+                      const textAnchor =
+                        index === 0
+                          ? "end"
+                          : index === percentChartData.length - 1
+                          ? "start"
+                          : "middle";
+
+                      return (
+                        <text
+                          x={
+                            index === 0
+                              ? x + 20
+                              : index === percentChartData.length - 1
+                              ? x - 20
+                              : x
+                          }
+                          y={y - 15}
+                          fill={COLORS[0]}
+                          textAnchor={textAnchor}
+                          fontSize={14}
+                          fontWeight="bold"
+                        >
+                          {parseFloat(value).toFixed(1)}%
+                        </text>
+                      );
+                    }}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>

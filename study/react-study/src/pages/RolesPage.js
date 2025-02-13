@@ -151,7 +151,7 @@ const RolesPage = () => {
   };
 
   return (
-    <Layout style={{ padding: "0 24px 24px" }}>
+    <Layout style={{ padding: "0 24px" }}>
       <Content style={{ margin: "24px 0" }}>
         <h2 style={{ marginTop: 25, fontSize: 25 }}>
           <Descriptions

@@ -16,7 +16,12 @@ const Sidebar = ({ defaultSelectedKey }) => {
   ];
 
   return (
-    <Sider width={200} className="site-layout-background">
+    <Sider
+      width={200}
+      height="100%"
+      style={{ borderColor: "transparent" }}
+      className="site-layout-background"
+    >
       <Menu
         mode="inline"
         selectedKeys={[
