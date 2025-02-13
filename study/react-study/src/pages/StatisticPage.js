@@ -284,7 +284,7 @@ const UserListPage = () => {
     );
   };
 
-  const CustomTooltipQuantity = ({ active, payload, label }) => {
+  const customTooltipQuantity = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
         <div
@@ -304,7 +304,7 @@ const UserListPage = () => {
     }
     return null;
   };
-  const CustomTooltipPercent = ({ active, payload, label }) => {
+  const customTooltipPercent = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
         <div
@@ -348,7 +348,7 @@ const UserListPage = () => {
       >
         {contextHolder}
         <div>
-          {/* Row 1 - Bar Chart */}
+          {/* Row 1 - Bar Chart - Line Chart*/}
           <div
             style={{
               display: "flex",
@@ -357,6 +357,7 @@ const UserListPage = () => {
               alignItems: "left",
             }}
           >
+            {/* Bar Chart show by Quantity */}
             <div
               className="Bar Chart show by Quantity"
               style={{
@@ -395,7 +396,7 @@ const UserListPage = () => {
                     }}
                   />
                   <YAxis domain={[yAxisStartQuantity, "auto"]} />
-                  <Tooltip content={CustomTooltipQuantity} />
+                  <Tooltip content={customTooltipQuantity} />
                   <Bar dataKey="value" name="Total Users">
                     {quantityChartData.map((entry, index) => (
                       <Cell
@@ -412,6 +413,8 @@ const UserListPage = () => {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Bar Chart show by Percent */}
             <div
               className="Bar Chart show by Percent"
               style={{
@@ -451,7 +454,7 @@ const UserListPage = () => {
                   />
 
                   <YAxis domain={[yAxisStartPercent, "auto"]} />
-                  <Tooltip content={CustomTooltipPercent} />
+                  <Tooltip content={customTooltipPercent} />
                   <Bar dataKey="value" name="Total Users">
                     {percentChartData.map((entry, index) => (
                       <Cell
@@ -469,9 +472,14 @@ const UserListPage = () => {
               </ResponsiveContainer>
             </div>
 
+            {/* Line Chart show by Quantity */}
             <div
               className="Line Chart show by Quantity"
-              style={{ width: "100%", height: "400px", margin: "0 10px" }}
+              style={{
+                width: "100%",
+                height: "400px",
+                margin: "0 10px",
+              }}
             >
               <h2>Total Users (Line)</h2>
               <ResponsiveContainer width="100%" height={400}>
@@ -488,10 +496,11 @@ const UserListPage = () => {
                     interval={0}
                     tick={({ x, y, payload, index }) => {
                       const color = COLORS[index % COLORS.length];
-
+                      const xAdjusted =
+                        index === quantityChartData.length - 1 ? x - 20 : x;
                       return (
                         <text
-                          x={x}
+                          x={xAdjusted}
                           y={y + 15}
                           fill={color}
                           textAnchor="middle"
@@ -503,7 +512,7 @@ const UserListPage = () => {
                     }}
                   />
                   <YAxis domain={[yAxisStartQuantity, "auto"]} />
-                  <Tooltip content={CustomTooltipQuantity} />
+                  <Tooltip content={customTooltipQuantity} />
                   <Line
                     type="monotone"
                     dataKey="value"
@@ -521,6 +530,7 @@ const UserListPage = () => {
               </ResponsiveContainer>
             </div>
 
+            {/* Line Chart show by Percent */}
             <div
               className="Line Chart show by Percent"
               style={{ width: "100%", height: "400px", margin: "0 10px" }}
@@ -540,10 +550,11 @@ const UserListPage = () => {
                     interval={0}
                     tick={({ x, y, payload, index }) => {
                       const color = COLORS[(index + 6) % COLORS.length];
-
+                      const xAdjusted =
+                        index === quantityChartData.length - 1 ? x - 20 : x;
                       return (
                         <text
-                          x={x}
+                          x={xAdjusted}
                           y={y + 15}
                           fill={color}
                           textAnchor="middle"
@@ -555,7 +566,7 @@ const UserListPage = () => {
                     }}
                   />
                   <YAxis domain={[yAxisStartPercent, "auto"]} />
-                  <Tooltip content={CustomTooltipPercent} />
+                  <Tooltip content={customTooltipPercent} />
                   <Line
                     type="monotone"
                     dataKey="value"
@@ -563,7 +574,6 @@ const UserListPage = () => {
                     strokeWidth={2}
                     dot={{ r: 5 }}
                   >
-                    {/* Apply LabelList to LineChart */}
                     <LabelList
                       dataKey="value"
                       position="top"
@@ -610,7 +620,7 @@ const UserListPage = () => {
                       />
                     ))}
                   </Pie>
-                  <Tooltip content={CustomTooltipPercent} />
+                  <Tooltip content={customTooltipPercent} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -643,7 +653,7 @@ const UserListPage = () => {
                       />
                     ))}
                   </Pie>
-                  <Tooltip content={CustomTooltipPercent} />
+                  <Tooltip content={customTooltipPercent} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -707,7 +717,7 @@ const UserListPage = () => {
                     label={{ value: "%", angle: -90, position: "insideRight" }}
                   />
 
-                  <Tooltip content={CustomTooltipPercent} />
+                  <Tooltip content={customTooltipPercent} />
 
                   {/* Bar for Total Users */}
                   <Bar dataKey="value" name="Total Users" yAxisId="left">
