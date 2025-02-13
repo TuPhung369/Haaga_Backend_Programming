@@ -280,9 +280,11 @@ const UserListPage = () => {
                 >
                   <XAxis
                     dataKey="name"
+                    tickMargin={10}
                     angle={0}
                     textAnchor="middle"
                     height={70}
+                    interval={0}
                   />
                   <YAxis domain={[yAxisStartQuantity, "auto"]} />
                   <Tooltip content={CustomTooltipQuantity} />
@@ -319,9 +321,11 @@ const UserListPage = () => {
                 >
                   <XAxis
                     dataKey="name"
+                    tickMargin={10}
                     angle={0}
                     textAnchor="middle"
                     height={70}
+                    interval={0}
                   />
                   <YAxis domain={[yAxisStartPercent, "auto"]} />
                   <Tooltip content={CustomTooltipPercent} />
