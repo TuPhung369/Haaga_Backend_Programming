@@ -522,8 +522,14 @@ const UserListPage = () => {
             title="First Name"
             dataIndex="firstname"
             key="firstname"
+            sorter={(a, b) => a.firstname.localeCompare(b.firstname)}
           />
-          <Table.Column title="Last Name" dataIndex="lastname" key="lastname" />
+          <Table.Column
+            title="Last Name"
+            dataIndex="lastname"
+            key="lastname"
+            sorter={(a, b) => a.lastname.localeCompare(b.lastname)}
+          />
           <Table.Column
             title="Username"
             dataIndex="username"
