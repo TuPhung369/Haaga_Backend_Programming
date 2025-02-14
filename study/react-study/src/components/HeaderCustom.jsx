@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Layout, notification } from "antd";
 import { useNavigate } from "react-router-dom";
-import CustomButton from "../components/CustomButton";
+import CustomButton from "./CustomButton";
 
 const { Header } = Layout;
 
