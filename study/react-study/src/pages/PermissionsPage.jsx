@@ -179,16 +179,16 @@ const PermissionPage = () => {
               </Tag>
             )}
           />
-          <Table.Column
-            title={
-              <span>
-                Delete
-                <DeleteOutlined style={{ marginLeft: 8 }} />
-              </span>
-            }
-            key="delete"
-            render={(text, record) =>
-              isAdmin && (
+          {(isAdmin || isManager) && (
+            <Table.Column
+              title={
+                <span>
+                  Delete
+                  <DeleteOutlined style={{ marginLeft: 8 }} />
+                </span>
+              }
+              key="delete"
+              render={(text, record) => (
                 <Tag
                   color="red"
                   onClick={() => handleDeletePermission(record.name)}
@@ -196,9 +196,9 @@ const PermissionPage = () => {
                 >
                   Delete
                 </Tag>
-              )
-            }
-          />
+              )}
+            />
+          )}
         </Table>
       </Content>
 

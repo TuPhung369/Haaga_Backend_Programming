@@ -207,16 +207,16 @@ const RolesPage = () => {
                 : "No permissions assigned"
             }
           />
-          <Table.Column
-            title={
-              <span>
-                Delete
-                <DeleteOutlined style={{ marginLeft: 8 }} />
-              </span>
-            }
-            key="delete"
-            render={(text, record) =>
-              isAdmin && (
+          {(isAdmin || isManager) && (
+            <Table.Column
+              title={
+                <span>
+                  Delete
+                  <DeleteOutlined style={{ marginLeft: 8 }} />
+                </span>
+              }
+              key="delete"
+              render={(text, record) => (
                 <Tag
                   color="red"
                   onClick={() => handleDeleteRole(record.name)}
@@ -224,9 +224,9 @@ const RolesPage = () => {
                 >
                   Delete
                 </Tag>
-              )
-            }
-          />
+              )}
+            />
+          )}
         </Table>
       </Content>
 
