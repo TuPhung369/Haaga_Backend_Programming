@@ -510,7 +510,7 @@ const UserListPage = () => {
             bordered
           ></Descriptions>
         </h2>
-        <Table dataSource={allUsers} rowKey="id">
+        <Table dataSource={allUsers} rowKey="id" pagination={{ pageSize: 13 }}>
           <Table.Column
             title="Email"
             dataIndex="email"
