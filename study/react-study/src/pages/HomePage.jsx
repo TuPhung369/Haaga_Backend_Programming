@@ -674,16 +674,16 @@ const HomePage = () => {
                 : "No permissions assigned"
             }
           />
-          <Table.Column
-            title={
-              <span>
-                Edit
-                <EditOutlined style={{ marginLeft: 8 }} />
-              </span>
-            }
-            key="edit"
-            render={(text, record) =>
-              (isAdmin || isManager) && (
+          {(isAdmin || isManager) && (
+            <Table.Column
+              title={
+                <span>
+                  Edit
+                  <EditOutlined style={{ marginLeft: 8 }} />
+                </span>
+              }
+              key="edit"
+              render={(text, record) => (
                 <Tag
                   color="blue"
                   onClick={() => showModalIdUpdate(record.id)}
@@ -691,19 +691,19 @@ const HomePage = () => {
                 >
                   Update
                 </Tag>
-              )
-            }
-          />
-          <Table.Column
-            title={
-              <span>
-                Delete
-                <DeleteOutlined style={{ marginLeft: 8 }} />
-              </span>
-            }
-            key="delete"
-            render={(text, record) =>
-              isAdmin && (
+              )}
+            />
+          )}
+          {isAdmin && (
+            <Table.Column
+              title={
+                <span>
+                  Delete
+                  <DeleteOutlined style={{ marginLeft: 8 }} />
+                </span>
+              }
+              key="delete"
+              render={(text, record) => (
                 <Tag
                   color="red"
                   onClick={() => showDeleteConfirm(record.id)}
@@ -711,9 +711,9 @@ const HomePage = () => {
                 >
                   Delete
                 </Tag>
-              )
-            }
-          />
+              )}
+            />
+          )}
         </Table>
       </Content>
     </Layout>
