@@ -30,6 +30,7 @@ import {
 import { getAllRoles } from "../services/roleService";
 import { Layout, notification } from "antd";
 import { COLORS } from "../utils/constant";
+import { MdIncompleteCircle } from "react-icons/md";
 const { Content } = Layout;
 
 const UserListPage = () => {
@@ -457,20 +458,22 @@ const UserListPage = () => {
       reverse: true,
     },
     label: {
-      formatter: (datum) => `${parseFloat(datum).toFixed(1)}%`,
-      style: (datum) => {
-        const index = percentChartData.findIndex((d) => d.value === datum);
+      formatter: (datum) => `${parseFloat(datum).toFixed(1)}%`, // Format the label text
+      style: (datum, index) => {
+        const indexInData = percentChartData.findIndex(
+          (d) => d.value === datum.value
+        ); // Get correct index for color
         return {
-          textAlign: "middle",
-          fill: COLORS[index % COLORS.length] || "#000",
+          textAlign: "center", // Center the label horizontally
+          fill: COLORS[indexInData % COLORS.length] || "#000", // Dynamic color based on index
           fontSize: 14,
           fontWeight: "bold",
         };
       },
-      position: "top",
-      offsetX: 0,
-      offsetY: -20,
-      autoRotate: false,
+      position: "top", // Ensure the label is at the top of the bar
+      offsetX: 0, // Center the label horizontally
+      offsetY: -10, // Adjust this value to move the label upwards (increase if needed)
+      autoRotate: false, // Prevent label rotation
     },
     axis: {
       x: {
@@ -494,30 +497,86 @@ const UserListPage = () => {
     color: (datum, index) => COLORS[index % COLORS.length], // Apply dynamic color based on index
   };
 
-  // const pieConfig = {
-  //   data: percentChartData,
-  //   angleField: "value",
-  //   colorField: "name",
-  //   label: { type: "inner", content: "{percentage}" },
-  // };
-
-  const lineConfig = {
+  const pieConfig = {
     data: percentChartData,
+    angleField: "value",
+    colorField: "name",
+    label: {
+      text: (data) => `${data.value.toFixed(1)}%`,
+      position: "inside",
+      style: {
+        fontSize: 14,
+        fontWeight: "bold",
+        fill: "#fff",
+      },
+    },
+  };
+  const donutConfig = {
+    data: percentChartData,
+    angleField: "value",
+    colorField: "name",
+    innerRadius: 0.6,
+    label: {
+      text: (data) => `${data.value.toFixed(1)}%`,
+      position: "inside",
+      style: {
+        fontSize: 14,
+        fontWeight: "bold",
+        fill: "#fff",
+      },
+    },
+    annotations: [
+      {
+        type: "text",
+        style: {
+          text: "Donut\nCharts",
+          x: "50%",
+          y: "50%",
+          textAlign: "center",
+          fontSize: 40,
+          fontStyle: "bold",
+        },
+      },
+    ],
+  };
+  const lineConfig = {
+    data: quantityChartData,
     xField: "name",
     yField: "value",
-    seriesField: "name",
     smooth: true,
+    connectNulls: true,
     legend: false,
+    point: {
+      shape: "circle", // (e.g., "square", "diamond")
+      size: 4,
+    },
+    axis: {
+      y: { title: "Total Users By Role", min: 0 },
+    },
+    tooltip: { channel: "y", valueFormatter: ".0f" },
+    style: {
+      lineWidth: 2,
+    },
   };
 
   const areaConfig = {
     data: percentChartData,
     xField: "name",
     yField: "value",
-    seriesField: "name",
-    areaStyle: { fillOpacity: 0.3 },
-    smooth: true,
-    legend: false,
+    label: {
+      text: (data) => `${data.value.toFixed(1)}%`,
+      style: {
+        fontSize: 14,
+        textAlign: (_, idx, arr) => {
+          if (idx === 0) return "left";
+          if (idx === arr.length - 1) return "right";
+          return "center";
+        },
+      },
+    },
+    style: {
+      opacity: 0.4,
+    },
   };
 
   return (
@@ -1249,7 +1308,7 @@ const UserListPage = () => {
           >
             <h1>Statistics</h1>
 
-            {/* Row 1: Bar and Column Charts */}
+            {/* 1 Bar and Column Charts */}
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Card title="Bar Chart">
@@ -1263,23 +1322,28 @@ const UserListPage = () => {
               </Col>
             </Row>
 
-            {/* Row 2: Pie and Line Charts */}
+            {/* 2: Pie and Line Charts */}
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Card title="Pie Chart">
-                  <PieAnt {...lineConfig} />
+                  <PieAnt {...pieConfig} />
                 </Card>
               </Col>
+              <Col span={12}>
+                <Card title="Donut Chart">
+                  <PieAnt {...donutConfig} />
+                </Card>
+              </Col>
+            </Row>
+
+            {/* 3: Area Chart */}
+            <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Card title="Line Chart">
                   <LineAnt {...lineConfig} />
                 </Card>
               </Col>
-            </Row>
-
-            {/* Row 3: Area Chart */}
-            <Row gutter={[16, 16]}>
-              <Col span={24}>
+              <Col span={12}>
                 <Card title="Area Chart">
                   <AreaAnt {...areaConfig} />
                 </Card>
