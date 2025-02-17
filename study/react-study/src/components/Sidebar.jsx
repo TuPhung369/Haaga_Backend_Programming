@@ -46,13 +46,13 @@ const Sidebar = ({ defaultSelectedKey }) => {
             "1",
         ]}
         style={{ height: "100%", borderRight: 0 }}
-      >
-        {menuItems.map(({ key, label, path, icon }) => (
-          <Menu.Item key={key} icon={icon} onClick={() => navigate(path)}>
-            {label}
-          </Menu.Item>
-        ))}
-      </Menu>
+        items={menuItems.map(({ key, label, path, icon }) => ({
+          key,
+          label,
+          icon,
+          onClick: () => navigate(path),
+        }))}
+      />
     </Sider>
   );
 };

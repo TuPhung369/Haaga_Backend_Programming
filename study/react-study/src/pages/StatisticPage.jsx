@@ -20,6 +20,7 @@ import {
   LabelList,
 } from "recharts";
 import { Card, Row, Col } from "antd";
+import { Text } from "@antv/g";
 import {
   Column as ColumnAnt,
   Bar as BarAnt,
@@ -30,7 +31,6 @@ import {
 import { getAllRoles } from "../services/roleService";
 import { Layout, notification } from "antd";
 import { COLORS } from "../utils/constant";
-import { MdIncompleteCircle } from "react-icons/md";
 const { Content } = Layout;
 
 const UserListPage = () => {
@@ -421,7 +421,7 @@ const UserListPage = () => {
     axis: {
       x: {
         label: {
-          formatter: (text) => text,
+          text: (text) => text,
           style: (text, index) => ({
             fill: COLORS[index % COLORS.length], // Apply dynamic color based on index
             fontSize: 12, // Font size for x-axis labels
@@ -459,41 +459,33 @@ const UserListPage = () => {
     },
     label: {
       formatter: (datum) => `${parseFloat(datum).toFixed(1)}%`, // Format the label text
-      style: (datum, index) => {
-        const indexInData = percentChartData.findIndex(
-          (d) => d.value === datum.value
-        ); // Get correct index for color
-        return {
-          textAlign: "center", // Center the label horizontally
-          fill: COLORS[indexInData % COLORS.length] || "#000", // Dynamic color based on index
-          fontSize: 14,
-          fontWeight: "bold",
-        };
+      style: {
+        textAlign: "center", // Center the label horizontally
+        fill: (datum, index) => COLORS[index % COLORS.length],
+        fontSize: 14,
+        fontWeight: "bold",
+        dy: -20,
       },
       position: "top", // Ensure the label is at the top of the bar
-      offsetX: 0, // Center the label horizontally
-      offsetY: -10, // Adjust this value to move the label upwards (increase if needed)
-      autoRotate: false, // Prevent label rotation
     },
-    axis: {
-      x: {
-        label: {
-          formatter: (text) => text,
-          style: (text, index) => ({
-            fill: COLORS[index % COLORS.length], // Apply dynamic color based on index
-            fontSize: 12, // Font size for x-axis labels
-          }),
-        },
-      },
-      y: {
-        label: {
-          style: {
-            fill: "#333", // Color for y-axis labels
-            fontSize: 12, // Font size for y-axis labels
-          },
+    xAxis: {
+      label: {
+        formatter: (text, index) => {
+          // Apply dynamic color based on the index of the label
+          const color = COLORS[index % COLORS.length]; // Apply color from COLORS array
+          return {
+            text, // Label text remains the same
+            style: {
+              fill: color, // Apply color dynamically
+              fontSize: 14,
+              fontWeight: "bold",
+              textAlign: "center",
+            },
+          };
         },
       },
     },
+
     color: (datum, index) => COLORS[index % COLORS.length], // Apply dynamic color based on index
   };
 
@@ -525,6 +517,17 @@ const UserListPage = () => {
         fill: "#fff",
       },
     },
+    tooltip: {
+      title: (data) => `${data.name}`,
+      fields: ["name", "value"],
+      formatter: (data) => {
+        return {
+          name: data.name,
+          value: `${data.value.toFixed(1)}%`,
+        };
+      },
+    },
+
     annotations: [
       {
         type: "text",
@@ -551,11 +554,69 @@ const UserListPage = () => {
       size: 4,
     },
     axis: {
-      y: { title: "Total Users By Role", min: 0 },
+      x: {
+        title: "Role",
+        label: {
+          formatter: (datum, index) => {
+            console.log("datum", datum); // Log the datum to verify its structure
+
+            if (datum) {
+              // Ensure zIndex is defined and handled safely
+
+              // Safeguard for COLORS array
+              const fillColor =
+                COLORS.length > 0
+                  ? COLORS[(index + 3) % COLORS.length]
+                  : COLORS[13];
+
+              return {
+                text: datum, // Assuming datum is not null
+                style: {
+                  fill: fillColor, // Ensure fill color is applied correctly
+                  fontSize: 12,
+                  fontWeight: "bold",
+                },
+              };
+            }
+
+            return ""; // Return empty string if datum is undefined or null
+          },
+          style: {
+            fontSize: 12,
+            fontWeight: "bold",
+          },
+        },
+      },
+
+      y: {
+        title: "Total Users By Role",
+      },
     },
-    tooltip: { channel: "y", valueFormatter: ".0f" },
     style: {
       lineWidth: 2,
+    },
+    tooltip: {
+      shared: true,
+      showMarkers: true,
+      formatter: (datum) => {
+        return { name: datum.name, value: `${datum.value.toFixed(1)}%` };
+      },
+    },
+    label: {
+      position: "top",
+      content: (data) => `${data.value}`,
+      style: {
+        fontSize: 14,
+        fontWeight: "bold",
+        dy: -15,
+        dx: -15,
+        fill: (datum, index) => COLORS[(index + 3) % COLORS.length],
+        textAlign: (_, idx, arr) => {
+          if (idx === 0) return "left";
+          if (idx === arr.length - 1) return "right";
+          return "center";
+        },
+      },
     },
   };
 
@@ -565,8 +626,12 @@ const UserListPage = () => {
     yField: "value",
     label: {
       text: (data) => `${data.value.toFixed(1)}%`,
+      position: "top",
       style: {
         fontSize: 14,
+        fontWeight: "bold",
+        dy: -10,
+        fill: (datum, index) => COLORS[(index + 6) % COLORS.length],
         textAlign: (_, idx, arr) => {
           if (idx === 0) return "left";
           if (idx === arr.length - 1) return "right";
@@ -574,8 +639,41 @@ const UserListPage = () => {
         },
       },
     },
-    style: {
-      opacity: 0.4,
+    smooth: true,
+    areaStyle: {
+      fillOpacity: 0.4,
+    },
+    tooltip: {
+      title: (data) => `${data.name}`,
+      fields: ["name", "value"],
+      formatter: (data) => {
+        return {
+          name: data.name,
+          value: `${data.value.toFixed(1)}%`,
+        };
+      },
+    },
+    xAxis: {
+      labelFormatter: {
+        text: (text) => text,
+        autoRotate: false,
+        rotation: 0,
+        autoHide: false,
+        maxWidth: 80, // Giới hạn độ dài nhãn
+        textWrap: "wrap", // Nếu cần bọc chữ
+        style: {
+          fill: (text, index) => COLORS[(index + 6) % COLORS.length],
+          fontSize: 12,
+        },
+      },
+    },
+    yAxis: {
+      labelFormatter: {
+        style: {
+          fill: "#333",
+          fontSize: 12,
+        },
+      },
     },
   };
 
