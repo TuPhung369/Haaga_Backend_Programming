@@ -432,8 +432,8 @@ const UserListPage = () => {
         itemLabelFill: (datum, index) => COLORS[index % COLORS.length],
       },
       itemLabelText: (datum) => datum.name,
-          maxWidth: 100, // Adjust to prevent label overflow
-    autoWrap: true, // Allow label to wrap if needed
+      maxWidth: 100, // Adjust to prevent label overflow
+      autoWrap: true, // Allow label to wrap if needed
     },
   };
 
@@ -563,55 +563,40 @@ const UserListPage = () => {
     axis: {
       x: {
         title: "Role",
-        label: {
-          formatter: (datum, index) => {
-            console.log("datum", datum); // Log the datum to verify its structure
-
-            if (datum) {
-              // Ensure zIndex is defined and handled safely
-
-              // Safeguard for COLORS array
-              const fillColor =
-                COLORS && Array.isArray(COLORS) && COLORS.length > 0
-                  ? COLORS[(index + 3) % COLORS.length]
-                  : "#000"; // Default to black if COLORS is undefined or empty
-              console.log(fillColor);
-              return datum.toString(); // Assuming datum is not null
-            }
-
-            return ""; // Return empty string if datum is undefined or null
-          },
-          style: (datum, index) => ({
-            fill:
-              COLORS && Array.isArray(COLORS) && COLORS.length > 0
-                ? COLORS[(index + 3) % COLORS.length]
-                : "#000", // Default to black if COLORS is undefined or empty
-            fontSize: 12,
-            fontWeight: "bold",
-          }),
-        },
+        labelFill: (datum, index) => COLORS[(index + 3) % COLORS.length],
+        labelFontSize: 12,
+        labelFontWeight: "bold",
       },
-
       y: {
         title: "Total Users By Role",
+        scale: {
+          min: 0, // Set minimum value explicitly
+          nice: true, // This ensures the axis is rounded nicely (e.g., multiples of 5, 10)
+        },
+        labelFill: COLORS[13],
+        labelFontSize: 12,
+        labelFontWeight: "bold",
       },
     },
     style: {
       lineWidth: 2,
     },
     tooltip: {
-      title: (datum) =>
-        `<span style="color: ${COLORS[0]}; font-weight: bold;">${datum.name}</span>`,
+      title: (datum, index) =>
+        `<span style="color: ${COLORS[(index + 3) % COLORS.length]};">${
+          datum.name
+        }</span>`,
       items: [
         {
           channel: "x",
           name: "Role",
-          value: "name",
+          field: "name",
           color: COLORS[0],
         },
         {
           channel: "y",
-          name: "Total Users",
+          name: "Total",
+          field: "value",
           color: COLORS[2],
           valueFormatter: (value) => `${value} users`,
         },
@@ -655,12 +640,14 @@ const UserListPage = () => {
       },
     },
     smooth: true,
-    areaStyle: {
-      fillOpacity: 0.4,
+    style: {
+      opacity: 0.4,
     },
     tooltip: {
-      title: (datum) =>
-        `<span style="color: ${COLORS[0]}; font-weight: bold;">${datum.name}</span>`, // Title formatting
+      title: (datum, index) =>
+        `<span style="color: ${COLORS[(index + 6) % COLORS.length]}; ">${
+          datum.name
+        }</span>`, // Title formatting
       fields: ["name", "value"],
       items: [
         {
@@ -678,26 +665,20 @@ const UserListPage = () => {
         },
       ],
     },
-    xAxis: {
-      labelFormatter: {
-        text: (text) => text,
-        autoRotate: false,
-        rotation: 0,
-        autoHide: false,
-        maxWidth: 80, // Giới hạn độ dài nhãn
-        textWrap: "wrap", // Nếu cần bọc chữ
-        style: {
-          fill: (text, index) => COLORS[(index + 6) % COLORS.length],
-          fontSize: 12,
-        },
+    axis: {
+      x: {
+        labelFill: (datum, index) => COLORS[(index + 6) % COLORS.length],
+        labelFontSize: 12,
+        labelFontWeight: "bold",
       },
-    },
-    yAxis: {
-      labelFormatter: {
-        style: {
-          fill: "#333",
-          fontSize: 12,
+      y: {
+        scale: {
+          min: 0, // Set minimum value explicitly
+          nice: true, // This ensures the axis is rounded nicely (e.g., multiples of 5, 10)
         },
+        labelFill: COLORS[13],
+        labelFontSize: 12,
+        labelFontWeight: "bold",
       },
     },
   };
