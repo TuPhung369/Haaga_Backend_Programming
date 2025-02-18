@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import CalendarPage from "./pages/CalendarPage";
 import HomePage from "./pages/HomePage";
 import UserListPage from "./pages/UserListPage";
 import RolesPage from "./pages/RolesPage";
@@ -145,6 +146,25 @@ const App = () => (
                 <Sidebar />
                 <Content style={{ padding: "0" }}>
                   <StatisticPage />
+                </Content>
+              </Layout>
+              <Footer style={{ textAlign: "center", background: "white" }}>
+                The Application ©2024 Created by Tu Phung
+              </Footer>
+            </Layout>
+          </AuthWrapper>
+        }
+      />
+            <Route
+        path="/calendar"
+        element={
+          <AuthWrapper>
+            <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+              <HeaderCustom />
+              <Layout>
+                <Sidebar />
+                <Content style={{ padding: "0" }}>
+                  <CalendarPage />
                 </Content>
               </Layout>
               <Footer style={{ textAlign: "center", background: "white" }}>

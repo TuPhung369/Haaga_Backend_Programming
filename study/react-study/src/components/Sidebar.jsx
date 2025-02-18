@@ -6,8 +6,8 @@ import {
   TeamOutlined,
   LockOutlined,
   BarChartOutlined,
+  CalendarOutlined
 } from "@ant-design/icons";
-
 const { Sider } = Layout;
 
 const Sidebar = ({ defaultSelectedKey }) => {
@@ -29,6 +29,12 @@ const Sidebar = ({ defaultSelectedKey }) => {
       label: "Statistics",
       path: "/statistics",
       icon: <BarChartOutlined />,
+    },
+    {
+      key: "6",
+      label: "Calendar",
+      path: "/Calendar",
+      icon: <CalendarOutlined />,
     },
   ];
 
