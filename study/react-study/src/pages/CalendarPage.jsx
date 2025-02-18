@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Layout, Button, Modal, Form, Input, Tooltip } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { Calendar, momentLocalizer } from "react-big-calendar";
+import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import { COLORS } from "../utils/constant";
-import "react-big-calendar/lib/css/react-big-calendar.css";
 
-// Import necessary libraries for drag and drop
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+// Import drag-and-drop functionality
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
+
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
+
+// Wrap BigCalendar with withDragAndDrop HOC
+const Calendar = withDragAndDrop(BigCalendar);
 
 const { Content } = Layout;
 
@@ -226,7 +230,14 @@ const CalendarPage = () => {
           minHeight: "85vh",
         }}
       >
-        <div style={{ padding: "24px", background: "#fff", minHeight: "85vh" }}>
+        <div
+          style={{
+            padding: "24px",
+            background: "#fff",
+            minHeight: "85vh",
+            minWidth: 900,
+          }}
+        >
           <h2>Event Calendar</h2>
 
           <Button
@@ -238,24 +249,22 @@ const CalendarPage = () => {
             Add Event
           </Button>
 
-          <DndProvider backend={HTML5Backend}>
-            <Calendar
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: 650 }}
-              draggableAccessor={() => true}
-              resizableAccessor={() => true}
-              onEventDrop={handleEventDrop}
-              onEventResize={handleEventResize}
-              onDoubleClickEvent={showEventModal}
-              eventPropGetter={eventStyleGetter}
-              components={{
-                event: eventContent,
-              }}
-            />
-          </DndProvider>
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: 650 }}
+            draggableAccessor={() => true}
+            resizableAccessor={() => true}
+            onEventDrop={handleEventDrop}
+            onEventResize={handleEventResize}
+            onDoubleClickEvent={showEventModal}
+            eventPropGetter={eventStyleGetter}
+            components={{
+              event: eventContent,
+            }}
+          />
 
           <Modal
             title={eventDetails.id ? "Edit Event" : "Add Event"}

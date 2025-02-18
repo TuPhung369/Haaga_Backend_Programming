@@ -1,3 +1,4 @@
+import React from "react";
 import { Layout, Menu } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -6,8 +7,11 @@ import {
   TeamOutlined,
   LockOutlined,
   BarChartOutlined,
-  CalendarOutlined
+  CalendarOutlined,
 } from "@ant-design/icons";
+
+import { COLORS } from "../utils/constant";
+
 const { Sider } = Layout;
 
 const Sidebar = ({ defaultSelectedKey }) => {
@@ -33,7 +37,7 @@ const Sidebar = ({ defaultSelectedKey }) => {
     {
       key: "6",
       label: "Calendar",
-      path: "/Calendar",
+      path: "/calendar",
       icon: <CalendarOutlined />,
     },
   ];
@@ -52,10 +56,12 @@ const Sidebar = ({ defaultSelectedKey }) => {
             "1",
         ]}
         style={{ height: "100%", borderRight: 0 }}
-        items={menuItems.map(({ key, label, path, icon }) => ({
+        items={menuItems.map(({ key, label, path, icon }, index) => ({
           key,
           label,
-          icon,
+          icon: React.cloneElement(icon, {
+            style: { color: COLORS[index % COLORS.length] },
+          }),
           onClick: () => navigate(path),
         }))}
       />
