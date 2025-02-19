@@ -1058,7 +1058,6 @@ const UserListPage = () => {
                     interval={0}
                     tick={({ x, y, payload, index }) => {
                       const color = COLORS[index  % COLORS.length];
-
                       return (
                         <text
                           x={x}
