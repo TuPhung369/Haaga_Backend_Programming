@@ -84,7 +84,13 @@ const CalendarPage = () => {
   useEffect(() => {
     const savedEvents = JSON.parse(localStorage.getItem("events"));
     if (savedEvents) {
-      setEvents(savedEvents);
+      setEvents(
+        savedEvents.map((event) => ({
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end),
+        }))
+      );
     }
   }, []);
 
@@ -111,8 +117,8 @@ const CalendarPage = () => {
       setEventDetails({
         id: event.id,
         title: event.title,
-        start: startTime.format("YYYY-MM-DDTHH:mm"),
-        end: endTime.format("YYYY-MM-DDTHH:mm"),
+        start: new Date(event.start), // Chuyển thành Date object
+        end: new Date(event.end),
         description: event.description || "",
         color: event.color || COLORS[0],
       });
@@ -137,6 +143,13 @@ const CalendarPage = () => {
       start: new Date(eventDetails.start),
       end: new Date(eventDetails.end),
     };
+    console.log(
+      "Start:",
+      eventDetails.start,
+      "=>",
+      new Date(eventDetails.start)
+    );
+    console.log("End:", eventDetails.end, "=>", new Date(eventDetails.end));
 
     if (eventDetails.id) {
       const updatedEvents = events.map((event) =>
