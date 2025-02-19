@@ -1056,6 +1056,21 @@ const UserListPage = () => {
                     textAnchor="middle"
                     height={70}
                     interval={0}
+                    tick={({ x, y, payload, index }) => {
+                      const color = COLORS[index  % COLORS.length];
+
+                      return (
+                        <text
+                          x={x}
+                          y={y + 15}
+                          fill={color}
+                          textAnchor="middle"
+                          fontSize="14px"
+                        >
+                          {payload.value}
+                        </text>
+                      );
+                    }}
                   />
                   <YAxis domain={[yAxisStartQuantity, "auto"]} />
                   <Tooltip content={customTooltipQuantity} />
