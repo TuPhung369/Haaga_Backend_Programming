@@ -499,8 +499,25 @@ const UserListPage = () => {
       },
     },
     tooltip: {
-      title: (datum) =>
-        `<span style="color: ${COLORS[0]}; font-weight: bold;">${datum.name}</span>`, // Title formatting
+      title: (datum, index) =>
+        `<span style="color: ${COLORS[index % COLORS.length]};">${
+          datum.name
+        }</span>`,
+      items: [
+        {
+          channel: "x",
+          name: "Role",
+          field: "name",
+          color: COLORS[0],
+        },
+        {
+          channel: "y",
+          name: "Total",
+          field: "value",
+          color: COLORS[2],
+          valueFormatter: (value) => `${value.toFixed(1)}%`,
+        },
+      ],
     },
   };
 
@@ -1057,7 +1074,7 @@ const UserListPage = () => {
                     height={70}
                     interval={0}
                     tick={({ x, y, payload, index }) => {
-                      const color = COLORS[index  % COLORS.length];
+                      const color = COLORS[index % COLORS.length];
                       return (
                         <text
                           x={x}
