@@ -483,6 +483,27 @@ const UserListPage = () => {
       },
       itemLabelText: (datum) => datum.name,
     },
+    tooltip: {
+      title: (datum, index) =>
+        `<span style="color: ${COLORS[index % COLORS.length]};">${
+          datum.name
+        }</span>`,
+      items: [
+        {
+          channel: "x",
+          name: "Role",
+          field: "name",
+          color: COLORS[0],
+        },
+        {
+          channel: "y",
+          name: "Total",
+          field: "value",
+          color: COLORS[2],
+          valueFormatter: (value) => `${value.toFixed(1)}%`,
+        },
+      ],
+    },
   };
 
   const pieConfig = {
