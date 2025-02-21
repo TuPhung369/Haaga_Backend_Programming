@@ -3,7 +3,9 @@ import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
+  useSortable,
 } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Task from "./TaskCardKanban";
 
 const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
@@ -31,6 +33,18 @@ const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
     }
   };
   const handleEditColumn = () => setIsEditModalOpen(true);
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: column.id,
+      data: { type: "column", columnId: column.id },
+    });
+  const style = transform
+    ? {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }
+    : undefined;
+
   const handleCloseEditModal = () => setIsEditModalOpen(false);
   const handleSubmitEdit = () => {
     if (newTitle.trim()) {
@@ -46,8 +60,16 @@ const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
   };
 
   return (
-    <div className="column bg-gray-100 p-4 rounded-md shadow-md">
-      <div className="column-header flex justify-between items-center mb-4 bg-blue-500 text-white p-2 rounded-t-md">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="column bg-gray-100 p-4 rounded-md shadow-md"
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="column-header flex justify-between items-center mb-4 bg-blue-500 text-white p-2 rounded-t-md"
+      >
         <h2 className="text-lg font-bold" onClick={handleEditColumn}>
           {column.title}
         </h2>
@@ -144,3 +166,5 @@ const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
 };
 
 export default Column;
+
+

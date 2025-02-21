@@ -25,6 +25,7 @@ const KanbanBoard = () => {
     if (!over) return;
 
     if (active.data.current?.type === "task") {
+      // Logic hiện tại cho nhiệm vụ (task)
       const taskId = active.id;
       const sourceCol = columns.find((col) =>
         col.tasks.some((task) => task.id === taskId)
@@ -91,6 +92,15 @@ const KanbanBoard = () => {
               : col
           )
         );
+      }
+    } else if (active.data.current?.type === "column") {
+      // Logic mới cho cột (column)
+      const oldIndex = columns.findIndex((col) => col.id === active.id);
+      const newIndex = columns.findIndex((col) => col.id === over.id);
+
+      if (oldIndex !== newIndex) {
+        const updatedColumns = arrayMove(columns, oldIndex, newIndex);
+        setColumns(updatedColumns);
       }
     }
   };
@@ -202,3 +212,4 @@ const KanbanBoard = () => {
 };
 
 export default KanbanBoard;
+
