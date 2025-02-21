@@ -8,6 +8,7 @@ import {
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import CalendarPage from "./pages/CalendarPage";
+import KanbanPage from "./pages/KanbanPage";
 import HomePage from "./pages/HomePage";
 import UserListPage from "./pages/UserListPage";
 import RolesPage from "./pages/RolesPage";
@@ -155,7 +156,7 @@ const App = () => (
           </AuthWrapper>
         }
       />
-            <Route
+      <Route
         path="/calendar"
         element={
           <AuthWrapper>
@@ -174,9 +175,29 @@ const App = () => (
           </AuthWrapper>
         }
       />
+      <Route
+        path="/kanban"
+        element={
+          <AuthWrapper>
+            <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+              <HeaderCustom />
+              <Layout>
+                <Sidebar />
+                <Content style={{ padding: "0" }}>
+                  <KanbanPage />
+                </Content>
+              </Layout>
+              <Footer style={{ textAlign: "center", background: "white" }}>
+                The Application ©2024 Created by Tu Phung
+              </Footer>
+            </Layout>
+          </AuthWrapper>
+        }
+      />
     </Routes>
   </Router>
 );
 
 export default App;
+
 

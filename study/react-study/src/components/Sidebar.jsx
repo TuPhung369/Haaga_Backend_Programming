@@ -40,6 +40,12 @@ const Sidebar = ({ defaultSelectedKey }) => {
       path: "/calendar",
       icon: <CalendarOutlined />,
     },
+    {
+      key: "7",
+      label: "Kanban",
+      path: "/kanban",
+      icon: <CalendarOutlined />,
+    },
   ];
 
   return (
