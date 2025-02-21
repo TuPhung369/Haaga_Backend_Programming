@@ -1,21 +1,20 @@
 import React, { useState } from "react";
-import { useDroppable } from "@dnd-kit/core"; // Import useDroppable
+import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import Task from "./TaskCardKanban"; // Or import TaskCard if you prefer
+import Task from "./TaskCardKanban";
 
-const Column = ({ column, addTask, editColumn, deleteColumn }) => {
+const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState(column.title);
 
-  // Add useDroppable to make the column a drop target
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
     id: column.id,
-    data: { type: "column", columnId: column.id }, // Custom data to identify the column
+    data: { type: "column", columnId: column.id },
   });
 
   const handleAddTaskClick = () => setIsModalOpen(true);
@@ -60,24 +59,24 @@ const Column = ({ column, addTask, editColumn, deleteColumn }) => {
         </button>
       </div>
 
-      {/* Make the tasks area droppable */}
       <div
-        ref={setDroppableNodeRef} // Attach the droppable ref here
-        className="tasks space-y-2 bg-white p-4 rounded-b-md min-h-[100px]" // Add min-height for visibility
+        ref={setDroppableNodeRef}
+        className="tasks space-y-2 bg-white p-4 rounded-b-md min-h-[100px]"
       >
         <SortableContext
           items={column.tasks.map((task) => task.id)}
           strategy={verticalListSortingStrategy}
         >
           {column.tasks.length > 0 ? (
-            column.tasks.map((task) => <Task key={task.id} task={task} />)
+            column.tasks.map((task) => (
+              <Task key={task.id} task={task} onEditTask={onEditTask} />
+            ))
           ) : (
             <div className="text-gray-500 text-center"></div>
           )}
         </SortableContext>
       </div>
 
-      {/* Modal for adding task */}
       {isModalOpen && (
         <div className="modal fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-50">
           <div className="modal-content bg-white p-4 rounded-md shadow-lg">
@@ -107,7 +106,6 @@ const Column = ({ column, addTask, editColumn, deleteColumn }) => {
         </div>
       )}
 
-      {/* Modal for editing column */}
       {isEditModalOpen && (
         <div className="modal fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-50">
           <div className="modal-content bg-white p-4 rounded-md shadow-lg">
@@ -146,4 +144,3 @@ const Column = ({ column, addTask, editColumn, deleteColumn }) => {
 };
 
 export default Column;
-

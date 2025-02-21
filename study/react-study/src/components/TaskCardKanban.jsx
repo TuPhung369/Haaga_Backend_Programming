@@ -3,11 +3,11 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "antd";
 
-const TaskCard = ({ task }) => {
+const TaskCard = ({ task, onEditTask }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
       id: task.id,
-      data: { type: "task", taskId: task.id }, // Add custom data
+      data: { type: "task", taskId: task.id },
     });
 
   const style = {
@@ -16,12 +16,21 @@ const TaskCard = ({ task }) => {
     marginBottom: "8px",
   };
 
+  const handleDoubleClick = () => {
+    onEditTask(task);
+  };
+
   return (
-    <Card ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onDoubleClick={handleDoubleClick}
+    >
       <p>{task.title}</p>
     </Card>
   );
 };
 
 export default TaskCard;
-
