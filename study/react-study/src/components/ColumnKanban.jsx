@@ -6,9 +6,19 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { COLORS } from "../utils/constant";
 import Task from "./TaskCardKanban";
+import { PlusOutlined } from "@ant-design/icons";
 
-const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
+const Column = ({
+  column,
+  index,
+  width,
+  addTask,
+  editColumn,
+  deleteColumn,
+  onEditTask,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -18,6 +28,21 @@ const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
     id: column.id,
     data: { type: "column", columnId: column.id },
   });
+
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: column.id,
+      data: { type: "column", columnId: column.id },
+    });
+
+  const style = transform
+    ? {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }
+    : undefined;
+
+  const columnColor = COLORS[index % COLORS.length];
 
   const handleAddTaskClick = () => setIsModalOpen(true);
   const handleCloseModal = () => {
@@ -33,18 +58,6 @@ const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
     }
   };
   const handleEditColumn = () => setIsEditModalOpen(true);
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({
-      id: column.id,
-      data: { type: "column", columnId: column.id },
-    });
-  const style = transform
-    ? {
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }
-    : undefined;
-
   const handleCloseEditModal = () => setIsEditModalOpen(false);
   const handleSubmitEdit = () => {
     if (newTitle.trim()) {
@@ -59,31 +72,54 @@ const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
     handleCloseEditModal();
   };
 
+  const hexToRgba = (hex, alpha = 1) => {
+    let r = 0,
+      g = 0,
+      b = 0;
+    if (hex.length === 4) {
+      r = parseInt(hex[1] + hex[1], 16);
+      g = parseInt(hex[2] + hex[2], 16);
+      b = parseInt(hex[3] + hex[3], 16);
+    } else if (hex.length === 7) {
+      r = parseInt(hex[1] + hex[2], 16);
+      g = parseInt(hex[3] + hex[4], 16);
+      b = parseInt(hex[5] + hex[6], 16);
+    }
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className="column bg-gray-100 p-4 rounded-md shadow-md"
+      style={{ ...style, width }}
+      className="column bg-gray-100 p-4 rounded-md shadow-md w-fit"
     >
       <div
-        {...attributes}
-        {...listeners}
-        className="column-header flex justify-between items-center mb-4 bg-blue-500 text-white p-2 rounded-t-md"
+        className="column-header flex justify-between items-center mb-4 bg-blue-500 text-white p-2 rounded-t-md whitespace-nowrap overflow-hidden text-ellipsis"
+        style={{ backgroundColor: columnColor }}
       >
-        <h2 className="text-lg font-bold" onClick={handleEditColumn}>
+        <h2
+          {...attributes} // Chỉ áp dụng listeners cho tiêu đề để kéo thả
+          {...listeners}
+          className="text-lg font-bold mr-2 whitespace-nowrap overflow-hidden text-ellipsis"
+          onDoubleClick={handleEditColumn}
+        >
           {column.title}
         </h2>
         <button
-          className="add-task-button text-2xl font-bold"
+          className="add-task-button text-white"
           onClick={handleAddTaskClick}
         >
-          +
+          <PlusOutlined style={{ fontSize: "24px" }} />
         </button>
       </div>
 
       <div
         ref={setDroppableNodeRef}
-        className="tasks space-y-2 bg-white p-4 rounded-b-md min-h-[100px]"
+        className="tasks space-y-2 bg-white p-4 rounded-b-md min-h-[120px]"
+        style={{
+          backgroundColor: hexToRgba(COLORS[index % COLORS.length], 0.7),
+        }}
       >
         <SortableContext
           items={column.tasks.map((task) => task.id)}
@@ -166,5 +202,3 @@ const Column = ({ column, addTask, editColumn, deleteColumn, onEditTask }) => {
 };
 
 export default Column;
-
-

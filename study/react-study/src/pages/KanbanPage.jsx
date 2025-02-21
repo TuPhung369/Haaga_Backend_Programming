@@ -152,22 +152,27 @@ const KanbanBoard = () => {
     );
     setEditingTask(null);
   };
-
+  const longestTitleLength = Math.max(
+    ...columns.map((col) => col.title.length)
+  );
+  const columnWidth = `${longestTitleLength * 15 + 70}px`;
   return (
     <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 p-4">
+      <div className="flex gap-4 p-4 overflow-x-auto w-full">
         <SortableContext
           items={columns.map((col) => col.id)}
           strategy={verticalListSortingStrategy}
         >
-          {columns.map((column) => (
+          {columns.map((column, index) => (
             <Column
               key={column.id}
               column={column}
+              index={index}
               addTask={addTask}
               editColumn={editColumn}
               deleteColumn={deleteColumn}
               onEditTask={handleEditTask}
+              width={columnWidth}
             />
           ))}
         </SortableContext>
