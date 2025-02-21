@@ -15,6 +15,7 @@ const Column = ({
   index,
   width,
   addTask,
+  deleteTask,
   editColumn,
   deleteColumn,
   onEditTask,
@@ -202,3 +203,4 @@ const Column = ({
 };
 
 export default Column;
+

@@ -7,6 +7,7 @@ import {
 } from "@dnd-kit/sortable";
 import Column from "../components/ColumnKanban";
 import { nanoid } from "nanoid";
+import { PlusOutlined } from "@ant-design/icons";
 
 const KanbanBoard = () => {
   const [columns, setColumns] = useState([
@@ -118,6 +119,15 @@ const KanbanBoard = () => {
     );
   };
 
+  const deleteTask = (columnId, taskId) => {
+    setColumns((prevColumns) =>
+      prevColumns.map((col) =>
+        col.id === columnId
+          ? { ...col, tasks: col.tasks.filter((task) => task.id !== taskId) }
+          : col
+      )
+    );
+  };
   const addColumn = (columnTitle) => {
     const newColumn = { id: nanoid(), title: columnTitle, tasks: [] };
     setColumns((prevColumns) => [...prevColumns, newColumn]);
@@ -158,6 +168,13 @@ const KanbanBoard = () => {
   const columnWidth = `${longestTitleLength * 15 + 70}px`;
   return (
     <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+      <button
+        className="p-2 bg-blue-500 text-white rounded-full ml-2 mt-2"
+        onClick={() => addColumn("New Column")}
+      >
+        Add Column
+        <PlusOutlined style={{ fontSize: "14px", marginLeft: "5px" }} />
+      </button>
       <div className="flex gap-4 p-4 overflow-x-auto w-full">
         <SortableContext
           items={columns.map((col) => col.id)}
@@ -169,6 +186,7 @@ const KanbanBoard = () => {
               column={column}
               index={index}
               addTask={addTask}
+              deleteTask={(taskId) => deleteTask(column.id, taskId)}
               editColumn={editColumn}
               deleteColumn={deleteColumn}
               onEditTask={handleEditTask}
@@ -177,12 +195,7 @@ const KanbanBoard = () => {
           ))}
         </SortableContext>
       </div>
-      <button
-        className="p-2 bg-blue-500 text-white"
-        onClick={() => addColumn("New Column")}
-      >
-        Add Column
-      </button>
+
       {editingTask && (
         <div className="modal fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-50">
           <div className="modal-content bg-white p-4 rounded-md shadow-lg">
@@ -197,7 +210,21 @@ const KanbanBoard = () => {
             />
             <div className="flex justify-between">
               <button
-                className="cancel-button bg-gray-400 text-white p-2 rounded-md"
+                className="delete-button bg-red-500 text-white p-2 rounded-md mr-5"
+                onClick={() => {
+                  deleteTask(
+                    columns.find((col) =>
+                      col.tasks.some((task) => task.id === editingTask.id)
+                    )?.id,
+                    editingTask.id
+                  );
+                  setEditingTask(null);
+                }}
+              >
+                Delete
+              </button>
+              <button
+                className="cancel-button bg-gray-400 text-white p-2 rounded-md mr-2"
                 onClick={() => setEditingTask(null)}
               >
                 Cancel
