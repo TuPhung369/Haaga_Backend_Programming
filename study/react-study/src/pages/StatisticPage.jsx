@@ -30,22 +30,32 @@ import {
 import { getAllRoles } from "../services/roleService";
 import { Layout, notification } from "antd";
 import { COLORS } from "../utils/constant";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setUserInfo,
+  setAllUsers,
+  setRoles,
+} from "../store/userSlice";
 
 const { Content } = Layout;
 
 const StatisticPage = () => {
-  const [userInformation, setUserInformation] = useState(null);
-  const [allUsers, setAllUsers] = useState([]);
-  const [allRoles, setAllRoles] = useState([]);
   const [quantityChartData, setQuantityChartData] = useState([]);
   const [percentChartData, setPercentChartData] = useState([]);
-
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState(null);
 
-  // Retrieve auth data from Redux store
+  // Retrieve auth data and user data from Redux store
   const { token, isAuthenticated } = useSelector((state) => state.auth);
+  const {
+    userInfo,
+    allUsers,
+    roles,
+    isUserInfoInvalidated,
+    isUsersInvalidated,
+    isRolesInvalidated,
+  } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
@@ -69,6 +79,7 @@ const StatisticPage = () => {
   }, [notificationMessage, api, openNotificationWithIcon]);
 
   const fetchAllUsers = useCallback(async () => {
+    if (!isUsersInvalidated && allUsers.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllUsers(token);
       if (Array.isArray(response)) {
@@ -90,47 +101,19 @@ const StatisticPage = () => {
             })),
           })),
         }));
-        setAllUsers(allUsersData);
-
-        // Calculate role counts
-        const roleCounts = allUsersData.reduce((acc, user) => {
-          user.roles.forEach((role) => {
-            acc[role.name] = (acc[role.name] || 0) + 1;
-          });
-          return acc;
-        }, {});
-
-        // Map role counts to chartData
-        const quantityChartData = Object.keys(roleCounts)
-          .map((role) => ({
-            name: role,
-            value: roleCounts[role],
-          }))
-          .sort((a, b) => a.value - b.value);
-        setQuantityChartData(quantityChartData);
-
-        const totalUsers = Object.values(roleCounts).reduce(
-          (sum, count) => sum + count,
-          0
-        );
-        const percentChartData = Object.keys(roleCounts)
-          .map((role) => ({
-            name: role,
-            value: (roleCounts[role] / totalUsers) * 100,
-          }))
-          .sort((a, b) => a.value - b.value);
-        setPercentChartData(percentChartData);
+        dispatch(setAllUsers(allUsersData)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setAllUsers([]);
+        dispatch(setAllUsers([]));
       }
     } catch (error) {
       console.error("Error fetching All Users:", error);
-      setAllUsers([]);
+      dispatch(setAllUsers([]));
     }
-  }, [token]);
+  }, [token, dispatch, isUsersInvalidated, allUsers]);
 
   const fetchMyInfo = useCallback(async () => {
+    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getMyInfo(token);
       if (response && response.result) {
@@ -152,14 +135,15 @@ const StatisticPage = () => {
             })),
           })),
         };
-        setUserInformation(userData);
+        dispatch(setUserInfo(userData)); // Lưu vào store
       }
     } catch (error) {
       console.error("Error fetching user info:", error);
     }
-  }, [token]);
+  }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   const fetchRoles = useCallback(async () => {
+    if (!isRolesInvalidated && roles.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
@@ -173,16 +157,50 @@ const StatisticPage = () => {
             color: permission.color,
           })),
         }));
-        setAllRoles(allRolesData);
+        dispatch(setRoles(allRolesData)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setAllRoles([]);
+        dispatch(setRoles([]));
       }
     } catch (error) {
       console.error("Error fetching All Roles:", error);
-      setAllRoles([]);
+      dispatch(setRoles([]));
     }
-  }, [token]);
+  }, [token, dispatch, isRolesInvalidated, roles]);
+
+  // Calculate chart data whenever allUsers changes
+  useEffect(() => {
+    if (allUsers.length > 0) {
+      // Calculate role counts
+      const roleCounts = allUsers.reduce((acc, user) => {
+        user.roles.forEach((role) => {
+          acc[role.name] = (acc[role.name] || 0) + 1;
+        });
+        return acc;
+      }, {});
+
+      // Map role counts to chartData
+      const quantityChartData = Object.keys(roleCounts)
+        .map((role) => ({
+          name: role,
+          value: roleCounts[role],
+        }))
+        .sort((a, b) => a.value - b.value);
+      setQuantityChartData(quantityChartData);
+
+      const totalUsers = Object.values(roleCounts).reduce(
+        (sum, count) => sum + count,
+        0
+      );
+      const percentChartData = Object.keys(roleCounts)
+        .map((role) => ({
+          name: role,
+          value: (roleCounts[role] / totalUsers) * 100,
+        }))
+        .sort((a, b) => a.value - b.value);
+      setPercentChartData(percentChartData);
+    }
+  }, [allUsers]);
 
   useEffect(() => {
     if (token && isAuthenticated) {
