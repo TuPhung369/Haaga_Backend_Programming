@@ -42,6 +42,7 @@ const AuthWrapper = ({ children }) => {
           }
         } catch (error) {
           console.error("Error during token introspection:", error);
+          dispatch(clearAuthData());
           navigate("/login");
         }
       } else {
@@ -201,4 +202,5 @@ const App = () => (
 );
 
 export default App;
+
 
