@@ -213,9 +213,6 @@ const KanbanBoard = () => {
     ...columns.map((col) => col.title.length)
   );
   const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 320)}px`;
-  console.log("Longest title length:", longestTitleLength);
-  console.log("Computed column width:", longestTitleLength * 15 + 70);
-  console.log("Final column width:", columnWidth);
 
   return (
     <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
@@ -228,7 +225,7 @@ const KanbanBoard = () => {
           <PlusOutlined style={{ fontSize: "16px", marginLeft: "5px" }} />
         </button>
         <button
-          className="p-2 bg-red-500 text-white rounded-full mr-2 mt-2"
+          className="p-2 bg-red-400 text-white rounded-full mr-2 mt-2"
           onClick={clearBoard}
         >
           Clear All Tasks
