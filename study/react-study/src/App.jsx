@@ -35,6 +35,7 @@ const AuthWrapper = ({ children }) => {
           const response = await introspectToken(token);
           if (!response.result?.valid) {
             console.warn("Invalid token, redirecting to login...");
+            localStorage.removeItem("appState");
             navigate("/login");
           }
         } catch (error) {
@@ -198,6 +199,4 @@ const App = () => (
 );
 
 export default App;
-
-
 
