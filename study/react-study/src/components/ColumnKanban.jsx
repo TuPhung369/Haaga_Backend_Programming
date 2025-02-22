@@ -92,7 +92,7 @@ const Column = ({
     <div
       ref={setNodeRef}
       style={{ ...style, width }}
-      className="column bg-gray-100 p-4 rounded-md shadow-md w-fit flex flex-col"
+      className="column bg-gray-100 p-4 rounded-md shadow-md flex-shrink-0 flex flex-col"
     >
       <div
         className="column-header flex justify-between mb-4 bg-blue-500 text-white p-2 rounded-t-md whitespace-nowrap overflow-hidden text-ellipsis"
@@ -207,4 +207,5 @@ const Column = ({
 };
 
 export default Column;
+
 

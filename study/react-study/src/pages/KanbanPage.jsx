@@ -212,8 +212,10 @@ const KanbanBoard = () => {
   const longestTitleLength = Math.max(
     ...columns.map((col) => col.title.length)
   );
-const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 450)}px`;
-
+  const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 320)}px`;
+  console.log("Longest title length:", longestTitleLength);
+  console.log("Computed column width:", longestTitleLength * 15 + 70);
+  console.log("Final column width:", columnWidth);
 
   return (
     <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
