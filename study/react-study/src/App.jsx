@@ -19,13 +19,15 @@ import HeaderCustom from "./components/HeaderCustom";
 import Sidebar from "./components/Sidebar";
 import { introspectToken } from "./services/authService";
 import { Layout } from "antd";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { clearAuthData } from "./store/authSlice";
 
 const { Content, Footer } = Layout;
 
 const AuthWrapper = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { token, isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ const AuthWrapper = ({ children }) => {
           const response = await introspectToken(token);
           if (!response.result?.valid) {
             console.warn("Invalid token, redirecting to login...");
-            localStorage.removeItem("appState");
+            dispatch(clearAuthData());
             navigate("/login");
           }
         } catch (error) {
@@ -49,7 +51,7 @@ const AuthWrapper = ({ children }) => {
     };
 
     checkTokenValidity();
-  }, [navigate, token]);
+  }, [navigate, token, dispatch]);
 
   if (isChecking) return null;
   return isAuthenticated ? children : null;
