@@ -13,8 +13,6 @@ const initialState = {
     { id: "done", title: "Done", tasks: [] },
   ],
   editingTask: null,
-  isAuthenticated: false, // Replace loginSocial with isAuthenticated
-  token: null, // Store the auth token
 };
 
 const kanbanSlice = createSlice({
@@ -61,15 +59,7 @@ const kanbanSlice = createSlice({
     setEditingTask: (state, action) => {
       state.editingTask = action.payload;
     },
-    setAuthenticated: (state, action) => {
-      state.isAuthenticated = action.payload; // Replace setLoginSocial with setAuthenticated
-    },
-    setToken: (state, action) => {
-      state.token = action.payload; // Update token
-    },
     logout: (state) => {
-      state.isAuthenticated = false; // Clear authentication state
-      state.token = null;
       state.columns = [
         { id: "todo", title: "To Do", tasks: [{ id: "1", title: "Task 1" }] },
         {
@@ -135,11 +125,10 @@ export const {
   deleteColumn,
   saveTaskEdit,
   setEditingTask,
-  setAuthenticated, // Replace setLoginSocial with setAuthenticated
-  setToken,
   logout,
   dragEndTask,
   dragEndColumn,
 } = kanbanSlice.actions;
 
 export default kanbanSlice.reducer;
+
