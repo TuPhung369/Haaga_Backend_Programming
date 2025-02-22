@@ -1,6 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import kanbanReducer from "./kanbanSlice";
 import authReducer from "./authSlice";
+import userReducer from "./userSlice";
 
 const loadState = () => {
   try {
@@ -35,7 +36,6 @@ const loadState = () => {
 
 const saveState = (state) => {
   try {
-    console.log("Saving state to localStorage:", state);
     const serializedState = JSON.stringify(state);
     localStorage.setItem("appState", serializedState);
   } catch (err) {
@@ -47,6 +47,7 @@ const store = configureStore({
   reducer: {
     kanban: kanbanReducer,
     auth: authReducer,
+    user: userReducer,
   },
   preloadedState: loadState(),
   devTools: process.env.NODE_ENV !== "production",
@@ -54,7 +55,6 @@ const store = configureStore({
 
 store.subscribe(() => {
   const state = store.getState();
-  console.log("State changed, saving to localStorage:", state);
   saveState(state);
 });
 

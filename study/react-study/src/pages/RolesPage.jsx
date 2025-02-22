@@ -13,23 +13,37 @@ import {
   Descriptions,
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RoleColor, RoleOption } from "../utils/constant";
+import {
+  setUserInfo,
+  setRoles,
+  setPermissions,
+  invalidateRoles,
+  invalidatePermissions,
+  invalidateUserInfo,
+} from "../store/userSlice";
 
 const { Content } = Layout;
 const { Option } = Select;
 
 const RolesPage = () => {
-  const [roles, setRoles] = useState([]);
-  const [permissions, setPermissions] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [userInformation, setUserInformation] = useState(null);
   const [form] = Form.useForm();
 
-  // Retrieve auth data from Redux store
   const { token, isAuthenticated } = useSelector((state) => state.auth);
+  const {
+    userInfo,
+    roles,
+    permissions,
+    isUserInfoInvalidated,
+    isRolesInvalidated,
+    isPermissionsInvalidated,
+  } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
   const fetchRoles = useCallback(async () => {
+    if (!isRolesInvalidated && roles.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
@@ -43,42 +57,44 @@ const RolesPage = () => {
             color: permission.color,
           })),
         }));
-        setRoles(rolesData);
+        dispatch(setRoles(rolesData)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setRoles([]);
+        dispatch(setRoles([]));
       }
     } catch (error) {
       console.error("Error fetching roles:", error);
-      setRoles([]);
+      dispatch(setRoles([]));
     }
-  }, [token]);
+  }, [token, dispatch, isRolesInvalidated, roles]);
 
   const fetchPermissions = useCallback(async () => {
+    if (!isPermissionsInvalidated && permissions.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllPermissions(token);
       if (Array.isArray(response.result)) {
-        setPermissions(response.result);
+        dispatch(setPermissions(response.result)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setPermissions([]);
+        dispatch(setPermissions([]));
       }
     } catch (error) {
       console.error("Error fetching permissions:", error);
-      setPermissions([]);
+      dispatch(setPermissions([]));
     }
-  }, [token]);
+  }, [token, dispatch, isPermissionsInvalidated, permissions]);
 
   const fetchUserInformation = useCallback(async () => {
+    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getMyInfo(token);
       if (response && response.result) {
-        setUserInformation(response.result);
+        dispatch(setUserInfo(response.result)); // Lưu vào store
       }
     } catch (error) {
       console.error("Error fetching user information:", error);
     }
-  }, [token]);
+  }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   useEffect(() => {
     if (token && isAuthenticated) {
@@ -97,9 +113,8 @@ const RolesPage = () => {
   const handleDeleteRole = async (roleName) => {
     try {
       await deleteRole(roleName, token);
-      setRoles((prevRoles) =>
-        prevRoles.filter((role) => role.name !== roleName)
-      );
+      dispatch(setRoles(roles.filter((role) => role.name !== roleName))); // Cập nhật store trực tiếp
+      dispatch(invalidatePermissions()); // Invalidate permissions vì role liên quan
     } catch (error) {
       console.error("Error deleting role:", error);
     }
@@ -109,7 +124,8 @@ const RolesPage = () => {
     try {
       const values = await form.validateFields();
       await createRole(values, token);
-      fetchRoles();
+      dispatch(invalidateRoles()); // Invalidate để fetch lại danh sách roles
+      fetchRoles(); // Fetch lại ngay để cập nhật
       setIsModalVisible(false);
     } catch (error) {
       console.error("Error adding role:", error);
@@ -125,10 +141,8 @@ const RolesPage = () => {
     setIsModalVisible(false);
   };
 
-  const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
-  const isManager = userInformation?.roles.some(
-    (role) => role.name === "MANAGER"
-  );
+  const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
+  const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
   const handleRoleChange = (value) => {
     const selectedRole = RoleOption.find((role) => role.name === value);
@@ -154,7 +168,7 @@ const RolesPage = () => {
                 }}
               >
                 Role List
-                {userInformation && (isAdmin || isManager) ? (
+                {userInfo && (isAdmin || isManager) ? (
                   <PlusCircleOutlined
                     onClick={showModal}
                     style={{ cursor: "pointer", marginLeft: "10px" }}
@@ -282,5 +296,3 @@ const RolesPage = () => {
 };
 
 export default RolesPage;
-
-

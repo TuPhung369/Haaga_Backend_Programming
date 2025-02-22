@@ -16,22 +16,33 @@ import {
   Descriptions,
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { PermissionColor, PermissionOption } from "../utils/constant";
+import {
+  setUserInfo,
+  setPermissions,
+  invalidateUserInfo,
+  invalidatePermissions,
+} from "../store/userSlice";
 
 const { Content } = Layout;
 const { Option } = Select;
 
 const PermissionPage = () => {
-  const [permissions, setPermissions] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [userInformation, setUserInformation] = useState(null);
   const [form] = Form.useForm();
 
-  // Retrieve auth data from Redux store
   const { token, isAuthenticated } = useSelector((state) => state.auth);
+  const {
+    userInfo,
+    permissions,
+    isUserInfoInvalidated,
+    isPermissionsInvalidated,
+  } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
   const fetchPermissions = useCallback(async () => {
+    if (!isPermissionsInvalidated && permissions.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllPermissions(token);
       if (response && Array.isArray(response.result)) {
@@ -40,27 +51,28 @@ const PermissionPage = () => {
           description: permission.description,
           color: permission.color,
         }));
-        setPermissions(permissionsData);
+        dispatch(setPermissions(permissionsData)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setPermissions([]);
+        dispatch(setPermissions([]));
       }
     } catch (error) {
       console.error("Error fetching permissions:", error);
-      setPermissions([]);
+      dispatch(setPermissions([]));
     }
-  }, [token]);
+  }, [token, dispatch, isPermissionsInvalidated, permissions]);
 
   const fetchUserInformation = useCallback(async () => {
+    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getMyInfo(token);
       if (response && response.result) {
-        setUserInformation(response.result);
+        dispatch(setUserInfo(response.result)); // Lưu vào store
       }
     } catch (error) {
       console.error("Error fetching user information:", error);
     }
-  }, [token]);
+  }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   useEffect(() => {
     if (token && isAuthenticated) {
@@ -72,11 +84,11 @@ const PermissionPage = () => {
   const handleDeletePermission = async (permissionName) => {
     try {
       await deletePermission(permissionName, token);
-      setPermissions((prevPermissions) =>
-        prevPermissions.filter(
-          (permission) => permission.name !== permissionName
+      dispatch(
+        setPermissions(
+          permissions.filter((permission) => permission.name !== permissionName)
         )
-      );
+      ); // Cập nhật store trực tiếp
     } catch (error) {
       console.error("Error deleting permission:", error);
     }
@@ -86,7 +98,8 @@ const PermissionPage = () => {
     try {
       const values = await form.validateFields();
       await createPermission(values, token);
-      fetchPermissions();
+      dispatch(invalidatePermissions()); // Invalidate để fetch lại danh sách permissions
+      fetchPermissions(); // Fetch lại ngay để cập nhật
       setIsModalVisible(false);
     } catch (error) {
       console.error("Error adding permission:", error);
@@ -102,10 +115,8 @@ const PermissionPage = () => {
     setIsModalVisible(false);
   };
 
-  const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
-  const isManager = userInformation?.roles.some(
-    (role) => role.name === "MANAGER"
-  );
+  const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
+  const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
   const handlePermissionChange = (value) => {
     const selectedPermission = PermissionOption.find(
@@ -133,7 +144,7 @@ const PermissionPage = () => {
                 }}
               >
                 Permission List
-                {userInformation && (isAdmin || isManager) ? (
+                {userInfo && (isAdmin || isManager) ? (
                   <PlusCircleOutlined
                     onClick={showModal}
                     style={{ cursor: "pointer", marginLeft: "10px" }}

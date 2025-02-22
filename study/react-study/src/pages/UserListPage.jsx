@@ -28,16 +28,21 @@ import {
 } from "@ant-design/icons";
 import validateInput from "../utils/validateInput";
 import { COLORS } from "../utils/constant";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setUserInfo,
+  setRoles,
+  setAllUsers,
+  invalidateUserInfo,
+  invalidateRoles,
+  invalidateUsers,
+} from "../store/userSlice";
 
 const { confirm } = Modal;
 const { Content } = Layout;
 const { Option } = Select;
 
 const UserListPage = () => {
-  const [userInformation, setUserInformation] = useState(null);
-  const [allUsers, setAllUsers] = useState([]);
-  const [allRoles, setAllRoles] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
   const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
@@ -52,8 +57,16 @@ const UserListPage = () => {
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
 
-  // Retrieve auth data from Redux store
   const { token, isAuthenticated } = useSelector((state) => state.auth);
+  const {
+    userInfo,
+    roles,
+    allUsers,
+    isUserInfoInvalidated,
+    isRolesInvalidated,
+    isUsersInvalidated,
+  } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
@@ -77,6 +90,7 @@ const UserListPage = () => {
   }, [notificationMessage, api, openNotificationWithIcon]);
 
   const fetchAllUsers = useCallback(async () => {
+    if (!isUsersInvalidated && allUsers.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllUsers(token);
       if (Array.isArray(response)) {
@@ -98,18 +112,19 @@ const UserListPage = () => {
             })),
           })),
         }));
-        setAllUsers(allUsersData);
+        dispatch(setAllUsers(allUsersData)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setAllUsers([]);
+        dispatch(setAllUsers([]));
       }
     } catch (error) {
       console.error("Error fetching All Users:", error);
-      setAllUsers([]);
+      dispatch(setAllUsers([]));
     }
-  }, [token]);
+  }, [token, dispatch, isUsersInvalidated, allUsers]);
 
   const fetchMyInfo = useCallback(async () => {
+    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getMyInfo(token);
       if (response && response.result) {
@@ -131,14 +146,15 @@ const UserListPage = () => {
             })),
           })),
         };
-        setUserInformation(userData);
+        dispatch(setUserInfo(userData)); // Lưu vào store
       }
     } catch (error) {
       console.error("Error fetching user info:", error);
     }
-  }, [token]);
+  }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   const fetchRoles = useCallback(async () => {
+    if (!isRolesInvalidated && roles.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
@@ -152,16 +168,16 @@ const UserListPage = () => {
             color: permission.color,
           })),
         }));
-        setAllRoles(allRolesData);
+        dispatch(setRoles(allRolesData)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setAllRoles([]);
+        dispatch(setRoles([]));
       }
     } catch (error) {
       console.error("Error fetching All Roles:", error);
-      setAllRoles([]);
+      dispatch(setRoles([]));
     }
-  }, [token]);
+  }, [token, dispatch, isRolesInvalidated, roles]);
 
   useEffect(() => {
     if (token && isAuthenticated) {
@@ -169,14 +185,14 @@ const UserListPage = () => {
       fetchAllUsers();
       fetchRoles();
     }
-  }, [token, isAuthenticated, fetchRoles, fetchMyInfo, fetchAllUsers]);
+  }, [token, isAuthenticated, fetchMyInfo, fetchAllUsers, fetchRoles]);
 
   const handleDeleteUser = async (userId) => {
     try {
       await deleteUser(userId, token);
-      setAllUsers((prevUsers) =>
-        prevUsers.filter((user) => user.id !== userId)
-      );
+      dispatch(setAllUsers(allUsers.filter((user) => user.id !== userId))); // Cập nhật store trực tiếp
+      dispatch(invalidateRoles()); // Invalidate roles vì user liên quan đến role
+      dispatch(invalidateUserInfo()); // Invalidate user info nếu ảnh hưởng
       setNotificationMessage({
         type: "success",
         message: "Success",
@@ -271,8 +287,11 @@ const UserListPage = () => {
         if (isModeIdUpdate) {
           await updateUser(selectedUserId, values, token);
         }
-        fetchMyInfo();
-        fetchAllUsers();
+        dispatch(invalidateUsers()); // Invalidate users để fetch lại danh sách
+        dispatch(invalidateRoles()); // Invalidate roles vì có thể ảnh hưởng
+        dispatch(invalidateUserInfo()); // Invalidate user info nếu ảnh hưởng
+        fetchAllUsers(); // Fetch lại ngay để cập nhật danh sách
+        fetchMyInfo(); // Fetch lại nếu cần
         setIsModalVisible(false);
         setIsModeNew(false);
         setIsModeIdUpdate(false);
@@ -297,8 +316,8 @@ const UserListPage = () => {
   };
 
   const getAvailableRoles = () => {
-    if (!userInformation) return [];
-    const userRoles = userInformation.roles.map((role) => role.name);
+    if (!userInfo) return [];
+    const userRoles = userInfo.roles.map((role) => role.name);
     if (userRoles.includes("ADMIN")) {
       return ["ADMIN", "MANAGER", "USER"];
     } else if (userRoles.includes("MANAGER")) {
@@ -362,7 +381,7 @@ const UserListPage = () => {
     render: (text) =>
       searchedColumn === dataIndex ? (
         <Highlighter
-          highlightStyle={{ backgroundColor: COLORS[15] , padding: 0 }}
+          highlightStyle={{ backgroundColor: COLORS[15], padding: 0 }}
           searchWords={[searchText]}
           autoEscape
           textToHighlight={text ? text.toString() : ""}
@@ -382,14 +401,13 @@ const UserListPage = () => {
     clearFilters();
     setSearchText("");
     setSearchedColumn("");
+    dispatch(invalidateUsers()); // Invalidate để fetch lại danh sách users
     fetchAllUsers();
     console.log("Filters reset, data reloaded.");
   };
 
-  const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
-  const isManager = userInformation?.roles.some(
-    (role) => role.name === "MANAGER"
-  );
+  const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
+  const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
   return (
     <Layout style={{ padding: "0 24px 24px" }}>
@@ -469,7 +487,7 @@ const UserListPage = () => {
               rules={[{ required: true, message: "Please select the role!" }]}
             >
               <Select mode="multiple" placeholder="Select roles">
-                {allRoles
+                {roles
                   .filter((role) => getAvailableRoles().includes(role.name))
                   .map((role) => (
                     <Option key={role.name} value={role.name}>
@@ -493,7 +511,7 @@ const UserListPage = () => {
                 }}
               >
                 User List
-                {userInformation && (isAdmin || isManager) ? (
+                {userInfo && (isAdmin || isManager) ? (
                   <UserAddOutlined
                     onClick={showModalNew}
                     style={{ cursor: "pointer", marginLeft: "10px" }}
@@ -616,5 +634,3 @@ const UserListPage = () => {
 };
 
 export default UserListPage;
-
-

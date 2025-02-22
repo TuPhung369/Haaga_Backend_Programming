@@ -29,17 +29,22 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import validateInput from "../utils/validateInput";
-import { COLORS } from "../utils/constant"
-import { useSelector } from "react-redux";
+import { COLORS } from "../utils/constant";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setUserInfo,
+  setRoles,
+  setAllUsers,
+  invalidateUserInfo,
+  invalidateRoles,
+  invalidateUsers,
+} from "../store/userSlice";
 
 const { confirm } = Modal;
 const { Content } = Layout;
 const { Option } = Select;
 
 const HomePage = () => {
-  const [userInformation, setUserInformation] = useState(null);
-  const [allUsers, setAllUsers] = useState([]);
-  const [allRoles, setAllRoles] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
   const [isModeUpdate, setIsModeUpdate] = useState(false);
@@ -59,6 +64,15 @@ const HomePage = () => {
   const { token, isAuthenticated, loginSocial } = useSelector(
     (state) => state.auth
   );
+  const {
+    userInfo,
+    roles,
+    allUsers,
+    isUserInfoInvalidated,
+    isRolesInvalidated,
+    isUsersInvalidated,
+  } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
@@ -82,6 +96,7 @@ const HomePage = () => {
   }, [notificationMessage, api, openNotificationWithIcon]);
 
   const fetchAllUsers = useCallback(async () => {
+    if (!isUsersInvalidated && allUsers.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllUsers(token);
       console.log("loginSocial:", loginSocial);
@@ -104,18 +119,19 @@ const HomePage = () => {
             })),
           })),
         }));
-        setAllUsers(allUsersData);
+        dispatch(setAllUsers(allUsersData)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setAllUsers([]);
+        dispatch(setAllUsers([]));
       }
     } catch (error) {
       console.error("Error fetching All Users:", error);
-      setAllUsers([]);
+      dispatch(setAllUsers([]));
     }
-  }, [token, loginSocial]);
+  }, [token, loginSocial, dispatch, isUsersInvalidated, allUsers]);
 
   const fetchMyInfo = useCallback(async () => {
+    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getMyInfo(token);
       if (response && response.result) {
@@ -137,14 +153,15 @@ const HomePage = () => {
             })),
           })),
         };
-        setUserInformation(userData);
+        dispatch(setUserInfo(userData)); // Lưu vào store
       }
     } catch (error) {
       console.error("Error fetching user info:", error);
     }
-  }, [token]);
+  }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   const fetchRoles = useCallback(async () => {
+    if (!isRolesInvalidated && roles.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
     try {
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
@@ -158,16 +175,16 @@ const HomePage = () => {
             color: permission.color,
           })),
         }));
-        setAllRoles(allRolesData);
+        dispatch(setRoles(allRolesData)); // Lưu vào store
       } else {
         console.error("Response is not an array");
-        setAllRoles([]);
+        dispatch(setRoles([]));
       }
     } catch (error) {
       console.error("Error fetching All Roles:", error);
-      setAllRoles([]);
+      dispatch(setRoles([]));
     }
-  }, [token]);
+  }, [token, dispatch, isRolesInvalidated, roles]);
 
   useEffect(() => {
     if (token && isAuthenticated) {
@@ -180,9 +197,9 @@ const HomePage = () => {
   const handleDeleteUser = async (userId) => {
     try {
       await deleteUser(userId, token);
-      setAllUsers((prevUsers) =>
-        prevUsers.filter((user) => user.id !== userId)
-      );
+      dispatch(setAllUsers(allUsers.filter((user) => user.id !== userId))); // Cập nhật store trực tiếp
+      dispatch(invalidateUserInfo()); // Invalidate user info nếu ảnh hưởng
+      dispatch(invalidateRoles()); // Invalidate roles vì liên quan
       setNotificationMessage({
         type: "success",
         message: "Success",
@@ -218,13 +235,13 @@ const HomePage = () => {
     setIsModalVisible(true);
     setIsModeUpdate(true);
     form.setFieldsValue({
-      username: userInformation?.username || "",
+      username: userInfo?.username || "",
       password: "",
-      firstname: userInformation?.firstname || "",
-      lastname: userInformation?.lastname || "",
-      dob: userInformation?.dob || "",
-      email: userInformation?.email || "",
-      roles: userInformation?.roles?.map((role) => role.name) || [],
+      firstname: userInfo?.firstname || "",
+      lastname: userInfo?.lastname || "",
+      dob: userInfo?.dob || "",
+      email: userInfo?.email || "",
+      roles: userInfo?.roles?.map((role) => role.name) || [],
     });
   };
 
@@ -287,16 +304,20 @@ const HomePage = () => {
 
       try {
         if (isModeUpdate) {
-          await updateMyInfo(userInformation.id, values, token);
+          await updateMyInfo(userInfo.id, values, token);
+          dispatch(invalidateUserInfo()); // Invalidate sau khi cập nhật thông tin cá nhân
         }
         if (isModeNew) {
           await createUser(values, token);
+          dispatch(invalidateUsers()); // Invalidate danh sách users
         }
         if (isModeIdUpdate) {
           await updateUser(selectedUserId, values, token);
+          dispatch(invalidateUsers()); // Invalidate danh sách users
+          dispatch(invalidateRoles()); // Invalidate roles vì có thể ảnh hưởng
         }
-        fetchMyInfo();
-        fetchAllUsers();
+        fetchMyInfo(); // Fetch lại ngay để cập nhật
+        fetchAllUsers(); // Fetch lại ngay để cập nhật
         setIsModalVisible(false);
         setIsModeNew(false);
         setIsModeIdUpdate(false);
@@ -322,8 +343,8 @@ const HomePage = () => {
   };
 
   const getAvailableRoles = () => {
-    if (!userInformation) return [];
-    const userRoles = userInformation.roles.map((role) => role.name);
+    if (!userInfo) return [];
+    const userRoles = userInfo.roles.map((role) => role.name);
     if (userRoles.includes("ADMIN")) {
       return ["ADMIN", "MANAGER", "USER"];
     } else if (userRoles.includes("MANAGER")) {
@@ -387,7 +408,7 @@ const HomePage = () => {
     render: (text) =>
       searchedColumn === dataIndex ? (
         <Highlighter
-          highlightStyle={{ backgroundColor: COLORS[15] , padding: 0 }}
+          highlightStyle={{ backgroundColor: COLORS[15], padding: 0 }}
           searchWords={[searchText]}
           autoEscape
           textToHighlight={text ? text.toString() : ""}
@@ -406,19 +427,18 @@ const HomePage = () => {
   const handleReset = (clearFilters) => {
     clearFilters();
     setSearchText("");
+    dispatch(invalidateUsers()); // Invalidate để fetch lại danh sách users
     fetchAllUsers();
   };
 
-  const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
-  const isManager = userInformation?.roles.some(
-    (role) => role.name === "MANAGER"
-  );
+  const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
+  const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
   return (
     <Layout style={{ padding: "0 24px 24px" }}>
       <Content style={{ margin: "24px 0" }}>
         {contextHolder}
-        {userInformation ? (
+        {userInfo ? (
           <Descriptions
             className="custom-descriptions"
             title={
@@ -442,14 +462,14 @@ const HomePage = () => {
             bordered
           >
             <Descriptions.Item label="First Name">
-              {userInformation.firstname}
+              {userInfo.firstname}
             </Descriptions.Item>
             <Descriptions.Item label="Last Name">
-              {userInformation.lastname}
+              {userInfo.lastname}
             </Descriptions.Item>
             <Descriptions.Item label="Role">
-              {userInformation.roles && userInformation.roles.length > 0
-                ? userInformation.roles.map((role) => (
+              {userInfo.roles && userInfo.roles.length > 0
+                ? userInfo.roles.map((role) => (
                     <Tag key={role.name} color={role.color}>
                       {role.name}
                     </Tag>
@@ -457,21 +477,21 @@ const HomePage = () => {
                 : "No role assigned"}
             </Descriptions.Item>
             <Descriptions.Item label="Username">
-              {userInformation.username}
+              {userInfo.username}
             </Descriptions.Item>
             <Descriptions.Item label="Date of Birth">
-              {userInformation.dob}
+              {userInfo.dob}
             </Descriptions.Item>
             <Descriptions.Item label="Permissions">
-              {userInformation.roles && userInformation.roles.length > 0
+              {userInfo.roles && userInfo.roles.length > 0
                 ? [
                     ...new Set(
-                      userInformation.roles.flatMap((role) =>
+                      userInfo.roles.flatMap((role) =>
                         role.permissions.map((perm) => perm.name)
                       )
                     ),
                   ].map((permName) => {
-                    const perm = userInformation.roles
+                    const perm = userInfo.roles
                       .flatMap((role) => role.permissions)
                       .find((p) => p.name === permName);
                     return (
@@ -570,7 +590,7 @@ const HomePage = () => {
               rules={[{ required: true, message: "Please select the role!" }]}
             >
               <Select mode="multiple" placeholder="Select roles">
-                {allRoles
+                {roles
                   .filter((role) => getAvailableRoles().includes(role.name))
                   .map((role) => (
                     <Option key={role.name} value={role.name}>
@@ -594,7 +614,7 @@ const HomePage = () => {
                 }}
               >
                 User List
-                {userInformation && (isAdmin || isManager) ? (
+                {userInfo && (isAdmin || isManager) ? (
                   <UserAddOutlined
                     onClick={showModalNew}
                     style={{ cursor: "pointer", marginLeft: "10px" }}
