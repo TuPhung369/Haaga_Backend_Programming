@@ -8,6 +8,7 @@ import {
 import Column from "../components/ColumnKanban";
 import { nanoid } from "nanoid";
 import { PlusOutlined } from "@ant-design/icons";
+import { Modal } from "antd";
 
 const KanbanBoard = () => {
   const [columns, setColumns] = useState([
@@ -26,7 +27,6 @@ const KanbanBoard = () => {
     if (!over) return;
 
     if (active.data.current?.type === "task") {
-      // Logic hiện tại cho nhiệm vụ (task)
       const taskId = active.id;
       const sourceCol = columns.find((col) =>
         col.tasks.some((task) => task.id === taskId)
@@ -95,7 +95,6 @@ const KanbanBoard = () => {
         );
       }
     } else if (active.data.current?.type === "column") {
-      // Logic mới cho cột (column)
       const oldIndex = columns.findIndex((col) => col.id === active.id);
       const newIndex = columns.findIndex((col) => col.id === over.id);
 
@@ -120,14 +119,26 @@ const KanbanBoard = () => {
   };
 
   const deleteTask = (columnId, taskId) => {
-    setColumns((prevColumns) =>
-      prevColumns.map((col) =>
-        col.id === columnId
-          ? { ...col, tasks: col.tasks.filter((task) => task.id !== taskId) }
-          : col
-      )
-    );
+    Modal.confirm({
+      title: "Are you sure you want to delete this task?",
+      onOk: () => {
+        setColumns((prevColumns) => {
+          const updatedColumns = prevColumns.map((col) =>
+            col.id === columnId
+              ? {
+                  ...col,
+                  tasks: col.tasks.filter((task) => task.id !== taskId),
+                }
+              : col
+          );
+          return updatedColumns;
+        });
+      },
+      okText: "Yes",
+      cancelText: "No",
+    });
   };
+
   const addColumn = (columnTitle) => {
     const newColumn = { id: nanoid(), title: columnTitle, tasks: [] };
     setColumns((prevColumns) => [...prevColumns, newColumn]);
@@ -142,9 +153,16 @@ const KanbanBoard = () => {
   };
 
   const deleteColumn = (columnId) => {
-    setColumns((prevColumns) =>
-      prevColumns.filter((col) => col.id !== columnId)
-    );
+    Modal.confirm({
+      title: "Are you sure you want to delete this column?",
+      onOk: () => {
+        setColumns((prevColumns) =>
+          prevColumns.filter((col) => col.id !== columnId)
+        );
+      },
+      okText: "Yes",
+      cancelText: "No",
+    });
   };
 
   const handleEditTask = (task) => {
@@ -162,10 +180,12 @@ const KanbanBoard = () => {
     );
     setEditingTask(null);
   };
+
   const longestTitleLength = Math.max(
     ...columns.map((col) => col.title.length)
   );
   const columnWidth = `${longestTitleLength * 15 + 70}px`;
+
   return (
     <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
       <button
@@ -175,7 +195,7 @@ const KanbanBoard = () => {
         Add Column
         <PlusOutlined style={{ fontSize: "14px", marginLeft: "5px" }} />
       </button>
-      <div className="flex gap-4 p-4 overflow-x-auto w-full">
+      <div className="flex gap-4 p-4 overflow-x-auto w-full items-stretch">
         <SortableContext
           items={columns.map((col) => col.id)}
           strategy={verticalListSortingStrategy}
@@ -188,7 +208,7 @@ const KanbanBoard = () => {
               addTask={addTask}
               deleteTask={(taskId) => deleteTask(column.id, taskId)}
               editColumn={editColumn}
-              deleteColumn={deleteColumn}
+              deleteColumn={deleteColumn} // Pass deleteColumn directly
               onEditTask={handleEditTask}
               width={columnWidth}
             />
@@ -244,4 +264,3 @@ const KanbanBoard = () => {
 };
 
 export default KanbanBoard;
-

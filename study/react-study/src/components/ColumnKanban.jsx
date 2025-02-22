@@ -69,8 +69,7 @@ const Column = ({
     }
   };
   const handleDeleteColumn = () => {
-    deleteColumn(column.id);
-    handleCloseEditModal();
+    deleteColumn(column.id); // Call deleteColumn directly without confirmation
   };
 
   const hexToRgba = (hex, alpha = 1) => {
@@ -93,14 +92,14 @@ const Column = ({
     <div
       ref={setNodeRef}
       style={{ ...style, width }}
-      className="column bg-gray-100 p-4 rounded-md shadow-md w-fit"
+      className="column bg-gray-100 p-4 rounded-md shadow-md w-fit flex flex-col"
     >
       <div
         className="column-header flex justify-between items-center mb-4 bg-blue-500 text-white p-2 rounded-t-md whitespace-nowrap overflow-hidden text-ellipsis"
         style={{ backgroundColor: columnColor }}
       >
         <h2
-          {...attributes} // Chỉ áp dụng listeners cho tiêu đề để kéo thả
+          {...attributes}
           {...listeners}
           className="text-lg font-bold mr-2 whitespace-nowrap overflow-hidden text-ellipsis"
           onDoubleClick={handleEditColumn}
@@ -117,7 +116,7 @@ const Column = ({
 
       <div
         ref={setDroppableNodeRef}
-        className="tasks space-y-2 bg-white p-4 rounded-b-md min-h-[120px]"
+        className="tasks space-y-2 bg-white p-4 rounded-b-md" // Remove flex-1, let it grow naturally
         style={{
           backgroundColor: hexToRgba(COLORS[index % COLORS.length], 0.7),
         }}
@@ -128,7 +127,12 @@ const Column = ({
         >
           {column.tasks.length > 0 ? (
             column.tasks.map((task) => (
-              <Task key={task.id} task={task} onEditTask={onEditTask} />
+              <Task
+                key={task.id}
+                task={task}
+                onEditTask={onEditTask}
+                onDeleteTask={deleteTask}
+              />
             ))
           ) : (
             <div className="text-gray-500 text-center"></div>
@@ -203,4 +207,3 @@ const Column = ({
 };
 
 export default Column;
-
