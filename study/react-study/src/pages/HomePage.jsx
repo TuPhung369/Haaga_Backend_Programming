@@ -1,11 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-  useContext,
-} from "react";
-import { GlobalContext } from "../GlobalContext";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import "../styles/HomePage.css";
 import Highlighter from "react-highlight-words";
 import {
@@ -60,7 +53,7 @@ const HomePage = () => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
-  const { loginSocial } = useContext(GlobalContext);
+  const loginSocial = localStorage.getItem("loginSocial");
 
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {

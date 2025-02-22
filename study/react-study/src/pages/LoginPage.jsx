@@ -71,11 +71,8 @@ const LoginPage = () => {
         const response = await introspectToken(data.result.token);
         if (response.result?.valid) {
           localStorage.setItem("token", data.result.token);
-          if (rememberMe) {
-            localStorage.setItem("isAuthenticated", "true");
-          } else {
-            localStorage.removeItem("isAuthenticated"); // Ensure it's removed
-          }
+          localStorage.setItem("isAuthenticated", "true");
+          localStorage.setItem("loginSocial", "false");
           window.location.href = appBaseUri;
         }
       } catch (error) {
@@ -242,7 +239,6 @@ const LoginPage = () => {
             boxShadow: "0 6px 16px rgba(0, 0, 0, 0.1)",
             borderRadius: "10px",
           }}
-          hoverable
         >
           <Title
             level={2}
@@ -574,4 +570,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-

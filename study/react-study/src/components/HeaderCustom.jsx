@@ -11,6 +11,7 @@ const HeaderCustom = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("loginSocial");
     setIsAuthenticated(false);
     navigate("/login");
     notification.success({
