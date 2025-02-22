@@ -35,7 +35,7 @@ const LoginPage = () => {
   const oauth2ClientId = process.env.REACT_APP_OAUTH2_CLIENT_ID;
   const oauth2RedirectUri = process.env.REACT_APP_OAUTH2_REDIRECT_URI;
   const appBaseUri = process.env.REACT_APP_BASE_URI;
-  const [error, setError] = useState("");
+  const [error] = useState("");
   const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] =
     useState(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
@@ -67,6 +67,22 @@ const LoginPage = () => {
 
   const handleLogin = (values) => {
     const login = async () => {
+      // Validate input before API call
+      const errors = validateInput({
+        username: values.username,
+        password: values.password,
+      });
+
+      if (Object.keys(errors).length > 0) {
+        // Show notification for validation errors
+        notification.error({
+          message: "Validation Error",
+          description:
+            errors.username || errors.password || "Please check your input!",
+        });
+        return;
+      }
+
       try {
         const data = await authenticateUser(values.username, values.password);
         const response = await introspectToken(data.result.token);
@@ -78,11 +94,17 @@ const LoginPage = () => {
               loginSocial: false,
             })
           );
+          notification.success({
+            message: "Success",
+            description: "Logged in successfully!",
+          });
           window.location.href = appBaseUri;
         }
       } catch (error) {
-        console.error("Error during login:", error);
-        setError(error.message || "Invalid username or password");
+        notification.error({
+          message: "Login Error",
+          description: "Invalid username or password" || error.message,
+        });
       }
     };
     login();
@@ -575,3 +597,4 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+
