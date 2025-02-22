@@ -17,12 +17,10 @@ const KanbanBoard = () => {
     return savedColumns
       ? JSON.parse(savedColumns)
       : [
-          { id: "todo", title: "To Do", tasks: [{ id: "1", title: "Task 1" }] },
-          {
-            id: "in_progress",
-            title: "In Progress",
-            tasks: [{ id: "2", title: "Task 2" }],
-          },
+          { id: "back_log", title: "Back Log", tasks: [] },
+          { id: "pending", title: "Pending", tasks: [] },
+          { id: "todo", title: "To Do", tasks: [] },
+          { id: "in_progress", title: "In Progress", tasks: [] },
           { id: "done", title: "Done", tasks: [] },
         ];
   });
@@ -199,6 +197,8 @@ const KanbanBoard = () => {
       onOk: () => {
         localStorage.removeItem("kanbanColumns");
         setColumns([
+          { id: "back_log", title: "Back Log", tasks: [] },
+          { id: "pending", title: "Pending", tasks: [] },
           { id: "todo", title: "To Do", tasks: [] },
           { id: "in_progress", title: "In Progress", tasks: [] },
           { id: "done", title: "Done", tasks: [] },
