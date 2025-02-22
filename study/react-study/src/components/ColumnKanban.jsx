@@ -141,7 +141,10 @@ const Column = ({
       </div>
 
       {isModalOpen && (
-        <div className="modal fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-50">
+        <div
+          className="modal fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-50"
+          style={{ zIndex: 10 }}
+        >
           <div className="modal-content bg-white p-4 rounded-md shadow-lg">
             <h3 className="text-lg font-bold mb-4">Add New Task</h3>
             <input
@@ -207,4 +210,5 @@ const Column = ({
 };
 
 export default Column;
+
 

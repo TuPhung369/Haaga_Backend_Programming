@@ -1,34 +1,44 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { DndContext, closestCorners } from "@dnd-kit/core";
 import {
   SortableContext,
-  arrayMove,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import Column from "../components/ColumnKanban";
-import { nanoid } from "nanoid";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { Modal } from "antd";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setColumns,
+  setEditingTask,
+  addTask,
+  deleteTask,
+  addColumn,
+  editColumn,
+  deleteColumn,
+  saveTaskEdit,
+  dragEndTask,
+  dragEndColumn,
+  clearKanbanData,
+} from "../store/kanbanSlice";
 
 const KanbanBoard = () => {
-  // Initialize state from localStorage if it exists, otherwise use default
-  const [columns, setColumns] = useState(() => {
+  const { columns, editingTask } = useSelector((state) => state.kanban);
+  const dispatch = useDispatch();
+
+  // Load columns from localStorage on mount
+  useEffect(() => {
     const savedColumns = localStorage.getItem("kanbanColumns");
-    return savedColumns
-      ? JSON.parse(savedColumns)
-      : [
-          { id: "back_log", title: "Back Log", tasks: [] },
-          { id: "pending", title: "Pending", tasks: [] },
-          { id: "todo", title: "To Do", tasks: [] },
-          { id: "in_progress", title: "In Progress", tasks: [] },
-          { id: "done", title: "Done", tasks: [] },
-        ];
-  });
-  const [editingTask, setEditingTask] = useState(null);
+    if (savedColumns) {
+      dispatch(setColumns(JSON.parse(savedColumns)));
+    }
+  }, [dispatch]);
 
   // Save columns to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem("kanbanColumns", JSON.stringify(columns));
+    if (columns.length > 0) {
+      localStorage.setItem("kanbanColumns", JSON.stringify(columns));
+    }
   }, [columns]);
 
   const handleDragEnd = (event) => {
@@ -36,138 +46,40 @@ const KanbanBoard = () => {
     if (!over) return;
 
     if (active.data.current?.type === "task") {
-      const taskId = active.id;
-      const sourceCol = columns.find((col) =>
-        col.tasks.some((task) => task.id === taskId)
-      );
-      if (!sourceCol) return;
-
-      let targetCol;
-      if (over.data.current?.type === "task") {
-        const overTaskId = over.id;
-        targetCol = columns.find((col) =>
-          col.tasks.some((task) => task.id === overTaskId)
-        );
-      } else if (over.data.current?.type === "column") {
-        targetCol = columns.find((col) => col.id === over.id);
-      } else {
-        targetCol = sourceCol;
-      }
-
-      if (!targetCol) return;
-
-      if (sourceCol.id === targetCol.id) {
-        const oldIndex = sourceCol.tasks.findIndex(
-          (task) => task.id === taskId
-        );
-        const newIndex =
-          over.data.current?.type === "task"
-            ? targetCol.tasks.findIndex((task) => task.id === over.id)
-            : targetCol.tasks.length;
-
-        if (oldIndex !== newIndex) {
-          const updatedTasks = arrayMove(sourceCol.tasks, oldIndex, newIndex);
-          setColumns((prevColumns) =>
-            prevColumns.map((col) =>
-              col.id === sourceCol.id ? { ...col, tasks: updatedTasks } : col
-            )
-          );
-        }
-      } else {
-        const movedTask = sourceCol.tasks.find((task) => task.id === taskId);
-        const updatedSourceTasks = sourceCol.tasks.filter(
-          (task) => task.id !== taskId
-        );
-        let updatedTargetTasks;
-
-        if (over.data.current?.type === "task") {
-          const overTaskIndex = targetCol.tasks.findIndex(
-            (task) => task.id === over.id
-          );
-          updatedTargetTasks = [
-            ...targetCol.tasks.slice(0, overTaskIndex),
-            movedTask,
-            ...targetCol.tasks.slice(overTaskIndex),
-          ];
-        } else {
-          updatedTargetTasks = [...targetCol.tasks, movedTask];
-        }
-
-        setColumns((prevColumns) =>
-          prevColumns.map((col) =>
-            col.id === sourceCol.id
-              ? { ...col, tasks: updatedSourceTasks }
-              : col.id === targetCol.id
-              ? { ...col, tasks: updatedTargetTasks }
-              : col
-          )
-        );
-      }
+      dispatch(dragEndTask({ activeId: active.id, overId: over.id }));
     } else if (active.data.current?.type === "column") {
-      const oldIndex = columns.findIndex((col) => col.id === active.id);
-      const newIndex = columns.findIndex((col) => col.id === over.id);
-
-      if (oldIndex !== newIndex) {
-        const updatedColumns = arrayMove(columns, oldIndex, newIndex);
-        setColumns(updatedColumns);
-      }
+      dispatch(dragEndColumn({ activeId: active.id, overId: over.id }));
     }
   };
 
-  const addTask = (columnId, taskTitle) => {
-    setColumns((prevColumns) =>
-      prevColumns.map((col) =>
-        col.id === columnId
-          ? {
-              ...col,
-              tasks: [...col.tasks, { id: nanoid(), title: taskTitle }],
-            }
-          : col
-      )
-    );
+  const handleAddTask = (columnId, taskTitle) => {
+    dispatch(addTask({ columnId, taskTitle }));
   };
 
-  const deleteTask = (columnId, taskId) => {
+  const handleDeleteTask = (columnId, taskId) => {
     Modal.confirm({
       title: "Are you sure you want to delete this task?",
       onOk: () => {
-        setColumns((prevColumns) => {
-          const updatedColumns = prevColumns.map((col) =>
-            col.id === columnId
-              ? {
-                  ...col,
-                  tasks: col.tasks.filter((task) => task.id !== taskId),
-                }
-              : col
-          );
-          return updatedColumns;
-        });
+        dispatch(deleteTask({ columnId, taskId }));
       },
       okText: "Yes",
       cancelText: "No",
     });
   };
 
-  const addColumn = (columnTitle) => {
-    const newColumn = { id: nanoid(), title: columnTitle, tasks: [] };
-    setColumns((prevColumns) => [...prevColumns, newColumn]);
+  const handleAddColumn = (columnTitle) => {
+    dispatch(addColumn(columnTitle));
   };
 
-  const editColumn = (columnId, newTitle) => {
-    setColumns((prevColumns) =>
-      prevColumns.map((col) =>
-        col.id === columnId ? { ...col, title: newTitle } : col
-      )
-    );
+  const handleEditColumn = (columnId, newTitle) => {
+    dispatch(editColumn({ columnId, newTitle }));
   };
 
-  const deleteColumn = (columnId) => {
+  const handleDeleteColumn = (columnId) => {
     Modal.confirm({
       title: "Are you sure you want to delete this column?",
       onOk: () => {
-        setColumns((prevColumns) =>
-          prevColumns.filter((col) => col.id !== columnId)
-        );
+        dispatch(deleteColumn(columnId));
       },
       okText: "Yes",
       cancelText: "No",
@@ -175,34 +87,19 @@ const KanbanBoard = () => {
   };
 
   const handleEditTask = (task) => {
-    setEditingTask(task);
+    dispatch(setEditingTask(task));
   };
 
-  const saveTaskEdit = (taskId, newTitle) => {
-    setColumns((prevColumns) =>
-      prevColumns.map((col) => ({
-        ...col,
-        tasks: col.tasks.map((task) =>
-          task.id === taskId ? { ...task, title: newTitle } : task
-        ),
-      }))
-    );
-    setEditingTask(null);
+  const handleSaveTaskEdit = (taskId, newTitle) => {
+    dispatch(saveTaskEdit({ taskId, newTitle }));
   };
 
-  // Optional: Add a function to clear localStorage
-  const clearBoard = () => {
+  const handleClearBoard = () => {
     Modal.confirm({
       title: "Are you sure you want to clear the entire board?",
       onOk: () => {
+        dispatch(clearKanbanData());
         localStorage.removeItem("kanbanColumns");
-        setColumns([
-          { id: "back_log", title: "Back Log", tasks: [] },
-          { id: "pending", title: "Pending", tasks: [] },
-          { id: "todo", title: "To Do", tasks: [] },
-          { id: "in_progress", title: "In Progress", tasks: [] },
-          { id: "done", title: "Done", tasks: [] },
-        ]);
       },
       okText: "Yes",
       cancelText: "No",
@@ -219,14 +116,14 @@ const KanbanBoard = () => {
       <div className="flex justify-start items-center p-2">
         <button
           className="p-2 bg-blue-500 text-white rounded-full ml-2 mt-2 mr-2"
-          onClick={() => addColumn("New Column")}
+          onClick={() => handleAddColumn("New Column")}
         >
           Add Column
           <PlusOutlined style={{ fontSize: "16px", marginLeft: "5px" }} />
         </button>
         <button
           className="p-2 bg-red-400 text-white rounded-full mr-2 mt-2"
-          onClick={clearBoard}
+          onClick={handleClearBoard}
         >
           Clear All Tasks
           <DeleteOutlined style={{ fontSize: "16px", marginLeft: "5px" }} />
@@ -242,10 +139,10 @@ const KanbanBoard = () => {
               key={column.id}
               column={column}
               index={index}
-              addTask={addTask}
-              deleteTask={(taskId) => deleteTask(column.id, taskId)}
-              editColumn={editColumn}
-              deleteColumn={deleteColumn}
+              addTask={handleAddTask}
+              deleteTask={handleDeleteTask}
+              editColumn={handleEditColumn}
+              deleteColumn={handleDeleteColumn}
               onEditTask={handleEditTask}
               width={columnWidth}
             />
@@ -261,7 +158,9 @@ const KanbanBoard = () => {
               type="text"
               value={editingTask.title}
               onChange={(e) =>
-                setEditingTask({ ...editingTask, title: e.target.value })
+                dispatch(
+                  setEditingTask({ ...editingTask, title: e.target.value })
+                )
               }
               className="p-2 border border-gray-300 rounded-md mb-4 w-full"
             />
@@ -269,26 +168,26 @@ const KanbanBoard = () => {
               <button
                 className="delete-button bg-red-500 text-white p-2 rounded-md mr-5"
                 onClick={() => {
-                  deleteTask(
-                    columns.find((col) =>
-                      col.tasks.some((task) => task.id === editingTask.id)
-                    )?.id,
-                    editingTask.id
-                  );
-                  setEditingTask(null);
+                  const columnId = columns.find((col) =>
+                    col.tasks.some((task) => task.id === editingTask.id)
+                  )?.id;
+                  handleDeleteTask(columnId, editingTask.id);
+                  dispatch(setEditingTask(null));
                 }}
               >
                 Delete
               </button>
               <button
                 className="cancel-button bg-gray-400 text-white p-2 rounded-md mr-2"
-                onClick={() => setEditingTask(null)}
+                onClick={() => dispatch(setEditingTask(null))}
               >
                 Cancel
               </button>
               <button
                 className="save-button bg-blue-500 text-white p-2 rounded-md"
-                onClick={() => saveTaskEdit(editingTask.id, editingTask.title)}
+                onClick={() =>
+                  handleSaveTaskEdit(editingTask.id, editingTask.title)
+                }
               >
                 Save
               </button>
