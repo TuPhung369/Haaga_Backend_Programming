@@ -69,7 +69,7 @@ const Column = ({
     }
   };
   const handleDeleteColumn = () => {
-    deleteColumn(column.id); // Call deleteColumn directly without confirmation
+    deleteColumn(column.id); // Call deleteColumn directly (confirmation handled in KanbanBoard)
   };
 
   const hexToRgba = (hex, alpha = 1) => {
@@ -95,13 +95,13 @@ const Column = ({
       className="column bg-gray-100 p-4 rounded-md shadow-md w-fit flex flex-col"
     >
       <div
-        className="column-header flex justify-between items-center mb-4 bg-blue-500 text-white p-2 rounded-t-md whitespace-nowrap overflow-hidden text-ellipsis"
+        className="column-header flex justify-between mb-4 bg-blue-500 text-white p-2 rounded-t-md whitespace-nowrap overflow-hidden text-ellipsis"
         style={{ backgroundColor: columnColor }}
       >
         <h2
           {...attributes}
           {...listeners}
-          className="text-lg font-bold mr-2 whitespace-nowrap overflow-hidden text-ellipsis"
+          className="text-lg font-bold mr-2 flex justify-center items-center text-center whitespace-nowrap overflow-hidden text-ellipsis w-full"
           onDoubleClick={handleEditColumn}
         >
           {column.title}
@@ -116,7 +116,7 @@ const Column = ({
 
       <div
         ref={setDroppableNodeRef}
-        className="tasks space-y-2 bg-white p-4 rounded-b-md" // Remove flex-1, let it grow naturally
+        className="tasks space-y-2 bg-white p-4 rounded-b-md w-full"
         style={{
           backgroundColor: hexToRgba(COLORS[index % COLORS.length], 0.7),
         }}
@@ -135,7 +135,7 @@ const Column = ({
               />
             ))
           ) : (
-            <div className="text-gray-500 text-center"></div>
+            <div className="text-gray-500 text-left w-fit"></div>
           )}
         </SortableContext>
       </div>
@@ -207,3 +207,4 @@ const Column = ({
 };
 
 export default Column;
+

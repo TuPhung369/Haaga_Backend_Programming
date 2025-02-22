@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DndContext, closestCorners } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -7,20 +7,31 @@ import {
 } from "@dnd-kit/sortable";
 import Column from "../components/ColumnKanban";
 import { nanoid } from "nanoid";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { Modal } from "antd";
 
 const KanbanBoard = () => {
-  const [columns, setColumns] = useState([
-    { id: "todo", title: "To Do", tasks: [{ id: "1", title: "Task 1" }] },
-    {
-      id: "in_progress",
-      title: "In Progress",
-      tasks: [{ id: "2", title: "Task 2" }],
-    },
-    { id: "done", title: "Done", tasks: [] },
-  ]);
+  // Initialize state from localStorage if it exists, otherwise use default
+  const [columns, setColumns] = useState(() => {
+    const savedColumns = localStorage.getItem("kanbanColumns");
+    return savedColumns
+      ? JSON.parse(savedColumns)
+      : [
+          { id: "todo", title: "To Do", tasks: [{ id: "1", title: "Task 1" }] },
+          {
+            id: "in_progress",
+            title: "In Progress",
+            tasks: [{ id: "2", title: "Task 2" }],
+          },
+          { id: "done", title: "Done", tasks: [] },
+        ];
+  });
   const [editingTask, setEditingTask] = useState(null);
+
+  // Save columns to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("kanbanColumns", JSON.stringify(columns));
+  }, [columns]);
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
@@ -181,20 +192,47 @@ const KanbanBoard = () => {
     setEditingTask(null);
   };
 
+  // Optional: Add a function to clear localStorage
+  const clearBoard = () => {
+    Modal.confirm({
+      title: "Are you sure you want to clear the entire board?",
+      onOk: () => {
+        localStorage.removeItem("kanbanColumns");
+        setColumns([
+          { id: "todo", title: "To Do", tasks: [] },
+          { id: "in_progress", title: "In Progress", tasks: [] },
+          { id: "done", title: "Done", tasks: [] },
+        ]);
+      },
+      okText: "Yes",
+      cancelText: "No",
+    });
+  };
+
   const longestTitleLength = Math.max(
     ...columns.map((col) => col.title.length)
   );
-  const columnWidth = `${longestTitleLength * 15 + 70}px`;
+const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 450)}px`;
+
 
   return (
     <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <button
-        className="p-2 bg-blue-500 text-white rounded-full ml-2 mt-2"
-        onClick={() => addColumn("New Column")}
-      >
-        Add Column
-        <PlusOutlined style={{ fontSize: "14px", marginLeft: "5px" }} />
-      </button>
+      <div className="flex justify-start items-center p-2">
+        <button
+          className="p-2 bg-blue-500 text-white rounded-full ml-2 mt-2 mr-2"
+          onClick={() => addColumn("New Column")}
+        >
+          Add Column
+          <PlusOutlined style={{ fontSize: "16px", marginLeft: "5px" }} />
+        </button>
+        <button
+          className="p-2 bg-red-500 text-white rounded-full mr-2 mt-2"
+          onClick={clearBoard}
+        >
+          Clear All Tasks
+          <DeleteOutlined style={{ fontSize: "16px", marginLeft: "5px" }} />
+        </button>
+      </div>
       <div className="flex gap-4 p-4 overflow-x-auto w-full items-stretch">
         <SortableContext
           items={columns.map((col) => col.id)}
@@ -208,7 +246,7 @@ const KanbanBoard = () => {
               addTask={addTask}
               deleteTask={(taskId) => deleteTask(column.id, taskId)}
               editColumn={editColumn}
-              deleteColumn={deleteColumn} // Pass deleteColumn directly
+              deleteColumn={deleteColumn}
               onEditTask={handleEditTask}
               width={columnWidth}
             />
@@ -264,3 +302,4 @@ const KanbanBoard = () => {
 };
 
 export default KanbanBoard;
+
