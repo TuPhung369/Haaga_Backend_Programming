@@ -19,39 +19,38 @@ import HeaderCustom from "./components/HeaderCustom";
 import Sidebar from "./components/Sidebar";
 import { introspectToken } from "./services/authService";
 import { Layout } from "antd";
+import { useSelector } from "react-redux";
 
 const { Content, Footer } = Layout;
 
 const AuthWrapper = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
+  const { token, isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
     const checkTokenValidity = async () => {
-      const token = localStorage.getItem("token");
       if (token) {
         try {
           const response = await introspectToken(token);
-          if (response.result?.valid) {
-            setIsAuthenticated(true);
-          } else {
+          if (!response.result?.valid) {
             console.warn("Invalid token, redirecting to login...");
-            localStorage.removeItem("token");
             navigate("/login");
           }
         } catch (error) {
           console.error("Error during token introspection:", error);
-          localStorage.removeItem("token");
           navigate("/login");
         }
       } else {
         navigate("/login");
       }
+      setIsChecking(false);
     };
 
     checkTokenValidity();
-  }, [navigate]);
+  }, [navigate, token]);
 
+  if (isChecking) return null;
   return isAuthenticated ? children : null;
 };
 
@@ -199,5 +198,6 @@ const App = () => (
 );
 
 export default App;
+
 
 

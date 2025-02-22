@@ -251,8 +251,6 @@ const CalendarPage = () => {
             minWidth: 900,
           }}
         >
-          <h2>Event Calendar</h2>
-
           <Button
             type="primary"
             icon={<PlusOutlined />}

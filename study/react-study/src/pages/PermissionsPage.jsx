@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   getAllPermissions,
   deletePermission,
@@ -16,49 +16,24 @@ import {
   Descriptions,
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useSelector } from "react-redux";
+import { PermissionColor, PermissionOption } from "../utils/constant";
 
 const { Content } = Layout;
 const { Option } = Select;
-export const permissionColors = [
-  "#FF4D4F",
-  "#1890FF",
-  "#52C41A",
-  "#FAAD14",
-  "#13C2C2",
-  "#722ED1",
-  "#EB2F96",
-  "#FA541C",
-  "#2F54EB",
-  "#A0D911",
-];
-
-export const permissionOptions = [
-  { name: "CREATE", description: "Create permission", color: "#FF4D4F" },
-  { name: "READ", description: "Read permission", color: "#1890FF" },
-  { name: "UPDATE", description: "Update permission", color: "#52C41A" },
-  { name: "DELETE", description: "Delete permission", color: "#FAAD14" },
-  { name: "APPROVE", description: "Approve permission", color: "#13C2C2" },
-  { name: "MANAGE", description: "Manage permission", color: "#722ED1" },
-  { name: "REJECT", description: "REJECT permission", color: "#EB2F96" },
-  { name: "UPLOAD", description: "UPLOAD permission", color: "#FA541C" },
-  { name: "SHARE", description: "Share permission", color: "#2F54EB" },
-  { name: "DOWNLOAD", description: "Download permission", color: "#A0D911" },
-];
 
 const PermissionPage = () => {
   const [permissions, setPermissions] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [userInformation, setUserInformation] = useState(null); // Add user information state
+  const [userInformation, setUserInformation] = useState(null);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    fetchPermissions();
-    fetchUserInformation(); // Fetch user information
-  }, []);
+  // Retrieve auth data from Redux store
+  const { token, isAuthenticated } = useSelector((state) => state.auth);
 
-  const fetchPermissions = async () => {
+  const fetchPermissions = useCallback(async () => {
     try {
-      const response = await getAllPermissions();
+      const response = await getAllPermissions(token);
       if (response && Array.isArray(response.result)) {
         const permissionsData = response.result.map((permission) => ({
           name: permission.name,
@@ -74,22 +49,29 @@ const PermissionPage = () => {
       console.error("Error fetching permissions:", error);
       setPermissions([]);
     }
-  };
+  }, [token]);
 
-  const fetchUserInformation = async () => {
+  const fetchUserInformation = useCallback(async () => {
     try {
-      const response = await getMyInfo(); // Adjust the function to fetch user information
+      const response = await getMyInfo(token);
       if (response && response.result) {
         setUserInformation(response.result);
       }
     } catch (error) {
       console.error("Error fetching user information:", error);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token && isAuthenticated) {
+      fetchPermissions();
+      fetchUserInformation();
+    }
+  }, [token, isAuthenticated, fetchPermissions, fetchUserInformation]);
 
   const handleDeletePermission = async (permissionName) => {
     try {
-      await deletePermission(permissionName);
+      await deletePermission(permissionName, token);
       setPermissions((prevPermissions) =>
         prevPermissions.filter(
           (permission) => permission.name !== permissionName
@@ -103,7 +85,7 @@ const PermissionPage = () => {
   const handleAddPermission = async () => {
     try {
       const values = await form.validateFields();
-      await createPermission(values);
+      await createPermission(values, token);
       fetchPermissions();
       setIsModalVisible(false);
     } catch (error) {
@@ -126,7 +108,7 @@ const PermissionPage = () => {
   );
 
   const handlePermissionChange = (value) => {
-    const selectedPermission = permissionOptions.find(
+    const selectedPermission = PermissionOption.find(
       (permission) => permission.name === value
     );
     form.setFieldsValue({
@@ -220,7 +202,7 @@ const PermissionPage = () => {
               placeholder="Select a permission"
               onChange={handlePermissionChange}
             >
-              {permissionOptions.map((permission) => (
+              {PermissionOption.map((permission) => (
                 <Option key={permission.name} value={permission.name}>
                   {permission.name}
                 </Option>
@@ -242,7 +224,7 @@ const PermissionPage = () => {
             rules={[{ required: true, message: "Please select the color!" }]}
           >
             <Select placeholder="Select a color">
-              {permissionColors.map((color) => (
+              {PermissionColor.map((color) => (
                 <Option key={color} value={color}>
                   <Tag color={color}>{color}</Tag>
                 </Option>
@@ -256,4 +238,3 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
-

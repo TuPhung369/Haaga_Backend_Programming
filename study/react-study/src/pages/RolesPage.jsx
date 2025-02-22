@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { getAllRoles, deleteRole, createRole } from "../services/roleService";
 import { getAllPermissions } from "../services/permissionService";
 import { getMyInfo } from "../services/userService";
-
 import {
   Layout,
   Table,
@@ -14,33 +13,11 @@ import {
   Descriptions,
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useSelector } from "react-redux";
+import { RoleColor, RoleOption } from "../utils/constant";
 
 const { Content } = Layout;
 const { Option } = Select;
-
-export const roleColors = [
-  "#FF4D4F",
-  "#1890FF",
-  "#52C41A",
-  "#FAAD14",
-  "#13C2C2",
-  "#722ED1",
-  "#EB2F96",
-  "#FA541C",
-  "#2F54EB",
-  "#A0D911",
-];
-
-export const roleOptions = [
-  { name: "USER", description: "User role", color: "#52C41A" },
-  { name: "ADMIN", description: "Admin role", color: "#FF4D4F" },
-  { name: "MANAGER", description: "Manager role", color: "#1890FF" },
-  { name: "DEVELOPER", description: "Developer role", color: "#FAAD14" },
-  { name: "DESIGNER", description: "Designer role", color: "#13C2C2" },
-  { name: "TESTER", description: "Tester role", color: "#722ED1" },
-  { name: "DEVOPS", description: "DevOps role", color: "#EB2F96" },
-  { name: "SUPPORT", description: "Support role", color: "#FA541C" },
-];
 
 const RolesPage = () => {
   const [roles, setRoles] = useState([]);
@@ -49,15 +26,12 @@ const RolesPage = () => {
   const [userInformation, setUserInformation] = useState(null);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    fetchRoles();
-    fetchPermissions();
-    fetchUserInformation();
-  }, []);
+  // Retrieve auth data from Redux store
+  const { token, isAuthenticated } = useSelector((state) => state.auth);
 
-  const fetchRoles = async () => {
+  const fetchRoles = useCallback(async () => {
     try {
-      const response = await getAllRoles();
+      const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
         const rolesData = response.result.map((role) => ({
           name: role.name,
@@ -78,11 +52,11 @@ const RolesPage = () => {
       console.error("Error fetching roles:", error);
       setRoles([]);
     }
-  };
+  }, [token]);
 
-  const fetchPermissions = async () => {
+  const fetchPermissions = useCallback(async () => {
     try {
-      const response = await getAllPermissions();
+      const response = await getAllPermissions(token);
       if (Array.isArray(response.result)) {
         setPermissions(response.result);
       } else {
@@ -93,22 +67,36 @@ const RolesPage = () => {
       console.error("Error fetching permissions:", error);
       setPermissions([]);
     }
-  };
+  }, [token]);
 
-  const fetchUserInformation = async () => {
+  const fetchUserInformation = useCallback(async () => {
     try {
-      const response = await getMyInfo();
+      const response = await getMyInfo(token);
       if (response && response.result) {
         setUserInformation(response.result);
       }
     } catch (error) {
       console.error("Error fetching user information:", error);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token && isAuthenticated) {
+      fetchRoles();
+      fetchPermissions();
+      fetchUserInformation();
+    }
+  }, [
+    token,
+    isAuthenticated,
+    fetchRoles,
+    fetchPermissions,
+    fetchUserInformation,
+  ]);
 
   const handleDeleteRole = async (roleName) => {
     try {
-      await deleteRole(roleName);
+      await deleteRole(roleName, token);
       setRoles((prevRoles) =>
         prevRoles.filter((role) => role.name !== roleName)
       );
@@ -120,7 +108,7 @@ const RolesPage = () => {
   const handleAddRole = async () => {
     try {
       const values = await form.validateFields();
-      await createRole(values);
+      await createRole(values, token);
       fetchRoles();
       setIsModalVisible(false);
     } catch (error) {
@@ -143,7 +131,7 @@ const RolesPage = () => {
   );
 
   const handleRoleChange = (value) => {
-    const selectedRole = roleOptions.find((role) => role.name === value);
+    const selectedRole = RoleOption.find((role) => role.name === value);
     form.setFieldsValue({
       description: selectedRole ? selectedRole.description : "",
       color: selectedRole ? selectedRole.color : "",
@@ -243,7 +231,7 @@ const RolesPage = () => {
             rules={[{ required: true, message: "Please input the role name!" }]}
           >
             <Select placeholder="Select a role" onChange={handleRoleChange}>
-              {roleOptions.map((role) => (
+              {RoleOption.map((role) => (
                 <Option key={role.name} value={role.name}>
                   {role.name}
                 </Option>
@@ -265,7 +253,7 @@ const RolesPage = () => {
             rules={[{ required: true, message: "Please select the color!" }]}
           >
             <Select placeholder="Select a color">
-              {roleColors.map((color) => (
+              {RoleColor.map((color) => (
                 <Option key={color} value={color}>
                   <Tag color={color}>{color}</Tag>
                 </Option>
@@ -294,4 +282,5 @@ const RolesPage = () => {
 };
 
 export default RolesPage;
+
 

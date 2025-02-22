@@ -10,8 +10,6 @@ import store from "./store/store"; // Import store từ file store.js hoặc sto
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <Provider store={store}>
-    {" "}
-    {/* Truyền store vào Provider */}
     <App />
   </Provider>
 );

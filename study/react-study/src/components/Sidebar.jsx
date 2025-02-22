@@ -8,6 +8,7 @@ import {
   LockOutlined,
   BarChartOutlined,
   CalendarOutlined,
+  ProjectOutlined,
 } from "@ant-design/icons";
 
 import { COLORS } from "../utils/constant";
@@ -44,7 +45,7 @@ const Sidebar = ({ defaultSelectedKey }) => {
       key: "7",
       label: "Kanban",
       path: "/kanban",
-      icon: <CalendarOutlined />,
+      icon: <ProjectOutlined />,
     },
   ];
 
@@ -76,4 +77,5 @@ const Sidebar = ({ defaultSelectedKey }) => {
 };
 
 export default Sidebar;
+
 

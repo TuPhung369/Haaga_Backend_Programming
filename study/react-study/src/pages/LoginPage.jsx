@@ -25,6 +25,8 @@ import { FcGoogle } from "react-icons/fc";
 import "../styles/LoginPage.css";
 import validateInput from "../utils/validateInput";
 import moment from "moment";
+import { useDispatch, useSelector } from "react-redux";
+import { setAuthData } from "../store/authSlice";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -52,17 +54,16 @@ const LoginPage = () => {
   const [dobError, setDobError] = useState("");
   const [emailError, setEmailError] = useState("");
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { isAuthenticated, token } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
+    if (isAuthenticated && token) {
       setTimeout(() => {
         navigate("/");
       }, 100);
-    } else {
-      localStorage.removeItem("isAuthenticated");
     }
-  }, [navigate]);
+  }, [navigate, isAuthenticated, token]);
 
   const handleLogin = (values) => {
     const login = async () => {
@@ -70,9 +71,13 @@ const LoginPage = () => {
         const data = await authenticateUser(values.username, values.password);
         const response = await introspectToken(data.result.token);
         if (response.result?.valid) {
-          localStorage.setItem("token", data.result.token);
-          localStorage.setItem("isAuthenticated", "true");
-          localStorage.setItem("loginSocial", "false");
+          dispatch(
+            setAuthData({
+              token: data.result.token,
+              isAuthenticated: true,
+              loginSocial: false,
+            })
+          );
           window.location.href = appBaseUri;
         }
       } catch (error) {

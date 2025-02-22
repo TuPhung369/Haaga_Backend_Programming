@@ -19,6 +19,7 @@ export const authenticateUser = async (username, password) => {
     throw error;
   }
 };
+
 export const introspectToken = async (token) => {
   try {
     const response = await axios.post(
@@ -36,6 +37,7 @@ export const introspectToken = async (token) => {
     throw error;
   }
 };
+
 export const registerUser = async (userData) => {
   try {
     const response = await axios.post(
@@ -53,6 +55,7 @@ export const registerUser = async (userData) => {
     throw error;
   }
 };
+
 export const resetPassword = async (username, newPassword) => {
   try {
     const response = await axios.post(
@@ -70,12 +73,18 @@ export const resetPassword = async (username, newPassword) => {
     throw error;
   }
 };
+
 export const logoutUser = async (token) => {
   try {
     const response = await axios.post(
       `${API_BASE_URI}/auth/logout`,
       { token },
-      { headers: { "Content-Type": "application/json" } }
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Token is required for logout
+        },
+      }
     );
     return response.data;
   } catch (error) {
@@ -83,6 +92,7 @@ export const logoutUser = async (token) => {
     throw error;
   }
 };
+
 export const exchangeAuthorizationCode = async (code) => {
   try {
     const response = await axios.post(
@@ -100,6 +110,7 @@ export const exchangeAuthorizationCode = async (code) => {
     throw error;
   }
 };
+
 export const validateGoogleToken = async (idToken) => {
   try {
     const response = await axios.post(
@@ -117,4 +128,3 @@ export const validateGoogleToken = async (idToken) => {
     throw error;
   }
 };
-

@@ -30,21 +30,23 @@ import {
 import { getAllRoles } from "../services/roleService";
 import { Layout, notification } from "antd";
 import { COLORS } from "../utils/constant";
+import { useSelector } from "react-redux";
 
 const { Content } = Layout;
 
-const UserListPage = () => {
+const StatisticPage = () => {
   const [userInformation, setUserInformation] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [allRoles, setAllRoles] = useState([]);
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [quantityChartData, setQuantityChartData] = useState([]);
+  const [percentChartData, setPercentChartData] = useState([]);
 
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState(null);
 
-  const [quantityChartData, setQuantityChartData] = useState([]);
-  const [percentChartData, setPercentChartData] = useState([]);
+  // Retrieve auth data from Redux store
+  const { token, isAuthenticated } = useSelector((state) => state.auth);
+
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
       api[type]({
@@ -68,7 +70,7 @@ const UserListPage = () => {
 
   const fetchAllUsers = useCallback(async () => {
     try {
-      const response = await getAllUsers();
+      const response = await getAllUsers(token);
       if (Array.isArray(response)) {
         const allUsersData = response.map((user) => ({
           id: user.id,
@@ -105,7 +107,6 @@ const UserListPage = () => {
             value: roleCounts[role],
           }))
           .sort((a, b) => a.value - b.value);
-
         setQuantityChartData(quantityChartData);
 
         const totalUsers = Object.values(roleCounts).reduce(
@@ -127,11 +128,11 @@ const UserListPage = () => {
       console.error("Error fetching All Users:", error);
       setAllUsers([]);
     }
-  }, []);
+  }, [token]);
 
   const fetchMyInfo = useCallback(async () => {
     try {
-      const response = await getMyInfo();
+      const response = await getMyInfo(token);
       if (response && response.result) {
         const userData = {
           id: response.result.id,
@@ -156,11 +157,11 @@ const UserListPage = () => {
     } catch (error) {
       console.error("Error fetching user info:", error);
     }
-  }, []);
+  }, [token]);
 
   const fetchRoles = useCallback(async () => {
     try {
-      const response = await getAllRoles();
+      const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
         const allRolesData = response.result.map((role) => ({
           name: role.name,
@@ -181,22 +182,16 @@ const UserListPage = () => {
       console.error("Error fetching All Roles:", error);
       setAllRoles([]);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      setIsAuthenticated(true);
-      localStorage.setItem("isAuthenticated", true);
+    if (token && isAuthenticated) {
       fetchMyInfo();
       fetchAllUsers();
       fetchRoles();
     }
-  }, [isAuthenticated, fetchRoles, fetchMyInfo, fetchAllUsers]);
+  }, [token, isAuthenticated, fetchMyInfo, fetchAllUsers, fetchRoles]);
 
-  // const isAdmin = userInformation?.roles.some((role) => role.name === "ADMIN");
-  // const isManager = userInformation?.roles.some(
-  //   (role) => role.name === "MANAGER"
-  // );
   const customBarQuantityLabel = ({ x, y, width, value, index }) => {
     const color = COLORS[index % COLORS.length];
 
@@ -213,6 +208,7 @@ const UserListPage = () => {
       </text>
     );
   };
+
   const customBarPercentLabel = ({ x, y, width, value, index }) => {
     const color = COLORS[(index + 6) % COLORS.length];
 
@@ -229,18 +225,15 @@ const UserListPage = () => {
       </text>
     );
   };
+
   const customLineQuantityLabel = ({ x, y, value, index }) => {
     const color = COLORS[index % COLORS.length];
-
-    // Set textAnchor based on index position `end, middle, start`
     const textAnchor =
       index === 0
         ? "start"
         : index === quantityChartData.length - 1
         ? "end"
         : "middle";
-
-    // Adjust x position slightly for first and last labels
     const adjustedX =
       index === 0 ? x + 5 : index === quantityChartData.length - 1 ? x + 0 : x;
     const adjustedY =
@@ -249,6 +242,7 @@ const UserListPage = () => {
         : index === quantityChartData.length - 1
         ? y - 10
         : y - 10;
+
     return (
       <text
         x={adjustedX}
@@ -262,18 +256,15 @@ const UserListPage = () => {
       </text>
     );
   };
+
   const customLinePercentLabel = ({ x, y, value, index }) => {
     const color = COLORS[(index + 6) % COLORS.length];
-
-    // Set textAnchor based on index position `end, middle, start`
     const textAnchor =
       index === 0
         ? "start"
         : index === percentChartData.length - 1
         ? "end"
         : "middle";
-
-    // Adjust x position slightly for first and last labels
     const adjustedX =
       index === 0 ? x - 0 : index === percentChartData.length - 1 ? x + 0 : x;
     const adjustedY =
@@ -282,6 +273,7 @@ const UserListPage = () => {
         : index === percentChartData.length - 1
         ? y - 10
         : y - 10;
+
     return (
       <text
         x={adjustedX}
@@ -316,6 +308,7 @@ const UserListPage = () => {
     }
     return null;
   };
+
   const customTooltipPercent = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -336,6 +329,7 @@ const UserListPage = () => {
     }
     return null;
   };
+
   const yAxisStartQuantity =
     0.5 * Math.min(...quantityChartData.map((d) => d.value));
   const yAxisStartPercent =
@@ -356,6 +350,7 @@ const UserListPage = () => {
 
     return <path d={getPath(x, y, width, height)} stroke="none" fill={fill} />;
   };
+
   const getRoleIcon = (role) => {
     let pathData;
 
@@ -403,7 +398,7 @@ const UserListPage = () => {
       fill: (datum, index) => COLORS[index % COLORS.length],
     },
     label: {
-      content: (datum, index) => `${datum.value}`,
+      content: (datum) => `${datum.value}`,
       style: {
         textAlign: "start",
         fill: (datum, index) => COLORS[index % COLORS.length],
@@ -425,15 +420,15 @@ const UserListPage = () => {
     },
     legend: {
       color: {
-        position: "top", // Position of the legend
-        itemMarker: "square", // Ensure marker is a circle
-        itemMarkerFill: (datum, index) => COLORS[index % COLORS.length], // Dynamically change the color of the legend items
-        itemMarkerSize: 10, // Define the size of the circle marker
+        position: "top",
+        itemMarker: "square",
+        itemMarkerFill: (datum, index) => COLORS[index % COLORS.length],
+        itemMarkerSize: 10,
         itemLabelFill: (datum, index) => COLORS[index % COLORS.length],
       },
       itemLabelText: (datum) => datum.name,
-      maxWidth: 100, // Adjust to prevent label overflow
-      autoWrap: true, // Allow label to wrap if needed
+      maxWidth: 100,
+      autoWrap: true,
     },
   };
 
@@ -475,10 +470,10 @@ const UserListPage = () => {
     },
     legend: {
       color: {
-        position: "top", // Position of the legend
-        itemMarker: "circle", // Ensure marker is a circle
-        itemMarkerFill: (datum, index) => COLORS[(index + 6) % COLORS.length], // Dynamically change the color of the legend items
-        itemMarkerSize: 10, // Define the size of the circle marker
+        position: "top",
+        itemMarker: "circle",
+        itemMarkerFill: (datum, index) => COLORS[(index + 6) % COLORS.length],
+        itemMarkerSize: 10,
         itemLabelFill: (datum, index) => COLORS[(index + 6) % COLORS.length],
       },
       itemLabelText: (datum) => datum.name,
@@ -561,17 +556,14 @@ const UserListPage = () => {
         },
       ],
     },
-    tooltip: (d, index, data, column) => {
-      return {
-        value: `${d.name}: ${d.value.toFixed(1)}%`,
-        style: {
-          fontSize: 14,
-          fontWeight: "bold",
-          color: COLORS[0],
-        },
-      };
-    },
-
+    tooltip: (d) => ({
+      value: `${d.name}: ${d.value.toFixed(1)}%`,
+      style: {
+        fontSize: 14,
+        fontWeight: "bold",
+        color: COLORS[0],
+      },
+    }),
     annotations: [
       {
         type: "text",
@@ -595,7 +587,7 @@ const UserListPage = () => {
     connectNulls: true,
     legend: false,
     point: {
-      shape: "circle", // (e.g., "square", "diamond")
+      shape: "circle",
       size: 4,
     },
     axis: {
@@ -608,8 +600,8 @@ const UserListPage = () => {
       y: {
         title: "Total Users By Role",
         scale: {
-          min: 0, // Set minimum value explicitly
-          nice: true, // This ensures the axis is rounded nicely (e.g., multiples of 5, 10)
+          min: 0,
+          nice: true,
         },
         labelFill: COLORS[13],
         labelFontSize: 12,
@@ -683,9 +675,9 @@ const UserListPage = () => {
     },
     tooltip: {
       title: (datum, index) =>
-        `<span style="color: ${COLORS[(index + 6) % COLORS.length]}; ">${
+        `<span style="color: ${COLORS[(index + 6) % COLORS.length]};">${
           datum.name
-        }</span>`, // Title formatting
+        }</span>`,
       fields: ["name", "value"],
       items: [
         {
@@ -711,8 +703,8 @@ const UserListPage = () => {
       },
       y: {
         scale: {
-          min: 0, // Set minimum value explicitly
-          nice: true, // This ensures the axis is rounded nicely (e.g., multiples of 5, 10)
+          min: 0,
+          nice: true,
         },
         labelFill: COLORS[13],
         labelFontSize: 12,
@@ -1416,5 +1408,5 @@ const UserListPage = () => {
   );
 };
 
-export default UserListPage;
+export default StatisticPage;
 

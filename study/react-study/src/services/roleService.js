@@ -1,19 +1,14 @@
 import axios from "axios";
 
 const API_BASE_URI = process.env.REACT_APP_API_BASE_URI;
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-const headers = {
-  "Content-Type": "application/json",
-  ...getAuthHeader(),
-};
 
-export const createRole = async (roleData) => {
+export const createRole = async (roleData, token) => {
   try {
     const response = await axios.post(`${API_BASE_URI}/roles`, roleData, {
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   } catch (error) {
@@ -22,9 +17,14 @@ export const createRole = async (roleData) => {
   }
 };
 
-export const getAllRoles = async () => {
+export const getAllRoles = async (token) => {
   try {
-    const response = await axios.get(`${API_BASE_URI}/roles`, { headers });
+    const response = await axios.get(`${API_BASE_URI}/roles`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching roles:", error);
@@ -32,10 +32,13 @@ export const getAllRoles = async () => {
   }
 };
 
-export const deleteRole = async (role) => {
+export const deleteRole = async (role, token) => {
   try {
     const response = await axios.delete(`${API_BASE_URI}/roles/${role}`, {
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   } catch (error) {
@@ -43,4 +46,3 @@ export const deleteRole = async (role) => {
     throw error;
   }
 };
-

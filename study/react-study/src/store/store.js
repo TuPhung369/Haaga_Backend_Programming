@@ -1,31 +1,32 @@
-// src/store/store.js
 import { configureStore } from "@reduxjs/toolkit";
 import kanbanReducer from "./kanbanSlice";
+import authReducer from "./authSlice";
 
 const loadState = () => {
   try {
-    const serializedState = localStorage.getItem("kanbanState");
-    console.log("Loading state from localStorage:", serializedState);
+    const serializedState = localStorage.getItem("appState");
     if (serializedState === null) {
       console.log("No state found in localStorage, using initial state");
       return undefined;
     }
     const parsedState = JSON.parse(serializedState);
-    // Validate state structure, including isAuthenticated and token
+    // Validate state structure
     if (
       !parsedState ||
-      !parsedState.columns ||
-      !Array.isArray(parsedState.columns) ||
-      typeof parsedState.editingTask !== "object" ||
-      typeof parsedState.isAuthenticated !== "boolean" ||
-      typeof parsedState.token !== "string"
+      !parsedState.auth ||
+      typeof parsedState.auth.isAuthenticated !== "boolean" ||
+      (parsedState.auth.token && typeof parsedState.auth.token !== "string") ||
+      typeof parsedState.auth.loginSocial !== "boolean" ||
+      !parsedState.kanban ||
+      !Array.isArray(parsedState.kanban.columns) ||
+      typeof parsedState.kanban.editingTask !== "object"
     ) {
       console.warn(
         "Invalid state structure in localStorage, using initial state"
       );
       return undefined;
     }
-    return { kanban: parsedState }; // Nest under 'kanban'
+    return parsedState;
   } catch (err) {
     console.error("Could not load state from localStorage:", err);
     return undefined;
@@ -35,8 +36,8 @@ const loadState = () => {
 const saveState = (state) => {
   try {
     console.log("Saving state to localStorage:", state);
-    const serializedState = JSON.stringify(state.kanban); // Save only the kanban state
-    localStorage.setItem("kanbanState", serializedState);
+    const serializedState = JSON.stringify(state);
+    localStorage.setItem("appState", serializedState);
   } catch (err) {
     console.error("Could not save state to localStorage:", err);
   }
@@ -45,15 +46,17 @@ const saveState = (state) => {
 const store = configureStore({
   reducer: {
     kanban: kanbanReducer,
+    auth: authReducer,
   },
   preloadedState: loadState(),
   devTools: process.env.NODE_ENV !== "production",
 });
 
 store.subscribe(() => {
-  const state = store.getState().kanban;
+  const state = store.getState();
   console.log("State changed, saving to localStorage:", state);
   saveState(state);
 });
 
 export default store;
+

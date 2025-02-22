@@ -1,18 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
 import { Layout, notification } from "antd";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { clearAuthData } from "../store/authSlice"; // Adjust the import path as needed
 import CustomButton from "./CustomButton";
 
 const { Header } = Layout;
 
 const HeaderCustom = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("loginSocial");
-    setIsAuthenticated(false);
+    dispatch(clearAuthData()); // Clear Redux auth state
     navigate("/login");
     notification.success({
       message: "Logged out successfully!",
@@ -50,4 +51,3 @@ const HeaderCustom = () => {
 };
 
 export default HeaderCustom;
-

@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Highlighter from "react-highlight-words";
-
 import {
   getAllUsers,
   getMyInfo,
@@ -28,6 +27,8 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import validateInput from "../utils/validateInput";
+import { COLORS } from "../utils/constant";
+import { useSelector } from "react-redux";
 
 const { confirm } = Modal;
 const { Content } = Layout;
@@ -43,7 +44,6 @@ const UserListPage = () => {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [isDisabled, setIsDisabled] = useState(false);
   const [form] = Form.useForm();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState(null);
@@ -51,6 +51,9 @@ const UserListPage = () => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
+
+  // Retrieve auth data from Redux store
+  const { token, isAuthenticated } = useSelector((state) => state.auth);
 
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
@@ -75,7 +78,7 @@ const UserListPage = () => {
 
   const fetchAllUsers = useCallback(async () => {
     try {
-      const response = await getAllUsers();
+      const response = await getAllUsers(token);
       if (Array.isArray(response)) {
         const allUsersData = response.map((user) => ({
           id: user.id,
@@ -104,11 +107,11 @@ const UserListPage = () => {
       console.error("Error fetching All Users:", error);
       setAllUsers([]);
     }
-  }, []);
+  }, [token]);
 
   const fetchMyInfo = useCallback(async () => {
     try {
-      const response = await getMyInfo();
+      const response = await getMyInfo(token);
       if (response && response.result) {
         const userData = {
           id: response.result.id,
@@ -133,11 +136,11 @@ const UserListPage = () => {
     } catch (error) {
       console.error("Error fetching user info:", error);
     }
-  }, []);
+  }, [token]);
 
   const fetchRoles = useCallback(async () => {
     try {
-      const response = await getAllRoles();
+      const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
         const allRolesData = response.result.map((role) => ({
           name: role.name,
@@ -158,21 +161,19 @@ const UserListPage = () => {
       console.error("Error fetching All Roles:", error);
       setAllRoles([]);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      setIsAuthenticated(true);
-      localStorage.setItem("isAuthenticated", true);
+    if (token && isAuthenticated) {
       fetchMyInfo();
       fetchAllUsers();
       fetchRoles();
     }
-  }, [isAuthenticated, fetchRoles, fetchMyInfo, fetchAllUsers]);
+  }, [token, isAuthenticated, fetchRoles, fetchMyInfo, fetchAllUsers]);
 
   const handleDeleteUser = async (userId) => {
     try {
-      await deleteUser(userId);
+      await deleteUser(userId, token);
       setAllUsers((prevUsers) =>
         prevUsers.filter((user) => user.id !== userId)
       );
@@ -244,7 +245,6 @@ const UserListPage = () => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      // Validate input
       const errors = validateInput({
         username: values.username,
         password: values.password,
@@ -255,7 +255,6 @@ const UserListPage = () => {
       });
 
       if (Object.keys(errors).length > 0) {
-        // Set form errors
         form.setFields(
           Object.keys(errors).map((key) => ({
             name: key,
@@ -267,33 +266,28 @@ const UserListPage = () => {
 
       try {
         if (isModeNew) {
-          await createUser(values);
+          await createUser(values, token);
         }
         if (isModeIdUpdate) {
-          await updateUser(selectedUserId, values);
+          await updateUser(selectedUserId, values, token);
         }
-        // Attempt the API update
         fetchMyInfo();
         fetchAllUsers();
         setIsModalVisible(false);
         setIsModeNew(false);
         setIsModeIdUpdate(false);
       } catch (updateError) {
-        // Handling API error
         console.error("Error updating user:", updateError);
-
         if (updateError.message) {
-          // Simulate validation error on a specific field or general error
           form.setFields([
             {
-              name: "customField", // Replace with a field name you want to show the error on
+              name: "customField",
               errors: [updateError.message],
             },
           ]);
         }
       }
     } catch (validationError) {
-      // Handle form validation errors
       console.log("Validation Failed:", validationError);
     }
   };
@@ -325,7 +319,7 @@ const UserListPage = () => {
       <div style={{ padding: 8 }}>
         <Input
           ref={(node) => {
-            searchInput.current = node; // Correctly assign the ref
+            searchInput.current = node;
           }}
           placeholder={`Search ${dataIndex}`}
           value={selectedKeys[0]}
@@ -354,7 +348,7 @@ const UserListPage = () => {
       </div>
     ),
     filterIcon: (filtered) => (
-      <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      <SearchOutlined style={{ color: filtered ? COLORS[14] : undefined }} />
     ),
     onFilter: (value, record) =>
       record[dataIndex].toString().toLowerCase().includes(value.toLowerCase()),
@@ -368,7 +362,7 @@ const UserListPage = () => {
     render: (text) =>
       searchedColumn === dataIndex ? (
         <Highlighter
-          highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
+          highlightStyle={{ backgroundColor: COLORS[15] , padding: 0 }}
           searchWords={[searchText]}
           autoEscape
           textToHighlight={text ? text.toString() : ""}
@@ -385,10 +379,10 @@ const UserListPage = () => {
   };
 
   const handleReset = (clearFilters) => {
-    clearFilters(); // Clear the Ant Design filters
-    setSearchText(""); // Reset the search text state
-    setSearchedColumn(""); // Reset the searched column state
-    fetchAllUsers(); // Fetch the latest data from the server
+    clearFilters();
+    setSearchText("");
+    setSearchedColumn("");
+    fetchAllUsers();
     console.log("Filters reset, data reloaded.");
   };
 
@@ -622,4 +616,5 @@ const UserListPage = () => {
 };
 
 export default UserListPage;
+
 

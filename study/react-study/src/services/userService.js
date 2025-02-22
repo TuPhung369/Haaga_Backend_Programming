@@ -2,20 +2,13 @@ import axios from "axios";
 
 const API_BASE_URI = process.env.REACT_APP_API_BASE_URI;
 
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-const headers = {
-  "Content-Type": "application/json",
-  ...getAuthHeader(),
-};
-
-export const createUser = async (userData) => {
+export const createUser = async (userData, token) => {
   try {
     const response = await axios.post(`${API_BASE_URI}/users`, userData, {
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   } catch (error) {
@@ -24,9 +17,14 @@ export const createUser = async (userData) => {
   }
 };
 
-export const getAllUsers = async () => {
+export const getAllUsers = async (token) => {
   try {
-    const response = await axios.get(`${API_BASE_URI}/users`, { headers });
+    const response = await axios.get(`${API_BASE_URI}/users`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -34,10 +32,13 @@ export const getAllUsers = async () => {
   }
 };
 
-export const getMyInfo = async () => {
+export const getMyInfo = async (token) => {
   try {
     const response = await axios.get(`${API_BASE_URI}/users/myInfo`, {
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   } catch (error) {
@@ -46,10 +47,13 @@ export const getMyInfo = async () => {
   }
 };
 
-export const getUserById = async (userId) => {
+export const getUserById = async (userId, token) => {
   try {
     const response = await axios.get(`${API_BASE_URI}/users/${userId}`, {
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   } catch (error) {
@@ -58,30 +62,16 @@ export const getUserById = async (userId) => {
   }
 };
 
-export const updateUser = async (userId, userData) => {
+export const updateUser = async (userId, userData, token) => {
   try {
     const response = await axios.put(
       `${API_BASE_URI}/users/${userId}`,
       userData,
-      { headers }
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error updating user:", error);
-    if (error.response && error.response.data) {
-      throw new Error(error.response.data.message);
-    } else {
-      throw error;
-    }
-  }
-};
-export const updateMyInfo = async (userId, userData) => {
-  try {
-    const response = await axios.put(
-      `${API_BASE_URI}/users/updateMyInfo/${userId}`,
-      userData,
       {
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       }
     );
     return response.data;
@@ -94,10 +84,37 @@ export const updateMyInfo = async (userId, userData) => {
     }
   }
 };
-export const deleteUser = async (userId) => {
+
+export const updateMyInfo = async (userId, userData, token) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URI}/users/updateMyInfo/${userId}`,
+      userData,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating user:", error);
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw error;
+    }
+  }
+};
+
+export const deleteUser = async (userId, token) => {
   try {
     const response = await axios.delete(`${API_BASE_URI}/users/${userId}`, {
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   } catch (error) {
@@ -105,4 +122,3 @@ export const deleteUser = async (userId) => {
     throw error;
   }
 };
-

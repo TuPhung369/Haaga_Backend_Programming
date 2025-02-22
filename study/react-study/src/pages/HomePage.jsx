@@ -29,6 +29,8 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import validateInput from "../utils/validateInput";
+import { COLORS } from "../utils/constant"
+import { useSelector } from "react-redux";
 
 const { confirm } = Modal;
 const { Content } = Layout;
@@ -45,7 +47,6 @@ const HomePage = () => {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [isDisabled, setIsDisabled] = useState(false);
   const [form] = Form.useForm();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState(null);
@@ -53,7 +54,11 @@ const HomePage = () => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
-  const loginSocial = localStorage.getItem("loginSocial");
+
+  // Retrieve auth data from Redux store
+  const { token, isAuthenticated, loginSocial } = useSelector(
+    (state) => state.auth
+  );
 
   const openNotificationWithIcon = useCallback(
     (type, message, description) => {
@@ -78,7 +83,7 @@ const HomePage = () => {
 
   const fetchAllUsers = useCallback(async () => {
     try {
-      const response = await getAllUsers();
+      const response = await getAllUsers(token);
       console.log("loginSocial:", loginSocial);
       if (Array.isArray(response)) {
         const allUsersData = response.map((user) => ({
@@ -108,11 +113,11 @@ const HomePage = () => {
       console.error("Error fetching All Users:", error);
       setAllUsers([]);
     }
-  }, [loginSocial]);
+  }, [token, loginSocial]);
 
   const fetchMyInfo = useCallback(async () => {
     try {
-      const response = await getMyInfo();
+      const response = await getMyInfo(token);
       if (response && response.result) {
         const userData = {
           id: response.result.id,
@@ -137,11 +142,11 @@ const HomePage = () => {
     } catch (error) {
       console.error("Error fetching user info:", error);
     }
-  }, []);
+  }, [token]);
 
   const fetchRoles = useCallback(async () => {
     try {
-      const response = await getAllRoles();
+      const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
         const allRolesData = response.result.map((role) => ({
           name: role.name,
@@ -162,21 +167,19 @@ const HomePage = () => {
       console.error("Error fetching All Roles:", error);
       setAllRoles([]);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      setIsAuthenticated(true);
-      localStorage.setItem("isAuthenticated", true);
+    if (token && isAuthenticated) {
       fetchMyInfo();
       fetchAllUsers();
       fetchRoles();
     }
-  }, [isAuthenticated, fetchRoles, fetchMyInfo, fetchAllUsers]);
+  }, [token, isAuthenticated, fetchRoles, fetchMyInfo, fetchAllUsers]);
 
   const handleDeleteUser = async (userId) => {
     try {
-      await deleteUser(userId);
+      await deleteUser(userId, token);
       setAllUsers((prevUsers) =>
         prevUsers.filter((user) => user.id !== userId)
       );
@@ -237,7 +240,7 @@ const HomePage = () => {
         firstname: user.firstname || "",
         lastname: user.lastname || "",
         dob: user.dob || "",
-        email: userInformation?.email || "",
+        email: user.email || "",
         roles: user.roles?.map((role) => role.name) || [],
       });
     } else {
@@ -263,7 +266,6 @@ const HomePage = () => {
     try {
       const values = await form.validateFields();
 
-      // Validate input
       const errors = validateInput({
         username: values.username,
         password: values.password,
@@ -274,7 +276,6 @@ const HomePage = () => {
       });
 
       if (Object.keys(errors).length > 0) {
-        // Set form errors
         form.setFields(
           Object.keys(errors).map((key) => ({
             name: key,
@@ -286,15 +287,14 @@ const HomePage = () => {
 
       try {
         if (isModeUpdate) {
-          await updateMyInfo(userInformation.id, values);
+          await updateMyInfo(userInformation.id, values, token);
         }
         if (isModeNew) {
-          await createUser(values);
+          await createUser(values, token);
         }
         if (isModeIdUpdate) {
-          await updateUser(selectedUserId, values);
+          await updateUser(selectedUserId, values, token);
         }
-        // Attempt the API update
         fetchMyInfo();
         fetchAllUsers();
         setIsModalVisible(false);
@@ -302,21 +302,17 @@ const HomePage = () => {
         setIsModeIdUpdate(false);
         setIsModeUpdate(false);
       } catch (updateError) {
-        // Handling API error
         console.error("Error updating user:", updateError);
-
         if (updateError.message) {
-          // Simulate validation error on a specific field or general error
           form.setFields([
             {
-              name: "customField", // Replace with a field name you want to show the error on
+              name: "customField",
               errors: [updateError.message],
             },
           ]);
         }
       }
     } catch (validationError) {
-      // Handle form validation errors
       console.log("Validation Failed:", validationError);
     }
   };
@@ -348,7 +344,7 @@ const HomePage = () => {
       <div style={{ padding: 8 }}>
         <Input
           ref={(node) => {
-            searchInput.current = node; // Correctly assign the ref
+            searchInput.current = node;
           }}
           placeholder={`Search ${dataIndex}`}
           value={selectedKeys[0]}
@@ -377,7 +373,7 @@ const HomePage = () => {
       </div>
     ),
     filterIcon: (filtered) => (
-      <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      <SearchOutlined style={{ color: filtered ? COLORS[14] : undefined }} />
     ),
     onFilter: (value, record) =>
       record[dataIndex].toString().toLowerCase().includes(value.toLowerCase()),
@@ -391,7 +387,7 @@ const HomePage = () => {
     render: (text) =>
       searchedColumn === dataIndex ? (
         <Highlighter
-          highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
+          highlightStyle={{ backgroundColor: COLORS[15] , padding: 0 }}
           searchWords={[searchText]}
           autoEscape
           textToHighlight={text ? text.toString() : ""}
@@ -417,6 +413,7 @@ const HomePage = () => {
   const isManager = userInformation?.roles.some(
     (role) => role.name === "MANAGER"
   );
+
   return (
     <Layout style={{ padding: "0 24px 24px" }}>
       <Content style={{ margin: "24px 0" }}>
@@ -720,4 +717,3 @@ const HomePage = () => {
 };
 
 export default HomePage;
-

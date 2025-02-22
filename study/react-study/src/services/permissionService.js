@@ -1,21 +1,18 @@
 import axios from "axios";
 
 const API_BASE_URI = process.env.REACT_APP_API_BASE_URI;
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-const headers = {
-  "Content-Type": "application/json",
-  ...getAuthHeader(),
-};
 
-export const createPermission = async (permissionData) => {
+export const createPermission = async (permissionData, token) => {
   try {
     const response = await axios.post(
       `${API_BASE_URI}/permissions`,
       permissionData,
-      { headers }
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     return response.data;
   } catch (error) {
@@ -24,10 +21,13 @@ export const createPermission = async (permissionData) => {
   }
 };
 
-export const getAllPermissions = async () => {
+export const getAllPermissions = async (token) => {
   try {
     const response = await axios.get(`${API_BASE_URI}/permissions`, {
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   } catch (error) {
@@ -36,11 +36,16 @@ export const getAllPermissions = async () => {
   }
 };
 
-export const deletePermission = async (permission) => {
+export const deletePermission = async (permission, token) => {
   try {
     const response = await axios.delete(
       `${API_BASE_URI}/permissions/${permission}`,
-      { headers }
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     return response.data;
   } catch (error) {
@@ -48,4 +53,3 @@ export const deletePermission = async (permission) => {
     throw error;
   }
 };
-
