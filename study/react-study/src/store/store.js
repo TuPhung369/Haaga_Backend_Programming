@@ -55,8 +55,13 @@ const store = configureStore({
 
 store.subscribe(() => {
   const state = store.getState();
-  saveState(state);
+  if (state.auth.isAuthenticated) {
+    saveState(state);
+  } else {
+    localStorage.removeItem("appState"); // Xóa localStorage khi logout
+  }
 });
 
 export default store;
+
 

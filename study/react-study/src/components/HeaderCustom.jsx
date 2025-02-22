@@ -2,7 +2,7 @@ import React from "react";
 import { Layout, notification } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { clearAuthData } from "../store/authSlice"; // Adjust the import path as needed
+import { clearAllData } from "../store/authSlice"; // Adjust the import path as needed
 import CustomButton from "./CustomButton";
 
 const { Header } = Layout;
@@ -13,11 +13,13 @@ const HeaderCustom = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
 
   const handleLogout = () => {
-    dispatch(clearAuthData()); // Clear Redux auth state
+    dispatch(clearAllData()); // Xóa Redux store
+    localStorage.removeItem("appState"); // Xóa localStorage
     navigate("/login");
     notification.success({
       message: "Logged out successfully!",
     });
+    window.location.reload(); // Reload để đảm bảo không còn dữ liệu cũ
   };
 
   return (
@@ -51,3 +53,4 @@ const HeaderCustom = () => {
 };
 
 export default HeaderCustom;
+

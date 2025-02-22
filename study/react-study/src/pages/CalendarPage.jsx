@@ -1,24 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Layout, Button, Modal, Form, Input, Tooltip } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import { COLORS } from "../utils/constant";
-
-// Import drag-and-drop functionality
+import { useSelector, useDispatch } from "react-redux";
+import { setEvents, invalidateEvents } from "../store/userSlice";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
-// Wrap BigCalendar with withDragAndDrop HOC
 const Calendar = withDragAndDrop(BigCalendar);
 
 const { Content } = Layout;
 
 const CalendarPage = () => {
   const localizer = momentLocalizer(moment);
-  const [events, setEvents] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [eventDetails, setEventDetails] = useState({
     id: "",
@@ -29,12 +27,40 @@ const CalendarPage = () => {
     color: COLORS[0], // Default color
   });
 
+  const { events = [], isEventsInvalidated } = useSelector(
+    (state) => state.user
+  ); // Provide default empty array if events is undefined
+  const dispatch = useDispatch();
+
+  // Load events from localStorage on component mount if invalidated
+  const fetchEvents = useCallback(() => {
+    if (!isEventsInvalidated && events.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    const savedEvents = JSON.parse(localStorage.getItem("events")) || [];
+    const parsedEvents = savedEvents.map((event) => ({
+      ...event,
+      start: new Date(event.start),
+      end: new Date(event.end),
+    }));
+    dispatch(setEvents(parsedEvents));
+  }, [dispatch, isEventsInvalidated, events.length]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  // Save events to localStorage whenever they change
+  useEffect(() => {
+    if (events.length > 0) {
+      localStorage.setItem("events", JSON.stringify(events));
+    }
+  }, [events]);
+
   // Handle deleting an event
   const handleDeleteEvent = () => {
     const updatedEvents = events.filter(
       (event) => event.id !== eventDetails.id
     );
-    setEvents(updatedEvents);
+    dispatch(setEvents(updatedEvents));
     setIsModalVisible(false); // Close the modal after deletion
   };
 
@@ -77,29 +103,8 @@ const CalendarPage = () => {
       .toString(16)
       .padStart(2, "0")}${(255 - rgb.b).toString(16).padStart(2, "0")}`;
 
-    return invertedColor.toUpperCase(); // Return the inverted color in uppercase
+    return invertedColor.toUpperCase();
   };
-
-  // Load events from localStorage on component mount
-  useEffect(() => {
-    const savedEvents = JSON.parse(localStorage.getItem("events"));
-    if (savedEvents) {
-      setEvents(
-        savedEvents.map((event) => ({
-          ...event,
-          start: new Date(event.start),
-          end: new Date(event.end),
-        }))
-      );
-    }
-  }, []);
-
-  // Save events to localStorage whenever they change
-  useEffect(() => {
-    if (events.length > 0) {
-      localStorage.setItem("events", JSON.stringify(events));
-    }
-  }, [events]);
 
   // Show event modal with default start and end times
   const showEventModal = (event = null) => {
@@ -117,7 +122,7 @@ const CalendarPage = () => {
       setEventDetails({
         id: event.id,
         title: event.title,
-        start: new Date(event.start), // Chuyển thành Date object
+        start: new Date(event.start),
         end: new Date(event.end),
         description: event.description || "",
         color: event.color || COLORS[0],
@@ -155,9 +160,11 @@ const CalendarPage = () => {
       const updatedEvents = events.map((event) =>
         event.id === eventDetails.id ? { ...event, ...newEvent } : event
       );
-      setEvents(updatedEvents);
+      dispatch(setEvents(updatedEvents));
     } else {
-      setEvents([...events, { ...newEvent, id: new Date().getTime() }]);
+      dispatch(
+        setEvents([...events, { ...newEvent, id: new Date().getTime() }])
+      );
     }
 
     setEventDetails({
@@ -181,24 +188,18 @@ const CalendarPage = () => {
 
   // Handle event drop (drag-and-drop) functionality
   const handleEventDrop = ({ event, start, end }) => {
-    const updatedEvents = events.map((evt) => {
-      if (evt.id === event.id) {
-        return { ...evt, start, end };
-      }
-      return evt;
-    });
-    setEvents(updatedEvents);
+    const updatedEvents = events.map((evt) =>
+      evt.id === event.id ? { ...evt, start, end } : evt
+    );
+    dispatch(setEvents(updatedEvents));
   };
 
   // Handle event resize functionality
   const handleEventResize = ({ event, start, end }) => {
-    const updatedEvents = events.map((evt) => {
-      if (evt.id === event.id) {
-        return { ...evt, start, end };
-      }
-      return evt;
-    });
-    setEvents(updatedEvents);
+    const updatedEvents = events.map((evt) =>
+      evt.id === event.id ? { ...evt, start, end } : evt
+    );
+    dispatch(setEvents(updatedEvents));
   };
 
   // Customize event styles using eventPropGetter
@@ -345,4 +346,3 @@ const CalendarPage = () => {
 };
 
 export default CalendarPage;
-

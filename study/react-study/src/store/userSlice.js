@@ -5,11 +5,13 @@ const initialState = {
   userInfo: null,
   roles: [],
   allUsers: [],
-  permissions: [], // Thêm permissions
+  permissions: [],
+  events: [], // Thêm events để quản lý lịch
   isUserInfoInvalidated: true,
   isRolesInvalidated: true,
   isUsersInvalidated: true,
-  isPermissionsInvalidated: true, // Thêm flag cho permissions
+  isPermissionsInvalidated: true,
+  isEventsInvalidated: true, // Thêm flag cho events
 };
 
 const userSlice = createSlice({
@@ -32,6 +34,10 @@ const userSlice = createSlice({
       state.permissions = action.payload;
       state.isPermissionsInvalidated = false;
     },
+    setEvents: (state, action) => {
+      state.events = action.payload;
+      state.isEventsInvalidated = false;
+    },
     invalidateUserInfo: (state) => {
       state.isUserInfoInvalidated = true;
     },
@@ -44,15 +50,20 @@ const userSlice = createSlice({
     invalidatePermissions: (state) => {
       state.isPermissionsInvalidated = true;
     },
+    invalidateEvents: (state) => {
+      state.isEventsInvalidated = true;
+    },
     clearUserData: (state) => {
       state.userInfo = null;
       state.roles = [];
       state.allUsers = [];
       state.permissions = [];
+      state.events = [];
       state.isUserInfoInvalidated = true;
       state.isRolesInvalidated = true;
       state.isUsersInvalidated = true;
       state.isPermissionsInvalidated = true;
+      state.isEventsInvalidated = true;
     },
   },
 });
@@ -62,10 +73,12 @@ export const {
   setRoles,
   setAllUsers,
   setPermissions,
+  setEvents,
   invalidateUserInfo,
   invalidateRoles,
   invalidateUsers,
   invalidatePermissions,
+  invalidateEvents,
   clearUserData,
 } = userSlice.actions;
 export default userSlice.reducer;

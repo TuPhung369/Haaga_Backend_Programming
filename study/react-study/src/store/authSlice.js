@@ -1,4 +1,3 @@
-// src/store/authSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
@@ -13,17 +12,14 @@ const authSlice = createSlice({
   reducers: {
     setAuthData: (state, action) => {
       state.token = action.payload.token;
-      state.isAuthenticated = action.payload.isAuthenticated;
-      state.loginSocial = action.payload.loginSocial;
+      state.isAuthenticated = true;
+      state.loginSocial = action.payload.loginSocial || false;
     },
-    clearAuthData: (state) => {
-      state.token = null;
-      state.isAuthenticated = false;
-      state.loginSocial = false;
-    },
+    clearAuthData: () => initialState, // Reset auth state
+    clearAllData: () => undefined, // Xóa toàn bộ Redux store
   },
 });
 
-export const { setAuthData, clearAuthData } = authSlice.actions;
+export const { setAuthData, clearAuthData, clearAllData } = authSlice.actions;
 export default authSlice.reducer;
 
