@@ -16,7 +16,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["@types/lodash", "@types/lodash-es"]
+    "types": [] // Delete "@types/lodash" và "@types/lodash-es"
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

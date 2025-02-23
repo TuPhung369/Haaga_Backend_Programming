@@ -160,6 +160,7 @@ const KanbanBoard: React.FC = () => {
           <Modal
             title="Edit Task"
             open={true}
+            width={400}
             onCancel={() => dispatch(setEditingTask(null))}
             footer={null}
             zIndex={1000}
@@ -184,18 +185,20 @@ const KanbanBoard: React.FC = () => {
               >
                 Delete
               </button>
-              <button
-                className="bg-gray-400 text-white p-2 rounded-md mr-2 hover:bg-gray-500 transition"
-                onClick={() => dispatch(setEditingTask(null))}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
-                onClick={() => handleSaveTaskEdit(editingTask.id, editingTask.title)}
-              >
-                Save
-              </button>
+              <div className="ml-auto flex">
+                <button
+                  className="bg-gray-400 text-white p-2 rounded-md mr-2 hover:bg-gray-500 transition"
+                  onClick={() => dispatch(setEditingTask(null))}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
+                  onClick={() => handleSaveTaskEdit(editingTask.id, editingTask.title)}
+                >
+                  Update
+                </button>
+              </div>
             </div>
           </Modal>
         )}

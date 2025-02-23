@@ -1,5 +1,4 @@
-// src/components/ColumnKanban.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Thêm useEffect
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -12,6 +11,7 @@ import Task from "./TaskCardKanban";
 import { PlusOutlined } from "@ant-design/icons";
 import { Input } from "antd";
 
+// Các interface giữ nguyên
 interface Task {
   id: string;
   title: string;
@@ -25,7 +25,7 @@ interface ColumnProps {
   };
   index: number;
   width: string;
-  addTask: (columnId: string) => void; // Updated to match KanbanBoard’s showNewTaskModal
+  addTask: (columnId: string) => void;
   deleteTask: (columnId: string, taskId: string) => void;
   editColumn: (columnId: string, newTitle: string) => void;
   deleteColumn: (columnId: string) => void;
@@ -45,6 +45,11 @@ const ColumnKanban: React.FC<ColumnProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState(column.title);
+
+  // Đồng bộ newTitle với column.title khi column thay đổi
+  useEffect(() => {
+    setNewTitle(column.title);
+  }, [column.title]);
 
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
     id: column.id,
@@ -68,14 +73,14 @@ const ColumnKanban: React.FC<ColumnProps> = ({
   const columnColor = COLORS[index % COLORS.length];
 
   const handleAddTaskClick = () => {
-    addTask(column.id); // Call showNewTaskModal from KanbanBoard
+    addTask(column.id);
   };
 
   const handleEditColumn = () => setIsEditModalOpen(true);
 
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
-    setNewTitle(column.title); // Reset to current title on cancel
+    setNewTitle(column.title); // Reset về giá trị hiện tại khi đóng
   };
 
   const handleSubmitEdit = () => {
@@ -88,7 +93,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
   };
 
   const handleDeleteColumn = () => {
-    deleteColumn(column.id); // Trigger confirmation in KanbanBoard
+    deleteColumn(column.id);
   };
 
   const hexToRgba = (hex: string, alpha = 1): string => {
@@ -159,7 +164,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 
       {isEditModalOpen && (
         <div className="fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-50 z-50">
-          <div className="bg-white p-4 rounded-md shadow-lg w-96">
+          <div className="bg-white p-4 rounded-md shadow-lg" style={{ width: "400px" }}>
             <h3 className="text-lg font-bold mb-4">Edit Column</h3>
             <Input
               type="text"
@@ -174,18 +179,20 @@ const ColumnKanban: React.FC<ColumnProps> = ({
               >
                 Delete
               </button>
-              <button
-                className="bg-gray-400 text-white p-2 rounded-md hover:bg-gray-500 transition mr-2"
-                onClick={handleCloseEditModal}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
-                onClick={handleSubmitEdit}
-              >
-                Update
-              </button>
+              <div className="ml-auto flex">
+                <button
+                  className="bg-gray-400 text-white p-2 rounded-md hover:bg-gray-500 transition mr-2"
+                  onClick={handleCloseEditModal}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
+                  onClick={handleSubmitEdit}
+                >
+                  Update
+                </button>
+              </div>
             </div>
           </div>
         </div>
