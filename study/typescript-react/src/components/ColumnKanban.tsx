@@ -164,7 +164,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 
       {isEditModalOpen && (
         <div className="fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-50 z-50">
-          <div className="bg-white p-4 rounded-md shadow-lg" style={{ width: "400px" }}>
+          <div className="bg-white p-4 rounded-md shadow-lg w-96">
             <h3 className="text-lg font-bold mb-4">Edit Column</h3>
             <Input
               type="text"

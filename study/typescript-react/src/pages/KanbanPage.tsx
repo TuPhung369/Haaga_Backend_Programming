@@ -1,4 +1,3 @@
-// src/pages/KanbanBoard.tsx
 import React from "react";
 import { DndContext, closestCorners, DragEndEvent } from "@dnd-kit/core";
 import {
@@ -120,7 +119,7 @@ const KanbanBoard: React.FC = () => {
   const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 280)}px`;
 
   return (
-    <div className="kanban-board-container h-screen bg-gray-100">
+    <div className="kanban-board-container h-screen bg-gray-100 flex flex-col">
       <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
         <div className="flex justify-start items-center p-4 bg-white shadow-md">
           <button
@@ -138,7 +137,7 @@ const KanbanBoard: React.FC = () => {
             Clear All Tasks
           </button>
         </div>
-        <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full min-h-[calc(100vh-120px)]">
+        <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-120px)]">
           <SortableContext items={columns.map((col) => col.id)} strategy={verticalListSortingStrategy}>
             {columns.map((column, index) => (
               <Column
