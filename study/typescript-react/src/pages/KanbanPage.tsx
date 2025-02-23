@@ -117,7 +117,7 @@ const KanbanBoard: React.FC = () => {
   };
 
   const longestTitleLength = Math.max(...columns.map((col) => col.title.length));
-  const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 320)}px`;
+  const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 280)}px`;
 
   return (
     <div className="kanban-board-container h-screen bg-gray-100">
