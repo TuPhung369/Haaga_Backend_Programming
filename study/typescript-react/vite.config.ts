@@ -6,12 +6,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    hmr: {
-      overlay: false, // Disable the overlay
-    },
-  },
-  css: {
-    postcss: "./postcss.config.js",
   },
   resolve: {
     alias: {
