@@ -16,9 +16,11 @@ import {
   Modal,
   Form,
   Input,
+  InputRef,
   Select,
   Button,
   notification,
+  GetProps,
 } from "antd";
 import {
   UserAddOutlined,
@@ -37,27 +39,67 @@ import {
   invalidateRoles,
   invalidateUsers,
 } from "../store/userSlice";
+import { AxiosError } from "axios";
+import { User, Role, ApiError } from "../type/types";
 
 const { confirm } = Modal;
 const { Content } = Layout;
 const { Option } = Select;
 
+interface UserApiError extends ApiError {
+  errorType?: "CREATE" | "FETCH" | "DELETE" | "UPDATE";
+  details?: string;
+}
+
+interface RootState {
+  auth: {
+    token: string;
+    isAuthenticated: boolean;
+    loginSocial?: boolean;
+  };
+  user: {
+    userInfo: User | null;
+    roles: Role[];
+    allUsers: User[];
+    isUserInfoInvalidated: boolean;
+    isRolesInvalidated: boolean;
+    isUsersInvalidated: boolean;
+  };
+}
+
+interface FilterDropdownProps {
+  setSelectedKeys: (keys: React.Key[]) => void;
+  selectedKeys: React.Key[];
+  confirm: () => void;
+  clearFilters?: () => void;
+  close: () => void;
+  visible: boolean;
+}
+
+type ColumnType<T extends object> = GetProps<typeof Table.Column<T>>;
+
 const UserListPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
   const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isDisabled, setIsDisabled] = useState(false);
   const [form] = Form.useForm();
 
   const [api, contextHolder] = notification.useNotification();
-  const [notificationMessage, setNotificationMessage] = useState(null);
+  const [notificationMessage, setNotificationMessage] = useState<{
+    type: "success" | "error";
+    message: string;
+    description: string;
+  } | null>(null);
 
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
-  const searchInput = useRef(null);
+  const searchInput = useRef<InputRef | null>(null);
 
-  const { token, isAuthenticated } = useSelector((state) => state.auth);
+  const { token, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
   const {
     userInfo,
     roles,
@@ -65,14 +107,14 @@ const UserListPage = () => {
     isUserInfoInvalidated,
     isRolesInvalidated,
     isUsersInvalidated,
-  } = useSelector((state) => state.user);
+  } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
   const openNotificationWithIcon = useCallback(
-    (type, message, description) => {
+    (type: "success" | "error", message: string, description: string) => {
       api[type]({
-        message: message,
-        description: description,
+        message,
+        description,
       });
     },
     [api]
@@ -87,21 +129,21 @@ const UserListPage = () => {
       );
       setNotificationMessage(null);
     }
-  }, [notificationMessage, api, openNotificationWithIcon]);
+  }, [notificationMessage, openNotificationWithIcon]);
 
   const fetchAllUsers = useCallback(async () => {
-    if (!isUsersInvalidated && allUsers.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isUsersInvalidated && allUsers.length > 0) return;
     try {
       const response = await getAllUsers(token);
       if (Array.isArray(response)) {
-        const allUsersData = response.map((user) => ({
+        const allUsersData = response.map((user: User) => ({
           id: user.id,
           username: user.username,
           firstname: user.firstname,
           lastname: user.lastname,
           dob: user.dob,
           email: user.email,
-          roles: user.roles.map((role) => ({
+          roles: user.roles.map((role: Role) => ({
             name: role.name,
             description: role.description,
             color: role.color,
@@ -112,30 +154,34 @@ const UserListPage = () => {
             })),
           })),
         }));
-        dispatch(setAllUsers(allUsersData)); // Lưu vào store
+        dispatch(setAllUsers(allUsersData));
       } else {
         console.error("Response is not an array");
         dispatch(setAllUsers([]));
       }
     } catch (error) {
-      console.error("Error fetching All Users:", error);
+      const axiosError = error as AxiosError<UserApiError>;
+      console.error(
+        "Error fetching all users:",
+        axiosError.response?.data?.message
+      );
       dispatch(setAllUsers([]));
     }
   }, [token, dispatch, isUsersInvalidated, allUsers]);
 
   const fetchMyInfo = useCallback(async () => {
-    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isUserInfoInvalidated && userInfo) return;
     try {
       const response = await getMyInfo(token);
       if (response && response.result) {
-        const userData = {
+        const userData: User = {
           id: response.result.id,
           username: response.result.username,
           firstname: response.result.firstname,
           lastname: response.result.lastname,
           dob: response.result.dob,
           email: response.result.email,
-          roles: response.result.roles.map((role) => ({
+          roles: response.result.roles.map((role: Role) => ({
             name: role.name,
             description: role.description,
             color: role.color,
@@ -146,19 +192,23 @@ const UserListPage = () => {
             })),
           })),
         };
-        dispatch(setUserInfo(userData)); // Lưu vào store
+        dispatch(setUserInfo(userData));
       }
     } catch (error) {
-      console.error("Error fetching user info:", error);
+      const axiosError = error as AxiosError<UserApiError>;
+      console.error(
+        "Error fetching user info:",
+        axiosError.response?.data?.message
+      );
     }
   }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   const fetchRoles = useCallback(async () => {
-    if (!isRolesInvalidated && roles.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isRolesInvalidated && roles.length > 0) return;
     try {
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
-        const allRolesData = response.result.map((role) => ({
+        const allRolesData = response.result.map((role: Role) => ({
           name: role.name,
           description: role.description,
           color: role.color,
@@ -168,13 +218,17 @@ const UserListPage = () => {
             color: permission.color,
           })),
         }));
-        dispatch(setRoles(allRolesData)); // Lưu vào store
+        dispatch(setRoles(allRolesData));
       } else {
         console.error("Response is not an array");
         dispatch(setRoles([]));
       }
     } catch (error) {
-      console.error("Error fetching All Roles:", error);
+      const axiosError = error as AxiosError<UserApiError>;
+      console.error(
+        "Error fetching all roles:",
+        axiosError.response?.data?.message
+      );
       dispatch(setRoles([]));
     }
   }, [token, dispatch, isRolesInvalidated, roles]);
@@ -187,28 +241,31 @@ const UserListPage = () => {
     }
   }, [token, isAuthenticated, fetchMyInfo, fetchAllUsers, fetchRoles]);
 
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = async (userId: string) => {
     try {
       await deleteUser(userId, token);
-      dispatch(setAllUsers(allUsers.filter((user) => user.id !== userId))); // Cập nhật store trực tiếp
-      dispatch(invalidateRoles()); // Invalidate roles vì user liên quan đến role
-      dispatch(invalidateUserInfo()); // Invalidate user info nếu ảnh hưởng
+      dispatch(setAllUsers(allUsers.filter((user) => user.id !== userId)));
+      dispatch(invalidateRoles());
+      dispatch(invalidateUserInfo());
       setNotificationMessage({
         type: "success",
         message: "Success",
         description: "User has been successfully deleted.",
       });
     } catch (error) {
-      console.error("Error deleting user:", error);
+      const axiosError = error as AxiosError<UserApiError>;
+      console.error("Error deleting user:", axiosError.response?.data?.message);
       setNotificationMessage({
         type: "error",
         message: "Error",
-        description: "There was an error deleting the user.",
+        description:
+          axiosError.response?.data?.message ||
+          "There was an error deleting the user.",
       });
     }
   };
 
-  const showDeleteConfirm = (userId) => {
+  const showDeleteConfirm = (userId: string) => {
     confirm({
       title: "Are you sure you want to delete this user?",
       content: "This action cannot be undone.",
@@ -224,7 +281,7 @@ const UserListPage = () => {
     });
   };
 
-  const showModalIdUpdate = (id) => {
+  const showModalIdUpdate = (id: string) => {
     const user = allUsers.find((user) => user.id === id);
     if (user) {
       setIsModeIdUpdate(true);
@@ -283,28 +340,40 @@ const UserListPage = () => {
       try {
         if (isModeNew) {
           await createUser(values, token);
-        }
-        if (isModeIdUpdate) {
+          setNotificationMessage({
+            type: "success",
+            message: "Success",
+            description: "User has been successfully created.",
+          });
+        } else if (isModeIdUpdate && selectedUserId) {
           await updateUser(selectedUserId, values, token);
+          setNotificationMessage({
+            type: "success",
+            message: "Success",
+            description: "User has been successfully updated.",
+          });
         }
-        dispatch(invalidateUsers()); // Invalidate users để fetch lại danh sách
-        dispatch(invalidateRoles()); // Invalidate roles vì có thể ảnh hưởng
-        dispatch(invalidateUserInfo()); // Invalidate user info nếu ảnh hưởng
-        fetchAllUsers(); // Fetch lại ngay để cập nhật danh sách
-        fetchMyInfo(); // Fetch lại nếu cần
+        dispatch(invalidateUsers());
+        dispatch(invalidateRoles());
+        dispatch(invalidateUserInfo());
+        fetchAllUsers();
+        fetchMyInfo();
         setIsModalVisible(false);
         setIsModeNew(false);
         setIsModeIdUpdate(false);
       } catch (updateError) {
-        console.error("Error updating user:", updateError);
-        if (updateError.message) {
-          form.setFields([
-            {
-              name: "customField",
-              errors: [updateError.message],
-            },
-          ]);
-        }
+        const axiosError = updateError as AxiosError<UserApiError>;
+        console.error(
+          "Error updating user:",
+          axiosError.response?.data?.message
+        );
+        setNotificationMessage({
+          type: "error",
+          message: "Error",
+          description:
+            axiosError.response?.data?.message ||
+            "An error occurred while updating the user.",
+        });
       }
     } catch (validationError) {
       console.log("Validation Failed:", validationError);
@@ -313,6 +382,8 @@ const UserListPage = () => {
 
   const handleCancel = () => {
     setIsModalVisible(false);
+    setIsModeNew(false);
+    setIsModeIdUpdate(false);
   };
 
   const getAvailableRoles = () => {
@@ -328,20 +399,18 @@ const UserListPage = () => {
     return ["USER"];
   };
 
-  const getColumnSearchProps = (dataIndex) => ({
+  const getColumnSearchProps = (dataIndex: keyof User): ColumnType<User> => ({
     filterDropdown: ({
       setSelectedKeys,
       selectedKeys,
       confirm,
       clearFilters,
-    }) => (
+    }: FilterDropdownProps) => (
       <div style={{ padding: 8 }}>
         <Input
-          ref={(node) => {
-            searchInput.current = node;
-          }}
+          ref={searchInput}
           placeholder={`Search ${dataIndex}`}
-          value={selectedKeys[0]}
+          value={selectedKeys[0] as string}
           onChange={(e) =>
             setSelectedKeys(e.target.value ? [e.target.value] : [])
           }
@@ -362,48 +431,50 @@ const UserListPage = () => {
           size="small"
           style={{ width: 90 }}
         >
-          Reset
+          Clear
         </Button>
       </div>
     ),
-    filterIcon: (filtered) => (
+    filterIcon: (filtered: boolean) => (
       <SearchOutlined style={{ color: filtered ? COLORS[14] : undefined }} />
     ),
-    onFilter: (value, record) =>
-      record[dataIndex].toString().toLowerCase().includes(value.toLowerCase()),
-    filterDropdownProps: {
-      onOpenChange: (visible) => {
-        if (visible) {
-          setTimeout(() => searchInput.current.select(), 100);
-        }
-      },
+    onFilter: (value: React.Key | boolean, record: User) =>
+      String(record[dataIndex])
+        .toLowerCase()
+        .includes(String(value).toLowerCase()),
+    onFilterDropdownOpenChange: (visible: boolean) => {
+      if (visible) {
+        setTimeout(() => searchInput.current?.select(), 100);
+      }
     },
-    render: (text) =>
+    render: (text: string) =>
       searchedColumn === dataIndex ? (
         <Highlighter
           highlightStyle={{ backgroundColor: COLORS[15], padding: 0 }}
           searchWords={[searchText]}
           autoEscape
-          textToHighlight={text ? text.toString() : ""}
+          textToHighlight={text || ""}
         />
       ) : (
         text
       ),
   });
 
-  const handleSearch = (selectedKeys, confirm, dataIndex) => {
+  const handleSearch = (
+    selectedKeys: React.Key[],
+    confirm: () => void,
+    dataIndex: string
+  ) => {
     confirm();
-    setSearchText(selectedKeys[0]);
+    setSearchText(selectedKeys[0] as string);
     setSearchedColumn(dataIndex);
   };
 
-  const handleReset = (clearFilters) => {
-    clearFilters();
+  const handleReset = (clearFilters?: () => void) => {
+    clearFilters?.();
     setSearchText("");
     setSearchedColumn("");
-    dispatch(invalidateUsers()); // Invalidate để fetch lại danh sách users
-    fetchAllUsers();
-    console.log("Filters reset, data reloaded.");
+    console.log("Filters reset.");
   };
 
   const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
@@ -414,7 +485,7 @@ const UserListPage = () => {
       <Content style={{ margin: "24px 0" }}>
         {contextHolder}
         <Modal
-          title="Edit User Information"
+          title={isModeNew ? "Add New User" : "Edit User Information"}
           open={isModalVisible}
           onOk={handleOk}
           onCancel={handleCancel}
@@ -428,11 +499,17 @@ const UserListPage = () => {
               ]}
             >
               <Input
-                readOnly={!isDisabled}
-                disabled={isDisabled}
-                onFocus={() => setIsDisabled(true)}
-                onBlur={() => setIsDisabled(false)}
-                style={{ cursor: isDisabled ? "not-allowed" : "text" }}
+                readOnly={!isModeNew && isDisabled}
+                disabled={!isModeNew && isDisabled}
+                onFocus={() => {
+                  if (!isModeNew) setIsDisabled(true);
+                }}
+                onBlur={() => {
+                  if (!isModeNew) setIsDisabled(false);
+                }}
+                style={{
+                  cursor: !isModeNew && isDisabled ? "not-allowed" : "text",
+                }}
               />
             </Form.Item>
             <Form.Item
@@ -447,7 +524,10 @@ const UserListPage = () => {
             <Form.Item
               name="email"
               label="Email"
-              rules={[{ required: true, message: "Please input the email!" }]}
+              rules={[
+                { required: true, message: "Please input the email!" },
+                { type: "email", message: "Please enter a valid email!" },
+              ]}
             >
               <Input />
             </Form.Item>
@@ -527,33 +607,35 @@ const UserListPage = () => {
             title="Email"
             dataIndex="email"
             key="email"
-            sorter={(a, b) => a.email.localeCompare(b.email)}
+            sorter={(a: User, b: User) => a.email.localeCompare(b.email)}
             {...getColumnSearchProps("email")}
           />
           <Table.Column
             title="First Name"
             dataIndex="firstname"
             key="firstname"
-            sorter={(a, b) => a.firstname.localeCompare(b.firstname)}
+            sorter={(a: User, b: User) =>
+              a.firstname.localeCompare(b.firstname)
+            }
           />
           <Table.Column
             title="Last Name"
             dataIndex="lastname"
             key="lastname"
-            sorter={(a, b) => a.lastname.localeCompare(b.lastname)}
+            sorter={(a: User, b: User) => a.lastname.localeCompare(b.lastname)}
           />
           <Table.Column
             title="Username"
             dataIndex="username"
             key="username"
-            sorter={(a, b) => a.username.localeCompare(b.username)}
+            sorter={(a: User, b: User) => a.username.localeCompare(b.username)}
             {...getColumnSearchProps("username")}
           />
           <Table.Column title="Date of Birth" dataIndex="dob" key="dob" />
           <Table.Column
             title="Role"
             key="roles"
-            render={(text, record) =>
+            render={(_, record: User) =>
               record.roles && record.roles.length > 0
                 ? record.roles.map((role) => (
                     <Tag key={role.name} color={role.color}>
@@ -566,7 +648,7 @@ const UserListPage = () => {
           <Table.Column
             title="Permissions"
             key="permissions"
-            render={(text, record) =>
+            render={(_, record: User) =>
               record.roles && record.roles.length > 0
                 ? [
                     ...new Set(
@@ -578,11 +660,11 @@ const UserListPage = () => {
                     const permission = record.roles
                       .flatMap((role) => role.permissions)
                       .find((p) => p.name === permName);
-                    return (
+                    return permission ? (
                       <Tag key={permission.name} color={permission.color}>
                         {permission.name}
                       </Tag>
-                    );
+                    ) : null;
                   })
                 : "No permissions assigned"
             }
@@ -596,7 +678,7 @@ const UserListPage = () => {
                 </span>
               }
               key="edit"
-              render={(text, record) => (
+              render={(_, record: User) => (
                 <Tag
                   color="blue"
                   onClick={() => showModalIdUpdate(record.id)}
@@ -616,7 +698,7 @@ const UserListPage = () => {
                 </span>
               }
               key="delete"
-              render={(text, record) => (
+              render={(_, record: User) => (
                 <Tag
                   color="red"
                   onClick={() => showDeleteConfirm(record.id)}
