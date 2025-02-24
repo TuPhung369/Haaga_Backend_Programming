@@ -135,8 +135,8 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 
       <div
         ref={setDroppableNodeRef}
-        className="flex-grow space-y-2 p-4 rounded-b-md overflow-y-auto"
-        style={{ backgroundColor: hexToRgba(columnColor, 0.1) }}
+        className="flex-grow space-y-2 p-2 rounded-b-md overflow-y-auto"
+        style={{ backgroundColor: hexToRgba(columnColor, 0.6) }}
       >
         <SortableContext
           items={column.tasks.map((task) => task.id)}
