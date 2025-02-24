@@ -29,31 +29,18 @@ const CalendarPage = () => {
 
   const { events = [], isEventsInvalidated } = useSelector(
     (state) => state.user
-  ); // Provide default empty array if events is undefined
+  );
   const dispatch = useDispatch();
 
-  // Load events from localStorage on component mount if invalidated
-  const fetchEvents = useCallback(() => {
-    if (!isEventsInvalidated && events.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
-    const savedEvents = JSON.parse(localStorage.getItem("events")) || [];
-    const parsedEvents = savedEvents.map((event) => ({
-      ...event,
-      start: new Date(event.start),
-      end: new Date(event.end),
-    }));
-    dispatch(setEvents(parsedEvents));
+  // Initialize events if invalidated
+  const initializeEvents = useCallback(() => {
+    if (!isEventsInvalidated || events.length > 0) return;
+    dispatch(setEvents([])); // Initialize with empty array if invalidated
   }, [dispatch, isEventsInvalidated, events.length]);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
-  // Save events to localStorage whenever they change
-  useEffect(() => {
-    if (events.length > 0) {
-      localStorage.setItem("events", JSON.stringify(events));
-    }
-  }, [events]);
+    initializeEvents();
+  }, [initializeEvents]);
 
   // Handle deleting an event
   const handleDeleteEvent = () => {
@@ -61,7 +48,7 @@ const CalendarPage = () => {
       (event) => event.id !== eventDetails.id
     );
     dispatch(setEvents(updatedEvents));
-    setIsModalVisible(false); // Close the modal after deletion
+    setIsModalVisible(false);
   };
 
   // Helper function to convert hex color to RGB
@@ -96,13 +83,11 @@ const CalendarPage = () => {
   // Helper function to invert a color
   const invertColor = (color) => {
     const rgb = hexToRgb(color);
-
     const invertedColor = `#${(255 - rgb.r).toString(16).padStart(2, "0")}${(
       255 - rgb.g
     )
       .toString(16)
       .padStart(2, "0")}${(255 - rgb.b).toString(16).padStart(2, "0")}`;
-
     return invertedColor.toUpperCase();
   };
 
@@ -148,13 +133,6 @@ const CalendarPage = () => {
       start: new Date(eventDetails.start),
       end: new Date(eventDetails.end),
     };
-    console.log(
-      "Start:",
-      eventDetails.start,
-      "=>",
-      new Date(eventDetails.start)
-    );
-    console.log("End:", eventDetails.end, "=>", new Date(eventDetails.end));
 
     if (eventDetails.id) {
       const updatedEvents = events.map((event) =>
@@ -255,7 +233,7 @@ const CalendarPage = () => {
           <Button
             type="primary"
             className="p-2 bg-blue-500 text-white rounded-full p-4 bg-white shadow-md"
-            icon={<PlusOutlined style={{ fontSize: "16px" }}/>}
+            icon={<PlusOutlined style={{ fontSize: "16px" }} />}
             onClick={() => showEventModal()}
             style={{ marginBottom: "20px" }}
           >
