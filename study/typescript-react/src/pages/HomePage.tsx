@@ -461,10 +461,12 @@ const HomePage = () => {
       String(record[dataIndex])
         .toLowerCase()
         .includes(String(value).toLowerCase()),
-    onFilterDropdownOpenChange: (visible: boolean) => {
-      if (visible) {
-        setTimeout(() => searchInput.current?.select(), 100);
-      }
+    filterDropdownProps: {
+      onOpenChange: (visible: boolean) => {
+        if (visible) {
+          setTimeout(() => searchInput.current?.select(), 100);
+        }
+      },
     },
     render: (text: string) =>
       searchedColumn === dataIndex ? (
