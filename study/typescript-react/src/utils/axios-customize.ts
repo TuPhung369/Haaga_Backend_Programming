@@ -1,9 +1,10 @@
 import axios from "axios";
+import { AxiosRequestHeaders } from "axios";
 
 const apiBaseUri = process.env.REACT_APP_API_BASE_URI;
 const instance = axios.create({
   baseURL: apiBaseUri,
-  withCredentials: true, // Enable if needed for cross-origin requests with cookies
+  withCredentials: true,
 });
 
 // Function to generate headers with token if available
@@ -14,13 +15,14 @@ const getAuthHeader = () => {
 
 instance.interceptors.request.use(
   function (config) {
-    // Merge dynamic headers with existing config headers
+    // Merge headers with type assertion
     config.headers = {
       ...config.headers,
       "Content-Type": "application/json",
-      ...getAuthHeader(), // Add the dynamic Authorization header if token is present
-    };
-    console.log("Request config with headers:", config); // Debug logging for requests
+      ...getAuthHeader(),
+    } as AxiosRequestHeaders;
+
+    console.log("Request config with headers:", config); // Debug logging
     return config;
   },
   function (error) {
@@ -31,7 +33,7 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
   function (response) {
-    console.log("Response data:", response.data); // Debug logging for responses
+    console.log("Response data:", response.data); // Debug logging
     if (response && response.data) {
       return response.data;
     } else {
@@ -39,7 +41,7 @@ instance.interceptors.response.use(
     }
   },
   function (error) {
-    console.error("Response error:", error); // Debug logging for errors
+    console.error("Response error:", error);
     if (error && error.response && error.response.data) {
       return Promise.reject(error.response.data);
     } else {

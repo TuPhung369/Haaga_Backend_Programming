@@ -24,17 +24,22 @@ import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { FcGoogle } from "react-icons/fc";
 import "../styles/LoginPage.css";
 import validateInput from "../utils/validateInput";
-import moment from "moment";
+import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
+import { ValidationInput } from "../type/loginType";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 
-// Define types for state and props
 interface AuthState {
   isAuthenticated: boolean;
   token: string | null;
+}
+
+interface AuthError {
+  message?: string;
+  response?: { data?: { httpCode?: number; message?: string } };
 }
 
 const LoginPage: React.FC = () => {
@@ -45,13 +50,14 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState<string>("");
   const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] =
     useState<boolean>(false);
-  const [isRegisterModalVisible, setIsRegisterModalVisible] = useState<boolean>(false);
+  const [isRegisterModalVisible, setIsRegisterModalVisible] =
+    useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [firstname, setFirstname] = useState<string>("");
   const [lastname, setLastname] = useState<string>("");
-  const [dob, setDob] = useState<moment.Moment>(moment("1987-07-07", "YYYY-MM-DD"));
+  const [dob, setDob] = useState<Moment>(moment("1987-07-07", "YYYY-MM-DD"));
   const [email, setEmail] = useState<string>("");
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [usernameError, setUsernameError] = useState<string>("");
@@ -68,9 +74,7 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated && token) {
-      setTimeout(() => {
-        navigate("/");
-      }, 100);
+      setTimeout(() => navigate("/"), 100);
     }
   }, [navigate, isAuthenticated, token]);
 
@@ -82,6 +86,9 @@ const LoginPage: React.FC = () => {
       });
 
       if (Object.keys(errors).length > 0) {
+        setError(
+          errors.username || errors.password || "Please check your input!"
+        );
         notification.error({
           message: "Validation Error",
           description:
@@ -107,10 +114,13 @@ const LoginPage: React.FC = () => {
           });
           window.location.href = appBaseUri;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const authError = error as AuthError;
+        const message = authError.message || "Invalid username or password";
+        setError(message);
         notification.error({
           message: "Login Error",
-          description: "Invalid username or password" || error.message,
+          description: message,
         });
       }
     };
@@ -136,6 +146,7 @@ const LoginPage: React.FC = () => {
     setPasswordError("");
 
     if (newPassword !== confirmPassword) {
+      setError("Passwords do not match!");
       notification.error({
         message: "Error",
         description: "Passwords do not match!",
@@ -144,15 +155,10 @@ const LoginPage: React.FC = () => {
     }
 
     const errors = validateInput({ username, password: newPassword });
-    if (errors.username) {
-      setUsernameError(errors.username);
-    }
-    if (errors.password) {
-      setPasswordError(errors.password);
-    }
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
+    if (errors.username) setUsernameError(errors.username);
+    if (errors.password) setPasswordError(errors.password);
+    if (Object.keys(errors).length > 0) return;
+
     try {
       await resetPassword(username, newPassword);
       notification.success({
@@ -160,12 +166,15 @@ const LoginPage: React.FC = () => {
         description: "Password reset successfully!",
       });
       setIsForgotPasswordModalVisible(false);
-    } catch (error: any) {
-      const serverError = error.response?.data;
+    } catch (error: unknown) {
+      const authError = error as AuthError;
+      const serverError = authError.response?.data;
+      const message =
+        serverError?.message || "An error occurred during password reset";
+      setError(message);
       notification.error({
         message: `Error ${serverError?.httpCode || ""}`,
-        description:
-          serverError?.message || "An error occurred during password reset",
+        description: message,
       });
     }
   };
@@ -188,16 +197,19 @@ const LoginPage: React.FC = () => {
     setLastnameError("");
     setDobError("");
     setEmailError("");
-    const userData = {
+
+    const userData: ValidationInput = {
       username,
       password: newPassword,
       firstname,
       lastname,
-      dob: dob.format("YYYY-MM-DD"),
+      dob: dob ? dob.format("YYYY-MM-DD") : undefined, // Changed null to undefined
       email,
       roles: ["User"],
     };
+
     if (newPassword !== confirmPassword) {
+      setError("Passwords do not match!");
       notification.error({
         message: "Error",
         description: "Passwords do not match!",
@@ -205,36 +217,14 @@ const LoginPage: React.FC = () => {
       return;
     }
 
-    const errors = validateInput({
-      username,
-      password: newPassword,
-      firstname,
-      lastname,
-      dob: dob ? dob.format("YYYY-MM-DD") : null,
-      email,
-    });
-
-    if (errors.username) {
-      setUsernameError(errors.username);
-    }
-    if (errors.password) {
-      setPasswordError(errors.password);
-    }
-    if (errors.firstname) {
-      setFirstnameError(errors.firstname);
-    }
-    if (errors.lastname) {
-      setLastnameError(errors.lastname);
-    }
-    if (errors.dob) {
-      setDobError(errors.dob);
-    }
-    if (errors.email) {
-      setEmailError(errors.email);
-    }
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
+    const errors = validateInput(userData);
+    if (errors.username) setUsernameError(errors.username);
+    if (errors.password) setPasswordError(errors.password);
+    if (errors.firstname) setFirstnameError(errors.firstname);
+    if (errors.lastname) setLastnameError(errors.lastname);
+    if (errors.dob) setDobError(errors.dob);
+    if (errors.email) setEmailError(errors.email);
+    if (Object.keys(errors).length > 0) return;
 
     try {
       await registerUser(userData);
@@ -243,12 +233,15 @@ const LoginPage: React.FC = () => {
         description: "User registered successfully!",
       });
       setIsRegisterModalVisible(false);
-    } catch (error: any) {
-      const serverError = error.response?.data;
+    } catch (error: unknown) {
+      const authError = error as AuthError;
+      const serverError = authError.response?.data;
+      const message =
+        serverError?.message || "An error occurred during registration";
+      setError(message);
       notification.error({
         message: `Error ${serverError?.httpCode || ""}`,
-        description:
-          serverError?.message || "An error occurred during password reset",
+        description: message,
       });
     }
   };
@@ -376,7 +369,9 @@ const LoginPage: React.FC = () => {
                 onClick={handleGoogleLogin}
                 className="google-login-button"
               >
-                <FcGoogle style={{ marginRight: "10px", fontSize: "24px" }} />
+                <span style={{ marginRight: "10px" }}>
+                  <FcGoogle size={24} />
+                </span>
                 Login with Google
               </Button>
             </Form.Item>

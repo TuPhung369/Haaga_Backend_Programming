@@ -1,3 +1,6 @@
+// src/utils/validateInput.ts
+import { ValidationInput, ValidationErrors } from "../type/loginType"; // Adjust the path based on your structure
+
 const validationMessages = {
   USERNAME_LENGTH: "Username must be between 5 and 20 characters.",
   PASSWORD_MIN_LENGTH: "Password must be at least 8 characters long.",
@@ -12,8 +15,8 @@ const validationMessages = {
   EMAIL_NOT_BLANK: "Email cannot be blank.",
 };
 
-const validateInput = (input) => {
-  const errors = {};
+const validateInput = (input: ValidationInput): ValidationErrors => {
+  const errors: ValidationErrors = {};
 
   // Validate username
   if (input.username !== undefined) {
@@ -73,7 +76,7 @@ const validateInput = (input) => {
 
   // Validate email
   if (input.email !== undefined) {
-    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/; // Regex for email validation
+    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     if (!input.email || !emailPattern.test(input.email)) {
       errors.email = validationMessages.EMAIL_INVALID;
     }
