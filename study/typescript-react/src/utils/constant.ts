@@ -1,6 +1,6 @@
-// src/constants/colors.js
-
-export const COLORS = [
+import { Role, Permission } from "../type/types";
+// Define color arrays as string[]
+export const COLORS: string[] = [
   "#0088FE",
   "#00C49F",
   "#FFBB28",
@@ -18,7 +18,9 @@ export const COLORS = [
   "#1890FF",
   "#ffc069",
 ];
-export const RoleColor = [
+
+// Define RoleColor as string[]
+export const RoleColor: string[] = [
   "#FF4D4F",
   "#1890FF",
   "#52C41A",
@@ -30,7 +32,9 @@ export const RoleColor = [
   "#2F54EB",
   "#A0D911",
 ];
-export const RoleOption = [
+
+// Define RoleOption with Roles type
+export const RoleOption: Role[] = [
   { name: "USER", description: "User role", color: RoleColor[2] },
   { name: "ADMIN", description: "Admin role", color: RoleColor[0] },
   { name: "MANAGER", description: "Manager role", color: RoleColor[1] },
@@ -41,7 +45,8 @@ export const RoleOption = [
   { name: "SUPPORT", description: "Support role", color: RoleColor[7] },
 ];
 
-export const PermissionColor = [
+// Define PermissionColor as string[]
+export const PermissionColor: string[] = [
   "#FF4D4F",
   "#1890FF",
   "#52C41A",
@@ -54,7 +59,8 @@ export const PermissionColor = [
   "#A0D911",
 ];
 
-export const PermissionOption = [
+// Define PermissionOption with Permissions type
+export const PermissionOption: Permission[] = [
   {
     name: "CREATE",
     description: "Create permission",
@@ -97,6 +103,5 @@ export const PermissionOption = [
     description: "Download permission",
     color: PermissionColor[9],
   },
-
-
 ];
+

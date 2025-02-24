@@ -1,30 +1,6 @@
 import axios, { AxiosError } from "axios";
-
+import { Permission, PermissionResponse, PermissionsResponse, ApiError } from "../type/types";
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
-
-// Define types for permissions
-interface Permission {
-  id: string; // Adjust if your API uses a different identifier (e.g., number)
-  name: string; // Common field for permissions; add more as needed
-}
-
-// Response types
-interface PermissionResponse {
-  success: boolean;
-  data: Permission; // Single permission for create/delete
-  message?: string;
-}
-
-interface PermissionsResponse {
-  success: boolean;
-  data: Permission[]; // Array of permissions for getAll
-  message?: string;
-}
-
-interface ApiError {
-  httpCode?: number;
-  message?: string;
-}
 
 // Axios instance with default headers
 const apiClient = axios.create({
@@ -90,3 +66,4 @@ export const deletePermission = async (
     throw error as AxiosError<ApiError>;
   }
 };
+

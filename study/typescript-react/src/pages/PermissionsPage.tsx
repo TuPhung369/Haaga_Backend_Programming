@@ -21,37 +21,67 @@ import { PermissionColor, PermissionOption } from "../utils/constant";
 import {
   setUserInfo,
   setPermissions,
-  invalidateUserInfo,
   invalidatePermissions,
 } from "../store/userSlice";
+import { AxiosError } from "axios";
+import {
+  User,
+  Permission,
+  UserResponse,
+  PermissionsResponse,
+  ApiError,
+} from "../type/types";
 
 const { Content } = Layout;
 const { Option } = Select;
+
+interface PermissionApiError extends ApiError {
+  errorType?: "CREATE" | "FETCH" | "DELETE";
+  details?: string;
+}
+
+// Define Redux state type
+interface RootState {
+  auth: {
+    token: string;
+    isAuthenticated: boolean;
+  };
+  user: {
+    userInfo: User | null;
+    permissions: Permission[];
+    isUserInfoInvalidated: boolean;
+    isPermissionsInvalidated: boolean;
+  };
+}
 
 const PermissionPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  const { token, isAuthenticated } = useSelector((state) => state.auth);
+  const { token, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
   const {
     userInfo,
     permissions,
     isUserInfoInvalidated,
     isPermissionsInvalidated,
-  } = useSelector((state) => state.user);
+  } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
   const fetchPermissions = useCallback(async () => {
-    if (!isPermissionsInvalidated && permissions.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isPermissionsInvalidated && permissions.length > 0) return;
     try {
-      const response = await getAllPermissions(token);
+      const response = (await getAllPermissions(token)) as PermissionsResponse;
       if (response && Array.isArray(response.result)) {
-        const permissionsData = response.result.map((permission) => ({
-          name: permission.name,
-          description: permission.description,
-          color: permission.color,
-        }));
-        dispatch(setPermissions(permissionsData)); // Lưu vào store
+        const permissionsData = response.result.map(
+          (permission: Permission) => ({
+            name: permission.name,
+            description: permission.description,
+            color: permission.color,
+          })
+        );
+        dispatch(setPermissions(permissionsData));
       } else {
         console.error("Response is not an array");
         dispatch(setPermissions([]));
@@ -63,11 +93,11 @@ const PermissionPage = () => {
   }, [token, dispatch, isPermissionsInvalidated, permissions]);
 
   const fetchUserInformation = useCallback(async () => {
-    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isUserInfoInvalidated && userInfo) return;
     try {
-      const response = await getMyInfo(token);
+      const response = (await getMyInfo(token)) as UserResponse;
       if (response && response.result) {
-        dispatch(setUserInfo(response.result)); // Lưu vào store
+        dispatch(setUserInfo(response.result));
       }
     } catch (error) {
       console.error("Error fetching user information:", error);
@@ -81,16 +111,24 @@ const PermissionPage = () => {
     }
   }, [token, isAuthenticated, fetchPermissions, fetchUserInformation]);
 
-  const handleDeletePermission = async (permissionName) => {
+  const handleDeletePermission = async (permissionName: string) => {
     try {
       await deletePermission(permissionName, token);
       dispatch(
         setPermissions(
-          permissions.filter((permission) => permission.name !== permissionName)
+          permissions.filter((p: Permission) => p.name !== permissionName)
         )
-      ); // Cập nhật store trực tiếp
+      );
     } catch (error) {
-      console.error("Error deleting permission:", error);
+      const axiosError = error as AxiosError<PermissionApiError>;
+      console.error(
+        "Error deleting permission:",
+        axiosError.response?.data?.message
+      );
+      Modal.error({
+        title: "Delete Failed",
+        content: axiosError.response?.data?.message || "Unknown error occurred",
+      });
     }
   };
 
@@ -98,11 +136,21 @@ const PermissionPage = () => {
     try {
       const values = await form.validateFields();
       await createPermission(values, token);
-      dispatch(invalidatePermissions()); // Invalidate để fetch lại danh sách permissions
-      fetchPermissions(); // Fetch lại ngay để cập nhật
+      dispatch(invalidatePermissions());
+      fetchPermissions();
       setIsModalVisible(false);
     } catch (error) {
-      console.error("Error adding permission:", error);
+      const axiosError = error as AxiosError<PermissionApiError>;
+      console.error(
+        "Error adding permission:",
+        axiosError.response?.data?.message
+      );
+      Modal.error({
+        title: "Create Failed",
+        content:
+          axiosError.response?.data?.message ||
+          "An error occurred while creating permission.",
+      });
     }
   };
 
@@ -115,10 +163,14 @@ const PermissionPage = () => {
     setIsModalVisible(false);
   };
 
-  const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
-  const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
+  const isAdmin = userInfo?.roles.some(
+    (role: { name: string }) => role.name === "ADMIN"
+  );
+  const isManager = userInfo?.roles.some(
+    (role: { name: string }) => role.name === "MANAGER"
+  );
 
-  const handlePermissionChange = (value) => {
+  const handlePermissionChange = (value: string) => {
     const selectedPermission = PermissionOption.find(
       (permission) => permission.name === value
     );
@@ -166,7 +218,7 @@ const PermissionPage = () => {
             title="Color"
             dataIndex="color"
             key="color"
-            render={(text) => (
+            render={(text: string) => (
               <Tag color={text} style={{ cursor: "pointer" }}>
                 {text}
               </Tag>
@@ -181,7 +233,7 @@ const PermissionPage = () => {
                 </span>
               }
               key="delete"
-              render={(text, record) => (
+              render={(_, record: Permission) => (
                 <Tag
                   color="red"
                   onClick={() => handleDeletePermission(record.name)}
@@ -249,3 +301,4 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
+

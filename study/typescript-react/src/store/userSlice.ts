@@ -1,25 +1,14 @@
 // src/store/userSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { CalendarEvent } from "../type/types";
-
-// Define User type
-interface User {
-  id: string;
-  username: string;
-  firstname: string;
-  lastname: string;
-  dob: string;
-  email: string;
-  roles: string[];
-}
+import { CalendarEvent, User, Permission } from "../type/types";
 
 // Define UserState type
 export interface UserState {
   userInfo: User | null;
   roles: string[];
   allUsers: User[];
-  permissions: string[];
-  events: CalendarEvent[]; // Replaced any[] with Event[]
+  permissions: Permission[]; // Changed from string[] to Permission[]
+  events: CalendarEvent[];
   isUserInfoInvalidated: boolean;
   isRolesInvalidated: boolean;
   isUsersInvalidated: boolean;
@@ -56,12 +45,12 @@ const userSlice = createSlice({
       state.allUsers = action.payload;
       state.isUsersInvalidated = false;
     },
-    setPermissions: (state, action: PayloadAction<string[]>) => {
+    setPermissions: (state, action: PayloadAction<Permission[]>) => {
+      // Changed to Permission[]
       state.permissions = action.payload;
       state.isPermissionsInvalidated = false;
     },
     setEvents: (state, action: PayloadAction<CalendarEvent[]>) => {
-      // Replaced any[] with Event[]
       state.events = action.payload;
       state.isEventsInvalidated = false;
     },

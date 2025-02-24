@@ -1,31 +1,9 @@
 import axios, { AxiosError } from "axios";
+import { Role, RoleResponse, RolesResponse, ApiError } from "../type/types";
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 
-// Define types for roles
-interface Role {
-  id: string; // Adjust if your API uses a different identifier (e.g., number)
-  name: string; // Common field for roles; add more as needed
-}
 
-// Response types
-interface RoleResponse {
-  success: boolean;
-  data: Role; // Single role for create/delete
-  message?: string;
-}
-
-interface RolesResponse {
-  success: boolean;
-  data: Role[]; // Array of roles for getAll
-  message?: string;
-}
-
-// Error type
-interface ApiError {
-  httpCode?: number;
-  message?: string;
-}
 
 // Axios instance
 const apiClient = axios.create({

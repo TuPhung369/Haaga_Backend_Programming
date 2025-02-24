@@ -1,31 +1,13 @@
 import axios, { AxiosError } from "axios";
 import { ValidationInput } from "../type/loginType";
+import {
+  ApiError,
+  AuthResponse,
+  IntrospectResponse,
+  GenericResponse,
+} from "../type/types";
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
-
-interface AuthResponse {
-  result: {
-    token: string;
-  };
-}
-
-interface IntrospectResponse {
-  result: {
-    valid: boolean;
-    userId?: string; // Optional, adjust based on your API
-    expiresAt?: string; // Optional, adjust based on your API
-  };
-}
-
-interface GenericResponse {
-  success: boolean;
-  message?: string;
-}
-
-interface ApiError {
-  httpCode?: number;
-  message?: string;
-}
 
 const apiClient = axios.create({
   baseURL: API_BASE_URI,

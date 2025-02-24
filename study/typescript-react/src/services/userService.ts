@@ -1,37 +1,9 @@
-import axios, { AxiosError } from "axios";
-import { ValidationInput } from "../type/loginType"; // Reuse from loginType.ts
+import axios from "axios";
+import { AxiosError } from "axios";
+import { ValidationInput } from "../type/loginType";
+import { UserResponse, UsersResponse, ApiError } from "../type/types";
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
-
-// Define types for users
-interface User {
-  id: string; // Adjust if your API uses a different identifier
-  username: string;
-  firstname: string;
-  lastname: string;
-  dob: string; // ISO date string (e.g., "1987-07-07")
-  email: string;
-  roles: string[]; // Array of role names
-}
-
-// Response types
-interface UserResponse {
-  success: boolean;
-  data: User; // Single user for create/update/delete/get
-  message?: string;
-}
-
-interface UsersResponse {
-  success: boolean;
-  data: User[]; // Array of users for getAll
-  message?: string;
-}
-
-// Error type
-interface ApiError {
-  httpCode?: number;
-  message?: string;
-}
 
 // Axios instance
 const apiClient = axios.create({
@@ -42,7 +14,7 @@ const apiClient = axios.create({
 });
 
 export const createUser = async (
-  userData: ValidationInput, // Reuses ValidationInput from loginType.ts
+  userData: ValidationInput,
   token: string
 ): Promise<UserResponse> => {
   try {
@@ -163,3 +135,4 @@ export const deleteUser = async (
     throw error as AxiosError<ApiError>;
   }
 };
+
