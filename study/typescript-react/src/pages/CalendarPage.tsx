@@ -1,21 +1,40 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Layout, Button, Modal, Form, Input, Tooltip } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
+import {
+  Calendar as BigCalendar,
+  momentLocalizer,
+  CalendarProps,
+} from "react-big-calendar";
 import moment from "moment";
 import { COLORS } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
-import { setEvents, invalidateEvents } from "../store/userSlice";
-import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
+import { setEvents } from "../store/userSlice";
+import withDragAndDrop, {
+  EventInteractionArgs,
+} from "react-big-calendar/lib/addons/dragAndDrop";
+import { CalendarEvent } from "../type/types";
 
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
-const Calendar = withDragAndDrop(BigCalendar);
+// Typed wrapper for BigCalendar
+const TypedCalendar: React.FC<CalendarProps<CalendarEvent, object>> = (
+  props
+) => <BigCalendar {...props} />;
+const Calendar = withDragAndDrop<CalendarEvent>(TypedCalendar);
 
 const { Content } = Layout;
 
-const CalendarPage = () => {
+// Define RootState for Redux
+interface RootState {
+  user: {
+    events: CalendarEvent[];
+    isEventsInvalidated: boolean;
+  };
+}
+
+const CalendarPage: React.FC = () => {
   const localizer = momentLocalizer(moment);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [eventDetails, setEventDetails] = useState({
@@ -24,19 +43,18 @@ const CalendarPage = () => {
     start: "",
     end: "",
     description: "",
-    color: COLORS[0], // Default color
+    color: COLORS[0],
   });
 
-  const { events = [], isEventsInvalidated } = useSelector(
-    (state) => state.user
-  );
+  const { events = [] } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
-  // Initialize events if invalidated
+  // Initialize events if needed
   const initializeEvents = useCallback(() => {
-    if (!isEventsInvalidated || events.length > 0) return;
-    dispatch(setEvents([])); // Initialize with empty array if invalidated
-  }, [dispatch, isEventsInvalidated, events.length]);
+    if (events.length === 0) {
+      dispatch(setEvents([]));
+    }
+  }, [dispatch, events.length]);
 
   useEffect(() => {
     initializeEvents();
@@ -52,7 +70,7 @@ const CalendarPage = () => {
   };
 
   // Helper function to convert hex color to RGB
-  const hexToRgb = (hex) => {
+  const hexToRgb = (hex: string) => {
     let r = 0,
       g = 0,
       b = 0;
@@ -71,7 +89,7 @@ const CalendarPage = () => {
   };
 
   // Function to generate a random color
-  const getRandomColor = () => {
+  const getRandomColor = (): string => {
     const letters = "0123456789ABCDEF";
     let color = "#";
     for (let i = 0; i < 6; i++) {
@@ -81,7 +99,7 @@ const CalendarPage = () => {
   };
 
   // Helper function to invert a color
-  const invertColor = (color) => {
+  const invertColor = (color: string): string => {
     const rgb = hexToRgb(color);
     const invertedColor = `#${(255 - rgb.r).toString(16).padStart(2, "0")}${(
       255 - rgb.g
@@ -92,26 +110,34 @@ const CalendarPage = () => {
   };
 
   // Show event modal with default start and end times
-  const showEventModal = (event = null) => {
+  const showEventModal = (event?: CalendarEvent) => {
     const defaultStart = moment();
-    let defaultEnd = moment().add(30, "minutes");
+    const defaultEnd = moment().add(30, "minutes");
 
     if (event) {
       const startTime = moment(event.start);
-      let endTime = moment(event.end);
+      const endTime = moment(event.end);
 
       if (endTime.isBefore(startTime)) {
-        endTime = startTime.clone().add(30, "minutes");
+        const adjustedEnd = startTime.clone().add(30, "minutes");
+        setEventDetails({
+          id: event.id,
+          title: event.title,
+          start: startTime.format("YYYY-MM-DDTHH:mm"),
+          end: adjustedEnd.format("YYYY-MM-DDTHH:mm"),
+          description: event.description || "",
+          color: event.color || COLORS[0],
+        });
+      } else {
+        setEventDetails({
+          id: event.id,
+          title: event.title,
+          start: startTime.format("YYYY-MM-DDTHH:mm"),
+          end: endTime.format("YYYY-MM-DDTHH:mm"),
+          description: event.description || "",
+          color: event.color || COLORS[0],
+        });
       }
-
-      setEventDetails({
-        id: event.id,
-        title: event.title,
-        start: new Date(event.start),
-        end: new Date(event.end),
-        description: event.description || "",
-        color: event.color || COLORS[0],
-      });
     } else {
       setEventDetails({
         id: "",
@@ -128,24 +154,30 @@ const CalendarPage = () => {
 
   // Handle adding or updating the event
   const handleAddOrUpdateEvent = () => {
-    const newEvent = {
-      ...eventDetails,
-      start: new Date(eventDetails.start),
-      end: new Date(eventDetails.end),
+    const startDate = new Date(eventDetails.start);
+    const endDate = new Date(eventDetails.end);
+    const newEvent: CalendarEvent = {
+      id: eventDetails.id || new Date().getTime().toString(),
+      title: eventDetails.title,
+      start: startDate,
+      end: endDate,
+      date: startDate,
+      description: eventDetails.description,
+      color: eventDetails.color,
+      allDay: false, // Explicitly set optional properties if needed
     };
 
     if (eventDetails.id) {
       const updatedEvents = events.map((event) =>
-        event.id === eventDetails.id ? { ...event, ...newEvent } : event
+        event.id === eventDetails.id ? newEvent : event
       );
       dispatch(setEvents(updatedEvents));
     } else {
-      dispatch(
-        setEvents([...events, { ...newEvent, id: new Date().getTime() }])
-      );
+      dispatch(setEvents([...events, newEvent]));
     }
 
     setEventDetails({
+      id: "",
       title: "",
       start: "",
       end: "",
@@ -156,32 +188,56 @@ const CalendarPage = () => {
   };
 
   // Handle input changes in the form
-  const handleInputChange = (e) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setEventDetails({
-      ...eventDetails,
+    setEventDetails((prev) => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
 
   // Handle event drop (drag-and-drop) functionality
-  const handleEventDrop = ({ event, start, end }) => {
+  const handleEventDrop = (args: EventInteractionArgs<CalendarEvent>) => {
+    const { event, start, end } = args;
     const updatedEvents = events.map((evt) =>
-      evt.id === event.id ? { ...evt, start, end } : evt
+      evt.id === event.id ? { ...evt, start, end, date: start } : evt
     );
-    dispatch(setEvents(updatedEvents));
+    dispatch(
+      setEvents(
+        updatedEvents.map((event) => ({
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end),
+          date: new Date(event.date),
+        }))
+      )
+    );
   };
 
   // Handle event resize functionality
-  const handleEventResize = ({ event, start, end }) => {
+  const handleEventResize = (args: EventInteractionArgs<CalendarEvent>) => {
+    const { event, start, end } = args;
     const updatedEvents = events.map((evt) =>
-      evt.id === event.id ? { ...evt, start, end } : evt
+      evt.id === event.id ? { ...evt, start, end, date: start } : evt
     );
-    dispatch(setEvents(updatedEvents));
+    dispatch(
+      setEvents(
+        updatedEvents.map((event) => ({
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end),
+          date: new Date(event.date),
+        }))
+      )
+    );
   };
 
   // Customize event styles using eventPropGetter
-  const eventStyleGetter = (event) => {
+  const eventStyleGetter = (
+    event: CalendarEvent
+  ): { style: React.CSSProperties } => {
     return {
       style: {
         backgroundColor: event.color,
@@ -193,7 +249,7 @@ const CalendarPage = () => {
   };
 
   // Add a Tooltip directly inside the event rendering
-  const eventContent = (event) => {
+  const eventContent = ({ event }: { event: CalendarEvent }) => {
     return (
       <Tooltip
         title={
@@ -201,14 +257,14 @@ const CalendarPage = () => {
             <span
               style={{ color: COLORS[0], fontWeight: "bold", fontSize: "16px" }}
             >
-              {event.event.title}
+              {event.title}
             </span>
             <br />
-            <span style={{ color: COLORS[7] }}>{event.event.description}</span>
+            <span style={{ color: COLORS[7] }}>{event.description}</span>
           </>
         }
       >
-        <span>{event.event.title}</span>
+        <span>{event.title}</span>
       </Tooltip>
     );
   };
@@ -250,7 +306,7 @@ const CalendarPage = () => {
             resizableAccessor={() => true}
             onEventDrop={handleEventDrop}
             onEventResize={handleEventResize}
-            onDoubleClickEvent={showEventModal}
+            onDoubleClickEvent={(event) => showEventModal(event)}
             eventPropGetter={eventStyleGetter}
             components={{
               event: eventContent,
@@ -325,3 +381,4 @@ const CalendarPage = () => {
 };
 
 export default CalendarPage;
+
