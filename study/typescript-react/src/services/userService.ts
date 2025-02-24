@@ -1,75 +1,119 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
+import { ValidationInput } from "../type/loginType"; // Reuse from loginType.ts
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 
-export const createUser = async (userData, token) => {
+// Define types for users
+interface User {
+  id: string; // Adjust if your API uses a different identifier
+  username: string;
+  firstname: string;
+  lastname: string;
+  dob: string; // ISO date string (e.g., "1987-07-07")
+  email: string;
+  roles: string[]; // Array of role names
+}
+
+// Response types
+interface UserResponse {
+  success: boolean;
+  data: User; // Single user for create/update/delete/get
+  message?: string;
+}
+
+interface UsersResponse {
+  success: boolean;
+  data: User[]; // Array of users for getAll
+  message?: string;
+}
+
+// Error type
+interface ApiError {
+  httpCode?: number;
+  message?: string;
+}
+
+// Axios instance
+const apiClient = axios.create({
+  baseURL: API_BASE_URI,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export const createUser = async (
+  userData: ValidationInput, // Reuses ValidationInput from loginType.ts
+  token: string
+): Promise<UserResponse> => {
   try {
-    const response = await axios.post(`${API_BASE_URI}/users`, userData, {
+    const response = await apiClient.post<UserResponse>("/users", userData, {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
     return response.data;
   } catch (error) {
     console.error("Error creating user:", error);
-    throw error;
+    throw error as AxiosError<ApiError>;
   }
 };
 
-export const getAllUsers = async (token) => {
+export const getAllUsers = async (token: string): Promise<UsersResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URI}/users`, {
+    const response = await apiClient.get<UsersResponse>("/users", {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
     return response.data;
   } catch (error) {
     console.error("Error fetching users:", error);
-    throw error;
+    throw error as AxiosError<ApiError>;
   }
 };
 
-export const getMyInfo = async (token) => {
+export const getMyInfo = async (token: string): Promise<UserResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URI}/users/myInfo`, {
+    const response = await apiClient.get<UserResponse>("/users/myInfo", {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
     return response.data;
   } catch (error) {
     console.error("Error fetching my user:", error);
-    throw error;
+    throw error as AxiosError<ApiError>;
   }
 };
 
-export const getUserById = async (userId, token) => {
+export const getUserById = async (
+  userId: string,
+  token: string
+): Promise<UserResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URI}/users/${userId}`, {
+    const response = await apiClient.get<UserResponse>(`/users/${userId}`, {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
     return response.data;
   } catch (error) {
     console.error("Error fetching user by ID:", error);
-    throw error;
+    throw error as AxiosError<ApiError>;
   }
 };
 
-export const updateUser = async (userId, userData, token) => {
+export const updateUser = async (
+  userId: string,
+  userData: Partial<ValidationInput>, // Partial allows partial updates
+  token: string
+): Promise<UserResponse> => {
   try {
-    const response = await axios.put(
-      `${API_BASE_URI}/users/${userId}`,
+    const response = await apiClient.put<UserResponse>(
+      `/users/${userId}`,
       userData,
       {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       }
@@ -77,22 +121,21 @@ export const updateUser = async (userId, userData, token) => {
     return response.data;
   } catch (error) {
     console.error("Error updating user:", error);
-    if (error.response && error.response.data) {
-      throw new Error(error.response.data.message);
-    } else {
-      throw error;
-    }
+    throw error as AxiosError<ApiError>;
   }
 };
 
-export const updateMyInfo = async (userId, userData, token) => {
+export const updateMyInfo = async (
+  userId: string,
+  userData: Partial<ValidationInput>, // Partial allows partial updates
+  token: string
+): Promise<UserResponse> => {
   try {
-    const response = await axios.put(
-      `${API_BASE_URI}/users/updateMyInfo/${userId}`,
+    const response = await apiClient.put<UserResponse>(
+      `/users/updateMyInfo/${userId}`,
       userData,
       {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       }
@@ -100,25 +143,23 @@ export const updateMyInfo = async (userId, userData, token) => {
     return response.data;
   } catch (error) {
     console.error("Error updating user:", error);
-    if (error.response && error.response.data) {
-      throw new Error(error.response.data.message);
-    } else {
-      throw error;
-    }
+    throw error as AxiosError<ApiError>;
   }
 };
 
-export const deleteUser = async (userId, token) => {
+export const deleteUser = async (
+  userId: string,
+  token: string
+): Promise<UserResponse> => {
   try {
-    const response = await axios.delete(`${API_BASE_URI}/users/${userId}`, {
+    const response = await apiClient.delete<UserResponse>(`/users/${userId}`, {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
     return response.data;
   } catch (error) {
     console.error("Error deleting user:", error);
-    throw error;
+    throw error as AxiosError<ApiError>;
   }
 };
