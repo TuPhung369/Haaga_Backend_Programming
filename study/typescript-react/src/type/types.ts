@@ -25,6 +25,7 @@ export interface GenericResponse {
 
 export interface CalendarEvent {
   id: string;
+  seriesId?: string;
   title: string;
   start: Date;
   end: Date;
@@ -32,7 +33,7 @@ export interface CalendarEvent {
   description?: string;
   color: string;
   allDay?: boolean;
-  resource?: unknown;
+  repeat?: "none" | "daily" | "weekly" | "monthly" | "yearly";
 }
 export interface TaskKanban {
   id: string;
@@ -135,3 +136,4 @@ export interface PercentChart {
   name: string;
   value: number;
 }
+

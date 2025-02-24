@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Layout, Button, Modal, Form, Input, Tooltip } from "antd";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Layout, Button, Modal, Form, Input, Tooltip, Select } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import {
   Calendar as BigCalendar,
@@ -25,8 +25,8 @@ const TypedCalendar: React.FC<CalendarProps<CalendarEvent, object>> = (
 const Calendar = withDragAndDrop<CalendarEvent>(TypedCalendar);
 
 const { Content } = Layout;
+const { Option } = Select;
 
-// Define RootState for Redux
 interface RootState {
   user: {
     events: CalendarEvent[];
@@ -39,17 +39,23 @@ const CalendarPage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [eventDetails, setEventDetails] = useState({
     id: "",
+    seriesId: "",
     title: "",
     start: "",
     end: "",
     description: "",
     color: COLORS[0],
+    repeat: "none" as "none" | "daily" | "weekly" | "monthly" | "yearly",
+  });
+  const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
+    start: moment().startOf("month").toDate(),
+    end: moment().endOf("month").toDate(),
   });
 
   const { events = [] } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
-  // Initialize events if needed
   const initializeEvents = useCallback(() => {
     if (events.length === 0) {
       dispatch(setEvents([]));
@@ -60,7 +66,95 @@ const CalendarPage: React.FC = () => {
     initializeEvents();
   }, [initializeEvents]);
 
-  // Handle deleting an event
+  const generateEventInstances = (
+    event: CalendarEvent,
+    startRange: Date,
+    endRange: Date
+  ): CalendarEvent[] => {
+    const instances: CalendarEvent[] = [];
+    const originalStart = moment(event.start);
+    const originalEnd = moment(event.end);
+    const duration = originalEnd.diff(originalStart, "minutes");
+
+    if (event.repeat === "none") {
+      if (
+        originalStart.toDate() <= endRange &&
+        originalEnd.toDate() >= startRange
+      ) {
+        instances.push({ ...event, seriesId: event.id });
+      }
+      return instances;
+    }
+
+    const currentStart = originalStart.clone();
+
+    while (currentStart.toDate() <= endRange) {
+      const currentEnd = currentStart.clone().add(duration, "minutes");
+      if (currentEnd.toDate() >= startRange) {
+        const instanceId = `${event.id}-${currentStart.toISOString()}`;
+        instances.push({
+          ...event,
+          id: instanceId,
+          seriesId: event.id,
+          start: currentStart.toDate(),
+          end: currentEnd.toDate(),
+          date: currentStart.toDate(),
+        });
+      }
+      switch (event.repeat) {
+        case "daily":
+          currentStart.add(1, "day");
+          break;
+        case "weekly":
+          currentStart.add(1, "week");
+          break;
+        case "monthly":
+          currentStart.add(1, "month");
+          break;
+        case "yearly":
+          currentStart.add(1, "year");
+          break;
+        default:
+          break;
+      }
+    }
+
+    return instances;
+  };
+
+  // Memoize the generation of display events based on events and date range
+  const computedDisplayEvents = useMemo(() => {
+    const allInstances = events.flatMap((event) =>
+      generateEventInstances(event, dateRange.start, dateRange.end)
+    );
+    console.log(
+      `Generated ${allInstances.length} instances for range ${moment(
+        dateRange.start
+      ).format("YYYY-MM-DD")} to ${moment(dateRange.end).format("YYYY-MM-DD")}`
+    );
+    return allInstances;
+  }, [events, dateRange]);
+
+  useEffect(() => {
+    setDisplayEvents(computedDisplayEvents);
+  }, [computedDisplayEvents]);
+
+  // Update date range when calendar view changes
+  const handleRangeChange = useCallback(
+    (range: Date[] | { start: Date; end: Date }) => {
+      let start: Date, end: Date;
+      if (Array.isArray(range)) {
+        start = range[0];
+        end = range[range.length - 1];
+      } else {
+        start = range.start;
+        end = range.end;
+      }
+      setDateRange({ start, end });
+    },
+    []
+  );
+
   const handleDeleteEvent = () => {
     const updatedEvents = events.filter(
       (event) => event.id !== eventDetails.id
@@ -69,12 +163,10 @@ const CalendarPage: React.FC = () => {
     setIsModalVisible(false);
   };
 
-  // Helper function to convert hex to RGB (unchanged)
   const hexToRgb = (hex: string) => {
     let r = 0,
       g = 0,
       b = 0;
-
     if (hex.length === 4) {
       r = parseInt(hex[1] + hex[1], 16);
       g = parseInt(hex[2] + hex[2], 16);
@@ -84,11 +176,9 @@ const CalendarPage: React.FC = () => {
       g = parseInt(hex[3] + hex[4], 16);
       b = parseInt(hex[5] + hex[6], 16);
     }
-
     return { r, g, b };
   };
 
-  // Helper function to calculate luminance (unchanged)
   const getLuminance = (r: number, g: number, b: number): number => {
     const a = [r, g, b].map((v) => {
       v /= 255;
@@ -97,7 +187,6 @@ const CalendarPage: React.FC = () => {
     return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
   };
 
-  // Helper function to calculate contrast ratio (unchanged)
   const getContrastRatio = (
     bgRgb: { r: number; g: number; b: number },
     textRgb: { r: number; g: number; b: number }
@@ -109,7 +198,6 @@ const CalendarPage: React.FC = () => {
     return (brighter + 0.05) / (darker + 0.05);
   };
 
-  // Helper function to convert RGB to HSL (unchanged)
   const rgbToHsl = (
     r: number,
     g: number,
@@ -123,7 +211,6 @@ const CalendarPage: React.FC = () => {
     let h = 0,
       s = 0;
     const l = (max + min) / 2;
-
     if (max !== min) {
       const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -140,11 +227,9 @@ const CalendarPage: React.FC = () => {
       }
       h /= 6;
     }
-
     return { h: h * 360, s: s * 100, l: l * 100 };
   };
 
-  // Helper function to convert HSL to RGB (unchanged)
   const hslToRgb = (
     h: number,
     s: number,
@@ -158,7 +243,6 @@ const CalendarPage: React.FC = () => {
     let r = 0,
       g = 0,
       b = 0;
-
     if (0 <= h && h < 60) {
       r = c;
       g = x;
@@ -184,7 +268,6 @@ const CalendarPage: React.FC = () => {
       g = 0;
       b = x;
     }
-
     return {
       r: Math.round((r + m) * 255),
       g: Math.round((g + m) * 255),
@@ -192,48 +275,32 @@ const CalendarPage: React.FC = () => {
     };
   };
 
-  // Enhanced invert color function for better contrast and variety
   const invertColorWithContrast = (
     backgroundColor: string,
     minContrast = 7
   ): string => {
     const bgRgb = hexToRgb(backgroundColor);
     const bgHsl = rgbToHsl(bgRgb.r, bgRgb.g, bgRgb.b);
-
-    // Start with an inverted hue (shift by 180° for contrast)
     const newHue = (bgHsl.h + 180) % 360;
-    const newSaturation = Math.min(100, bgHsl.s + 30); // Increase saturation for vibrancy
+    const newSaturation = Math.min(100, bgHsl.s + 30);
     let newLightness = bgHsl.l;
-
-    // Generate initial text color and check contrast
     const initialTextRgb = hslToRgb(newHue, newSaturation, newLightness);
     let contrast = getContrastRatio(bgRgb, initialTextRgb);
-
-    // Adjust lightness to achieve minimum contrast
     while (contrast < minContrast) {
-      // If contrast is too low, adjust lightness toward the opposite extreme
       newLightness = bgHsl.l > 50 ? newLightness - 10 : newLightness + 10;
-      newLightness = Math.max(0, Math.min(100, newLightness)); // Clamp between 0 and 100
-
+      newLightness = Math.max(0, Math.min(100, newLightness));
       const adjustedRgb = hslToRgb(newHue, newSaturation, newLightness);
       contrast = getContrastRatio(bgRgb, adjustedRgb);
-
-      // Break if contrast is sufficient or we've reached a limit
       if (newLightness === 0 || newLightness === 100) break;
     }
-
-    // Generate final RGB and convert to hex
     const finalRgb = hslToRgb(newHue, newSaturation, newLightness);
-    const finalColor = `#${finalRgb.r.toString(16).padStart(2, "0")}${finalRgb.g
+    return `#${finalRgb.r.toString(16).padStart(2, "0")}${finalRgb.g
       .toString(16)
       .padStart(2, "0")}${finalRgb.b
       .toString(16)
       .padStart(2, "0")}`.toUpperCase();
-
-    return finalColor;
   };
 
-  // Function to generate a random color (unchanged)
   const getRandomColor = (): string => {
     const letters = "0123456789ABCDEF";
     let color = "#";
@@ -243,64 +310,60 @@ const CalendarPage: React.FC = () => {
     return color;
   };
 
-  // Show event modal with default start and end times
   const showEventModal = (event?: CalendarEvent) => {
     const defaultStart = moment();
     const defaultEnd = moment().add(30, "minutes");
-
     if (event) {
-      const startTime = moment(event.start);
-      const endTime = moment(event.end);
-
-      if (endTime.isBefore(startTime)) {
-        const adjustedEnd = startTime.clone().add(30, "minutes");
+      const originalEvent = events.find((e) => e.id === event.seriesId);
+      if (originalEvent) {
+        const startTime = moment(originalEvent.start);
+        const endTime = moment(originalEvent.end);
+        let adjustedEnd = endTime;
+        if (endTime.isBefore(startTime)) {
+          adjustedEnd = startTime.clone().add(30, "minutes");
+        }
         setEventDetails({
-          id: event.id,
-          title: event.title,
+          id: originalEvent.id,
+          seriesId: originalEvent.id,
+          title: originalEvent.title,
           start: startTime.format("YYYY-MM-DDTHH:mm"),
           end: adjustedEnd.format("YYYY-MM-DDTHH:mm"),
-          description: event.description || "",
-          color: event.color || COLORS[0],
-        });
-      } else {
-        setEventDetails({
-          id: event.id,
-          title: event.title,
-          start: startTime.format("YYYY-MM-DDTHH:mm"),
-          end: endTime.format("YYYY-MM-DDTHH:mm"),
-          description: event.description || "",
-          color: event.color || COLORS[0],
+          description: originalEvent.description || "",
+          color: originalEvent.color || COLORS[0],
+          repeat: originalEvent.repeat || "none",
         });
       }
     } else {
       setEventDetails({
         id: "",
+        seriesId: "",
         title: "",
         start: defaultStart.format("YYYY-MM-DDTHH:mm"),
         end: defaultEnd.format("YYYY-MM-DDTHH:mm"),
         description: "",
         color: getRandomColor(),
+        repeat: "none",
       });
     }
-
     setIsModalVisible(true);
   };
 
-  // Handle adding or updating the event
   const handleAddOrUpdateEvent = () => {
     const startDate = new Date(eventDetails.start);
     const endDate = new Date(eventDetails.end);
+    const eventId = eventDetails.id || new Date().getTime().toString();
     const newEvent: CalendarEvent = {
-      id: eventDetails.id || new Date().getTime().toString(),
+      id: eventId,
+      seriesId: eventId,
       title: eventDetails.title,
       start: startDate,
       end: endDate,
       date: startDate,
       description: eventDetails.description,
       color: eventDetails.color,
-      allDay: false, // Explicitly set optional properties if needed
+      allDay: false,
+      repeat: eventDetails.repeat,
     };
-
     if (eventDetails.id) {
       const updatedEvents = events.map((event) =>
         event.id === eventDetails.id ? newEvent : event
@@ -309,19 +372,19 @@ const CalendarPage: React.FC = () => {
     } else {
       dispatch(setEvents([...events, newEvent]));
     }
-
     setEventDetails({
       id: "",
+      seriesId: "",
       title: "",
       start: "",
       end: "",
       description: "",
       color: COLORS[0],
+      repeat: "none",
     });
     setIsModalVisible(false);
   };
 
-  // Handle input changes in the form
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -332,43 +395,38 @@ const CalendarPage: React.FC = () => {
     }));
   };
 
-  // Handle event drop (drag-and-drop) functionality
   const handleEventDrop = (args: EventInteractionArgs<CalendarEvent>) => {
     const { event, start, end } = args;
+    const seriesId = event.seriesId;
     const updatedEvents = events.map((evt) =>
-      evt.id === event.id ? { ...evt, start, end, date: start } : evt
+      evt.id === seriesId
+        ? {
+            ...evt,
+            start: new Date(start),
+            end: new Date(end),
+            date: new Date(start),
+          }
+        : evt
     );
-    dispatch(
-      setEvents(
-        updatedEvents.map((event) => ({
-          ...event,
-          start: new Date(event.start),
-          end: new Date(event.end),
-          date: new Date(event.date),
-        }))
-      )
-    );
+    dispatch(setEvents(updatedEvents));
   };
 
-  // Handle event resize functionality
   const handleEventResize = (args: EventInteractionArgs<CalendarEvent>) => {
     const { event, start, end } = args;
+    const seriesId = event.seriesId;
     const updatedEvents = events.map((evt) =>
-      evt.id === event.id ? { ...evt, start, end, date: start } : evt
+      evt.id === seriesId
+        ? {
+            ...evt,
+            start: new Date(start),
+            end: new Date(end),
+            date: new Date(start),
+          }
+        : evt
     );
-    dispatch(
-      setEvents(
-        updatedEvents.map((event) => ({
-          ...event,
-          start: new Date(event.start),
-          end: new Date(event.end),
-          date: new Date(event.date),
-        }))
-      )
-    );
+    dispatch(setEvents(updatedEvents));
   };
 
-  // Customize event styles using eventPropGetter
   const eventStyleGetter = (
     event: CalendarEvent
   ): { style: React.CSSProperties } => {
@@ -377,20 +435,23 @@ const CalendarPage: React.FC = () => {
       style: {
         backgroundColor: backgroundColor,
         borderRadius: "5px",
-        color: invertColorWithContrast(backgroundColor), // Use enhanced contrast-aware inversion
+        color: invertColorWithContrast(backgroundColor),
         border: "none",
       },
     };
   };
 
-  // Add a Tooltip directly inside the event rendering
   const eventContent = ({ event }: { event: CalendarEvent }) => {
     return (
       <Tooltip
         title={
           <>
             <span
-              style={{ color: COLORS[0], fontWeight: "bold", fontSize: "16px" }}
+              style={{
+                color: COLORS[12],
+                fontWeight: "bold",
+                fontSize: "16px",
+              }}
             >
               {event.title}
             </span>
@@ -433,7 +494,7 @@ const CalendarPage: React.FC = () => {
 
           <Calendar
             localizer={localizer}
-            events={events}
+            events={displayEvents}
             startAccessor="start"
             endAccessor="end"
             style={{ height: 650 }}
@@ -447,6 +508,8 @@ const CalendarPage: React.FC = () => {
               event: eventContent,
             }}
             tooltipAccessor={null}
+            onRangeChange={handleRangeChange}
+            defaultView="month"
           />
 
           <Modal
@@ -507,6 +570,20 @@ const CalendarPage: React.FC = () => {
                   value={eventDetails.description}
                   onChange={handleInputChange}
                 />
+              </Form.Item>
+              <Form.Item label="Repeat">
+                <Select
+                  value={eventDetails.repeat}
+                  onChange={(value) =>
+                    setEventDetails((prev) => ({ ...prev, repeat: value }))
+                  }
+                >
+                  <Option value="none">No Repeat</Option>
+                  <Option value="daily">Daily</Option>
+                  <Option value="weekly">Weekly</Option>
+                  <Option value="monthly">Monthly</Option>
+                  <Option value="yearly">Yearly</Option>
+                </Select>
               </Form.Item>
             </Form>
           </Modal>
