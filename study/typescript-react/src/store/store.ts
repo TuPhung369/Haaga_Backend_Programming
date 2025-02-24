@@ -1,15 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
 import kanbanReducer from "./kanbanSlice";
-import { KanbanState } from "../type/types";
-import authReducer, { AuthState } from "./authSlice"; // Import AuthState
-import userReducer, { UserState } from "./userSlice"; // Import UserState
+import authReducer from "./authSlice";
+import userReducer from "./userSlice";
+import { RootState } from "../type/types";
 
-// Define the root state type
-export interface RootState {
-  kanban: KanbanState;
-  auth: AuthState;
-  user: UserState;
-}
 
 // Load state from localStorage
 const loadState = (): RootState | undefined => {
@@ -77,4 +71,6 @@ store.subscribe(() => {
 // Export store and types
 export default store;
 export type AppDispatch = typeof store.dispatch; // Optional: for useDispatch typing
+
+
 

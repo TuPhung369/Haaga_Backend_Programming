@@ -1,12 +1,6 @@
 // src/store/authSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-// Define AuthState type
-export interface AuthState {
-  token: string | null;
-  isAuthenticated: boolean;
-  loginSocial: boolean;
-}
+import { AuthState } from "../type/types";
 
 const initialState: AuthState = {
   token: null,

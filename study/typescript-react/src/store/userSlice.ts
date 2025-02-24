@@ -1,19 +1,12 @@
 // src/store/userSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { CalendarEvent, User, Permission, Role } from "../type/types";
-
-export interface UserState {
-  userInfo: User | null;
-  roles: Role[];
-  allUsers: User[];
-  permissions: Permission[];
-  events: CalendarEvent[];
-  isUserInfoInvalidated: boolean;
-  isRolesInvalidated: boolean;
-  isUsersInvalidated: boolean;
-  isPermissionsInvalidated: boolean;
-  isEventsInvalidated: boolean;
-}
+import {
+  CalendarEvent,
+  User,
+  Permission,
+  Role,
+  UserState,
+} from "../type/types";
 
 const initialState: UserState = {
   userInfo: null,
@@ -101,4 +94,3 @@ export const {
 } = userSlice.actions;
 
 export default userSlice.reducer;
-

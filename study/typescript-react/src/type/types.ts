@@ -33,44 +33,43 @@ export interface CalendarEvent {
   allDay?: boolean;
   resource?: unknown;
 }
-export interface Task {
+export interface TaskKanBan {
   id: string;
   title: string;
 }
-export interface Column {
+export interface ColumnKanBan {
   id: string;
   title: string;
-  tasks: Task[];
+  tasks: TaskKanBan[];
+}
+export interface AuthState {
+  token: string;
+  isAuthenticated: boolean;
+  loginSocial: boolean;
 }
 export interface KanbanState {
-  columns: Column[];
-  editingTask: Task | null;
+  columns: ColumnKanBan[];
+  editingTask: TaskKanBan;
   isColumnsInvalidated: boolean;
   isEditingTaskInvalidated: boolean;
 }
+export interface UserState {
+  userInfo: User | null;
+  roles: Role[];
+  allUsers: User[];
+  permissions: Permission[];
+  events: CalendarEvent[];
+  isUserInfoInvalidated: boolean;
+  isRolesInvalidated: boolean;
+  isUsersInvalidated: boolean;
+  isPermissionsInvalidated: boolean;
+  isEventsInvalidated: boolean;
+}
 // RootState interface
 export interface RootState {
-  auth: {
-    token: string;
-    isAuthenticated: boolean;
-    loginSocial: boolean;
-  };
-  user: {
-    userInfo: User;
-    roles: Role[];
-    allUsers: User[];
-    events: CalendarEvent[];
-    permissions: Permission[];
-    isUserInfoInvalidated: boolean;
-    isRolesInvalidated: boolean;
-    isUsersInvalidated: boolean;
-    isPermissionsInvalidated: boolean;
-  };
-  kanban: {
-    columns: Column[];
-    editingTask: Task | null;
-  };
-  
+  auth: AuthState;
+  user: UserState;
+  kanban: KanbanState;
 }
 
 export interface User {
@@ -134,6 +133,4 @@ export interface PermissionsResponse {
   result: Permission[];
   message?: string;
 }
-
-
 
