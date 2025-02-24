@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
-import kanbanReducer, { KanbanState } from "./kanbanSlice"; // Import KanbanState
+import kanbanReducer from "./kanbanSlice";
+import { KanbanState } from "../type/types";
 import authReducer, { AuthState } from "./authSlice"; // Import AuthState
 import userReducer, { UserState } from "./userSlice"; // Import UserState
 

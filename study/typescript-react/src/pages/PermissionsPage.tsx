@@ -25,11 +25,11 @@ import {
 } from "../store/userSlice";
 import type { AxiosError } from "axios";
 import {
-  User,
   Permission,
   UserResponse,
   PermissionsResponse,
   ApiError,
+  RootState,
 } from "../type/types";
 
 const { Content } = Layout;
@@ -38,20 +38,6 @@ const { Option } = Select;
 interface PermissionApiError extends ApiError {
   errorType?: "CREATE" | "FETCH" | "DELETE";
   details?: string;
-}
-
-// Define Redux state type
-interface RootState {
-  auth: {
-    token: string;
-    isAuthenticated: boolean;
-  };
-  user: {
-    userInfo: User | null;
-    permissions: Permission[];
-    isUserInfoInvalidated: boolean;
-    isPermissionsInvalidated: boolean;
-  };
 }
 
 const PermissionPage = () => {
@@ -301,5 +287,4 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
-
 

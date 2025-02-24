@@ -1,25 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
 import { arrayMove } from "@dnd-kit/sortable";
-
-// Define types for Kanban state
-export interface Task {
-  id: string;
-  title: string;
-}
-
-export interface Column {
-  id: string;
-  title: string;
-  tasks: Task[];
-}
-
-export interface KanbanState {
-  columns: Column[];
-  editingTask: Task | null;
-  isColumnsInvalidated: boolean;
-  isEditingTaskInvalidated: boolean;
-}
+import { Column, Task, KanbanState } from "../type/types";
 
 // Define initial state
 const initialState: KanbanState = {
@@ -192,3 +174,4 @@ export const {
 } = kanbanSlice.actions;
 
 export default kanbanSlice.reducer;
+

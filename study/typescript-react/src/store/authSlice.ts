@@ -24,10 +24,9 @@ const authSlice = createSlice({
       state.loginSocial = action.payload.loginSocial || false;
     },
     clearAuthData: () => initialState, // Reset auth state
-    clearAllData: () => undefined, // Clear All Redux store (though this might not work as intended; see note)
   },
 });
 
-export const { setAuthData, clearAuthData, clearAllData } = authSlice.actions;
+export const { setAuthData, clearAuthData } = authSlice.actions;
 export default authSlice.reducer;
 

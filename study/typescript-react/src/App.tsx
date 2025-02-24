@@ -22,7 +22,7 @@ import HeaderCustom from "./components/HeaderCustom";
 import Sidebar from "./components/Sidebar";
 import { introspectToken } from "./services/authService";
 import { clearAuthData } from "./store/authSlice";
-import { RootState } from "./store";
+import { RootState } from "./type/types";
 
 const { Content, Footer } = Layout;
 
@@ -34,7 +34,9 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { token, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { token, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
 
   useEffect(() => {
     const checkTokenValidity = async () => {
@@ -162,3 +164,4 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => (
 );
 
 export default App;
+

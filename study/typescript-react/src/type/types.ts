@@ -33,6 +33,45 @@ export interface CalendarEvent {
   allDay?: boolean;
   resource?: unknown;
 }
+export interface Task {
+  id: string;
+  title: string;
+}
+export interface Column {
+  id: string;
+  title: string;
+  tasks: Task[];
+}
+export interface KanbanState {
+  columns: Column[];
+  editingTask: Task | null;
+  isColumnsInvalidated: boolean;
+  isEditingTaskInvalidated: boolean;
+}
+// RootState interface
+export interface RootState {
+  auth: {
+    token: string;
+    isAuthenticated: boolean;
+    loginSocial: boolean;
+  };
+  user: {
+    userInfo: User;
+    roles: Role[];
+    allUsers: User[];
+    events: CalendarEvent[];
+    permissions: Permission[];
+    isUserInfoInvalidated: boolean;
+    isRolesInvalidated: boolean;
+    isUsersInvalidated: boolean;
+    isPermissionsInvalidated: boolean;
+  };
+  kanban: {
+    columns: Column[];
+    editingTask: Task | null;
+  };
+  
+}
 
 export interface User {
   id: string;
@@ -95,4 +134,6 @@ export interface PermissionsResponse {
   result: Permission[];
   message?: string;
 }
+
+
 
