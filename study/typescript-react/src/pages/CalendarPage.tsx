@@ -232,7 +232,7 @@ const CalendarPage = () => {
         >
           <Button
             type="primary"
-            className="p-2 bg-blue-500 text-white rounded-full p-4 bg-white shadow-md"
+            className="p-2 bg-blue-500 text-white rounded-full shadow-md"
             icon={<PlusOutlined style={{ fontSize: "16px" }} />}
             onClick={() => showEventModal()}
             style={{ marginBottom: "20px" }}
