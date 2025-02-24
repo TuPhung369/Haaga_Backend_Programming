@@ -3,7 +3,22 @@ import { Form, Input, Typography, Modal } from "antd";
 
 const { Text } = Typography;
 
-const ResetPasswordComponent = ({
+interface FormValues {
+  username: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface ResetPasswordProps {
+  isVisible: boolean;
+  handleConfirm: () => void;
+  handleCancel: () => void;
+  formValues: FormValues;
+  setFormValues: React.Dispatch<React.SetStateAction<FormValues>>;
+  errors: Partial<Record<keyof FormValues, string>>;
+}
+
+const ResetPasswordComponent: React.FC<ResetPasswordProps> = ({
   isVisible,
   handleConfirm,
   handleCancel,
@@ -13,7 +28,7 @@ const ResetPasswordComponent = ({
 }) => (
   <Modal
     title="Reset Your Password"
-    visible={isVisible}
+    open={isVisible} // Thay `visible` bằng `open` (Ant Design v4+)
     onOk={handleConfirm}
     onCancel={handleCancel}
     okText="Reset Password"
@@ -37,8 +52,8 @@ const ResetPasswordComponent = ({
       </Form.Item>
       <Form.Item
         label={<Text strong>New Password</Text>}
-        validateStatus={errors.password ? "error" : ""}
-        help={errors.password}
+        validateStatus={errors.newPassword ? "error" : ""}
+        help={errors.newPassword}
       >
         <Input.Password
           value={formValues.newPassword}
@@ -49,7 +64,11 @@ const ResetPasswordComponent = ({
           autoComplete="new-password"
         />
       </Form.Item>
-      <Form.Item label={<Text strong>Confirm Password</Text>}>
+      <Form.Item
+        label={<Text strong>Confirm Password</Text>}
+        validateStatus={errors.confirmPassword ? "error" : ""}
+        help={errors.confirmPassword}
+      >
         <Input.Password
           value={formValues.confirmPassword}
           onChange={(e) =>
@@ -67,4 +86,3 @@ const ResetPasswordComponent = ({
 );
 
 export default ResetPasswordComponent;
-

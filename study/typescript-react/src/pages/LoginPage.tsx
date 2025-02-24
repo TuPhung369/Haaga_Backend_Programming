@@ -31,31 +31,40 @@ import { setAuthData } from "../store/authSlice";
 const { Title, Text } = Typography;
 const { Content } = Layout;
 
-const LoginPage = () => {
+// Define types for state and props
+interface AuthState {
+  isAuthenticated: boolean;
+  token: string | null;
+}
+
+const LoginPage: React.FC = () => {
   const oauth2ClientId = import.meta.env.VITE_OAUTH2_CLIENT_ID;
   const oauth2RedirectUri = import.meta.env.VITE_OAUTH2_REDIRECT_URI;
   const appBaseUri = import.meta.env.VITE_BASE_URI;
-  const [error] = useState("");
+
+  const [error, setError] = useState<string>("");
   const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] =
-    useState(false);
-  const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
-  const [username, setUsername] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstname, setFirstname] = useState("");
-  const [lastname, setLastname] = useState("");
-  const [dob, setDob] = useState(moment("1987-07-07", "YYYY-MM-DD"));
-  const [email, setEmail] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [usernameError, setUsernameError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [firstnameError, setFirstnameError] = useState("");
-  const [lastnameError, setLastnameError] = useState("");
-  const [dobError, setDobError] = useState("");
-  const [emailError, setEmailError] = useState("");
+    useState<boolean>(false);
+  const [isRegisterModalVisible, setIsRegisterModalVisible] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [firstname, setFirstname] = useState<string>("");
+  const [lastname, setLastname] = useState<string>("");
+  const [dob, setDob] = useState<moment.Moment>(moment("1987-07-07", "YYYY-MM-DD"));
+  const [email, setEmail] = useState<string>("");
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
+  const [usernameError, setUsernameError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
+  const [firstnameError, setFirstnameError] = useState<string>("");
+  const [lastnameError, setLastnameError] = useState<string>("");
+  const [dobError, setDobError] = useState<string>("");
+  const [emailError, setEmailError] = useState<string>("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { isAuthenticated, token } = useSelector((state) => state.auth);
+  const { isAuthenticated, token } = useSelector(
+    (state: { auth: AuthState }) => state.auth
+  );
 
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -65,16 +74,14 @@ const LoginPage = () => {
     }
   }, [navigate, isAuthenticated, token]);
 
-  const handleLogin = (values) => {
+  const handleLogin = (values: { username: string; password: string }) => {
     const login = async () => {
-      // Validate input before API call
       const errors = validateInput({
         username: values.username,
         password: values.password,
       });
 
       if (Object.keys(errors).length > 0) {
-        // Show notification for validation errors
         notification.error({
           message: "Validation Error",
           description:
@@ -100,7 +107,7 @@ const LoginPage = () => {
           });
           window.location.href = appBaseUri;
         }
-      } catch (error) {
+      } catch (error: any) {
         notification.error({
           message: "Login Error",
           description: "Invalid username or password" || error.message,
@@ -153,7 +160,7 @@ const LoginPage = () => {
         description: "Password reset successfully!",
       });
       setIsForgotPasswordModalVisible(false);
-    } catch (error) {
+    } catch (error: any) {
       const serverError = error.response?.data;
       notification.error({
         message: `Error ${serverError?.httpCode || ""}`,
@@ -236,7 +243,7 @@ const LoginPage = () => {
         description: "User registered successfully!",
       });
       setIsRegisterModalVisible(false);
-    } catch (error) {
+    } catch (error: any) {
       const serverError = error.response?.data;
       notification.error({
         message: `Error ${serverError?.httpCode || ""}`,
@@ -439,12 +446,16 @@ const LoginPage = () => {
                 name="newPassword"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
+                placeholder="Enter your new password"
                 autoComplete="new-password"
               />
             </label>
           </Form.Item>
-          <Form.Item className="login-page-modal-form-item">
+          <Form.Item
+            validateStatus={passwordError ? "error" : ""}
+            help={passwordError}
+            className="login-page-modal-form-item"
+          >
             <label htmlFor="forgot-confirm-password">
               <Text strong>Confirm Password</Text>
               <Input.Password
@@ -452,7 +463,7 @@ const LoginPage = () => {
                 name="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
+                placeholder="Confirm your new password"
                 autoComplete="new-password"
               />
             </label>
@@ -491,6 +502,40 @@ const LoginPage = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 autoComplete="username"
+              />
+            </label>
+          </Form.Item>
+          <Form.Item
+            validateStatus={passwordError ? "error" : ""}
+            help={passwordError}
+            className="login-page-modal-form-item"
+          >
+            <label htmlFor="register-password">
+              <Text strong>Password</Text>
+              <Input.Password
+                id="register-password"
+                name="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter your password"
+                autoComplete="new-password"
+              />
+            </label>
+          </Form.Item>
+          <Form.Item
+            validateStatus={passwordError ? "error" : ""}
+            help={passwordError}
+            className="login-page-modal-form-item"
+          >
+            <label htmlFor="register-confirm-password">
+              <Text strong>Confirm Password</Text>
+              <Input.Password
+                id="register-confirm-password"
+                name="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                autoComplete="new-password"
               />
             </label>
           </Form.Item>
@@ -537,8 +582,10 @@ const LoginPage = () => {
               <Text strong>Date of Birth</Text>
               <DatePicker
                 id="register-dob"
+                name="dob"
                 value={dob}
-                onChange={(date) => setDob(date)}
+                onChange={(date) => setDob(date || moment())}
+                format="YYYY-MM-DD"
                 style={{ width: "100%" }}
               />
             </label>
@@ -560,36 +607,6 @@ const LoginPage = () => {
               />
             </label>
           </Form.Item>
-          <Form.Item
-            validateStatus={passwordError ? "error" : ""}
-            help={passwordError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-password">
-              <Text strong>Password</Text>
-              <Input.Password
-                id="register-password"
-                name="newPassword"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter your password"
-                autoComplete="new-password"
-              />
-            </label>
-          </Form.Item>
-          <Form.Item className="login-page-modal-form-item">
-            <label htmlFor="register-confirm-password">
-              <Text strong>Confirm Password</Text>
-              <Input.Password
-                id="register-confirm-password"
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                autoComplete="new-password"
-              />
-            </label>
-          </Form.Item>
         </Form>
       </Modal>
     </Layout>
@@ -597,4 +614,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-

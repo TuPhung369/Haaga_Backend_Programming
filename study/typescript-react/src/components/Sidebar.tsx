@@ -15,7 +15,11 @@ import { COLORS } from "../utils/constant";
 
 const { Sider } = Layout;
 
-const Sidebar = ({ defaultSelectedKey }) => {
+interface SidebarProps {
+  defaultSelectedKey?: string;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -50,11 +54,7 @@ const Sidebar = ({ defaultSelectedKey }) => {
   ];
 
   return (
-    <Sider
-      width={200}
-      style={{ borderColor: "transparent" }}
-      className="site-layout-background"
-    >
+    <Sider width={200} style={{ borderColor: "transparent" }}>
       <Menu
         mode="inline"
         selectedKeys={[
@@ -77,5 +77,3 @@ const Sidebar = ({ defaultSelectedKey }) => {
 };
 
 export default Sidebar;
-
-

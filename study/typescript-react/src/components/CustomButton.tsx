@@ -1,6 +1,6 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import styled from "styled-components";
-import { Button } from "antd";
+import { Button, ButtonProps } from "antd";
 
 const StyledButton = styled(Button)`
   margin-right: 60px;
@@ -14,19 +14,18 @@ const StyledButton = styled(Button)`
   padding: 10px 20px;
   border-radius: 10px;
   transition: all 0.3s ease;
-  -webkit-border-radius: 10px;
-  -moz-border-radius: 10px;
-  -ms-border-radius: 10px;
-  -o-border-radius: 10px;
 
   &:hover {
     box-shadow: 5px 5px 15px #1c1c1c, -5px -5px 15px #ffffff;
   }
 `;
 
-const CustomButton = ({ children, ...props }) => {
+interface CustomButtonProps extends ButtonProps {
+  children: ReactNode;
+}
+
+const CustomButton: React.FC<CustomButtonProps> = ({ children, ...props }) => {
   return <StyledButton {...props}>{children}</StyledButton>;
 };
 
 export default CustomButton;
-

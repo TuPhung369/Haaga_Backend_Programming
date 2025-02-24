@@ -1,9 +1,36 @@
 import React from "react";
 import { Form, Input, DatePicker, Typography, Modal } from "antd";
+import dayjs, { Dayjs } from "dayjs";
 
 const { Text } = Typography;
 
-const RegisterComponent = ({
+interface FormValues {
+  username: string;
+  newPassword: string;
+  confirmPassword: string;
+  firstname: string;
+  lastname: string;
+  dob: Dayjs | null;
+}
+
+interface Errors {
+  username?: string;
+  password?: string;
+  firstname?: string;
+  lastname?: string;
+  dob?: string;
+}
+
+interface RegisterComponentProps {
+  isVisible: boolean;
+  handleRegisterConfirm: () => void;
+  handleCancel: () => void;
+  formValues: FormValues;
+  setFormValues: React.Dispatch<React.SetStateAction<FormValues>>;
+  errors: Errors;
+}
+
+const RegisterComponent: React.FC<RegisterComponentProps> = ({
   isVisible,
   handleRegisterConfirm,
   handleCancel,
@@ -96,7 +123,7 @@ const RegisterComponent = ({
         help={errors.dob}
       >
         <DatePicker
-          value={formValues.dob}
+          value={formValues.dob ? dayjs(formValues.dob) : null}
           onChange={(date) => setFormValues((prev) => ({ ...prev, dob: date }))}
           format="YYYY-MM-DD"
           placeholder="Select your date of birth"
@@ -108,4 +135,3 @@ const RegisterComponent = ({
 );
 
 export default RegisterComponent;
-

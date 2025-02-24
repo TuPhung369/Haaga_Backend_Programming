@@ -4,7 +4,14 @@ import { UserOutlined, LockOutlined } from "@ant-design/icons";
 
 const { Text, Title } = Typography;
 
-const LoginComponent = ({
+interface LoginComponentProps {
+  handleLogin: (values: { username: string; password: string }) => void;
+  handleRegister: () => void;
+  handleForgotPassword: () => void;
+  error?: string;
+}
+
+const LoginComponent: React.FC<LoginComponentProps> = ({
   handleLogin,
   handleRegister,
   handleForgotPassword,
@@ -83,4 +90,3 @@ const LoginComponent = ({
 };
 
 export default LoginComponent;
-

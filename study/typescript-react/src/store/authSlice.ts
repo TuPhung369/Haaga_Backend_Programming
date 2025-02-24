@@ -1,10 +1,7 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+// src/store/authSlice.ts
 
-interface AuthState {
-  token: string | null;
-  isAuthenticated: boolean;
-  loginSocial: boolean;
-}
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { AuthState } from "../type/authType";
 
 const initialState: AuthState = {
   token: null,
@@ -22,7 +19,7 @@ const authSlice = createSlice({
       state.loginSocial = action.payload.loginSocial || false;
     },
     clearAuthData: () => initialState, // Reset auth state
-    clearAllData: () => undefined, // Xóa toàn bộ Redux store
+    clearAllData: () => undefined, // Clear All Redux store
   },
 });
 

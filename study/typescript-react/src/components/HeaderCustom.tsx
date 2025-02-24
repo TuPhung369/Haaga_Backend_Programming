@@ -1,19 +1,25 @@
+// src/components/HeaderCustom.tsx
+
 import React from "react";
 import { Layout, notification } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { clearAuthData } from "../store/authSlice";
+import { clearUserInfo } from "../store/userSlice";
 import CustomButton from "./CustomButton";
+import { RootState } from "../store/RootState";
 
 const { Header } = Layout;
 
 const HeaderCustom: React.FC = () => {
-  const { isAuthenticated } = useSelector((state: any) => state.auth);
+  // Use the RootState type to get the state from Redux correctly
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const handleLogout = () => {
     dispatch(clearAuthData());
+    dispatch(clearUserInfo());
     navigate("/login");
     notification.success({
       message: "Logged out successfully!",
@@ -51,3 +57,4 @@ const HeaderCustom: React.FC = () => {
 };
 
 export default HeaderCustom;
+

@@ -65,6 +65,9 @@ const userSlice = createSlice({
       state.isPermissionsInvalidated = true;
       state.isEventsInvalidated = true;
     },
+    clearUserInfo: (state) => {
+      state.userInfo = null;
+    },
   },
 });
 
@@ -80,5 +83,6 @@ export const {
   invalidatePermissions,
   invalidateEvents,
   clearUserData,
+  clearUserInfo,
 } = userSlice.actions;
 export default userSlice.reducer;
