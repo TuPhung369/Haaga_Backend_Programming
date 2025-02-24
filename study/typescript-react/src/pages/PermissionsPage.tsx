@@ -23,7 +23,7 @@ import {
   setPermissions,
   invalidatePermissions,
 } from "../store/userSlice";
-import { AxiosError } from "axios";
+import type { AxiosError } from "axios";
 import {
   User,
   Permission,
@@ -301,4 +301,5 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
+
 

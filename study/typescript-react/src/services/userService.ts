@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AxiosError } from "axios";
+import type { AxiosError } from "axios";
 import { ValidationInput } from "../type/loginType";
 import { UserResponse, UsersResponse, ApiError } from "../type/types";
 

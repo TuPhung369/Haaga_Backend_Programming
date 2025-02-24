@@ -21,17 +21,42 @@ import {
   setPermissions,
   invalidateRoles,
   invalidatePermissions,
-  invalidateUserInfo,
 } from "../store/userSlice";
+import type { AxiosError } from "axios";
+import { User, Role, Permission, ApiError } from "../type/types";
 
 const { Content } = Layout;
 const { Option } = Select;
+
+// Define error type for roles
+interface RoleApiError extends ApiError {
+  errorType?: "CREATE" | "FETCH" | "DELETE";
+  details?: string;
+}
+
+// Define Redux state type
+interface RootState {
+  auth: {
+    token: string;
+    isAuthenticated: boolean;
+  };
+  user: {
+    userInfo: User | null;
+    roles: Role[]; // Updated from string[] to Role[]
+    permissions: Permission[];
+    isUserInfoInvalidated: boolean;
+    isRolesInvalidated: boolean;
+    isPermissionsInvalidated: boolean;
+  };
+}
 
 const RolesPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  const { token, isAuthenticated } = useSelector((state) => state.auth);
+  const { token, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
   const {
     userInfo,
     roles,
@@ -39,60 +64,72 @@ const RolesPage = () => {
     isUserInfoInvalidated,
     isRolesInvalidated,
     isPermissionsInvalidated,
-  } = useSelector((state) => state.user);
+  } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
   const fetchRoles = useCallback(async () => {
-    if (!isRolesInvalidated && roles.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isRolesInvalidated && roles.length > 0) return;
     try {
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
-        const rolesData = response.result.map((role) => ({
+        const rolesData = response.result.map((role: Role) => ({
           name: role.name,
           description: role.description,
           color: role.color,
-          permissions: role.permissions.map((permission) => ({
+          permissions: role.permissions.map((permission: Permission) => ({
             name: permission.name,
             description: permission.description,
             color: permission.color,
           })),
         }));
-        dispatch(setRoles(rolesData)); // Lưu vào store
+        dispatch(setRoles(rolesData));
       } else {
         console.error("Response is not an array");
         dispatch(setRoles([]));
       }
     } catch (error) {
-      console.error("Error fetching roles:", error);
+      const axiosError = error as AxiosError<RoleApiError>;
+      console.error(
+        "Error fetching roles:",
+        axiosError.response?.data?.message
+      );
       dispatch(setRoles([]));
     }
   }, [token, dispatch, isRolesInvalidated, roles]);
 
   const fetchPermissions = useCallback(async () => {
-    if (!isPermissionsInvalidated && permissions.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isPermissionsInvalidated && permissions.length > 0) return;
     try {
       const response = await getAllPermissions(token);
-      if (Array.isArray(response.result)) {
-        dispatch(setPermissions(response.result)); // Lưu vào store
+      if (response && Array.isArray(response.result)) {
+        dispatch(setPermissions(response.result));
       } else {
         console.error("Response is not an array");
         dispatch(setPermissions([]));
       }
     } catch (error) {
-      console.error("Error fetching permissions:", error);
+      const axiosError = error as AxiosError<RoleApiError>;
+      console.error(
+        "Error fetching permissions:",
+        axiosError.response?.data?.message
+      );
       dispatch(setPermissions([]));
     }
   }, [token, dispatch, isPermissionsInvalidated, permissions]);
 
   const fetchUserInformation = useCallback(async () => {
-    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isUserInfoInvalidated && userInfo) return;
     try {
       const response = await getMyInfo(token);
       if (response && response.result) {
-        dispatch(setUserInfo(response.result)); // Lưu vào store
+        dispatch(setUserInfo(response.result));
       }
     } catch (error) {
-      console.error("Error fetching user information:", error);
+      const axiosError = error as AxiosError<RoleApiError>;
+      console.error(
+        "Error fetching user information:",
+        axiosError.response?.data?.message
+      );
     }
   }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
@@ -110,13 +147,18 @@ const RolesPage = () => {
     fetchUserInformation,
   ]);
 
-  const handleDeleteRole = async (roleName) => {
+  const handleDeleteRole = async (roleName: string) => {
     try {
       await deleteRole(roleName, token);
-      dispatch(setRoles(roles.filter((role) => role.name !== roleName))); // Cập nhật store trực tiếp
-      dispatch(invalidatePermissions()); // Invalidate permissions vì role liên quan
+      dispatch(setRoles(roles.filter((role: Role) => role.name !== roleName)));
+      dispatch(invalidatePermissions());
     } catch (error) {
-      console.error("Error deleting role:", error);
+      const axiosError = error as AxiosError<RoleApiError>;
+      console.error("Error deleting role:", axiosError.response?.data?.message);
+      Modal.error({
+        title: "Delete Failed",
+        content: axiosError.response?.data?.message || "Unknown error occurred",
+      });
     }
   };
 
@@ -124,11 +166,18 @@ const RolesPage = () => {
     try {
       const values = await form.validateFields();
       await createRole(values, token);
-      dispatch(invalidateRoles()); // Invalidate để fetch lại danh sách roles
-      fetchRoles(); // Fetch lại ngay để cập nhật
+      dispatch(invalidateRoles());
+      fetchRoles();
       setIsModalVisible(false);
     } catch (error) {
-      console.error("Error adding role:", error);
+      const axiosError = error as AxiosError<RoleApiError>;
+      console.error("Error adding role:", axiosError.response?.data?.message);
+      Modal.error({
+        title: "Create Failed",
+        content:
+          axiosError.response?.data?.message ||
+          "An error occurred while creating role.",
+      });
     }
   };
 
@@ -141,10 +190,12 @@ const RolesPage = () => {
     setIsModalVisible(false);
   };
 
-  const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
-  const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
+  const isAdmin = userInfo?.roles.some((role: Role) => role.name === "ADMIN");
+  const isManager = userInfo?.roles.some(
+    (role: Role) => role.name === "MANAGER"
+  );
 
-  const handleRoleChange = (value) => {
+  const handleRoleChange = (value: string) => {
     const selectedRole = RoleOption.find((role) => role.name === value);
     form.setFieldsValue({
       description: selectedRole ? selectedRole.description : "",
@@ -190,7 +241,7 @@ const RolesPage = () => {
             title="Color"
             dataIndex="color"
             key="color"
-            render={(text) => (
+            render={(text: string) => (
               <Tag color={text} style={{ cursor: "pointer" }}>
                 {text}
               </Tag>
@@ -199,7 +250,7 @@ const RolesPage = () => {
           <Table.Column
             title="Permissions"
             key="permissions"
-            render={(text, record) =>
+            render={(_, record: Role) =>
               record.permissions && record.permissions.length > 0
                 ? record.permissions.map((perm) => (
                     <Tag key={perm.name} color={perm.color || "blue"}>
@@ -218,7 +269,7 @@ const RolesPage = () => {
                 </span>
               }
               key="delete"
-              render={(text, record) => (
+              render={(_, record: Role) => (
                 <Tag
                   color="red"
                   onClick={() => handleDeleteRole(record.name)}
@@ -296,3 +347,4 @@ const RolesPage = () => {
 };
 
 export default RolesPage;
+

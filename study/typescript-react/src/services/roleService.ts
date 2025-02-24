@@ -1,9 +1,8 @@
-import axios, { AxiosError } from "axios";
+import axios from "axios";
+import type { AxiosError } from "axios";
 import { Role, RoleResponse, RolesResponse, ApiError } from "../type/types";
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
-
-
 
 // Axios instance
 const apiClient = axios.create({
@@ -39,8 +38,13 @@ export const getAllRoles = async (token: string): Promise<RolesResponse> => {
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching roles:", error);
-    throw error as AxiosError<ApiError>;
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error creating role:", error.response?.data);
+      throw error;
+    } else {
+      console.error("Unexpected error:", error);
+      throw new Error("An unexpected error occurred");
+    }
   }
 };
 
@@ -60,3 +64,4 @@ export const deleteRole = async (
     throw error as AxiosError<ApiError>;
   }
 };
+

@@ -1,4 +1,5 @@
-import axios, { AxiosError } from "axios";
+import axios from "axios";
+import type { AxiosError } from "axios";
 import { Permission, PermissionResponse, PermissionsResponse, ApiError } from "../type/types";
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 
