@@ -42,7 +42,7 @@ interface RootState {
   };
   user: {
     userInfo: User | null;
-    roles: Role[]; // Updated from string[] to Role[]
+    roles: Role[];
     permissions: Permission[];
     isUserInfoInvalidated: boolean;
     isRolesInvalidated: boolean;
