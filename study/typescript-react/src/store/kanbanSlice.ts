@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Column, Task, KanbanState } from "../type/types";
+import { ColumnKanban, TaskKanban, KanbanState } from "../type/types";
 
 // Define initial state
 const initialState: KanbanState = {
@@ -22,11 +22,11 @@ const kanbanSlice = createSlice({
   name: "kanban",
   initialState,
   reducers: {
-    setColumns: (state, action: PayloadAction<Column[]>) => {
+    setColumns: (state, action: PayloadAction<ColumnKanban[]>) => {
       state.columns = action.payload;
       state.isColumnsInvalidated = false;
     },
-    setEditingTask: (state, action: PayloadAction<Task | null>) => {
+    setEditingTask: (state, action: PayloadAction<TaskKanban | null>) => {
       state.editingTask = action.payload;
       state.isEditingTaskInvalidated = false;
     },

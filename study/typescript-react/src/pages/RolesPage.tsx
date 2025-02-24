@@ -60,7 +60,7 @@ const RolesPage = () => {
           name: role.name,
           description: role.description,
           color: role.color,
-          permissions: role.permissions.map((permission: Permission) => ({
+          permissions: role.permissions?.map((permission: Permission) => ({
             name: permission.name,
             description: permission.description,
             color: permission.color,
@@ -331,5 +331,4 @@ const RolesPage = () => {
 };
 
 export default RolesPage;
-
 

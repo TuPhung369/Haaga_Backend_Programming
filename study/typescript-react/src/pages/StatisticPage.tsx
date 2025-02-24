@@ -19,6 +19,7 @@ import {
   Tooltip,
   Legend,
   LabelList,
+  TooltipProps,
 } from "recharts";
 import {
   Column as ColumnAnt,
@@ -31,22 +32,27 @@ import { getAllRoles } from "../services/roleService";
 import { Layout, notification } from "antd";
 import { COLORS } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  setUserInfo,
-  setAllUsers,
-  setRoles,
-} from "../store/userSlice";
+import { setUserInfo, setAllUsers, setRoles } from "../store/userSlice";
+import { QuantityChart, PercentChart, RootState } from "../type/types"; // Import RootState
 
 const { Content } = Layout;
 
 const StatisticPage = () => {
-  const [quantityChartData, setQuantityChartData] = useState([]);
-  const [percentChartData, setPercentChartData] = useState([]);
+  const [quantityChartData, setQuantityChartData] = useState<QuantityChart[]>(
+    []
+  );
+  const [percentChartData, setPercentChartData] = useState<PercentChart[]>([]);
   const [api, contextHolder] = notification.useNotification();
-  const [notificationMessage, setNotificationMessage] = useState(null);
+  const [notificationMessage, setNotificationMessage] = useState<{
+    type: "success" | "error";
+    message: string;
+    description: string;
+  } | null>(null); // Define type for notificationMessage
 
-  // Retrieve auth data and user data from Redux store
-  const { token, isAuthenticated } = useSelector((state) => state.auth);
+  // Retrieve auth data and user data from Redux store with typed state
+  const { token, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
   const {
     userInfo,
     allUsers,
@@ -54,15 +60,12 @@ const StatisticPage = () => {
     isUserInfoInvalidated,
     isUsersInvalidated,
     isRolesInvalidated,
-  } = useSelector((state) => state.user);
+  } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
   const openNotificationWithIcon = useCallback(
-    (type, message, description) => {
-      api[type]({
-        message: message,
-        description: description,
-      });
+    (type: "success" | "error", message: string, description: string) => {
+      api[type]({ message, description });
     },
     [api]
   );
@@ -76,10 +79,10 @@ const StatisticPage = () => {
       );
       setNotificationMessage(null);
     }
-  }, [notificationMessage, api, openNotificationWithIcon]);
+  }, [notificationMessage, openNotificationWithIcon]);
 
   const fetchAllUsers = useCallback(async () => {
-    if (!isUsersInvalidated && allUsers.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isUsersInvalidated && allUsers.length > 0) return;
     try {
       const response = await getAllUsers(token);
       if (Array.isArray(response)) {
@@ -101,7 +104,7 @@ const StatisticPage = () => {
             })),
           })),
         }));
-        dispatch(setAllUsers(allUsersData)); // Lưu vào store
+        dispatch(setAllUsers(allUsersData));
       } else {
         console.error("Response is not an array");
         dispatch(setAllUsers([]));
@@ -113,7 +116,7 @@ const StatisticPage = () => {
   }, [token, dispatch, isUsersInvalidated, allUsers]);
 
   const fetchMyInfo = useCallback(async () => {
-    if (!isUserInfoInvalidated && userInfo) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isUserInfoInvalidated && userInfo) return;
     try {
       const response = await getMyInfo(token);
       if (response && response.result) {
@@ -128,14 +131,14 @@ const StatisticPage = () => {
             name: role.name,
             description: role.description,
             color: role.color,
-            permissions: role.permissions.map((permission) => ({
+            permissions: role.permissions?.map((permission) => ({
               name: permission.name,
               description: permission.description,
               color: permission.color,
             })),
           })),
         };
-        dispatch(setUserInfo(userData)); // Lưu vào store
+        dispatch(setUserInfo(userData));
       }
     } catch (error) {
       console.error("Error fetching user info:", error);
@@ -143,7 +146,7 @@ const StatisticPage = () => {
   }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   const fetchRoles = useCallback(async () => {
-    if (!isRolesInvalidated && roles.length > 0) return; // Không fetch nếu đã có dữ liệu và chưa bị invalidate
+    if (!isRolesInvalidated && roles.length > 0) return;
     try {
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
@@ -151,13 +154,13 @@ const StatisticPage = () => {
           name: role.name,
           description: role.description,
           color: role.color,
-          permissions: role.permissions.map((permission) => ({
+          permissions: role.permissions?.map((permission) => ({
             name: permission.name,
             description: permission.description,
             color: permission.color,
           })),
         }));
-        dispatch(setRoles(allRolesData)); // Lưu vào store
+        dispatch(setRoles(allRolesData));
       } else {
         console.error("Response is not an array");
         dispatch(setRoles([]));
@@ -168,18 +171,15 @@ const StatisticPage = () => {
     }
   }, [token, dispatch, isRolesInvalidated, roles]);
 
-  // Calculate chart data whenever allUsers changes
   useEffect(() => {
     if (allUsers.length > 0) {
-      // Calculate role counts
       const roleCounts = allUsers.reduce((acc, user) => {
         user.roles.forEach((role) => {
           acc[role.name] = (acc[role.name] || 0) + 1;
         });
         return acc;
-      }, {});
+      }, {} as Record<string, number>);
 
-      // Map role counts to chartData
       const quantityChartData = Object.keys(roleCounts)
         .map((role) => ({
           name: role,
@@ -210,13 +210,24 @@ const StatisticPage = () => {
     }
   }, [token, isAuthenticated, fetchMyInfo, fetchAllUsers, fetchRoles]);
 
-  const customBarQuantityLabel = ({ x, y, width, value, index }) => {
-    const color = COLORS[index % COLORS.length];
+  const customBarQuantityLabel = (props: object): JSX.Element => {
+    const { x, y, width, value, index } = props as {
+      x?: number;
+      y?: number;
+      width?: number;
+      value?: number;
+      index?: number;
+    };
+    const safeX = x ?? 0;
+    const safeY = y ?? 0;
+    const safeWidth = width ?? 0;
+    const safeIndex = index ?? 0;
+    const color = COLORS[safeIndex % COLORS.length];
 
     return (
       <text
-        x={x + width / 2}
-        y={y - 10}
+        x={safeX + safeWidth / 2}
+        y={safeY - 10}
         fill={color}
         textAnchor="middle"
         fontSize="14px"
@@ -227,39 +238,58 @@ const StatisticPage = () => {
     );
   };
 
-  const customBarPercentLabel = ({ x, y, width, value, index }) => {
-    const color = COLORS[(index + 6) % COLORS.length];
+  const customBarPercentLabel = (props: object): JSX.Element => {
+    const { x, y, width, value, index } = props as {
+      x?: number;
+      y?: number;
+      width?: number;
+      value?: number;
+      index?: number;
+    };
+    const safeX = x ?? 0;
+    const safeY = y ?? 0;
+    const safeWidth = width ?? 0;
+    const safeIndex = index ?? 0;
+    const color = COLORS[(safeIndex + 6) % COLORS.length];
 
     return (
       <text
-        x={x + width / 2}
-        y={y - 10}
+        x={safeX + safeWidth / 2}
+        y={safeY - 10}
         fill={color}
         textAnchor="middle"
         fontSize="14px"
         fontWeight="bold"
       >
-        {`${parseFloat(value).toFixed(1)}%`}
+        {value !== undefined ? `${value.toFixed(1)}%` : ""}
       </text>
     );
   };
 
-  const customLineQuantityLabel = ({ x, y, value, index }) => {
-    const color = COLORS[index % COLORS.length];
+  const customLineQuantityLabel = (props: object): JSX.Element => {
+    const { x, y, value, index } = props as {
+      x?: number;
+      y?: number;
+      value?: number;
+      index?: number;
+    };
+    const safeX = x ?? 0;
+    const safeY = y ?? 0;
+    const safeIndex = index ?? 0;
+    const color = COLORS[safeIndex % COLORS.length];
     const textAnchor =
-      index === 0
+      safeIndex === 0
         ? "start"
-        : index === quantityChartData.length - 1
+        : safeIndex === quantityChartData.length - 1
         ? "end"
         : "middle";
     const adjustedX =
-      index === 0 ? x + 5 : index === quantityChartData.length - 1 ? x + 0 : x;
-    const adjustedY =
-      index === 0
-        ? y - 10
-        : index === quantityChartData.length - 1
-        ? y - 10
-        : y - 10;
+      safeIndex === 0
+        ? safeX + 5
+        : safeIndex === quantityChartData.length - 1
+        ? safeX
+        : safeX;
+    const adjustedY = safeY - 10;
 
     return (
       <text
@@ -275,22 +305,30 @@ const StatisticPage = () => {
     );
   };
 
-  const customLinePercentLabel = ({ x, y, value, index }) => {
-    const color = COLORS[(index + 6) % COLORS.length];
+  const customLinePercentLabel = (props: object): JSX.Element => {
+    const { x, y, value, index } = props as {
+      x?: number;
+      y?: number;
+      value?: number;
+      index?: number;
+    };
+    const safeX = x ?? 0;
+    const safeY = y ?? 0;
+    const safeIndex = index ?? 0;
+    const color = COLORS[(safeIndex + 6) % COLORS.length];
     const textAnchor =
-      index === 0
+      safeIndex === 0
         ? "start"
-        : index === percentChartData.length - 1
+        : safeIndex === percentChartData.length - 1
         ? "end"
         : "middle";
     const adjustedX =
-      index === 0 ? x - 0 : index === percentChartData.length - 1 ? x + 0 : x;
-    const adjustedY =
-      index === 0
-        ? y - 20
-        : index === percentChartData.length - 1
-        ? y - 10
-        : y - 10;
+      safeIndex === 0
+        ? safeX
+        : safeIndex === percentChartData.length - 1
+        ? safeX
+        : safeX;
+    const adjustedY = safeIndex === 0 ? safeY - 20 : safeY - 10;
 
     return (
       <text
@@ -301,12 +339,16 @@ const StatisticPage = () => {
         fontSize="14px"
         fontWeight="bold"
       >
-        {`${parseFloat(value).toFixed(1)}%`}
+        {value !== undefined ? `${value.toFixed(1)}%` : ""}
       </text>
     );
   };
 
-  const customTooltipQuantity = ({ active, payload, label }) => {
+  const customTooltipQuantity = ({
+    active,
+    payload,
+    label,
+  }: TooltipProps<number, string>) => {
     if (active && payload && payload.length) {
       return (
         <div
@@ -327,7 +369,11 @@ const StatisticPage = () => {
     return null;
   };
 
-  const customTooltipPercent = ({ active, payload, label }) => {
+  const customTooltipPercent = ({
+    active,
+    payload,
+    label,
+  }: TooltipProps<number, string>) => {
     if (active && payload && payload.length) {
       return (
         <div
@@ -340,7 +386,7 @@ const StatisticPage = () => {
         >
           <p>
             <strong>Role Distribution</strong>: {label} with{" "}
-            <strong>{parseFloat(payload[0].value).toFixed(1)}%</strong>
+            <strong>{payload[0].value?.toFixed(1)}%</strong>
           </p>
         </div>
       );
@@ -353,7 +399,7 @@ const StatisticPage = () => {
   const yAxisStartPercent =
     0.8 * Math.min(...percentChartData.map((d) => d.value));
 
-  const getPath = (x, y, width, height) =>
+  const getPath = (x: number, y: number, width: number, height: number) =>
     `M${x},${y + height}
        C${x + width / 3},${y + height} ${x + width / 2},${y + height / 3} ${
       x + width / 2
@@ -363,13 +409,18 @@ const StatisticPage = () => {
     } ${x + width}, ${y + height}
        Z`;
 
-  const TriangleBar = (props) => {
-    const { fill, x, y, width, height } = props;
-
+  const TriangleBar = (props: object) => {
+    const { fill, x, y, width, height } = props as {
+      fill: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
     return <path d={getPath(x, y, width, height)} stroke="none" fill={fill} />;
   };
 
-  const getRoleIcon = (role) => {
+  const getRoleIcon = (role: string) => {
     let pathData;
 
     switch (role) {
@@ -413,20 +464,22 @@ const StatisticPage = () => {
       },
     },
     style: {
-      fill: (datum, index) => COLORS[index % COLORS.length],
+      fill: (datum: QuantityChart, index: number) =>
+        COLORS[index % COLORS.length],
     },
     label: {
-      content: (datum) => `${datum.value}`,
+      content: (datum: QuantityChart) => `${datum.value}`,
       style: {
         textAlign: "start",
-        fill: (datum, index) => COLORS[index % COLORS.length],
+        fill: (_: QuantityChart, index: number) =>
+          COLORS[index % COLORS.length],
         fontSize: 14,
         fontWeight: "bold",
       },
     },
     axis: {
       x: {
-        labelFill: (datum, index) => COLORS[index % COLORS.length],
+        labelFill: (_: string, index: number) => COLORS[index % COLORS.length],
         labelFontSize: 12,
         labelFontWeight: "bold",
       },
@@ -440,11 +493,13 @@ const StatisticPage = () => {
       color: {
         position: "top",
         itemMarker: "square",
-        itemMarkerFill: (datum, index) => COLORS[index % COLORS.length],
+        itemMarkerFill: (_: QuantityChart, index: number) =>
+          COLORS[index % COLORS.length],
         itemMarkerSize: 10,
-        itemLabelFill: (datum, index) => COLORS[index % COLORS.length],
+        itemLabelFill: (_: QuantityChart, index: number) =>
+          COLORS[index % COLORS.length],
       },
-      itemLabelText: (datum) => datum.name,
+      itemLabelText: (datum: QuantityChart) => datum.name,
       maxWidth: 100,
       autoWrap: true,
     },
@@ -461,13 +516,15 @@ const StatisticPage = () => {
       },
     },
     style: {
-      fill: (datum, index) => COLORS[(index + 6) % COLORS.length],
+      fill: (datum: PercentChart, index: number) =>
+        COLORS[(index + 6) % COLORS.length],
     },
     label: {
-      formatter: (datum) => `${parseFloat(datum).toFixed(1)}%`,
+      formatter: (datum: PercentChart) => `${datum.value.toFixed(1)}%`,
       style: {
         textAlign: "center",
-        fill: (datum, index) => COLORS[(index + 6) % COLORS.length],
+        fill: (_: PercentChart, index: number) =>
+          COLORS[(index + 6) % COLORS.length],
         fontSize: 14,
         fontWeight: "bold",
         dy: -20,
@@ -476,7 +533,8 @@ const StatisticPage = () => {
     },
     axis: {
       x: {
-        labelFill: (datum, index) => COLORS[(index + 6) % COLORS.length],
+        labelFill: (_: string, index: number) =>
+          COLORS[(index + 6) % COLORS.length],
         labelFontSize: 12,
         labelFontWeight: "bold",
       },
@@ -490,14 +548,16 @@ const StatisticPage = () => {
       color: {
         position: "top",
         itemMarker: "circle",
-        itemMarkerFill: (datum, index) => COLORS[(index + 6) % COLORS.length],
+        itemMarkerFill: (_: PercentChart, index: number) =>
+          COLORS[(index + 6) % COLORS.length],
         itemMarkerSize: 10,
-        itemLabelFill: (datum, index) => COLORS[(index + 6) % COLORS.length],
+        itemLabelFill: (_: PercentChart, index: number) =>
+          COLORS[(index + 6) % COLORS.length],
       },
-      itemLabelText: (datum) => datum.name,
+      itemLabelText: (datum: PercentChart) => datum.name,
     },
     tooltip: {
-      title: (datum, index) =>
+      title: (datum: PercentChart, index: number) =>
         `<span style="color: ${COLORS[index % COLORS.length]};">${
           datum.name
         }</span>`,
@@ -513,7 +573,7 @@ const StatisticPage = () => {
           name: "Total",
           field: "value",
           color: COLORS[2],
-          valueFormatter: (value) => `${value.toFixed(1)}%`,
+          valueFormatter: (value: number) => `${value.toFixed(1)}%`,
         },
       ],
     },
@@ -524,7 +584,7 @@ const StatisticPage = () => {
     angleField: "value",
     colorField: "name",
     label: {
-      text: (data) => `${data.value.toFixed(1)}%`,
+      text: (data: PercentChart) => `${data.value.toFixed(1)}%`,
       position: "inside",
       style: {
         fontSize: 14,
@@ -533,7 +593,7 @@ const StatisticPage = () => {
       },
     },
     tooltip: {
-      title: (datum, index) =>
+      title: (datum: PercentChart, index: number) =>
         `<span style="color: ${COLORS[index % COLORS.length]};">${
           datum.name
         }</span>`,
@@ -549,7 +609,7 @@ const StatisticPage = () => {
           name: "Total",
           field: "value",
           color: COLORS[2],
-          valueFormatter: (value) => `${value.toFixed(1)}%`,
+          valueFormatter: (value: number) => `${value.toFixed(1)}%`,
         },
       ],
     },
@@ -561,20 +621,16 @@ const StatisticPage = () => {
     colorField: "name",
     innerRadius: 0.6,
     label: {
-      text: (data) => `${data.value.toFixed(1)}%`,
+      text: (data: PercentChart) => `${data.value.toFixed(1)}%`,
       position: "inside",
       style: {
         fontSize: 14,
         fontWeight: "bold",
         fill: COLORS[12],
       },
-      transform: [
-        {
-          type: "contrastReverse",
-        },
-      ],
+      transform: [{ type: "contrastReverse" }],
     },
-    tooltip: (d) => ({
+    tooltip: (d: PercentChart) => ({
       value: `${d.name}: ${d.value.toFixed(1)}%`,
       style: {
         fontSize: 14,
@@ -611,26 +667,22 @@ const StatisticPage = () => {
     axis: {
       x: {
         title: "Role",
-        labelFill: (datum, index) => COLORS[(index + 3) % COLORS.length],
+        labelFill: (_: string, index: number) =>
+          COLORS[(index + 3) % COLORS.length],
         labelFontSize: 12,
         labelFontWeight: "bold",
       },
       y: {
         title: "Total Users By Role",
-        scale: {
-          min: 0,
-          nice: true,
-        },
+        scale: { min: 0, nice: true },
         labelFill: COLORS[13],
         labelFontSize: 12,
         labelFontWeight: "bold",
       },
     },
-    style: {
-      lineWidth: 2,
-    },
+    style: { lineWidth: 2 },
     tooltip: {
-      title: (datum, index) =>
+      title: (datum: QuantityChart, index: number) =>
         `<span style="color: ${COLORS[(index + 3) % COLORS.length]};">${
           datum.name
         }</span>`,
@@ -646,24 +698,22 @@ const StatisticPage = () => {
           name: "Total",
           field: "value",
           color: COLORS[2],
-          valueFormatter: (value) => `${value} users`,
+          valueFormatter: (value: number) => `${value} users`,
         },
       ],
     },
     label: {
       position: "top",
-      content: (data) => `${data.value}`,
+      content: (data: QuantityChart) => `${data.value}`,
       style: {
         fontSize: 14,
         fontWeight: "bold",
         dy: -15,
         dx: -15,
-        fill: (datum, index) => COLORS[(index + 3) % COLORS.length],
-        textAlign: (_, idx, arr) => {
-          if (idx === 0) return "left";
-          if (idx === arr.length - 1) return "right";
-          return "center";
-        },
+        fill: (_: QuantityChart, index: number) =>
+          COLORS[(index + 3) % COLORS.length],
+        textAlign: (_: QuantityChart, idx: number, arr: QuantityChart[]) =>
+          idx === 0 ? "left" : idx === arr.length - 1 ? "right" : "center",
       },
     },
   };
@@ -673,26 +723,22 @@ const StatisticPage = () => {
     xField: "name",
     yField: "value",
     label: {
-      text: (data) => `${data.value.toFixed(1)}%`,
+      text: (data: PercentChart) => `${data.value.toFixed(1)}%`,
       position: "top",
       style: {
         fontSize: 14,
         fontWeight: "bold",
         dy: -10,
-        fill: (datum, index) => COLORS[(index + 6) % COLORS.length],
-        textAlign: (_, idx, arr) => {
-          if (idx === 0) return "left";
-          if (idx === arr.length - 1) return "right";
-          return "center";
-        },
+        fill: (_: PercentChart, index: number) =>
+          COLORS[(index + 6) % COLORS.length],
+        textAlign: (_: PercentChart, idx: number, arr: PercentChart[]) =>
+          idx === 0 ? "left" : idx === arr.length - 1 ? "right" : "center",
       },
     },
     smooth: true,
-    style: {
-      opacity: 0.4,
-    },
+    style: { opacity: 0.4 },
     tooltip: {
-      title: (datum, index) =>
+      title: (datum: PercentChart, index: number) =>
         `<span style="color: ${COLORS[(index + 6) % COLORS.length]};">${
           datum.name
         }</span>`,
@@ -709,21 +755,19 @@ const StatisticPage = () => {
           name: "Percent",
           value: "value",
           color: COLORS[2],
-          valueFormatter: (value) => `${value.toFixed(1)}%`,
+          valueFormatter: (value: number) => `${value.toFixed(1)}%`,
         },
       ],
     },
     axis: {
       x: {
-        labelFill: (datum, index) => COLORS[(index + 6) % COLORS.length],
+        labelFill: (_: string, index: number) =>
+          COLORS[(index + 6) % COLORS.length],
         labelFontSize: 12,
         labelFontWeight: "bold",
       },
       y: {
-        scale: {
-          min: 0,
-          nice: true,
-        },
+        scale: { min: 0, nice: true },
         labelFill: COLORS[13],
         labelFontSize: 12,
         labelFontWeight: "bold",
@@ -768,7 +812,6 @@ const StatisticPage = () => {
                     interval={0}
                     tick={({ x, y, payload, index }) => {
                       const color = COLORS[index % COLORS.length];
-
                       return (
                         <text
                           x={x}
@@ -817,7 +860,6 @@ const StatisticPage = () => {
                     interval={0}
                     tick={({ x, y, payload, index }) => {
                       const color = COLORS[(index + 6) % COLORS.length];
-
                       return (
                         <text
                           x={x}
@@ -831,7 +873,6 @@ const StatisticPage = () => {
                       );
                     }}
                   />
-
                   <YAxis domain={[yAxisStartPercent, "auto"]} />
                   <Tooltip content={customTooltipPercent} />
                   <Bar dataKey="value" name="Total Users">
@@ -860,7 +901,6 @@ const StatisticPage = () => {
                   layout="vertical"
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  {/* Y-Axis (vertical axis for categories, now on the left) */}
                   <YAxis
                     dataKey="name"
                     type="category"
@@ -879,22 +919,14 @@ const StatisticPage = () => {
                       );
                     }}
                   />
-
-                  {/* X-Axis (horizontal axis for values, now at the bottom) */}
                   <XAxis
                     type="number"
                     domain={[yAxisStartQuantity, "dataMax + 10"]}
                     tickMargin={10}
                     height={70}
                   />
-
-                  {/* Tooltip */}
                   <Tooltip content={customTooltipQuantity} />
-
-                  {/* Legend */}
                   <Legend />
-
-                  {/* Bar for total users */}
                   <Bar
                     dataKey="value"
                     name="Total Users"
@@ -908,16 +940,27 @@ const StatisticPage = () => {
                         fill={COLORS[index % COLORS.length]}
                       />
                     ))}
-                    {/* Label on top of each bar */}
                     <LabelList
                       dataKey="value"
                       position="right"
-                      content={({ x, y, width, value, index }) => {
-                        const color = COLORS[index % COLORS.length];
+                      content={(props: object): JSX.Element => {
+                        const { x, y, width, value, index } = props as {
+                          x?: number;
+                          y?: number;
+                          width?: number;
+                          value?: number;
+                          index?: number;
+                        };
+                        const safeX = x ?? 0;
+                        const safeY = y ?? 0;
+                        const safeWidth = width ?? 0;
+                        const safeIndex = index ?? 0;
+                        const color = COLORS[safeIndex % COLORS.length];
+
                         return (
                           <text
-                            x={x + width + 5}
-                            y={y + 5}
+                            x={safeX + safeWidth + 5}
+                            y={safeY + 5}
                             fill={color}
                             textAnchor="start"
                             fontSize="14px"

@@ -34,14 +34,14 @@ export interface CalendarEvent {
   allDay?: boolean;
   resource?: unknown;
 }
-export interface TaskKanBan {
+export interface TaskKanban {
   id: string;
   title: string;
 }
-export interface ColumnKanBan {
+export interface ColumnKanban {
   id: string;
   title: string;
-  tasks: TaskKanBan[];
+  tasks: TaskKanban[];
 }
 export interface AuthState {
   token: string;
@@ -49,8 +49,8 @@ export interface AuthState {
   loginSocial: boolean;
 }
 export interface KanbanState {
-  columns: ColumnKanBan[];
-  editingTask: TaskKanBan;
+  columns: ColumnKanban[];
+  editingTask: TaskKanban | null;
   isColumnsInvalidated: boolean;
   isEditingTaskInvalidated: boolean;
 }
@@ -94,7 +94,7 @@ export interface Role {
   name: string;
   description: string;
   color: string;
-  permissions: Permission[];
+  permissions?: Permission[];
 }
 // Response Single role for create/delete
 export interface RoleResponse {
@@ -127,3 +127,11 @@ export interface UsersResponse {
   message?: string;
 }
 
+export interface QuantityChart {
+  name: string;
+  value: number;
+}
+export interface PercentChart {
+  name: string;
+  value: number;
+}

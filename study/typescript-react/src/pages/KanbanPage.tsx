@@ -20,24 +20,39 @@ import {
   dragEndColumn,
   clearKanbanData,
 } from "../store/kanbanSlice";
-import { RootState } from "../store/store";
+import { RootState, TaskKanban } from "../type/types";
 
 const KanbanBoard: React.FC = () => {
-  const { columns, editingTask } = useSelector((state: RootState) => state.kanban);
+  const { columns, editingTask } = useSelector(
+    (state: RootState) => state.kanban
+  );
   const dispatch = useDispatch();
 
-  const [isNewTaskModalVisible, setIsNewTaskModalVisible] = React.useState(false);
+  const [isNewTaskModalVisible, setIsNewTaskModalVisible] =
+    React.useState(false);
   const [newTaskTitle, setNewTaskTitle] = React.useState("");
-  const [selectedColumnId, setSelectedColumnId] = React.useState<string | null>(null);
+  const [selectedColumnId, setSelectedColumnId] = React.useState<string | null>(
+    null
+  );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
 
     if (active.data.current?.type === "task") {
-      dispatch(dragEndTask({ activeId: active.id as string, overId: over.id as string }));
+      dispatch(
+        dragEndTask({
+          activeId: active.id as string,
+          overId: over.id as string,
+        })
+      );
     } else if (active.data.current?.type === "column") {
-      dispatch(dragEndColumn({ activeId: active.id as string, overId: over.id as string }));
+      dispatch(
+        dragEndColumn({
+          activeId: active.id as string,
+          overId: over.id as string,
+        })
+      );
     }
   };
 
@@ -75,7 +90,7 @@ const KanbanBoard: React.FC = () => {
     });
   };
 
-  const handleEditTask = (task: Task) => {
+  const handleEditTask = (task: TaskKanban) => {
     dispatch(setEditingTask(task));
   };
 
@@ -115,7 +130,9 @@ const KanbanBoard: React.FC = () => {
     setSelectedColumnId(null);
   };
 
-  const longestTitleLength = Math.max(...columns.map((col) => col.title.length));
+  const longestTitleLength = Math.max(
+    ...columns.map((col) => col.title.length)
+  );
   const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 280)}px`;
 
   return (
@@ -138,7 +155,10 @@ const KanbanBoard: React.FC = () => {
           </button>
         </div>
         <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-120px)]">
-          <SortableContext items={columns.map((col) => col.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext
+            items={columns.map((col) => col.id)}
+            strategy={verticalListSortingStrategy}
+          >
             {columns.map((column, index) => (
               <Column
                 key={column.id}
@@ -167,7 +187,9 @@ const KanbanBoard: React.FC = () => {
             <Input
               value={editingTask.title}
               onChange={(e) =>
-                dispatch(setEditingTask({ ...editingTask, title: e.target.value }))
+                dispatch(
+                  setEditingTask({ ...editingTask, title: e.target.value })
+                )
               }
               className="mb-4"
             />
@@ -193,7 +215,9 @@ const KanbanBoard: React.FC = () => {
                 </button>
                 <button
                   className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
-                  onClick={() => handleSaveTaskEdit(editingTask.id, editingTask.title)}
+                  onClick={() =>
+                    handleSaveTaskEdit(editingTask.id, editingTask.title)
+                  }
                 >
                   Update
                 </button>

@@ -10,18 +10,13 @@ import { COLORS } from "../utils/constant";
 import Task from "./TaskCardKanban";
 import { PlusOutlined } from "@ant-design/icons";
 import { Input } from "antd";
-
-// Các interface giữ nguyên
-interface Task {
-  id: string;
-  title: string;
-}
+import { TaskKanban } from "../type/types";
 
 interface ColumnProps {
   column: {
     id: string;
     title: string;
-    tasks: Task[];
+    tasks: TaskKanban[];
   };
   index: number;
   width: string;
@@ -29,7 +24,7 @@ interface ColumnProps {
   deleteTask: (columnId: string, taskId: string) => void;
   editColumn: (columnId: string, newTitle: string) => void;
   deleteColumn: (columnId: string) => void;
-  onEditTask: (task: Task) => void;
+  onEditTask: (task: TaskKanban) => void;
 }
 
 const ColumnKanban: React.FC<ColumnProps> = ({
@@ -42,7 +37,6 @@ const ColumnKanban: React.FC<ColumnProps> = ({
   deleteColumn,
   onEditTask,
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState(column.title);
 
@@ -56,10 +50,11 @@ const ColumnKanban: React.FC<ColumnProps> = ({
     data: { type: "column", columnId: column.id },
   });
 
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: column.id,
-    data: { type: "column", columnId: column.id },
-  });
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: column.id,
+      data: { type: "column", columnId: column.id },
+    });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -202,3 +197,4 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 };
 
 export default ColumnKanban;
+

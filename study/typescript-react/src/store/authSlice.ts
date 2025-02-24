@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AuthState } from "../type/types";
 
 const initialState: AuthState = {
-  token: null,
+  token: "",
   isAuthenticated: false,
   loginSocial: false,
 };

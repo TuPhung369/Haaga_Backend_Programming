@@ -147,7 +147,7 @@ const UserListPage = () => {
             name: role.name,
             description: role.description,
             color: role.color,
-            permissions: role.permissions.map((permission) => ({
+            permissions: role.permissions?.map((permission) => ({
               name: permission.name,
               description: permission.description,
               color: permission.color,
@@ -185,7 +185,7 @@ const UserListPage = () => {
             name: role.name,
             description: role.description,
             color: role.color,
-            permissions: role.permissions.map((permission) => ({
+            permissions: role.permissions?.map((permission) => ({
               name: permission.name,
               description: permission.description,
               color: permission.color,
@@ -212,7 +212,7 @@ const UserListPage = () => {
           name: role.name,
           description: role.description,
           color: role.color,
-          permissions: role.permissions.map((permission) => ({
+          permissions: role.permissions?.map((permission) => ({
             name: permission.name,
             description: permission.description,
             color: permission.color,
@@ -655,13 +655,13 @@ const UserListPage = () => {
                 ? [
                     ...new Set(
                       record.roles.flatMap((role) =>
-                        role.permissions.map((permission) => permission.name)
+                        role.permissions?.map((permission) => permission.name)
                       )
                     ),
                   ].map((permName) => {
                     const permission = record.roles
                       .flatMap((role) => role.permissions)
-                      .find((p) => p.name === permName);
+                      .find((p) => p?.name === permName);
                     return permission ? (
                       <Tag key={permission.name} color={permission.color}>
                         {permission.name}
