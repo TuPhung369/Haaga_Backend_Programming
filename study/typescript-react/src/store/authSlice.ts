@@ -1,7 +1,12 @@
 // src/store/authSlice.ts
-
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AuthState } from "../type/authType";
+
+// Define AuthState type
+export interface AuthState {
+  token: string | null;
+  isAuthenticated: boolean;
+  loginSocial: boolean;
+}
 
 const initialState: AuthState = {
   token: null,
@@ -19,7 +24,7 @@ const authSlice = createSlice({
       state.loginSocial = action.payload.loginSocial || false;
     },
     clearAuthData: () => initialState, // Reset auth state
-    clearAllData: () => undefined, // Clear All Redux store
+    clearAllData: () => undefined, // Clear All Redux store (though this might not work as intended; see note)
   },
 });
 

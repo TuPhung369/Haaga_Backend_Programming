@@ -1,40 +1,76 @@
-// src/store/userSlice.js
-import { createSlice } from "@reduxjs/toolkit";
+// src/store/userSlice.ts
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-const initialState = {
+// Define User type
+interface User {
+  id: string;
+  username: string;
+  firstname: string;
+  lastname: string;
+  dob: string;
+  email: string;
+  roles: string[];
+}
+
+// Define Event type (adjust based on your actual event structure)
+interface Event {
+  id: string;
+  title: string;
+  date: string;
+  description?: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+// Define UserState type
+export interface UserState {
+  userInfo: User | null;
+  roles: string[];
+  allUsers: User[];
+  permissions: string[];
+  events: Event[]; // Replaced any[] with Event[]
+  isUserInfoInvalidated: boolean;
+  isRolesInvalidated: boolean;
+  isUsersInvalidated: boolean;
+  isPermissionsInvalidated: boolean;
+  isEventsInvalidated: boolean;
+}
+
+const initialState: UserState = {
   userInfo: null,
   roles: [],
   allUsers: [],
   permissions: [],
-  events: [], // Thêm events để quản lý lịch
+  events: [],
   isUserInfoInvalidated: true,
   isRolesInvalidated: true,
   isUsersInvalidated: true,
   isPermissionsInvalidated: true,
-  isEventsInvalidated: true, // Thêm flag cho events
+  isEventsInvalidated: true,
 };
 
 const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-    setUserInfo: (state, action) => {
+    setUserInfo: (state, action: PayloadAction<User | null>) => {
       state.userInfo = action.payload;
       state.isUserInfoInvalidated = false;
     },
-    setRoles: (state, action) => {
+    setRoles: (state, action: PayloadAction<string[]>) => {
       state.roles = action.payload;
       state.isRolesInvalidated = false;
     },
-    setAllUsers: (state, action) => {
+    setAllUsers: (state, action: PayloadAction<User[]>) => {
       state.allUsers = action.payload;
       state.isUsersInvalidated = false;
     },
-    setPermissions: (state, action) => {
+    setPermissions: (state, action: PayloadAction<string[]>) => {
       state.permissions = action.payload;
       state.isPermissionsInvalidated = false;
     },
-    setEvents: (state, action) => {
+    setEvents: (state, action: PayloadAction<Event[]>) => {
+      // Replaced any[] with Event[]
       state.events = action.payload;
       state.isEventsInvalidated = false;
     },
@@ -85,4 +121,6 @@ export const {
   clearUserData,
   clearUserInfo,
 } = userSlice.actions;
+
 export default userSlice.reducer;
+

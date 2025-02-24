@@ -1,16 +1,24 @@
 import { configureStore } from "@reduxjs/toolkit";
-import kanbanReducer from "./kanbanSlice";
-import authReducer from "./authSlice";
-import userReducer from "./userSlice";
+import kanbanReducer, { KanbanState } from "./kanbanSlice"; // Import KanbanState
+import authReducer, { AuthState } from "./authSlice"; // Import AuthState
+import userReducer, { UserState } from "./userSlice"; // Import UserState
 
-const loadState = () => {
+// Define the root state type
+export interface RootState {
+  kanban: KanbanState;
+  auth: AuthState;
+  user: UserState;
+}
+
+// Load state from localStorage
+const loadState = (): RootState | undefined => {
   try {
     const serializedState = localStorage.getItem("appState");
     if (serializedState === null) {
       console.log("No state found in localStorage, using initial state");
       return undefined;
     }
-    const parsedState = JSON.parse(serializedState);
+    const parsedState = JSON.parse(serializedState) as RootState;
     // Validate state structure
     if (
       !parsedState ||
@@ -34,7 +42,8 @@ const loadState = () => {
   }
 };
 
-const saveState = (state) => {
+// Save state to localStorage
+const saveState = (state: RootState): void => {
   try {
     const serializedState = JSON.stringify(state);
     localStorage.setItem("appState", serializedState);
@@ -43,6 +52,7 @@ const saveState = (state) => {
   }
 };
 
+// Configure the store
 const store = configureStore({
   reducer: {
     kanban: kanbanReducer,
@@ -53,15 +63,17 @@ const store = configureStore({
   devTools: process.env.NODE_ENV !== "production",
 });
 
+// Subscribe to state changes
 store.subscribe(() => {
   const state = store.getState();
   if (state.auth.isAuthenticated) {
     saveState(state);
   } else {
-    localStorage.removeItem("appState"); // Xóa localStorage khi logout
+    localStorage.removeItem("appState"); // Clear localStorage on logout
   }
 });
 
+// Export store and types
 export default store;
-
+export type AppDispatch = typeof store.dispatch; // Optional: for useDispatch typing
 
