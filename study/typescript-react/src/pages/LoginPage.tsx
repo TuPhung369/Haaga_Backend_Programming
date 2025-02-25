@@ -4,7 +4,6 @@ import {
   Form,
   Input,
   Button,
-  Alert,
   Typography,
   Layout,
   Card,
@@ -27,6 +26,7 @@ import validateInput from "../utils/validateInput";
 import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
+import { RuleObject } from "antd/lib/form";
 import { ValidationInput } from "../type/loginType";
 
 const { Title, Text } = Typography;
@@ -47,7 +47,6 @@ const LoginPage: React.FC = () => {
   const oauth2RedirectUri = import.meta.env.VITE_OAUTH2_REDIRECT_URI;
   const appBaseUri = import.meta.env.VITE_BASE_URI;
 
-  const [error, setError] = useState<string>("");
   const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] =
     useState<boolean>(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] =
@@ -60,12 +59,6 @@ const LoginPage: React.FC = () => {
   const [dob, setDob] = useState<Moment>(moment("1987-07-07", "YYYY-MM-DD"));
   const [email, setEmail] = useState<string>("");
   const [rememberMe, setRememberMe] = useState<boolean>(false);
-  const [usernameError, setUsernameError] = useState<string>("");
-  const [passwordError, setPasswordError] = useState<string>("");
-  const [firstnameError, setFirstnameError] = useState<string>("");
-  const [lastnameError, setLastnameError] = useState<string>("");
-  const [dobError, setDobError] = useState<string>("");
-  const [emailError, setEmailError] = useState<string>("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAuthenticated, token } = useSelector(
@@ -78,53 +71,44 @@ const LoginPage: React.FC = () => {
     }
   }, [navigate, isAuthenticated, token]);
 
-  const handleLogin = (values: { username: string; password: string }) => {
-    const login = async () => {
-      const errors = validateInput({
-        username: values.username,
-        password: values.password,
-      });
+  const handleLogin = async (values: {
+    username: string;
+    password: string;
+  }) => {
+    const errors = validateInput({
+      username: values.username,
+      password: values.password,
+    });
 
-      if (Object.keys(errors).length > 0) {
-        setError(
-          errors.username || errors.password || "Please check your input!"
+    if (Object.keys(errors).length > 0) {
+      return; // Stop if there are validation errors (they’re shown under inputs)
+    }
+
+    try {
+      const data = await authenticateUser(values.username, values.password);
+      const response = await introspectToken(data.result.token);
+      if (response.result?.valid) {
+        dispatch(
+          setAuthData({
+            token: data.result.token,
+            isAuthenticated: true,
+            loginSocial: false,
+          })
         );
-        notification.error({
-          message: "Validation Error",
-          description:
-            errors.username || errors.password || "Please check your input!",
+        notification.success({
+          message: "Success",
+          description: "Logged in successfully!",
         });
-        return;
+        window.location.href = appBaseUri;
       }
-
-      try {
-        const data = await authenticateUser(values.username, values.password);
-        const response = await introspectToken(data.result.token);
-        if (response.result?.valid) {
-          dispatch(
-            setAuthData({
-              token: data.result.token,
-              isAuthenticated: true,
-              loginSocial: false,
-            })
-          );
-          notification.success({
-            message: "Success",
-            description: "Logged in successfully!",
-          });
-          window.location.href = appBaseUri;
-        }
-      } catch (error: unknown) {
-        const authError = error as AuthError;
-        const message = authError.message || "Invalid username or password";
-        setError(message);
-        notification.error({
-          message: "Login Error",
-          description: message,
-        });
-      }
-    };
-    login();
+    } catch (error: unknown) {
+      const authError = error as AuthError;
+      const message = authError.message || "Invalid username or password";
+      notification.error({
+        message: "Login Error",
+        description: message,
+      });
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -136,28 +120,20 @@ const LoginPage: React.FC = () => {
 
   const handleForgotPassword = () => {
     setUsername("");
-    setConfirmPassword("");
     setNewPassword("");
+    setConfirmPassword("");
     setIsForgotPasswordModalVisible(true);
   };
 
   const handleForgotPasswordConfirm = async () => {
-    setUsernameError("");
-    setPasswordError("");
-
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match!");
-      notification.error({
-        message: "Error",
-        description: "Passwords do not match!",
-      });
-      return;
+    const errors = validateInput({ username, password: newPassword });
+    if (Object.keys(errors).length > 0) {
+      return; // Stop if there are validation errors (they’re shown under inputs)
     }
 
-    const errors = validateInput({ username, password: newPassword });
-    if (errors.username) setUsernameError(errors.username);
-    if (errors.password) setPasswordError(errors.password);
-    if (Object.keys(errors).length > 0) return;
+    if (newPassword !== confirmPassword) {
+      return; // Validation handled by Form rules, no need for manual error setting here
+    }
 
     try {
       await resetPassword(username, newPassword);
@@ -171,7 +147,6 @@ const LoginPage: React.FC = () => {
       const serverError = authError.response?.data;
       const message =
         serverError?.message || "An error occurred during password reset";
-      setError(message);
       notification.error({
         message: `Error ${serverError?.httpCode || ""}`,
         description: message,
@@ -191,40 +166,24 @@ const LoginPage: React.FC = () => {
   };
 
   const handleRegisterConfirm = async () => {
-    setUsernameError("");
-    setPasswordError("");
-    setFirstnameError("");
-    setLastnameError("");
-    setDobError("");
-    setEmailError("");
-
     const userData: ValidationInput = {
       username,
       password: newPassword,
       firstname,
       lastname,
-      dob: dob ? dob.format("YYYY-MM-DD") : undefined, // Changed null to undefined
+      dob: dob ? dob.format("YYYY-MM-DD") : undefined,
       email,
       roles: ["User"],
     };
 
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match!");
-      notification.error({
-        message: "Error",
-        description: "Passwords do not match!",
-      });
-      return;
+    const errors = validateInput(userData);
+    if (Object.keys(errors).length > 0) {
+      return; // Stop if there are validation errors (they’re shown under inputs)
     }
 
-    const errors = validateInput(userData);
-    if (errors.username) setUsernameError(errors.username);
-    if (errors.password) setPasswordError(errors.password);
-    if (errors.firstname) setFirstnameError(errors.firstname);
-    if (errors.lastname) setLastnameError(errors.lastname);
-    if (errors.dob) setDobError(errors.dob);
-    if (errors.email) setEmailError(errors.email);
-    if (Object.keys(errors).length > 0) return;
+    if (newPassword !== confirmPassword) {
+      return; // Validation handled by Form rules, no need for manual error setting here
+    }
 
     try {
       await registerUser(userData);
@@ -238,7 +197,6 @@ const LoginPage: React.FC = () => {
       const serverError = authError.response?.data;
       const message =
         serverError?.message || "An error occurred during registration";
-      setError(message);
       notification.error({
         message: `Error ${serverError?.httpCode || ""}`,
         description: message,
@@ -247,90 +205,121 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <Layout
-      className="login-page-layout"
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Content
-        className="login-page-content"
-        style={{ maxWidth: 400, width: "100%", padding: "20px" }}
+    <>
+      <style>
+        {`
+          .login-page-form-item .ant-form-item-explain-error {
+            color: white !important;
+          }
+        `}
+      </style>
+      <Layout
+        className="login-page-layout"
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Card
-          className="login-page-card"
-          style={{
-            boxShadow: "0 6px 16px rgba(0, 0, 0, 0.1)",
-            borderRadius: "10px",
-          }}
+        <Content
+          className="login-page-content"
+          style={{ maxWidth: 400, width: "100%", padding: "20px" }}
         >
-          <Title
-            level={2}
-            className="login-page-title"
+          <Card
+            className="login-page-card"
             style={{
-              textAlign: "center",
-              marginBottom: "20px",
-              color: "#FFFFFF",
+              boxShadow: "0 6px 16px rgba(0, 0, 0, 0.1)",
+              borderRadius: "10px",
             }}
           >
-            Login
-          </Title>
-          <Form
-            name="login"
-            onFinish={handleLogin}
-            layout="vertical"
-            size="large"
-            style={{ maxWidth: "100%" }}
-            initialValues={{ remember: true }}
-            className="login-page-form"
-            autoComplete="off"
-          >
-            <Form.Item name="username" className="login-page-form-item">
-              <label htmlFor="login-username">
+            <Title
+              level={2}
+              className="login-page-title"
+              style={{
+                textAlign: "center",
+                marginBottom: "20px",
+                color: "#FFFFFF",
+              }}
+            >
+              Login
+            </Title>
+            <Form
+              name="login"
+              onFinish={handleLogin}
+              layout="vertical"
+              size="large"
+              style={{ maxWidth: "100%" }}
+              initialValues={{ remember: true }}
+              className="login-page-form"
+              autoComplete="off"
+            >
+              <Form.Item
+                name="username"
+                rules={[
+                  { required: true, message: "Please enter your username!" },
+                  {
+                    validator: (_, value) => {
+                      const errors = validateInput({ username: value });
+                      return errors.username
+                        ? Promise.reject(errors.username)
+                        : Promise.resolve();
+                    },
+                  },
+                ]}
+                className="login-page-form-item"
+              >
                 <Input
-                  id="login-username"
-                  name="username"
                   prefix={<UserOutlined className="site-form-item-icon" />}
                   placeholder="Enter your Username"
                   autoComplete="username"
                 />
-              </label>
-            </Form.Item>
-            <Form.Item name="password" className="login-page-form-item">
-              <label htmlFor="login-password">
+              </Form.Item>
+              <Form.Item
+                name="password"
+                rules={[
+                  { required: true, message: "Please enter your password!" },
+                  {
+                    validator: (_, value) => {
+                      const errors = validateInput({ password: value });
+                      return errors.password
+                        ? Promise.reject(errors.password)
+                        : Promise.resolve();
+                    },
+                  },
+                ]}
+                className="login-page-form-item"
+              >
                 <Input.Password
-                  id="login-password"
-                  name="password"
                   prefix={<LockOutlined className="site-form-item-icon" />}
                   placeholder="Enter your Password"
                   autoComplete="current-password"
                 />
-              </label>
-            </Form.Item>
-            {error && (
-              <Alert
-                message={error}
-                type="error"
-                showIcon
-                closable
-                style={{ marginBottom: "15px" }}
-                className="login-page-alert"
-              />
-            )}
-            <Form.Item>
-              <Row justify="space-between">
-                <Col span={11}>
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <input
-                      type="checkbox"
-                      id="rememberMe"
-                      checked={rememberMe}
-                      onChange={() => setRememberMe(!rememberMe)}
-                      style={{ marginRight: "8px" }}
-                    />
+              </Form.Item>
+              <Form.Item>
+                <Row justify="space-between">
+                  <Col span={11}>
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <input
+                        type="checkbox"
+                        id="rememberMe"
+                        checked={rememberMe}
+                        onChange={() => setRememberMe(!rememberMe)}
+                        style={{ marginRight: "8px" }}
+                      />
+                      <span
+                        style={{
+                          color: "#FFFFFF",
+                          fontWeight: 500,
+                          fontSize: "16px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Remember me
+                      </span>
+                    </div>
+                  </Col>
+                  <Col span={11}>
                     <span
                       style={{
                         color: "#FFFFFF",
@@ -338,12 +327,36 @@ const LoginPage: React.FC = () => {
                         fontSize: "16px",
                         cursor: "pointer",
                       }}
+                      onClick={handleForgotPassword}
                     >
-                      Remember me
+                      Forgot Password?
                     </span>
-                  </div>
-                </Col>
-                <Col span={11}>
+                  </Col>
+                </Row>
+              </Form.Item>
+              <Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  className="login-button"
+                >
+                  Login
+                </Button>
+              </Form.Item>
+              <Form.Item>
+                <Button
+                  type="primary"
+                  onClick={handleGoogleLogin}
+                  className="google-login-button"
+                >
+                  <span style={{ marginRight: "10px" }}>
+                    <FcGoogle size={24} />
+                  </span>
+                  Login with Google
+                </Button>
+              </Form.Item>
+              <Form.Item>
+                <Row justify="center">
                   <span
                     style={{
                       color: "#FFFFFF",
@@ -351,260 +364,295 @@ const LoginPage: React.FC = () => {
                       fontSize: "16px",
                       cursor: "pointer",
                     }}
-                    onClick={handleForgotPassword}
+                    onClick={handleRegister}
                   >
-                    Forgot Password?
+                    Don't have an account?{" "}
+                    <span style={{ fontWeight: "bold" }}>Register</span>
                   </span>
-                </Col>
-              </Row>
-            </Form.Item>
-            <Form.Item>
-              <Button type="primary" htmlType="submit" className="login-button">
-                Login
-              </Button>
-            </Form.Item>
-            <Form.Item>
-              <Button
-                type="primary"
-                onClick={handleGoogleLogin}
-                className="google-login-button"
-              >
-                <span style={{ marginRight: "10px" }}>
-                  <FcGoogle size={24} />
-                </span>
-                Login with Google
-              </Button>
-            </Form.Item>
-            <Form.Item>
-              <Row justify="center">
-                <span
-                  style={{
-                    color: "#FFFFFF",
-                    fontWeight: 500,
-                    fontSize: "16px",
-                    cursor: "pointer",
-                  }}
-                  onClick={handleRegister}
-                >
-                  Don't have an account?{" "}
-                  <span style={{ fontWeight: "bold" }}>Register</span>
-                </span>
-              </Row>
-            </Form.Item>
-          </Form>
-        </Card>
-      </Content>
+                </Row>
+              </Form.Item>
+            </Form>
+          </Card>
+        </Content>
 
-      {/* Forgot Password Modal */}
-      <Modal
-        title="Reset Your Password"
-        open={isForgotPasswordModalVisible}
-        onOk={handleForgotPasswordConfirm}
-        onCancel={() => setIsForgotPasswordModalVisible(false)}
-        okText="Reset Password"
-        cancelText="Cancel"
-        maskClosable={false}
-        centered
-        className="login-page-modal"
-      >
-        <Form
-          layout="vertical"
-          className="login-page-modal-form"
-          autoComplete="off"
+        {/* Forgot Password Modal */}
+        <Modal
+          title="Reset Your Password"
+          open={isForgotPasswordModalVisible}
+          onOk={handleForgotPasswordConfirm}
+          onCancel={() => setIsForgotPasswordModalVisible(false)}
+          okText="Reset Password"
+          cancelText="Cancel"
+          maskClosable={false}
+          centered
+          className="login-page-modal"
         >
-          <Form.Item
-            validateStatus={usernameError ? "error" : ""}
-            help={usernameError}
-            className="login-page-modal-form-item"
+          <Form
+            layout="vertical"
+            className="login-page-modal-form"
+            autoComplete="off"
           >
-            <label htmlFor="forgot-username">
-              <Text strong>Username</Text>
+            <Form.Item
+              name="username"
+              label="Username"
+              rules={[
+                { required: true, message: "Please enter your username!" },
+                {
+                  validator: (_, value) => {
+                    const errors = validateInput({ username: value });
+                    return errors.username
+                      ? Promise.reject(errors.username)
+                      : Promise.resolve();
+                  },
+                },
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input
-                id="forgot-username"
-                name="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 autoComplete="username"
               />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={passwordError ? "error" : ""}
-            help={passwordError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="forgot-new-password">
-              <Text strong>New Password</Text>
+            </Form.Item>
+            <Form.Item
+              name="newPassword"
+              label="New Password"
+              rules={[
+                { required: true, message: "Please enter your new password!" },
+                {
+                  validator: (_, value) => {
+                    const errors = validateInput({ password: value });
+                    return errors.password
+                      ? Promise.reject(errors.password)
+                      : Promise.resolve();
+                  },
+                },
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input.Password
-                id="forgot-new-password"
-                name="newPassword"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter your new password"
                 autoComplete="new-password"
               />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={passwordError ? "error" : ""}
-            help={passwordError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="forgot-confirm-password">
-              <Text strong>Confirm Password</Text>
+            </Form.Item>
+            <Form.Item
+              name="confirmPassword"
+              label="Confirm Password"
+              rules={[
+                {
+                  required: true,
+                  message: "Please confirm your new password!",
+                },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("newPassword") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject("Passwords do not match!");
+                  },
+                }),
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input.Password
-                id="forgot-confirm-password"
-                name="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your new password"
                 autoComplete="new-password"
               />
-            </label>
-          </Form.Item>
-        </Form>
-      </Modal>
+            </Form.Item>
+          </Form>
+        </Modal>
 
-      {/* Register Modal */}
-      <Modal
-        title="Register"
-        open={isRegisterModalVisible}
-        onOk={handleRegisterConfirm}
-        onCancel={() => setIsRegisterModalVisible(false)}
-        okText="Register"
-        cancelText="Cancel"
-        maskClosable={false}
-        centered
-        className="login-page-modal"
-      >
-        <Form
-          layout="vertical"
-          className="login-page-modal-form"
-          autoComplete="off"
+        {/* Register Modal */}
+        <Modal
+          title="Register"
+          open={isRegisterModalVisible}
+          onOk={handleRegisterConfirm}
+          onCancel={() => setIsRegisterModalVisible(false)}
+          okText="Register"
+          cancelText="Cancel"
+          maskClosable={false}
+          centered
+          className="login-page-modal"
         >
-          <Form.Item
-            validateStatus={usernameError ? "error" : ""}
-            help={usernameError}
-            className="login-page-modal-form-item"
+          <Form
+            layout="vertical"
+            className="login-page-modal-form"
+            autoComplete="off"
           >
-            <label htmlFor="register-username">
-              <Text strong>Username</Text>
+            <Form.Item
+              name="username"
+              label="Username"
+              rules={[
+                { required: true, message: "Please enter your username!" },
+                {
+                  validator: (_, value) => {
+                    const errors = validateInput({ username: value });
+                    return errors.username
+                      ? Promise.reject(errors.username)
+                      : Promise.resolve();
+                  },
+                },
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input
-                id="register-username"
-                name="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 autoComplete="username"
               />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={passwordError ? "error" : ""}
-            help={passwordError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-password">
-              <Text strong>Password</Text>
+            </Form.Item>
+            <Form.Item
+              name="newPassword"
+              label="Password"
+              rules={[
+                { required: true, message: "Please enter your password!" },
+                {
+                  validator: (_, value) => {
+                    const errors = validateInput({ password: value });
+                    return errors.password
+                      ? Promise.reject(errors.password)
+                      : Promise.resolve();
+                  },
+                },
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input.Password
-                id="register-password"
-                name="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter your password"
                 autoComplete="new-password"
               />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={passwordError ? "error" : ""}
-            help={passwordError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-confirm-password">
-              <Text strong>Confirm Password</Text>
+            </Form.Item>
+            <Form.Item
+              name="confirmPassword"
+              label="Confirm Password"
+              rules={[
+                { required: true, message: "Please confirm your password!" },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("newPassword") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject("Passwords do not match!");
+                  },
+                }),
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input.Password
-                id="register-confirm-password"
-                name="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
                 autoComplete="new-password"
               />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={firstnameError ? "error" : ""}
-            help={firstnameError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-firstname">
-              <Text strong>First Name</Text>
+            </Form.Item>
+            <Form.Item
+              name="firstname"
+              label="First Name"
+              rules={[
+                { required: true, message: "Please enter your first name!" },
+                {
+                  validator: (_, value) => {
+                    const errors = validateInput({ firstname: value });
+                    return errors.firstname
+                      ? Promise.reject(errors.firstname)
+                      : Promise.resolve();
+                  },
+                },
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input
-                id="register-firstname"
-                name="firstname"
                 value={firstname}
                 onChange={(e) => setFirstname(e.target.value)}
                 placeholder="Enter your first name"
                 autoComplete="given-name"
               />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={lastnameError ? "error" : ""}
-            help={lastnameError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-lastname">
-              <Text strong>Last Name</Text>
+            </Form.Item>
+            <Form.Item
+              name="lastname"
+              label="Last Name"
+              rules={[
+                { required: true, message: "Please enter your last name!" },
+                {
+                  validator: (_, value) => {
+                    const errors = validateInput({ lastname: value });
+                    return errors.lastname
+                      ? Promise.reject(errors.lastname)
+                      : Promise.resolve();
+                  },
+                },
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input
-                id="register-lastname"
-                name="lastname"
                 value={lastname}
                 onChange={(e) => setLastname(e.target.value)}
                 placeholder="Enter your last name"
                 autoComplete="family-name"
               />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={dobError ? "error" : ""}
-            help={dobError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-dob">
-              <Text strong>Date of Birth</Text>
+            </Form.Item>
+            <Form.Item
+              name="dob"
+              label="Date of Birth"
+              rules={[
+                { required: true, message: "Please enter your date of birth!" },
+                {
+                  validator: (_, value) =>
+                    validateInput({
+                      dob: value ? value.format("YYYY-MM-DD") : undefined,
+                    }).dob
+                      ? Promise.reject(
+                          validateInput({
+                            dob: value ? value.format("YYYY-MM-DD") : undefined,
+                          }).dob
+                        )
+                      : Promise.resolve(),
+                },
+              ]}
+              className="login-page-modal-form-item"
+            >
               <DatePicker
-                id="register-dob"
-                name="dob"
                 value={dob}
                 onChange={(date) => setDob(date || moment())}
                 format="YYYY-MM-DD"
                 style={{ width: "100%" }}
               />
-            </label>
-          </Form.Item>
-          <Form.Item
-            validateStatus={emailError ? "error" : ""}
-            help={emailError}
-            className="login-page-modal-form-item"
-          >
-            <label htmlFor="register-email">
-              <Text strong>Email</Text>
+            </Form.Item>
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[
+                { required: true, message: "Please enter your email!" },
+                {
+                  validator: (_, value) => {
+                    const errors = validateInput({ email: value });
+                    return errors.email
+                      ? Promise.reject(errors.email)
+                      : Promise.resolve();
+                  },
+                },
+              ]}
+              className="login-page-modal-form-item"
+            >
               <Input
-                id="register-email"
-                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 autoComplete="email"
               />
-            </label>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </Layout>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </Layout>
+    </>
   );
 };
 

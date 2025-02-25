@@ -1,11 +1,11 @@
 // src/utils/validateInput.ts
 import { ValidationInput, ValidationErrors } from "../type/loginType"; // Adjust the path based on your structure
 
-const validationMessages = {
+export const validationMessages = {
   USERNAME_LENGTH: "Username must be between 5 and 20 characters.",
   PASSWORD_MIN_LENGTH: "Password must be at least 8 characters long.",
   PASSWORD_VALIDATION:
-    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+    "Password must contain at least one Uppercase letter, one Lowercase letter, one Number, and one Special character.",
   FIRSTNAME_NOT_BLANK: "First name cannot be blank.",
   LASTNAME_NOT_BLANK: "Last name cannot be blank.",
   DOB_REQUIRED: "Date of birth is required.",

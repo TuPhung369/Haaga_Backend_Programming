@@ -42,7 +42,7 @@ const ResetPasswordPage: React.FC = () => {
 
     // For demonstration purposes (uncomment and implement API call as needed)
     setSuccess("Password reset successfully!");
-    setTimeout(() => navigate("/login"), 2000);
+    setTimeout(() => navigate("/login"), 1000);
   };
 
   return (
