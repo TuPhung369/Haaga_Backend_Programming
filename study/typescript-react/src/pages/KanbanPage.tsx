@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { DndContext, closestCorners, DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -6,7 +6,7 @@ import {
 } from "@dnd-kit/sortable";
 import Column from "../components/ColumnKanban";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Modal, Input } from "antd";
+import { Modal, Input, InputRef } from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setEditingTask,
@@ -28,12 +28,22 @@ const KanbanBoard: React.FC = () => {
   );
   const dispatch = useDispatch();
 
-  const [isNewTaskModalVisible, setIsNewTaskModalVisible] =
-    React.useState(false);
-  const [newTaskTitle, setNewTaskTitle] = React.useState("");
-  const [selectedColumnId, setSelectedColumnId] = React.useState<string | null>(
-    null
-  );
+  const [isNewTaskModalVisible, setIsNewTaskModalVisible] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
+  const inputRef = useRef<InputRef>(null);
+
+  // Focus input when either modal opens, blur when they close
+  useEffect(() => {
+    if ((isNewTaskModalVisible || editingTask) && inputRef.current) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100); // 100ms delay to ensure modal is rendered
+      return () => clearTimeout(timer); // Cleanup timeout
+    } else if (!isNewTaskModalVisible && !editingTask && inputRef.current) {
+      inputRef.current.blur(); // Blur when both modals are closed
+    }
+  }, [isNewTaskModalVisible, editingTask]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -183,8 +193,14 @@ const KanbanBoard: React.FC = () => {
             onCancel={() => dispatch(setEditingTask(null))}
             footer={null}
             zIndex={1000}
+            afterClose={() => {
+              if (inputRef.current) {
+                inputRef.current.blur(); // Blur after modal closes
+              }
+            }}
           >
             <Input
+              ref={inputRef} // Reuse the same ref
               value={editingTask.title}
               onChange={(e) =>
                 dispatch(
@@ -192,6 +208,7 @@ const KanbanBoard: React.FC = () => {
                 )
               }
               className="mb-4"
+              placeholder="Edit task title"
             />
             <div className="flex justify-between">
               <button
@@ -232,8 +249,14 @@ const KanbanBoard: React.FC = () => {
           onOk={handleNewTaskOk}
           onCancel={handleNewTaskCancel}
           zIndex={1000}
+          afterClose={() => {
+            if (inputRef.current) {
+              inputRef.current.blur(); // Blur after modal closes
+            }
+          }}
         >
           <Input
+            ref={inputRef} // Reuse the same ref
             placeholder="Enter task title"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}

@@ -1,5 +1,20 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Layout, Button, Modal, Form, Input, Tooltip, Select } from "antd";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import {
+  Layout,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Tooltip,
+  Select,
+  InputRef,
+} from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import {
   Calendar as BigCalendar,
@@ -18,7 +33,6 @@ import { CalendarEvent } from "../type/types";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
-// Typed wrapper for BigCalendar
 const TypedCalendar: React.FC<CalendarProps<CalendarEvent, object>> = (
   props
 ) => <BigCalendar {...props} />;
@@ -55,6 +69,7 @@ const CalendarPage: React.FC = () => {
 
   const { events = [] } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
+  const inputRef = useRef<InputRef>(null);
 
   const initializeEvents = useCallback(() => {
     if (events.length === 0) {
@@ -65,6 +80,19 @@ const CalendarPage: React.FC = () => {
   useEffect(() => {
     initializeEvents();
   }, [initializeEvents]);
+
+  // Focus input when modal opens, blur when it closes
+  useEffect(() => {
+    if (isModalVisible && inputRef.current) {
+      // Use a slight delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100); // 100ms delay
+      return () => clearTimeout(timer); // Cleanup timeout
+    } else if (!isModalVisible && inputRef.current) {
+      inputRef.current.blur(); // Blur when modal closes
+    }
+  }, [isModalVisible]);
 
   const generateEventInstances = (
     event: CalendarEvent,
@@ -118,11 +146,9 @@ const CalendarPage: React.FC = () => {
           break;
       }
     }
-
     return instances;
   };
 
-  // Memoize the generation of display events based on events and date range
   const computedDisplayEvents = useMemo(() => {
     const allInstances = events.flatMap((event) =>
       generateEventInstances(event, dateRange.start, dateRange.end)
@@ -139,7 +165,6 @@ const CalendarPage: React.FC = () => {
     setDisplayEvents(computedDisplayEvents);
   }, [computedDisplayEvents]);
 
-  // Update date range when calendar view changes
   const handleRangeChange = useCallback(
     (range: Date[] | { start: Date; end: Date }) => {
       let start: Date, end: Date;
@@ -504,9 +529,7 @@ const CalendarPage: React.FC = () => {
             onEventResize={handleEventResize}
             onDoubleClickEvent={(event) => showEventModal(event)}
             eventPropGetter={eventStyleGetter}
-            components={{
-              event: eventContent,
-            }}
+            components={{ event: eventContent }}
             tooltipAccessor={null}
             onRangeChange={handleRangeChange}
             defaultView="month"
@@ -517,6 +540,11 @@ const CalendarPage: React.FC = () => {
             open={isModalVisible}
             onCancel={() => setIsModalVisible(false)}
             onOk={handleAddOrUpdateEvent}
+            afterClose={() => {
+              if (inputRef.current) {
+                inputRef.current.blur(); // Ensure blur after modal fully closes
+              }
+            }}
             footer={[
               eventDetails.id && (
                 <Button
@@ -543,9 +571,11 @@ const CalendarPage: React.FC = () => {
             <Form layout="vertical">
               <Form.Item label="Event Title">
                 <Input
+                  ref={inputRef}
                   name="title"
                   value={eventDetails.title}
                   onChange={handleInputChange}
+                  placeholder="Enter event title" // Added placeholder for clarity
                 />
               </Form.Item>
               <Form.Item label="Start Date and Time">
@@ -594,4 +624,3 @@ const CalendarPage: React.FC = () => {
 };
 
 export default CalendarPage;
-
