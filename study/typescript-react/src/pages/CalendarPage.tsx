@@ -546,26 +546,30 @@ const CalendarPage: React.FC = () => {
               }
             }}
             footer={[
-              eventDetails.id && (
-                <Button
-                  key="delete"
-                  danger
-                  onClick={handleDeleteEvent}
-                  style={{ marginRight: 8 }}
-                >
-                  Delete
-                </Button>
-              ),
-              <Button key="cancel" onClick={() => setIsModalVisible(false)}>
-                Cancel
-              </Button>,
-              <Button
-                key="submit"
-                type="primary"
-                onClick={handleAddOrUpdateEvent}
-              >
-                {eventDetails.id ? "Update Event" : "Add Event"}
-              </Button>,
+              <div className="flex justify-between w-full" key="footer">
+                {eventDetails.id && (
+                  <Button
+                    className="bg-red-500 text-white p-2 rounded-md mr-2 hover:bg-red-600 transition"
+                    key="delete"
+                    onClick={handleDeleteEvent}
+                    style={{ marginRight: 8 }}
+                  >
+                    Delete
+                  </Button>
+                )}
+                <div className="flex space-x-2">
+                  <Button key="cancel" onClick={() => setIsModalVisible(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    key="submit"
+                    type="primary"
+                    onClick={handleAddOrUpdateEvent}
+                  >
+                    {eventDetails.id ? "Update" : "Save"}
+                  </Button>
+                </div>
+              </div>,
             ]}
           >
             <Form layout="vertical">
@@ -624,3 +628,4 @@ const CalendarPage: React.FC = () => {
 };
 
 export default CalendarPage;
+
