@@ -26,7 +26,7 @@ import validateInput from "../utils/validateInput";
 import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
-import { ValidationInput } from "../type/loginType";
+import { ValidationInput } from "../type/authType";
 
 const { Title } = Typography;
 const { Content } = Layout;
@@ -656,3 +656,4 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
+

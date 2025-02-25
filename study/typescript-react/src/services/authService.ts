@@ -1,6 +1,6 @@
 import axios from "axios";
 import type { AxiosError } from "axios";
-import { ValidationInput } from "../type/loginType";
+import { ValidationInput } from "../type/authType";
 import {
   ApiError,
   AuthResponse,

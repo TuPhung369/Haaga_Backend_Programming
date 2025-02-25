@@ -1,6 +1,6 @@
 import axios from "axios";
 import type { AxiosError } from "axios";
-import { ValidationInput } from "../type/loginType";
+import { ValidationInput } from "../type/authType";
 import { UserResponse, UsersResponse, ApiError } from "../type/types";
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
