@@ -26,10 +26,9 @@ import validateInput from "../utils/validateInput";
 import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
-import { RuleObject } from "antd/lib/form";
 import { ValidationInput } from "../type/loginType";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Content } = Layout;
 
 interface AuthState {
