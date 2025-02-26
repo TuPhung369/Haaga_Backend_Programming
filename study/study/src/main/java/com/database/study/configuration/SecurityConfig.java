@@ -39,7 +39,7 @@ public class SecurityConfig {
   private String oauth2RedirectUrl;
 
   private final String[] PUBLIC_ENDPOINTS = { "/users/**", "/auth/token", "/auth/introspect", "/auth/logout",
-      "/auth/refreshToken", "/auth/resetPassword", "/auth/register", "auth/google/token", "/oauth2/**",
+      "/auth/refreshToken", "/auth/resetPassword", "/auth/register", "auth/google/token", "/oauth2/**", "/events/**",
       "https://accounts.google.com/o/oauth2/**", "o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token" };
 
   @Autowired

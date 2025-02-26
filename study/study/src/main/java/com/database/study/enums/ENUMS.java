@@ -52,7 +52,8 @@ public class ENUMS {
     USER_NOT_FOUND("User not found"),
     USER_NOT_EXISTS("User does not exist"),
     USER_EXISTS("User already exists"),
-    ROLE_NOT_FOUND("Role not found");
+    ROLE_NOT_FOUND("Role not found"),
+    EVENT_NOT_FOUND("Event not found");
 
     private final String message;
   }

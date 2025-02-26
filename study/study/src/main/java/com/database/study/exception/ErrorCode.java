@@ -50,6 +50,8 @@ public enum ErrorCode {
         USER_EXISTS(4090, ENUMS.ErrorMessages.USER_EXISTS.getMessage(), HttpStatus.CONFLICT, "409",
                         ENUMS.Severity.MEDIUM.name()), // Conflict
         ROLE_NOT_FOUND(4042, ENUMS.ErrorMessages.ROLE_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()), // Not found
+        EVENT_NOT_FOUND(4043, ENUMS.ErrorMessages.EVENT_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()); // Not found
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
