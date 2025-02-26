@@ -520,7 +520,12 @@ const StatisticPage = () => {
         COLORS[(index + 6) % COLORS.length],
     },
     label: {
-      formatter: (datum: PercentChart) => `${datum.value.toFixed(1)}%`,
+      formatter: (datum: PercentChart) => {
+        if (datum.value === undefined || datum.value === null) {
+          return "N/A"; // Return a fallback value if the value is undefined or null
+        }
+        return `${datum.value.toFixed(1)}%`;
+      },
       style: {
         textAlign: "center",
         fill: (_: PercentChart, index: number) =>
@@ -1470,4 +1475,5 @@ const StatisticPage = () => {
 };
 
 export default StatisticPage;
+
 

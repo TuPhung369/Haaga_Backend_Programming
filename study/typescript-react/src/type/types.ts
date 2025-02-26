@@ -27,13 +27,15 @@ export interface CalendarEvent {
   id: string;
   seriesId?: string;
   title: string;
-  start: Date;
-  end: Date;
-  date: Date;
+  start: string | Date;
+  end: string | Date;
+  date: string | Date;
   description?: string;
-  color: string;
+  color?: string;
   allDay?: boolean;
   repeat?: "none" | "daily" | "weekly" | "monthly" | "yearly";
+  isEventsInvalidated?: boolean;
+  userId?: string;
 }
 export interface TaskKanban {
   id: string;

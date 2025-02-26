@@ -45,6 +45,9 @@ interface RootState {
   user: {
     events: CalendarEvent[];
     isEventsInvalidated: boolean;
+    userInfo: {
+      id: string;
+    };
   };
 }
 
@@ -70,6 +73,7 @@ const CalendarPage: React.FC = () => {
   const { events = [] } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
   const inputRef = useRef<InputRef>(null);
+  const userId = useSelector((state: RootState) => state.user.userInfo.id);
 
   const initializeEvents = useCallback(() => {
     if (events.length === 0) {
@@ -77,20 +81,23 @@ const CalendarPage: React.FC = () => {
     }
   }, [dispatch, events.length]);
 
+  const userEvents = useMemo(
+    () => events.filter((event) => event.userId === userId),
+    [events, userId]
+  );
+
   useEffect(() => {
     initializeEvents();
   }, [initializeEvents]);
 
-  // Focus input when modal opens, blur when it closes
   useEffect(() => {
     if (isModalVisible && inputRef.current) {
-      // Use a slight delay to ensure modal is fully rendered
       const timer = setTimeout(() => {
         inputRef.current?.focus();
-      }, 100); // 100ms delay
-      return () => clearTimeout(timer); // Cleanup timeout
+      }, 100);
+      return () => clearTimeout(timer);
     } else if (!isModalVisible && inputRef.current) {
-      inputRef.current.blur(); // Blur when modal closes
+      inputRef.current.blur();
     }
   }, [isModalVisible]);
 
@@ -100,16 +107,22 @@ const CalendarPage: React.FC = () => {
     endRange: Date
   ): CalendarEvent[] => {
     const instances: CalendarEvent[] = [];
-    const originalStart = moment(event.start);
-    const originalEnd = moment(event.end);
+    const originalStart = moment(event.start); // Expecting ISO string from Redux
+    const originalEnd = moment(event.end); // Expecting ISO string from Redux
     const duration = originalEnd.diff(originalStart, "minutes");
 
-    if (event.repeat === "none") {
+    if (event.repeat === "none" || !event.repeat) {
       if (
         originalStart.toDate() <= endRange &&
         originalEnd.toDate() >= startRange
       ) {
-        instances.push({ ...event, seriesId: event.id });
+        instances.push({
+          ...event,
+          start: originalStart.toDate(), // Convert to Date for calendar
+          end: originalEnd.toDate(), // Convert to Date for calendar
+          date: originalStart.toDate(), // Convert to Date for calendar
+          seriesId: event.id,
+        });
       }
       return instances;
     }
@@ -124,9 +137,9 @@ const CalendarPage: React.FC = () => {
           ...event,
           id: instanceId,
           seriesId: event.id,
-          start: currentStart.toDate(),
-          end: currentEnd.toDate(),
-          date: currentStart.toDate(),
+          start: currentStart.toDate(), // Convert to Date for calendar
+          end: currentEnd.toDate(), // Convert to Date for calendar
+          date: currentStart.toDate(), // Convert to Date for calendar
         });
       }
       switch (event.repeat) {
@@ -150,16 +163,10 @@ const CalendarPage: React.FC = () => {
   };
 
   const computedDisplayEvents = useMemo(() => {
-    const allInstances = events.flatMap((event) =>
+    return userEvents.flatMap((event) =>
       generateEventInstances(event, dateRange.start, dateRange.end)
     );
-    console.log(
-      `Generated ${allInstances.length} instances for range ${moment(
-        dateRange.start
-      ).format("YYYY-MM-DD")} to ${moment(dateRange.end).format("YYYY-MM-DD")}`
-    );
-    return allInstances;
-  }, [events, dateRange]);
+  }, [userEvents, dateRange]);
 
   useEffect(() => {
     setDisplayEvents(computedDisplayEvents);
@@ -381,13 +388,14 @@ const CalendarPage: React.FC = () => {
       id: eventId,
       seriesId: eventId,
       title: eventDetails.title,
-      start: startDate,
-      end: endDate,
-      date: startDate,
+      start: startDate.toISOString(), // Store as ISO string in Redux
+      end: endDate.toISOString(), // Store as ISO string in Redux
+      date: startDate.toISOString(), // Store as ISO string in Redux
       description: eventDetails.description,
       color: eventDetails.color,
       allDay: false,
       repeat: eventDetails.repeat,
+      userId: userId,
     };
     if (eventDetails.id) {
       const updatedEvents = events.map((event) =>
@@ -422,14 +430,14 @@ const CalendarPage: React.FC = () => {
 
   const handleEventDrop = (args: EventInteractionArgs<CalendarEvent>) => {
     const { event, start, end } = args;
-    const seriesId = event.seriesId;
+    const seriesId = event.seriesId || event.id;
     const updatedEvents = events.map((evt) =>
       evt.id === seriesId
         ? {
             ...evt,
-            start: new Date(start),
-            end: new Date(end),
-            date: new Date(start),
+            start: new Date(start).toISOString(), // Store as ISO string
+            end: new Date(end).toISOString(), // Store as ISO string
+            date: new Date(start).toISOString(), // Store as ISO string
           }
         : evt
     );
@@ -438,14 +446,14 @@ const CalendarPage: React.FC = () => {
 
   const handleEventResize = (args: EventInteractionArgs<CalendarEvent>) => {
     const { event, start, end } = args;
-    const seriesId = event.seriesId;
+    const seriesId = event.seriesId || event.id;
     const updatedEvents = events.map((evt) =>
       evt.id === seriesId
         ? {
             ...evt,
-            start: new Date(start),
-            end: new Date(end),
-            date: new Date(start),
+            start: new Date(start).toISOString(), // Store as ISO string
+            end: new Date(end).toISOString(), // Store as ISO string
+            date: new Date(start).toISOString(), // Store as ISO string
           }
         : evt
     );
@@ -455,7 +463,7 @@ const CalendarPage: React.FC = () => {
   const eventStyleGetter = (
     event: CalendarEvent
   ): { style: React.CSSProperties } => {
-    const backgroundColor = event.color;
+    const backgroundColor = event.color || COLORS[0];
     return {
       style: {
         backgroundColor: backgroundColor,
@@ -542,7 +550,7 @@ const CalendarPage: React.FC = () => {
             onOk={handleAddOrUpdateEvent}
             afterClose={() => {
               if (inputRef.current) {
-                inputRef.current.blur(); // Ensure blur after modal fully closes
+                inputRef.current.blur();
               }
             }}
             footer={[
@@ -579,7 +587,7 @@ const CalendarPage: React.FC = () => {
                   name="title"
                   value={eventDetails.title}
                   onChange={handleInputChange}
-                  placeholder="Enter event title" // Added placeholder for clarity
+                  placeholder="Enter event title"
                 />
               </Form.Item>
               <Form.Item label="Start Date and Time">
@@ -628,4 +636,3 @@ const CalendarPage: React.FC = () => {
 };
 
 export default CalendarPage;
-
