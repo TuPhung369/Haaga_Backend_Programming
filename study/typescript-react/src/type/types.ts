@@ -1,8 +1,14 @@
 export interface ApiError {
-  httpCode?: number;
+  code?: number;
   message?: string;
+  httpStatus?: string;
+  httpCode?: string;
+  severity?: string;
 }
-
+export interface ExtendApiError extends ApiError {
+  errorType?: "CREATE" | "FETCH" | "DELETE" | "UPDATE";
+  details?: string;
+}
 export interface AuthResponse {
   code: number;
   result: {
@@ -70,7 +76,7 @@ export interface UserState {
   isPermissionsInvalidated: boolean;
   isEventsInvalidated: boolean;
 }
-// RootState interface
+
 export interface RootState {
   auth: AuthState;
   user: UserState;
@@ -148,7 +154,4 @@ export interface FilterDropdownProps {
   close: () => void;
   visible: boolean;
 }
-export interface ExtendApiError extends ApiError {
-  errorType?: "CREATE" | "FETCH" | "DELETE" | "UPDATE";
-  details?: string;
-}
+

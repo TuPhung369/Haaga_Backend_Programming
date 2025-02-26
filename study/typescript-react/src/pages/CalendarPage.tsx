@@ -28,7 +28,14 @@ import { setEvents } from "../store/userSlice";
 import withDragAndDrop, {
   EventInteractionArgs,
 } from "react-big-calendar/lib/addons/dragAndDrop";
-import { CalendarEvent } from "../type/types";
+import { CalendarEvent, RootState } from "../type/types";
+import {
+  fetchEventsByUserId,
+  createEvent,
+  updateEvent,
+  updateEventSeries,
+  deleteEvent,
+} from "../services/calendarService";
 
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
@@ -40,16 +47,6 @@ const Calendar = withDragAndDrop<CalendarEvent>(TypedCalendar);
 
 const { Content } = Layout;
 const { Option } = Select;
-
-interface RootState {
-  user: {
-    events: CalendarEvent[];
-    isEventsInvalidated: boolean;
-    userInfo: {
-      id: string;
-    };
-  };
-}
 
 const CalendarPage: React.FC = () => {
   const localizer = momentLocalizer(moment);
@@ -71,35 +68,43 @@ const CalendarPage: React.FC = () => {
   });
 
   const { events = [] } = useSelector((state: RootState) => state.user);
+  const userId = useSelector(
+    (state: RootState) => state.user.userInfo?.id || ""
+  );
+  const token = useSelector((state: RootState) => state.auth.token || "");
   const dispatch = useDispatch();
   const inputRef = useRef<InputRef>(null);
-  const userId = useSelector((state: RootState) => state.user.userInfo.id);
 
-  const initializeEvents = useCallback(() => {
-    if (events.length === 0) {
+  // Hàm fetch lại dữ liệu từ API và lưu vào Redux
+  const fetchAndUpdateEvents = useCallback(async () => {
+    if (!userId || !token) return;
+    try {
+      const data = await fetchEventsByUserId(userId, token);
+      dispatch(setEvents(data.result));
+    } catch (error) {
+      console.error("Error fetching events:", error);
       dispatch(setEvents([]));
     }
-  }, [dispatch, events.length]);
+  }, [dispatch, userId, token]);
 
-  const userEvents = useMemo(
-    () => events.filter((event) => event.userId === userId),
-    [events, userId]
-  );
-
+  // Khởi tạo dữ liệu từ API
   useEffect(() => {
-    initializeEvents();
-  }, [initializeEvents]);
+    fetchAndUpdateEvents();
+  }, [fetchAndUpdateEvents]);
 
   useEffect(() => {
     if (isModalVisible && inputRef.current) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+      const timer = setTimeout(() => inputRef.current?.focus(), 100);
       return () => clearTimeout(timer);
     } else if (!isModalVisible && inputRef.current) {
       inputRef.current.blur();
     }
   }, [isModalVisible]);
+
+  const userEvents = useMemo(
+    () => events.filter((event) => event.userId === userId),
+    [events, userId]
+  );
 
   const generateEventInstances = (
     event: CalendarEvent,
@@ -107,7 +112,7 @@ const CalendarPage: React.FC = () => {
     endRange: Date
   ): CalendarEvent[] => {
     const instances: CalendarEvent[] = [];
-    const originalStart = moment(event.start); // Thời gian gốc của master event
+    const originalStart = moment(event.start);
     const originalEnd = moment(event.end);
     const duration = originalEnd.diff(originalStart, "minutes");
     const exceptions = event.exceptions || [];
@@ -129,12 +134,9 @@ const CalendarPage: React.FC = () => {
     }
 
     const currentStart = originalStart.clone();
-
     while (currentStart.toDate() <= endRange) {
       const currentEnd = currentStart.clone().add(duration, "minutes");
       const currentStartISO = currentStart.toISOString();
-
-      // Kiểm tra xem occurrence này có bị thay thế bởi exception không
       const isExcluded = exceptions.some(
         (ex) => ex.originalStart === currentStartISO
       );
@@ -196,12 +198,210 @@ const CalendarPage: React.FC = () => {
     []
   );
 
-  const handleDeleteEvent = () => {
-    const updatedEvents = events.filter(
-      (event) => event.id !== eventDetails.id
-    );
-    dispatch(setEvents(updatedEvents));
-    setIsModalVisible(false);
+  const handleDeleteEvent = async () => {
+    try {
+      await deleteEvent(eventDetails.id, token);
+      await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+      setIsModalVisible(false);
+    } catch (error) {
+      console.error("Error deleting event:", error);
+    }
+  };
+
+  const handleAddOrUpdateEvent = async () => {
+    const startDate = new Date(eventDetails.start);
+    const endDate = new Date(eventDetails.end);
+    const eventId = eventDetails.id || ""; // Không tạo ID từ browser nữa, để server tạo nếu là event mới
+
+    const newEvent: Omit<CalendarEvent, "id" | "createdAt"> = {
+      seriesId:
+        eventDetails.repeat !== "none" ? eventDetails.seriesId : undefined,
+      title: eventDetails.title,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      date: startDate.toISOString(),
+      description: eventDetails.description,
+      color: eventDetails.color,
+      allDay: false,
+      repeat: eventDetails.repeat,
+      userId,
+      exceptions: eventDetails.id
+        ? events.find((e) => e.id === eventDetails.id)?.exceptions || []
+        : [],
+    };
+
+    try {
+      if (eventDetails.id) {
+        const originalEvent = events.find((e) => e.id === eventDetails.id);
+        if (
+          originalEvent &&
+          originalEvent.repeat !== "none" &&
+          originalEvent.repeat !== eventDetails.repeat
+        ) {
+          Modal.confirm({
+            title: "Update recurring event",
+            content:
+              "Do you want to apply this change to all events in the series?",
+            okText: "Yes",
+            cancelText: "No",
+            onOk: async () => {
+              await updateEventSeries(
+                originalEvent.seriesId || "",
+                newEvent,
+                token
+              );
+              await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+              setIsModalVisible(false);
+            },
+            onCancel: async () => {
+              await updateEvent(eventId, newEvent, token);
+              await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+              setIsModalVisible(false);
+            },
+          });
+        } else {
+          await updateEvent(eventId, newEvent, token);
+          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+          setIsModalVisible(false);
+        }
+      } else {
+        await createEvent(newEvent, token);
+        await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+        setIsModalVisible(false);
+      }
+    } catch (error) {
+      console.error("Error updating event:", error);
+    }
+
+    setEventDetails({
+      id: "",
+      seriesId: "",
+      title: "",
+      start: "",
+      end: "",
+      description: "",
+      color: COLORS[0],
+      repeat: "none",
+    });
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setEventDetails((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEventDrop = async (args: EventInteractionArgs<CalendarEvent>) => {
+    const { event, start, end } = args;
+    const seriesId = event.seriesId || event.id;
+    const isRecurring = event.repeat !== "none";
+
+    if (isRecurring) {
+      Modal.confirm({
+        title: "Update recurring event",
+        content:
+          "Do you want to update this event only or all events in the series?",
+        okText: "This event only",
+        cancelText: "All events",
+        onOk: async () => {
+          const masterEvent = events.find(
+            (evt) => evt.seriesId === seriesId && evt.repeat !== "none"
+          );
+          if (!masterEvent) return;
+
+          const instanceStart = moment(event.start);
+          const originalStart = instanceStart.toISOString();
+
+          const newException: CalendarEvent = {
+            ...event,
+            id: "", // Để server tạo ID
+            seriesId: undefined,
+            start: new Date(start).toISOString(),
+            end: new Date(end).toISOString(),
+            date: new Date(start).toISOString(),
+            repeat: "none",
+          };
+
+          await createEvent(newException, token);
+          const updatedMasterEvent = {
+            ...masterEvent,
+            exceptions: [...(masterEvent.exceptions || []), { originalStart }],
+          };
+          await updateEvent(masterEvent.id, updatedMasterEvent, token);
+          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+        },
+        onCancel: async () => {
+          const updatedEvent = {
+            ...event,
+            start: new Date(start).toISOString(),
+            end: new Date(end).toISOString(),
+            date: new Date(start).toISOString(),
+          };
+          await updateEventSeries(seriesId, updatedEvent, token);
+          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+        },
+      });
+    } else {
+      const updatedEvent = {
+        ...event,
+        start: new Date(start).toISOString(),
+        end: new Date(end).toISOString(),
+        date: new Date(start).toISOString(),
+      };
+      await updateEvent(event.id, updatedEvent, token);
+      await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+    }
+  };
+
+  const handleEventResize = async (
+    args: EventInteractionArgs<CalendarEvent>
+  ) => {
+    const { event, start, end } = args;
+    const seriesId = event.seriesId || event.id;
+    const isRecurring = event.repeat !== "none";
+
+    if (isRecurring) {
+      Modal.confirm({
+        title: "Resize recurring event",
+        content:
+          "Do you want to resize this event only or all events in the series?",
+        okText: "This event only",
+        cancelText: "All events",
+        onOk: async () => {
+          const newException: CalendarEvent = {
+            ...event,
+            id: "", // Để server tạo ID
+            seriesId: undefined,
+            start: new Date(start).toISOString(),
+            end: new Date(end).toISOString(),
+            date: new Date(start).toISOString(),
+            repeat: "none",
+          };
+          await createEvent(newException, token);
+          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+        },
+        onCancel: async () => {
+          const updatedEvent = {
+            ...event,
+            start: new Date(start).toISOString(),
+            end: new Date(end).toISOString(),
+            date: new Date(start).toISOString(),
+          };
+          await updateEventSeries(seriesId, updatedEvent, token);
+          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+        },
+      });
+    } else {
+      const updatedEvent = {
+        ...event,
+        start: new Date(start).toISOString(),
+        end: new Date(end).toISOString(),
+        date: new Date(start).toISOString(),
+      };
+      await updateEvent(event.id, updatedEvent, token);
+      await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+    }
   };
 
   const hexToRgb = (hex: string) => {
@@ -342,292 +542,13 @@ const CalendarPage: React.FC = () => {
       .padStart(2, "0")}`.toUpperCase();
   };
 
-  const getRandomColor = (): string => {
-    const letters = "0123456789ABCDEF";
-    let color = "#";
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  };
-
-  const showEventModal = (event?: CalendarEvent) => {
-    const defaultStart = moment();
-    const defaultEnd = moment().add(30, "minutes");
-
-    if (event) {
-      // Tìm master event dựa trên seriesId (nếu có) hoặc id (nếu không lặp lại)
-      const originalEvent = events.find(
-        (e) =>
-          (event.seriesId && e.seriesId === event.seriesId) || e.id === event.id
-      );
-      if (originalEvent) {
-        const startTime = moment(originalEvent.start);
-        const endTime = moment(originalEvent.end);
-        let adjustedEnd = endTime;
-        if (endTime.isBefore(startTime)) {
-          adjustedEnd = startTime.clone().add(30, "minutes");
-        }
-        setEventDetails({
-          id: originalEvent.id,
-          seriesId: originalEvent.seriesId || originalEvent.id,
-          title: originalEvent.title,
-          start: startTime.format("YYYY-MM-DDTHH:mm"),
-          end: adjustedEnd.format("YYYY-MM-DDTHH:mm"),
-          description: originalEvent.description || "",
-          color: originalEvent.color || COLORS[0],
-          repeat: originalEvent.repeat || "none",
-        });
-      }
-    } else {
-      setEventDetails({
-        id: "",
-        seriesId: "",
-        title: "",
-        start: defaultStart.format("YYYY-MM-DDTHH:mm"),
-        end: defaultEnd.format("YYYY-MM-DDTHH:mm"),
-        description: "",
-        color: getRandomColor(),
-        repeat: "none",
-      });
-    }
-    setIsModalVisible(true);
-  };
-
-  const handleAddOrUpdateEvent = () => {
-    const startDate = new Date(eventDetails.start);
-    const endDate = new Date(eventDetails.end);
-    const eventId = eventDetails.id || new Date().getTime().toString();
-    const seriesId =
-      eventDetails.repeat !== "none"
-        ? eventDetails.seriesId || `series-${new Date().getTime().toString()}`
-        : eventId;
-
-    const newEvent: CalendarEvent = {
-      id: eventId,
-      seriesId: seriesId,
-      title: eventDetails.title,
-      start: startDate.toISOString(),
-      end: endDate.toISOString(),
-      date: startDate.toISOString(),
-      description: eventDetails.description,
-      color: eventDetails.color,
-      allDay: false,
-      repeat: eventDetails.repeat,
-      userId: userId,
-      exceptions: eventDetails.id
-        ? events.find((e) => e.id === eventDetails.id)?.exceptions || []
-        : [], // Giữ exceptions nếu có
-    };
-
-    if (eventDetails.id) {
-      // Nếu là sự kiện lặp lại và repeat thay đổi, hỏi người dùng
-      const originalEvent = events.find((e) => e.id === eventDetails.id);
-      if (
-        originalEvent &&
-        originalEvent.repeat !== "none" &&
-        originalEvent.repeat !== eventDetails.repeat
-      ) {
-        Modal.confirm({
-          title: "Update recurring event",
-          content:
-            "Do you want to apply this change to all events in the series?",
-          okText: "Yes",
-          cancelText: "No",
-          onOk: () => {
-            // update Series, Delete exceptions because repeat changed
-            const updatedEvents = events
-              .filter((evt) => evt.seriesId !== seriesId || evt.id === eventId) // Xóa các exceptions cũ
-              .map((evt) => (evt.id === eventDetails.id ? newEvent : evt));
-            dispatch(setEvents(updatedEvents));
-            setIsModalVisible(false);
-          },
-          onCancel: () => {
-            // Only update master event, keep exceptions
-            const updatedEvents = events.map((evt) =>
-              evt.id === eventDetails.id ? newEvent : evt
-            );
-            dispatch(setEvents(updatedEvents));
-            setIsModalVisible(false);
-          },
-        });
-      } else {
-        // Update as Normal
-        const updatedEvents = events.map((event) =>
-          event.id === eventDetails.id ? newEvent : event
-        );
-        dispatch(setEvents(updatedEvents));
-        setIsModalVisible(false);
-      }
-    } else {
-      // Add New Event
-      dispatch(setEvents([...events, newEvent]));
-      setIsModalVisible(false);
-    }
-
-    setEventDetails({
-      id: "",
-      seriesId: "",
-      title: "",
-      start: "",
-      end: "",
-      description: "",
-      color: COLORS[0],
-      repeat: "none",
-    });
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setEventDetails((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleEventDrop = (args: EventInteractionArgs<CalendarEvent>) => {
-    const { event, start, end } = args;
-    const seriesId = event.seriesId || event.id;
-    const isRecurring = event.repeat !== "none";
-
-    if (isRecurring) {
-      Modal.confirm({
-        title: "Update recurring event",
-        content:
-          "Do you want to update this event only or all events in the series?",
-        okText: "This event only",
-        cancelText: "All events",
-        onOk: () => {
-          // Find master event to calculate originalStart
-          const masterEvent = events.find(
-            (evt) => evt.seriesId === seriesId && evt.repeat !== "none"
-          );
-          if (!masterEvent) return;
-
-          //const masterStart = moment(masterEvent.start);
-          const instanceStart = moment(event.start);
-          const originalStart = instanceStart.toISOString();
-
-          // create exception
-          const newEventId = `${seriesId}-${new Date(start).toISOString()}`;
-          const newException: CalendarEvent = {
-            ...event,
-            id: newEventId,
-            seriesId: undefined,
-            start: new Date(start).toISOString(),
-            end: new Date(end).toISOString(),
-            date: new Date(start).toISOString(),
-            repeat: "none",
-          };
-
-          // update the original Series to add Exception
-          const updatedEvents = events.map((evt) =>
-            evt.seriesId === seriesId
-              ? {
-                  ...evt,
-                  exceptions: [
-                    ...(evt.exceptions || []),
-                    { originalStart: originalStart }, // Original time of  instance changed
-                  ],
-                }
-              : evt
-          );
-
-          // Add new exception to list
-          dispatch(setEvents([...updatedEvents, newException]));
-        },
-        onCancel: () => {
-          const updatedEvents = events.map((evt) =>
-            evt.seriesId === seriesId
-              ? {
-                  ...evt,
-                  start: new Date(start).toISOString(),
-                  end: new Date(end).toISOString(),
-                  date: new Date(start).toISOString(),
-                }
-              : evt
-          );
-          dispatch(setEvents(updatedEvents));
-        },
-      });
-    } else {
-      const updatedEvents = events.map((evt) =>
-        evt.id === event.id
-          ? {
-              ...evt,
-              start: new Date(start).toISOString(),
-              end: new Date(end).toISOString(),
-              date: new Date(start).toISOString(),
-            }
-          : evt
-      );
-      dispatch(setEvents(updatedEvents));
-    }
-  };
-
-  const handleEventResize = (args: EventInteractionArgs<CalendarEvent>) => {
-    const { event, start, end } = args;
-    const seriesId = event.seriesId || event.id;
-    const isRecurring = event.repeat !== "none";
-
-    if (isRecurring) {
-      Modal.confirm({
-        title: "Resize recurring event",
-        content:
-          "Do you want to resize this event only or all events in the series?",
-        okText: "This event only",
-        cancelText: "All events",
-        onOk: () => {
-          const newEventId = `${seriesId}-${new Date(start).toISOString()}`;
-          const newException: CalendarEvent = {
-            ...event,
-            id: newEventId,
-            seriesId: seriesId,
-            start: new Date(start).toISOString(),
-            end: new Date(end).toISOString(),
-            date: new Date(start).toISOString(),
-            repeat: "none",
-          };
-          dispatch(setEvents([...events, newException]));
-        },
-        onCancel: () => {
-          const updatedEvents = events.map((evt) =>
-            evt.seriesId === seriesId
-              ? {
-                  ...evt,
-                  start: new Date(start).toISOString(),
-                  end: new Date(end).toISOString(),
-                  date: new Date(start).toISOString(),
-                }
-              : evt
-          );
-          dispatch(setEvents(updatedEvents));
-        },
-      });
-    } else {
-      const updatedEvents = events.map((evt) =>
-        evt.id === event.id
-          ? {
-              ...evt,
-              start: new Date(start).toISOString(),
-              end: new Date(end).toISOString(),
-              date: new Date(start).toISOString(),
-            }
-          : evt
-      );
-      dispatch(setEvents(updatedEvents));
-    }
-  };
-
   const eventStyleGetter = (
     event: CalendarEvent
   ): { style: React.CSSProperties } => {
     const backgroundColor = event.color || COLORS[0];
     return {
       style: {
-        backgroundColor: backgroundColor,
+        backgroundColor,
         borderRadius: "5px",
         color: invertColorWithContrast(backgroundColor),
         border: "none",
@@ -659,14 +580,61 @@ const CalendarPage: React.FC = () => {
     );
   };
 
+  const getRandomColor = (): string => {
+    const letters = "0123456789ABCDEF";
+    let color = "#";
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  };
+
+  const showEventModal = (event?: CalendarEvent) => {
+    const defaultStart = moment();
+    const defaultEnd = moment().add(30, "minutes");
+
+    if (event) {
+      const originalEvent = events.find(
+        (e) =>
+          (event.seriesId && e.seriesId === event.seriesId) || e.id === event.id
+      );
+      if (originalEvent) {
+        const startTime = moment(originalEvent.start);
+        const endTime = moment(originalEvent.end);
+        let adjustedEnd = endTime;
+        if (endTime.isBefore(startTime)) {
+          adjustedEnd = startTime.clone().add(30, "minutes");
+        }
+        setEventDetails({
+          id: originalEvent.id,
+          seriesId: originalEvent.seriesId || "",
+          title: originalEvent.title,
+          start: startTime.format("YYYY-MM-DDTHH:mm"),
+          end: adjustedEnd.format("YYYY-MM-DDTHH:mm"),
+          description: originalEvent.description || "",
+          color: originalEvent.color || COLORS[0],
+          repeat: originalEvent.repeat || "none",
+        });
+      }
+    } else {
+      setEventDetails({
+        id: "",
+        seriesId: "",
+        title: "",
+        start: defaultStart.format("YYYY-MM-DDTHH:mm"),
+        end: defaultEnd.format("YYYY-MM-DDTHH:mm"),
+        description: "",
+        color: getRandomColor(),
+        repeat: "none",
+      });
+    }
+    setIsModalVisible(true);
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Content
-        style={{
-          padding: "0 50px",
-          marginTop: "16px",
-          minHeight: "85vh",
-        }}
+        style={{ padding: "0 50px", marginTop: "16px", minHeight: "85vh" }}
       >
         <div
           style={{
@@ -710,9 +678,7 @@ const CalendarPage: React.FC = () => {
             onCancel={() => setIsModalVisible(false)}
             onOk={handleAddOrUpdateEvent}
             afterClose={() => {
-              if (inputRef.current) {
-                inputRef.current.blur();
-              }
+              if (inputRef.current) inputRef.current.blur();
             }}
             footer={[
               <div className="flex justify-between w-full" key="footer">
@@ -797,4 +763,3 @@ const CalendarPage: React.FC = () => {
 };
 
 export default CalendarPage;
-
