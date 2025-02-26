@@ -1,6 +1,6 @@
 package com.database.study.service;
 
-import com.database.study.dto.request.EventCreationRequest;
+import com.database.study.dto.request.EventRequest;
 import com.database.study.dto.response.EventResponse;
 import com.database.study.entity.Event;
 import com.database.study.entity.User;
@@ -36,16 +36,13 @@ public class EventService {
 
   @Transactional(readOnly = true)
   public List<EventResponse> getEventsByUserId(UUID userId) {
-    log.info("Fetching events for user ID: {}", userId);
 
     if (!userRepository.existsById(userId)) {
-      log.warn("User ID {} not found", userId);
       throw new AppException(ErrorCode.USER_NOT_FOUND);
     }
 
     List<Event> events = eventRepository.findByUserId(userId);
     if (events.isEmpty()) {
-      log.info("No events found for user ID: {}", userId);
       return List.of();
     }
 
@@ -55,7 +52,7 @@ public class EventService {
   }
 
   @Transactional
-  public EventResponse createEvent(EventCreationRequest request) {
+  public EventResponse createEvent(EventRequest request) {
     User user = userRepository.findById(request.getUserId())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -75,16 +72,14 @@ public class EventService {
 
   @Transactional
   @PreAuthorize("hasRole('ADMIN') || #request.userId.toString() == authentication.principal.claims['sub']")
-  public EventResponse updateEvent(String eventId, EventCreationRequest request) {
+  public EventResponse updateEvent(String eventId, EventRequest request) {
     Event event = eventRepository.findById(eventId)
         .orElseThrow(() -> new AppException(ErrorCode.EVENT_NOT_FOUND));
 
     if (event.getRepeat() != null && !event.getRepeat().equals("none") &&
         request.getRepeat() != null && request.getRepeat().equals("none")) {
-      log.info("Repeat type changed from {} to none, preserving seriesId: {}", event.getRepeat(), event.getSeriesId());
     } else if (event.getRepeat() != null && !event.getRepeat().equals("none") &&
         !event.getRepeat().equals(request.getRepeat())) {
-      log.info("Repeat type changed from {} to {}", event.getRepeat(), request.getRepeat());
       if (request.getExceptions() == null || request.getExceptions().isEmpty()) {
         List<Event> relatedEvents = eventRepository.findBySeriesId(event.getSeriesId());
         eventRepository.deleteAll(relatedEvents.stream()
@@ -104,7 +99,7 @@ public class EventService {
 
   @Transactional
   @PreAuthorize("hasRole('ADMIN') || #request.userId.toString() == authentication.principal.claims['sub']")
-  public List<EventResponse> updateEventSeries(String seriesId, EventCreationRequest request) {
+  public List<EventResponse> updateEventSeries(String seriesId, EventRequest request) {
     List<Event> events = eventRepository.findBySeriesId(seriesId);
     if (events.isEmpty()) {
       throw new AppException(ErrorCode.EVENT_NOT_FOUND);
@@ -116,10 +111,8 @@ public class EventService {
     log.info("Updating series {} with request exceptions: {}", seriesId, request.getExceptions());
 
     List<Event> updatedEvents = events.stream().map(event -> {
-      log.info("Before update - Event ID: {}, Exceptions: {}", event.getId(), event.getExceptions());
       eventMapper.updateEvent(event, request);
       event.setUser(user);
-      log.info("After update - Event ID: {}, Exceptions: {}", event.getId(), event.getExceptions());
       return eventRepository.save(event);
     }).collect(Collectors.toList());
 

@@ -1,6 +1,6 @@
 package com.database.study.mapper;
 
-import com.database.study.dto.request.EventCreationRequest;
+import com.database.study.dto.request.EventRequest;
 import com.database.study.dto.response.EventResponse;
 import com.database.study.entity.Event;
 import org.mapstruct.Mapper;
@@ -16,7 +16,7 @@ public interface EventMapper {
   @Mapping(target = "user", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
   @Mapping(target = "exceptions", source = "exceptions")
-  Event toEvent(EventCreationRequest request);
+  Event toEvent(EventRequest request);
 
   @Mapping(target = "userId", source = "user.id")
   EventResponse toEventResponse(Event event);
@@ -26,5 +26,5 @@ public interface EventMapper {
   @Mapping(target = "createdAt", ignore = true)
   @Mapping(target = "seriesId", expression = "java(event.getSeriesId() != null ? event.getSeriesId() : (request.getRepeat() != null && !request.getRepeat().equals(\"none\") ? java.util.UUID.randomUUID().toString() : null))")
   @Mapping(target = "exceptions", source = "exceptions")
-  void updateEvent(@MappingTarget Event event, EventCreationRequest request);
+  void updateEvent(@MappingTarget Event event, EventRequest request);
 }

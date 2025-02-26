@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EventCreationRequest {
+public class EventRequest {
     @NotBlank(message = "Title cannot be blank")
     String title;
 

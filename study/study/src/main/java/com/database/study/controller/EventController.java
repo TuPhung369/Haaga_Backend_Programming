@@ -1,6 +1,6 @@
 package com.database.study.controller;
 
-import com.database.study.dto.request.EventCreationRequest;
+import com.database.study.dto.request.EventRequest;
 import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.EventResponse;
 import com.database.study.service.EventService;
@@ -32,7 +32,7 @@ public class EventController {
   }
 
   @PostMapping
-  public ApiResponse<EventResponse> createEvent(@RequestBody @Valid EventCreationRequest request) {
+  public ApiResponse<EventResponse> createEvent(@RequestBody @Valid EventRequest request) {
     EventResponse eventResponse = eventService.createEvent(request);
     return ApiResponse.<EventResponse>builder()
         .result(eventResponse)
@@ -42,7 +42,7 @@ public class EventController {
   @PutMapping("/{eventId}")
   public ApiResponse<EventResponse> updateEvent(
       @PathVariable String eventId,
-      @RequestBody @Valid EventCreationRequest request) {
+      @RequestBody @Valid EventRequest request) {
     EventResponse eventResponse = eventService.updateEvent(eventId, request);
     return ApiResponse.<EventResponse>builder()
         .result(eventResponse)
@@ -52,7 +52,7 @@ public class EventController {
   @PutMapping("/series/{seriesId}")
   public ApiResponse<List<EventResponse>> updateEventSeries(
       @PathVariable String seriesId,
-      @RequestBody @Valid EventCreationRequest request) {
+      @RequestBody @Valid EventRequest request) {
     List<EventResponse> updatedEvents = eventService.updateEventSeries(seriesId, request);
     return ApiResponse.<List<EventResponse>>builder()
         .result(updatedEvents)
