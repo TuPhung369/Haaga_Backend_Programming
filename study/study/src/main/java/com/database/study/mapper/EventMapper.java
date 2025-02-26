@@ -12,9 +12,10 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface EventMapper {
 
   @Mapping(target = "id", ignore = true)
-  @Mapping(target = "seriesId", expression = "java(request.getUserId() != null ? java.util.UUID.randomUUID().toString() : null)")
+  @Mapping(target = "seriesId", expression = "java(request.getRepeat() != null && !request.getRepeat().equals(\"none\") ? java.util.UUID.randomUUID().toString() : null)")
   @Mapping(target = "user", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
+  @Mapping(target = "exceptions", source = "exceptions")
   Event toEvent(EventCreationRequest request);
 
   @Mapping(target = "userId", source = "user.id")
@@ -23,6 +24,7 @@ public interface EventMapper {
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "user", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "seriesId", expression = "java(request.getUserId() != null ? java.util.UUID.randomUUID().toString() : null)")
+  @Mapping(target = "seriesId", expression = "java(event.getSeriesId() != null ? event.getSeriesId() : (request.getRepeat() != null && !request.getRepeat().equals(\"none\") ? java.util.UUID.randomUUID().toString() : null))")
+  @Mapping(target = "exceptions", source = "exceptions")
   void updateEvent(@MappingTarget Event event, EventCreationRequest request);
 }

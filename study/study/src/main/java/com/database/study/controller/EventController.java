@@ -49,6 +49,16 @@ public class EventController {
         .build();
   }
 
+  @PutMapping("/series/{seriesId}")
+  public ApiResponse<List<EventResponse>> updateEventSeries(
+      @PathVariable String seriesId,
+      @RequestBody @Valid EventCreationRequest request) {
+    List<EventResponse> updatedEvents = eventService.updateEventSeries(seriesId, request);
+    return ApiResponse.<List<EventResponse>>builder()
+        .result(updatedEvents)
+        .build();
+  }
+
   @DeleteMapping("/{eventId}")
   public ApiResponse<String> deleteEvent(@PathVariable String eventId) {
     eventService.deleteEvent(eventId);

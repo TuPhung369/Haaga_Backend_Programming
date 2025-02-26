@@ -5,6 +5,10 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @Entity
 @Data
@@ -13,6 +17,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name = "events")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Event {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -49,8 +54,20 @@ public class Event {
   @Column(name = "created_at", updatable = false)
   LocalDateTime createdAt;
 
+  @Column(name = "exceptions", columnDefinition = "json")
+  @Convert(converter = ExceptionsConverter.class)
+  @Builder.Default
+  List<ExceptionEntry> exceptions = new ArrayList<>();
+
   @PrePersist
   protected void onCreate() {
     this.createdAt = LocalDateTime.now();
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class ExceptionEntry {
+    String originalStart;
   }
 }

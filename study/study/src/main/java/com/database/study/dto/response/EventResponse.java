@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -24,4 +25,12 @@ public class EventResponse {
     String repeat;
     UUID userId;
     LocalDateTime createdAt;
+    List<ExceptionEntry> exceptions;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ExceptionEntry {
+        String originalStart;
+    }
 }

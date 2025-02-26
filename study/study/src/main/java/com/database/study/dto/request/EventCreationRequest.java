@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -14,26 +15,35 @@ import java.util.UUID;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class EventCreationRequest {
-  @NotBlank(message = "Title cannot be blank")
-  String title;
+    @NotBlank(message = "Title cannot be blank")
+    String title;
 
-  @NotNull(message = "Start time is required")
-  LocalDateTime start;
+    @NotNull(message = "Start time is required")
+    LocalDateTime start;
 
-  @NotNull(message = "End time is required")
-  LocalDateTime end;
+    @NotNull(message = "End time is required")
+    LocalDateTime end;
 
-  @NotNull(message = "Date is required")
-  LocalDateTime date;
+    @NotNull(message = "Date is required")
+    LocalDateTime date;
 
-  String description;
+    String description;
 
-  String color;
+    String color;
 
-  Boolean allDay;
+    Boolean allDay;
 
-  String repeat;
+    String repeat;
 
-  @NotNull(message = "User ID is required")
-  UUID userId;
+    @NotNull(message = "User ID is required")
+    UUID userId;
+
+    List<ExceptionEntry> exceptions;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ExceptionEntry {
+        String originalStart;
+    }
 }
