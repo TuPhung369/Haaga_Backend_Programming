@@ -435,7 +435,7 @@ const CalendarPage: React.FC = () => {
           okText: "Yes",
           cancelText: "No",
           onOk: () => {
-            // Cập nhật toàn bộ chuỗi, xóa exceptions vì repeat thay đổi
+            // update Series, Delete exceptions because repeat changed
             const updatedEvents = events
               .filter((evt) => evt.seriesId !== seriesId || evt.id === eventId) // Xóa các exceptions cũ
               .map((evt) => (evt.id === eventDetails.id ? newEvent : evt));
@@ -443,7 +443,7 @@ const CalendarPage: React.FC = () => {
             setIsModalVisible(false);
           },
           onCancel: () => {
-            // Chỉ cập nhật master event, giữ exceptions
+            // Only update master event, keep exceptions
             const updatedEvents = events.map((evt) =>
               evt.id === eventDetails.id ? newEvent : evt
             );
@@ -452,7 +452,7 @@ const CalendarPage: React.FC = () => {
           },
         });
       } else {
-        // Cập nhật bình thường nếu không đổi repeat hoặc không lặp lại
+        // Update as Normal
         const updatedEvents = events.map((event) =>
           event.id === eventDetails.id ? newEvent : event
         );
@@ -460,7 +460,7 @@ const CalendarPage: React.FC = () => {
         setIsModalVisible(false);
       }
     } else {
-      // Thêm sự kiện mới
+      // Add New Event
       dispatch(setEvents([...events, newEvent]));
       setIsModalVisible(false);
     }
@@ -500,7 +500,7 @@ const CalendarPage: React.FC = () => {
         okText: "This event only",
         cancelText: "All events",
         onOk: () => {
-          // Tìm master event để tính originalStart chính xác
+          // Find master event to calculate originalStart
           const masterEvent = events.find(
             (evt) => evt.seriesId === seriesId && evt.repeat !== "none"
           );
@@ -510,36 +510,35 @@ const CalendarPage: React.FC = () => {
           const instanceStart = moment(event.start);
           const originalStart = instanceStart.toISOString();
 
-          // Tạo exception
+          // create exception
           const newEventId = `${seriesId}-${new Date(start).toISOString()}`;
           const newException: CalendarEvent = {
             ...event,
             id: newEventId,
-            seriesId: undefined, // Tách khỏi chuỗi gốc
+            seriesId: undefined,
             start: new Date(start).toISOString(),
             end: new Date(end).toISOString(),
             date: new Date(start).toISOString(),
             repeat: "none",
           };
 
-          // Cập nhật chuỗi gốc để thêm exception
+          // update the original Series to add Exception
           const updatedEvents = events.map((evt) =>
             evt.seriesId === seriesId
               ? {
                   ...evt,
                   exceptions: [
                     ...(evt.exceptions || []),
-                    { originalStart: originalStart }, // Thời gian gốc của instance bị thay thế
+                    { originalStart: originalStart }, // Original time of  instance changed
                   ],
                 }
               : evt
           );
 
-          // Thêm exception mới vào danh sách
+          // Add new exception to list
           dispatch(setEvents([...updatedEvents, newException]));
         },
         onCancel: () => {
-          // Cập nhật toàn bộ chuỗi
           const updatedEvents = events.map((evt) =>
             evt.seriesId === seriesId
               ? {
@@ -568,7 +567,6 @@ const CalendarPage: React.FC = () => {
     }
   };
 
-  // Tương tự cho handleEventResize
   const handleEventResize = (args: EventInteractionArgs<CalendarEvent>) => {
     const { event, start, end } = args;
     const seriesId = event.seriesId || event.id;
