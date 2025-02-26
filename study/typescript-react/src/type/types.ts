@@ -36,6 +36,7 @@ export interface CalendarEvent {
   repeat?: "none" | "daily" | "weekly" | "monthly" | "yearly";
   isEventsInvalidated?: boolean;
   userId?: string;
+  exceptions?: { originalStart: string }[];
 }
 export interface TaskKanban {
   id: string;
@@ -139,3 +140,15 @@ export interface PercentChart {
   value: number;
 }
 
+export interface FilterDropdownProps {
+  setSelectedKeys: (keys: React.Key[]) => void;
+  selectedKeys: React.Key[];
+  confirm: () => void;
+  clearFilters?: () => void;
+  close: () => void;
+  visible: boolean;
+}
+export interface ExtendApiError extends ApiError {
+  errorType?: "CREATE" | "FETCH" | "DELETE" | "UPDATE";
+  details?: string;
+}

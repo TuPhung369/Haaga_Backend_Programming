@@ -2,15 +2,10 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Form, Input, Button, Alert, Typography, Layout, Card } from "antd";
 import validateInput from "../utils/validateInput";
+import { ResetPasswordFormValues } from "../type/authType";
 
 const { Title } = Typography;
 const { Content } = Layout;
-
-// Define type for form values
-interface ResetPasswordFormValues {
-  newPassword: string;
-  confirmPassword: string;
-}
 
 const ResetPasswordPage: React.FC = () => {
   const [error, setError] = useState<string>("");
@@ -113,4 +108,5 @@ const ResetPasswordPage: React.FC = () => {
 };
 
 export default ResetPasswordPage;
+
 

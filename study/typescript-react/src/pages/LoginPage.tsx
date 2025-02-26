@@ -26,20 +26,11 @@ import validateInput from "../utils/validateInput";
 import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
-import { ValidationInput } from "../type/authType";
+import { ValidationInput, AuthState, AuthError } from "../type/authType";
 
 const { Title } = Typography;
 const { Content } = Layout;
 
-interface AuthState {
-  isAuthenticated: boolean;
-  token: string | null;
-}
-
-interface AuthError {
-  message?: string;
-  response?: { data?: { httpCode?: number; message?: string } };
-}
 
 const LoginPage: React.FC = () => {
   const oauth2ClientId = import.meta.env.VITE_OAUTH2_CLIENT_ID;

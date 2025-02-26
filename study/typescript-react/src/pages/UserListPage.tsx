@@ -40,41 +40,17 @@ import {
   invalidateUsers,
 } from "../store/userSlice";
 import { AxiosError } from "axios";
-import { User, Role, ApiError } from "../type/types";
+import {
+  User,
+  Role,
+  RootState,
+  FilterDropdownProps,
+  ExtendApiError,
+} from "../type/types";
 
 const { confirm } = Modal;
 const { Content } = Layout;
 const { Option } = Select;
-
-interface UserApiError extends ApiError {
-  errorType?: "CREATE" | "FETCH" | "DELETE" | "UPDATE";
-  details?: string;
-}
-
-interface RootState {
-  auth: {
-    token: string;
-    isAuthenticated: boolean;
-    loginSocial?: boolean;
-  };
-  user: {
-    userInfo: User | null;
-    roles: Role[];
-    allUsers: User[];
-    isUserInfoInvalidated: boolean;
-    isRolesInvalidated: boolean;
-    isUsersInvalidated: boolean;
-  };
-}
-
-interface FilterDropdownProps {
-  setSelectedKeys: (keys: React.Key[]) => void;
-  selectedKeys: React.Key[];
-  confirm: () => void;
-  clearFilters?: () => void;
-  close: () => void;
-  visible: boolean;
-}
 
 type ColumnType<T extends object> = GetProps<typeof Table.Column<T>>;
 
@@ -160,7 +136,7 @@ const UserListPage = () => {
         dispatch(setAllUsers([]));
       }
     } catch (error) {
-      const axiosError = error as AxiosError<UserApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching all users:",
         axiosError.response?.data?.message
@@ -195,7 +171,7 @@ const UserListPage = () => {
         dispatch(setUserInfo(userData));
       }
     } catch (error) {
-      const axiosError = error as AxiosError<UserApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching user info:",
         axiosError.response?.data?.message
@@ -224,7 +200,7 @@ const UserListPage = () => {
         dispatch(setRoles([]));
       }
     } catch (error) {
-      const axiosError = error as AxiosError<UserApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching all roles:",
         axiosError.response?.data?.message
@@ -253,7 +229,7 @@ const UserListPage = () => {
         description: "User has been successfully deleted.",
       });
     } catch (error) {
-      const axiosError = error as AxiosError<UserApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error("Error deleting user:", axiosError.response?.data?.message);
       setNotificationMessage({
         type: "error",
@@ -362,7 +338,7 @@ const UserListPage = () => {
         setIsModeNew(false);
         setIsModeIdUpdate(false);
       } catch (updateError) {
-        const axiosError = updateError as AxiosError<UserApiError>;
+        const axiosError = updateError as AxiosError<ExtendApiError>;
         console.error(
           "Error updating user:",
           axiosError.response?.data?.message

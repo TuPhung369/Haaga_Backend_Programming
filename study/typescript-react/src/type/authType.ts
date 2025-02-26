@@ -2,10 +2,14 @@
 
 export interface AuthState {
   token: string | null;
-  isAuthenticated: boolean;
-  loginSocial: boolean;
+  isAuthenticated?: boolean;
+  loginSocial?: boolean;
 }
 
+export interface AuthError {
+  message?: string;
+  response?: { data?: { httpCode?: number; message?: string } };
+}
 // Input type for validation
 export interface ValidationInput {
   username?: string;
@@ -26,5 +30,9 @@ export interface ValidationErrors {
   dob?: string;
   roles?: string; // Single string for error message
   email?: string;
+}
 
+export interface ResetPasswordFormValues {
+  newPassword: string;
+  confirmPassword: string;
 }

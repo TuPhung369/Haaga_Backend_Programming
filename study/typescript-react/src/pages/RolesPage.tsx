@@ -23,16 +23,11 @@ import {
   invalidatePermissions,
 } from "../store/userSlice";
 import type { AxiosError } from "axios";
-import { Role, Permission, ApiError, RootState } from "../type/types";
+import { Role, Permission, RootState, ExtendApiError } from "../type/types";
 
 const { Content } = Layout;
 const { Option } = Select;
 
-// Define error type for roles
-interface RoleApiError extends ApiError {
-  errorType?: "CREATE" | "FETCH" | "DELETE";
-  details?: string;
-}
 
 const RolesPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -72,7 +67,7 @@ const RolesPage = () => {
         dispatch(setRoles([]));
       }
     } catch (error) {
-      const axiosError = error as AxiosError<RoleApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching roles:",
         axiosError.response?.data?.message
@@ -92,7 +87,7 @@ const RolesPage = () => {
         dispatch(setPermissions([]));
       }
     } catch (error) {
-      const axiosError = error as AxiosError<RoleApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching permissions:",
         axiosError.response?.data?.message
@@ -109,7 +104,7 @@ const RolesPage = () => {
         dispatch(setUserInfo(response.result));
       }
     } catch (error) {
-      const axiosError = error as AxiosError<RoleApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching user information:",
         axiosError.response?.data?.message
@@ -137,7 +132,7 @@ const RolesPage = () => {
       dispatch(setRoles(roles.filter((role: Role) => role.name !== roleName)));
       dispatch(invalidatePermissions());
     } catch (error) {
-      const axiosError = error as AxiosError<RoleApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error("Error deleting role:", axiosError.response?.data?.message);
       Modal.error({
         title: "Delete Failed",
@@ -154,7 +149,7 @@ const RolesPage = () => {
       fetchRoles();
       setIsModalVisible(false);
     } catch (error) {
-      const axiosError = error as AxiosError<RoleApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error("Error adding role:", axiosError.response?.data?.message);
       Modal.error({
         title: "Create Failed",

@@ -28,17 +28,12 @@ import {
   Permission,
   UserResponse,
   PermissionsResponse,
-  ApiError,
   RootState,
+  ExtendApiError,
 } from "../type/types";
 
 const { Content } = Layout;
 const { Option } = Select;
-
-interface PermissionApiError extends ApiError {
-  errorType?: "CREATE" | "FETCH" | "DELETE";
-  details?: string;
-}
 
 const PermissionPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -106,7 +101,7 @@ const PermissionPage = () => {
         )
       );
     } catch (error) {
-      const axiosError = error as AxiosError<PermissionApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error deleting permission:",
         axiosError.response?.data?.message
@@ -126,7 +121,7 @@ const PermissionPage = () => {
       fetchPermissions();
       setIsModalVisible(false);
     } catch (error) {
-      const axiosError = error as AxiosError<PermissionApiError>;
+      const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error adding permission:",
         axiosError.response?.data?.message
