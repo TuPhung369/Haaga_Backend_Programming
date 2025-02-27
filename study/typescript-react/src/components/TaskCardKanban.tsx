@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card } from "antd";
 import { TaskKanban } from "../type/types";
 import { PriorityOptions } from "../utils/constant";
+import CustomWifiIcon from "./CustomWifiIcon"; // Import the new component
 
 interface TaskCardProps {
   task: TaskKanban;
@@ -14,16 +15,11 @@ interface TaskCardProps {
 // Custom forwardRef component for TaskCard to handle the ref properly
 const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
   ({ task, onEditTask }, ref) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-    } = useSortable({
-      id: task.id,
-      data: { type: "task", taskId: task.id },
-    });
+    const { attributes, listeners, setNodeRef, transform, transition } =
+      useSortable({
+        id: task.id,
+        data: { type: "task", taskId: task.id },
+      });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -50,63 +46,6 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       onEditTask(task);
     };
 
-    // Custom Wifi Icon component
-    const CustomWifiIcon = ({
-      priority,
-    }: {
-      priority: "High" | "Medium" | "Low";
-    }) => {
-      let barCount: number;
-      let filledCount: number;
-      let colorClass: string;
-
-      switch (priority) {
-        case "High":
-          barCount = 7;
-          filledCount = 7;
-          colorClass = "text-red-700";
-          break;
-        case "Medium":
-          barCount = 7;
-          filledCount = 6;
-          colorClass = "text-blue-600";
-          break;
-        case "Low":
-        default:
-          barCount = 7;
-          filledCount = 5;
-          colorClass = "text-black";
-          break;
-      }
-
-      const bars: JSX.Element[] = [];
-      for (let i = 0; i < barCount; i++) {
-        const width = 2 + i * 3;
-        const isFilled = i < filledCount;
-        bars.push(
-          <path
-            key={i}
-            d={`M${12 - width / 2} ${18 - i * 2} h${width} v2 h-${width} z`}
-            fill={isFilled ? "currentColor" : "none"}
-            stroke={isFilled ? "currentColor" : "gray"}
-            strokeWidth={isFilled ? 0 : 1}
-          />
-        );
-      }
-
-      return (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          className={colorClass}
-        >
-          {bars}
-        </svg>
-      );
-    };
-
     return (
       <Card
         ref={(node) => {
@@ -122,7 +61,7 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
         className="flex items-center justify-between"
       >
         <div className="flex items-center justify-between w-full">
-          <div className="mb-1 mr-2 flex-shrink-0">
+          <div className="mr-1">
             <CustomWifiIcon priority={task.priority || "Low"} />
           </div>
           <span
@@ -139,4 +78,3 @@ const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
 );
 
 export default TaskCard;
-
