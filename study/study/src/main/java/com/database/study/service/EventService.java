@@ -71,10 +71,23 @@ public class EventService {
   }
 
   @Transactional
-  @PreAuthorize("hasRole('ADMIN') || #request.userId.toString() == authentication.principal.claims['sub']")
   public EventResponse updateEvent(String eventId, EventRequest request) {
     Event event = eventRepository.findById(eventId)
         .orElseThrow(() -> new AppException(ErrorCode.EVENT_NOT_FOUND));
+
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String sub = authentication.getPrincipal() instanceof Jwt
+        ? ((Jwt) authentication.getPrincipal()).getClaimAsString("sub")
+        : null;
+    String eventUsername = event.getUser() != null ? event.getUser().getUsername() : null; // Dùng username thay vì id
+    boolean isAdmin = authentication.getAuthorities().stream()
+        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+    if (!isAdmin && (sub == null || eventUsername == null || !sub.equals(eventUsername))) {
+      log.error("User (sub: {}) does not have permission to update event {}. Event owner username: {}",
+          sub, eventId, eventUsername);
+      throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+    }
 
     if (event.getRepeat() != null && !event.getRepeat().equals("none") &&
         request.getRepeat() != null && request.getRepeat().equals("none")) {
@@ -98,17 +111,27 @@ public class EventService {
   }
 
   @Transactional
-  @PreAuthorize("hasRole('ADMIN') || #request.userId.toString() == authentication.principal.claims['sub']")
   public List<EventResponse> updateEventSeries(String seriesId, EventRequest request) {
     List<Event> events = eventRepository.findBySeriesId(seriesId);
     if (events.isEmpty()) {
       throw new AppException(ErrorCode.EVENT_NOT_FOUND);
     }
 
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String sub = authentication.getPrincipal() instanceof Jwt
+        ? ((Jwt) authentication.getPrincipal()).getClaimAsString("sub")
+        : null;
     User user = userRepository.findById(request.getUserId())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    String requestUsername = user.getUsername();
+    boolean isAdmin = authentication.getAuthorities().stream()
+        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-    log.info("Updating series {} with request exceptions: {}", seriesId, request.getExceptions());
+    if (!isAdmin && (sub == null || requestUsername == null || !sub.equals(requestUsername))) {
+      log.error("User (sub: {}) does not have permission to update event series {}. Requested username: {}",
+          sub, seriesId, requestUsername);
+      throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+    }
 
     List<Event> updatedEvents = events.stream().map(event -> {
       eventMapper.updateEvent(event, request);
