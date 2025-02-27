@@ -94,7 +94,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
       className="bg-white rounded-lg shadow-md p-4 flex flex-col flex-shrink-0"
     >
       <div
-        className="flex justify-between items-center mb-4 p-2 rounded-t-md whitespace-nowrap overflow-hidden text-ellipsis"
+        className="flex justify-between items-center mb-2 p-2 rounded-t-md whitespace-nowrap overflow-hidden text-ellipsis"
         style={{ backgroundColor: columnColor }}
       >
         <h2
