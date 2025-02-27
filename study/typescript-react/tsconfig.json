@@ -1,10 +1,15 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "lib": [
+      "dom",
+      "esnext"
+    ],
     "module": "esnext",
     "jsx": "react-jsx",
     "typeRoots": [
-      "./node_modules/@types"
+      "./node_modules/@types",
+      "./src/type"
     ],
     "strict": true,
     "noImplicitAny": false,

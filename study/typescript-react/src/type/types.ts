@@ -47,6 +47,7 @@ export interface CalendarEvent {
 export interface TaskKanban {
   id: string;
   title: string;
+  priority?: "High" | "Medium" | "Low";
 }
 export interface ColumnKanban {
   id: string;
@@ -154,4 +155,5 @@ export interface FilterDropdownProps {
   close: () => void;
   visible: boolean;
 }
+
 

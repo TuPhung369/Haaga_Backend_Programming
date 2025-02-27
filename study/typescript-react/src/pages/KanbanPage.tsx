@@ -6,7 +6,7 @@ import {
 } from "@dnd-kit/sortable";
 import Column from "../components/ColumnKanban";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Modal, Input, InputRef } from "antd";
+import { Modal, Input, InputRef, Select } from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setEditingTask,
@@ -21,27 +21,29 @@ import {
   clearKanbanData,
 } from "../store/kanbanSlice";
 import { RootState, TaskKanban } from "../type/types";
+import { PriorityOptions } from "../utils/constant";
 
-const KanbanBoard: React.FC = () => {
+const KanbanPage: React.FC = () => {
   const { columns, editingTask } = useSelector(
     (state: RootState) => state.kanban
   );
   const dispatch = useDispatch();
-
+  const [newTaskPriority, setNewTaskPriority] = useState<
+    "High" | "Medium" | "Low"
+  >("Medium");
   const [isNewTaskModalVisible, setIsNewTaskModalVisible] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
   const inputRef = useRef<InputRef>(null);
 
-  // Focus input when either modal opens, blur when they close
   useEffect(() => {
     if ((isNewTaskModalVisible || editingTask) && inputRef.current) {
       const timer = setTimeout(() => {
         inputRef.current?.focus();
-      }, 100); // 100ms delay to ensure modal is rendered
-      return () => clearTimeout(timer); // Cleanup timeout
+      }, 100);
+      return () => clearTimeout(timer);
     } else if (!isNewTaskModalVisible && !editingTask && inputRef.current) {
-      inputRef.current.blur(); // Blur when both modals are closed
+      inputRef.current.blur();
     }
   }, [isNewTaskModalVisible, editingTask]);
 
@@ -67,7 +69,7 @@ const KanbanBoard: React.FC = () => {
   };
 
   const handleAddTask = (columnId: string, taskTitle: string) => {
-    dispatch(addTask({ columnId, taskTitle }));
+    dispatch(addTask({ columnId, taskTitle, priority: newTaskPriority }));
   };
 
   const handleDeleteTask = (columnId: string, taskId: string) => {
@@ -104,8 +106,12 @@ const KanbanBoard: React.FC = () => {
     dispatch(setEditingTask(task));
   };
 
-  const handleSaveTaskEdit = (taskId: string, newTitle: string) => {
-    dispatch(saveTaskEdit({ taskId, newTitle }));
+  const handleSaveTaskEdit = (
+    taskId: string,
+    newTitle: string,
+    priority: "High" | "Medium" | "Low"
+  ) => {
+    dispatch(saveTaskEdit({ taskId, newTitle, priority }));
   };
 
   const handleClearBoard = () => {
@@ -131,6 +137,7 @@ const KanbanBoard: React.FC = () => {
     }
     setIsNewTaskModalVisible(false);
     setNewTaskTitle("");
+    setNewTaskPriority("Medium");
     setSelectedColumnId(null);
   };
 
@@ -195,12 +202,12 @@ const KanbanBoard: React.FC = () => {
             zIndex={1000}
             afterClose={() => {
               if (inputRef.current) {
-                inputRef.current.blur(); // Blur after modal closes
+                inputRef.current.blur();
               }
             }}
           >
             <Input
-              ref={inputRef} // Reuse the same ref
+              ref={inputRef}
               value={editingTask.title}
               onChange={(e) =>
                 dispatch(
@@ -209,6 +216,14 @@ const KanbanBoard: React.FC = () => {
               }
               className="mb-4"
               placeholder="Edit task title"
+            />
+            <Select
+              value={editingTask.priority}
+              onChange={(value) =>
+                dispatch(setEditingTask({ ...editingTask, priority: value }))
+              }
+              className="mb-4 w-full"
+              options={PriorityOptions} // Use PriorityOptions here
             />
             <div className="flex justify-between">
               <button
@@ -233,7 +248,11 @@ const KanbanBoard: React.FC = () => {
                 <button
                   className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
                   onClick={() =>
-                    handleSaveTaskEdit(editingTask.id, editingTask.title)
+                    handleSaveTaskEdit(
+                      editingTask.id,
+                      editingTask.title,
+                      editingTask.priority as "High" | "Medium" | "Low"
+                    )
                   }
                 >
                   Update
@@ -251,15 +270,22 @@ const KanbanBoard: React.FC = () => {
           zIndex={1000}
           afterClose={() => {
             if (inputRef.current) {
-              inputRef.current.blur(); // Blur after modal closes
+              inputRef.current.blur();
             }
           }}
         >
           <Input
-            ref={inputRef} // Reuse the same ref
+            ref={inputRef}
             placeholder="Enter task title"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
+            className="mb-4"
+          />
+          <Select
+            value={newTaskPriority}
+            onChange={setNewTaskPriority}
+            className="w-full"
+            options={PriorityOptions} // Use PriorityOptions here
           />
         </Modal>
       </DndContext>
@@ -267,4 +293,4 @@ const KanbanBoard: React.FC = () => {
   );
 };
 
-export default KanbanBoard;
+export default KanbanPage;

@@ -12,7 +12,6 @@ import {
 } from "@ant-design/icons";
 
 import { COLORS } from "../utils/constant";
-
 const { Sider } = Layout;
 
 interface SidebarProps {

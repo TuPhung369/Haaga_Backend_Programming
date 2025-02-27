@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // Thêm useEffect
+import React, { useState, useEffect } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -10,14 +10,11 @@ import { COLORS } from "../utils/constant";
 import Task from "./TaskCardKanban";
 import { PlusOutlined } from "@ant-design/icons";
 import { Input } from "antd";
-import { TaskKanban } from "../type/types";
+import { TaskKanban, ColumnKanban } from "../type/types";
+import { hexToRgba, invertColorWithContrast } from "../utils/function";
 
 interface ColumnProps {
-  column: {
-    id: string;
-    title: string;
-    tasks: TaskKanban[];
-  };
+  column: ColumnKanban;
   index: number;
   width: string;
   addTask: (columnId: string) => void;
@@ -40,7 +37,6 @@ const ColumnKanban: React.FC<ColumnProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState(column.title);
 
-  // Đồng bộ newTitle với column.title khi column thay đổi
   useEffect(() => {
     setNewTitle(column.title);
   }, [column.title]);
@@ -91,25 +87,9 @@ const ColumnKanban: React.FC<ColumnProps> = ({
     deleteColumn(column.id);
   };
 
-  const hexToRgba = (hex: string, alpha = 1): string => {
-    let r = 0,
-      g = 0,
-      b = 0;
-    if (hex.length === 4) {
-      r = parseInt(hex[1] + hex[1], 16);
-      g = parseInt(hex[2] + hex[2], 16);
-      b = parseInt(hex[3] + hex[3], 16);
-    } else if (hex.length === 7) {
-      r = parseInt(hex[1] + hex[2], 16);
-      g = parseInt(hex[3] + hex[4], 16);
-      b = parseInt(hex[5] + hex[6], 16);
-    }
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
-
   return (
     <div
-      ref={setNodeRef}
+      ref={setNodeRef as React.LegacyRef<HTMLDivElement>} // Explicitly type the ref
       style={style}
       className="bg-white rounded-lg shadow-md p-4 flex flex-col flex-shrink-0"
     >
@@ -120,11 +100,23 @@ const ColumnKanban: React.FC<ColumnProps> = ({
         <h2
           {...attributes}
           {...listeners}
-          className="text-lg font-bold text-white flex-grow text-center cursor-move whitespace-nowrap overflow-hidden text-ellipsis"
+          className="text-base font-bold text-white flex-grow text-left cursor-move whitespace-nowrap overflow-hidden text-ellipsis"
           onDoubleClick={handleEditColumn}
         >
           {column.title}
+          {column.tasks.length > 0 && (
+            <>
+              <span
+                className="mx-1"
+                style={{ color: invertColorWithContrast(columnColor) }}
+              >
+                {column.tasks.length}
+              </span>
+              {column.tasks.length === 1 ? "issue" : "issues"}
+            </>
+          )}
         </h2>
+
         <button
           className="text-white hover:text-gray-200 transition"
           onClick={handleAddTaskClick}
@@ -134,7 +126,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
       </div>
 
       <div
-        ref={setDroppableNodeRef}
+        ref={setDroppableNodeRef as React.LegacyRef<HTMLDivElement>} // Explicitly type the ref
         className="flex-grow space-y-2 p-2 rounded-b-md overflow-y-auto"
         style={{ backgroundColor: hexToRgba(columnColor, 0.6) }}
       >
@@ -164,7 +156,9 @@ const ColumnKanban: React.FC<ColumnProps> = ({
             <Input
               type="text"
               value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setNewTitle(e.target.value)
+              } // Correct type for onChange
               className="mb-4"
             />
             <div className="flex justify-between">
@@ -197,4 +191,3 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 };
 
 export default ColumnKanban;
-

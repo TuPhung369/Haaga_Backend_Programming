@@ -104,4 +104,9 @@ export const PermissionOption: Permission[] = [
     color: PermissionColor[9],
   },
 ];
+export const PriorityOptions = [
+  { value: "High", label: "High", textColor: "text-red-600" },
+  { value: "Medium", label: "Medium", textColor: "text-blue-700" },
+  { value: "Low", label: "Low", textColor: "text-black" },
+];
 

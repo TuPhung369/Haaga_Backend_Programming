@@ -3,13 +3,25 @@ import { nanoid } from "nanoid";
 import { arrayMove } from "@dnd-kit/sortable";
 import { ColumnKanban, TaskKanban, KanbanState } from "../type/types";
 
-// Define initial state
+// Define initial state with priority included
 const initialState: KanbanState = {
   columns: [
     { id: "back_log", title: "Back Log", tasks: [] },
     { id: "pending", title: "Pending", tasks: [] },
-    { id: "todo", title: "To Do", tasks: [] },
-    { id: "in_progress", title: "In Progress", tasks: [] },
+    {
+      id: "todo",
+      title: "To Do",
+      tasks: [
+        { id: "1", title: "Task 1", priority: "Medium" as const }, // Example with priority
+      ],
+    },
+    {
+      id: "in_progress",
+      title: "In Progress",
+      tasks: [
+        { id: "2", title: "Task 2", priority: "High" as const }, // Example with priority
+      ],
+    },
     { id: "done", title: "Done", tasks: [] },
   ],
   editingTask: null,
@@ -38,12 +50,16 @@ const kanbanSlice = createSlice({
     },
     addTask: (
       state,
-      action: PayloadAction<{ columnId: string; taskTitle: string }>
+      action: PayloadAction<{
+        columnId: string;
+        taskTitle: string;
+        priority: "High" | "Medium" | "Low";
+      }>
     ) => {
-      const { columnId, taskTitle } = action.payload;
+      const { columnId, taskTitle, priority } = action.payload;
       const column = state.columns.find((col) => col.id === columnId);
       if (column) {
-        column.tasks.push({ id: nanoid(), title: taskTitle });
+        column.tasks.push({ id: nanoid(), title: taskTitle, priority });
       }
     },
     deleteTask: (
@@ -74,13 +90,18 @@ const kanbanSlice = createSlice({
     },
     saveTaskEdit: (
       state,
-      action: PayloadAction<{ taskId: string; newTitle: string }>
+      action: PayloadAction<{
+        taskId: string;
+        newTitle: string;
+        priority: "High" | "Medium" | "Low";
+      }>
     ) => {
-      const { taskId, newTitle } = action.payload;
+      const { taskId, newTitle, priority } = action.payload;
       for (const column of state.columns) {
         const task = column.tasks.find((t) => t.id === taskId);
         if (task) {
           task.title = newTitle;
+          task.priority = priority;
           break;
         }
       }
@@ -141,11 +162,15 @@ const kanbanSlice = createSlice({
     },
     clearKanbanData: (state) => {
       state.columns = [
-        { id: "todo", title: "To Do", tasks: [{ id: "1", title: "Task 1" }] },
+        {
+          id: "todo",
+          title: "To Do",
+          tasks: [{ id: "1", title: "Task 1", priority: "Medium" as const }],
+        },
         {
           id: "in_progress",
           title: "In Progress",
-          tasks: [{ id: "2", title: "Task 2" }],
+          tasks: [{ id: "2", title: "Task 2", priority: "High" as const }],
         },
         { id: "done", title: "Done", tasks: [] },
       ];
