@@ -53,8 +53,10 @@ const { Content } = Layout;
 const { Option } = Select;
 
 type ColumnType<T extends object> = GetProps<typeof Table.Column<T>>;
-
-const UserListPage = () => {
+interface UserListPageProps {
+  style?: React.CSSProperties;
+}
+const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
   const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
@@ -459,8 +461,8 @@ const UserListPage = () => {
   const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
   return (
-    <Layout style={{ padding: "0 24px 24px" }}>
-      <Content style={{ margin: "24px 0" }}>
+    <Layout style={{ padding: "0 24px 0 24px", ...style }}>
+      <Content style={{ margin: "0", ...style }}>
         {contextHolder}
         <Modal
           title={isModeNew ? "Add New User" : "Edit User Information"}
@@ -556,7 +558,7 @@ const UserListPage = () => {
             </Form.Item>
           </Form>
         </Modal>
-        <h2 style={{ marginTop: 25, fontSize: 25 }}>
+        <h2 style={{ marginTop: 10, fontSize: 25 }}>
           <Descriptions
             className="custom-descriptions"
             title={
@@ -595,12 +597,14 @@ const UserListPage = () => {
             sorter={(a: User, b: User) =>
               a.firstname.localeCompare(b.firstname)
             }
+            {...getColumnSearchProps("firstname")}
           />
           <Table.Column
             title="Last Name"
             dataIndex="lastname"
             key="lastname"
             sorter={(a: User, b: User) => a.lastname.localeCompare(b.lastname)}
+            {...getColumnSearchProps("lastname")}
           />
           <Table.Column
             title="Username"
@@ -609,10 +613,21 @@ const UserListPage = () => {
             sorter={(a: User, b: User) => a.username.localeCompare(b.username)}
             {...getColumnSearchProps("username")}
           />
-          <Table.Column title="Date of Birth" dataIndex="dob" key="dob" />
+          <Table.Column
+            title="Date of Birth"
+            dataIndex="dob"
+            key="dob"
+            sorter={(a: User, b: User) => a.dob.localeCompare(b.dob)}
+            {...getColumnSearchProps("dob")}
+          />
           <Table.Column
             title="Role"
             key="roles"
+            sorter={(a: User, b: User) => {
+              const aRole = a.roles.length > 0 ? a.roles[0].name : "";
+              const bRole = b.roles.length > 0 ? b.roles[0].name : "";
+              return aRole.localeCompare(bRole);
+            }}
             render={(_, record: User) =>
               record.roles && record.roles.length > 0
                 ? record.roles.map((role) => (
@@ -626,6 +641,19 @@ const UserListPage = () => {
           <Table.Column
             title="Permissions"
             key="permissions"
+            sorter={(a: User, b: User) => {
+              const aPermissions = a.roles.flatMap(
+                (role) => role.permissions || []
+              );
+              const bPermissions = b.roles.flatMap(
+                (role) => role.permissions || []
+              );
+              const aPermission =
+                aPermissions.length > 0 ? aPermissions[0].name : "";
+              const bPermission =
+                bPermissions.length > 0 ? bPermissions[0].name : "";
+              return aPermission.localeCompare(bPermission);
+            }}
             render={(_, record: User) =>
               record.roles && record.roles.length > 0
                 ? [
@@ -694,4 +722,5 @@ const UserListPage = () => {
 };
 
 export default UserListPage;
+
 
