@@ -79,13 +79,19 @@ public class EventService {
     String sub = authentication.getPrincipal() instanceof Jwt
         ? ((Jwt) authentication.getPrincipal()).getClaimAsString("sub")
         : null;
-    String eventUsername = event.getUser() != null ? event.getUser().getUsername() : null; // Dùng username thay vì id
+    String tokenUserId = authentication.getPrincipal() instanceof Jwt
+        ? ((Jwt) authentication.getPrincipal()).getClaimAsString("userId")
+        : null;
+    String eventUsername = event.getUser() != null ? event.getUser().getUsername() : null;
+    String eventUserId = event.getUser() != null ? event.getUser().getId().toString() : null;
     boolean isAdmin = authentication.getAuthorities().stream()
         .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-    if (!isAdmin && (sub == null || eventUsername == null || !sub.equals(eventUsername))) {
-      log.error("User (sub: {}) does not have permission to update event {}. Event owner username: {}",
-          sub, eventId, eventUsername);
+    if (!isAdmin && (sub == null || eventUsername == null || !sub.equals(eventUsername)) &&
+        (tokenUserId == null || eventUserId == null || !tokenUserId.equals(eventUserId))) {
+      log.error(
+          "User (sub: {}, userId: {}) does not have permission to update event {}. Event owner: username={}, id={}",
+          sub, tokenUserId, eventId, eventUsername, eventUserId);
       throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
     }
 
@@ -121,15 +127,21 @@ public class EventService {
     String sub = authentication.getPrincipal() instanceof Jwt
         ? ((Jwt) authentication.getPrincipal()).getClaimAsString("sub")
         : null;
+    String tokenUserId = authentication.getPrincipal() instanceof Jwt
+        ? ((Jwt) authentication.getPrincipal()).getClaimAsString("userId")
+        : null;
     User user = userRepository.findById(request.getUserId())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     String requestUsername = user.getUsername();
+    String requestUserId = user.getId().toString();
     boolean isAdmin = authentication.getAuthorities().stream()
         .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-    if (!isAdmin && (sub == null || requestUsername == null || !sub.equals(requestUsername))) {
-      log.error("User (sub: {}) does not have permission to update event series {}. Requested username: {}",
-          sub, seriesId, requestUsername);
+    if (!isAdmin && (sub == null || requestUsername == null || !sub.equals(requestUsername)) &&
+        (tokenUserId == null || requestUserId == null || !tokenUserId.equals(requestUserId))) {
+      log.error(
+          "User (sub: {}, userId: {}) does not have permission to update event series {}. Requested: username={}, id={}",
+          sub, tokenUserId, seriesId, requestUsername, requestUserId);
       throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
     }
 

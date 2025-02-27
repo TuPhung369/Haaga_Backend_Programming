@@ -270,6 +270,7 @@ public class AuthenticationService {
       JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512); // Use HS512 algorithm
       JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
           .subject(user.getUsername())
+          .claim("userId", user.getId().toString())
           .issuer("tommem.com")
           .issueTime(new Date())
           .expirationTime(new Date(new Date().getTime() + 60 * 60 * 1000)) // 60 * 60 * 1 hour expiration
@@ -294,6 +295,7 @@ public class AuthenticationService {
       JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512); // Use HS512 algorithm
       JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
           .subject(user.getUsername())
+          .claim("userId", user.getId().toString())
           .issuer("tommem.com")
           .issueTime(new Date())
           .expirationTime(new Date(new Date().getTime() + 60 * 60 * (1 + SURPLUS_EXPIRE_TIME) * 1000))
