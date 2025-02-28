@@ -331,12 +331,12 @@ public class AuthenticationService {
   }
 
   private Date extractTokenExpiry(String token) {
-    Claims claims = Jwts.parserBuilder()
-        .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY_BYTES))
+    Claims claims = Jwts.parser()
+        .verifyWith(Keys.hmacShaKeyFor(SECRET_KEY_BYTES))
         .build()
-        .parseClaimsJws(token)
-        .getBody();
+        .parseSignedClaims(token)
+        .getPayload();
     return claims.getExpiration();
-  }
+}
 
 }
