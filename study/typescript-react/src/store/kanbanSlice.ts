@@ -8,20 +8,8 @@ const initialState: KanbanState = {
   columns: [
     { id: "back_log", title: "Back Log", tasks: [] },
     { id: "pending", title: "Pending", tasks: [] },
-    {
-      id: "todo",
-      title: "To Do",
-      tasks: [
-        { id: "1", title: "Task 1", priority: "Medium" as const }, // Example with priority
-      ],
-    },
-    {
-      id: "in_progress",
-      title: "In Progress",
-      tasks: [
-        { id: "2", title: "Task 2", priority: "High" as const }, // Example with priority
-      ],
-    },
+    { id: "todo", title: "To Do", tasks: [] },
+    { id: "in_progress", title: "In Progress", tasks: [] },
     { id: "done", title: "Done", tasks: [] },
   ],
   editingTask: null,
@@ -48,6 +36,7 @@ const kanbanSlice = createSlice({
     invalidateEditingTask: (state) => {
       state.isEditingTaskInvalidated = true;
     },
+    // In kanbanSlice
     addTask: (
       state,
       action: PayloadAction<{
@@ -57,9 +46,13 @@ const kanbanSlice = createSlice({
       }>
     ) => {
       const { columnId, taskTitle, priority } = action.payload;
+      console.log("addTask reducer:", { columnId, taskTitle, priority });
       const column = state.columns.find((col) => col.id === columnId);
       if (column) {
         column.tasks.push({ id: nanoid(), title: taskTitle, priority });
+        console.log("Task added to column:", column);
+      } else {
+        console.error("Column not found:", columnId);
       }
     },
     deleteTask: (
@@ -161,22 +154,7 @@ const kanbanSlice = createSlice({
       }
     },
     clearKanbanData: (state) => {
-      state.columns = [
-        {
-          id: "todo",
-          title: "To Do",
-          tasks: [{ id: "1", title: "Task 1", priority: "Medium" as const }],
-        },
-        {
-          id: "in_progress",
-          title: "In Progress",
-          tasks: [{ id: "2", title: "Task 2", priority: "High" as const }],
-        },
-        { id: "done", title: "Done", tasks: [] },
-      ];
-      state.editingTask = null;
-      state.isColumnsInvalidated = true;
-      state.isEditingTaskInvalidated = true;
+      Object.assign(state, initialState);
     },
   },
 });
