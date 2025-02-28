@@ -46,11 +46,9 @@ const kanbanSlice = createSlice({
       }>
     ) => {
       const { columnId, taskTitle, priority } = action.payload;
-      console.log("addTask reducer:", { columnId, taskTitle, priority });
       const column = state.columns.find((col) => col.id === columnId);
       if (column) {
         column.tasks.push({ id: nanoid(), title: taskTitle, priority });
-        console.log("Task added to column:", column);
       } else {
         console.error("Column not found:", columnId);
       }

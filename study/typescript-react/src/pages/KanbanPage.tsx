@@ -69,11 +69,6 @@ const KanbanPage: React.FC = () => {
   };
 
   const handleAddTask = (columnId: string, taskTitle: string) => {
-    console.log("Dispatching addTask:", {
-      columnId,
-      taskTitle,
-      priority: newTaskPriority,
-    });
     dispatch(addTask({ columnId, taskTitle, priority: newTaskPriority }));
   };
 
@@ -137,19 +132,9 @@ const KanbanPage: React.FC = () => {
   };
 
   const handleNewTaskOk = () => {
-    if (!newTaskTitle.trim()) {
-      console.error("Task title is empty");
+    if (!newTaskTitle.trim() || !selectedColumnId) {
       return;
     }
-    if (!selectedColumnId) {
-      console.error("No column selected");
-      return;
-    }
-    console.log("Creating task:", {
-      selectedColumnId,
-      newTaskTitle,
-      newTaskPriority,
-    });
     handleAddTask(selectedColumnId, newTaskTitle);
     setIsNewTaskModalVisible(false);
     setNewTaskTitle("");
