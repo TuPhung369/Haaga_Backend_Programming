@@ -53,7 +53,12 @@ public class ENUMS {
     USER_NOT_EXISTS("User does not exist"),
     USER_EXISTS("User already exists"),
     ROLE_NOT_FOUND("Role not found"),
-    EVENT_NOT_FOUND("Event not found");
+    EVENT_NOT_FOUND("Event not found"),
+    RESOURCE_NOT_FOUND("Resource not found"),
+    INVALID_OPERATION("Invalid operation"),
+    KANBAN_BOARD_NOT_FOUND("Kanban board not found"),
+    KANBAN_COLUMN_NOT_FOUND("Kanban column not found"),
+    KANBAN_TASK_NOT_FOUND("Kanban task not found");
 
     private final String message;
   }

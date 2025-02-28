@@ -52,6 +52,16 @@ public enum ErrorCode {
         ROLE_NOT_FOUND(4042, ENUMS.ErrorMessages.ROLE_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()), // Not found
         EVENT_NOT_FOUND(4043, ENUMS.ErrorMessages.EVENT_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()), // Not found
+        RESOURCE_NOT_FOUND(4044, ENUMS.ErrorMessages.RESOURCE_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()), // Not found
+        INVALID_OPERATION(4045, ENUMS.ErrorMessages.INVALID_OPERATION.getMessage(), HttpStatus.BAD_REQUEST, "400",
+                        ENUMS.Severity.MEDIUM.name()), // Bad request
+        KANBAN_BOARD_NOT_FOUND(4046, ENUMS.ErrorMessages.KANBAN_BOARD_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()), // Not found
+        KANBAN_COLUMN_NOT_FOUND(4047, ENUMS.ErrorMessages.KANBAN_COLUMN_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()), // Not found
+        KANBAN_TASK_NOT_FOUND(4048, ENUMS.ErrorMessages.KANBAN_TASK_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()); // Not found
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
