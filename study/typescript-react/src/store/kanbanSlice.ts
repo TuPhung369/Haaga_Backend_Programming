@@ -15,9 +15,9 @@ const initialState: KanbanState = {
   editingTask: null,
   isColumnsInvalidated: true,
   isEditingTaskInvalidated: true,
+  userId: "",
 };
 
-// Create the slice
 const kanbanSlice = createSlice({
   name: "kanban",
   initialState,
@@ -30,13 +30,15 @@ const kanbanSlice = createSlice({
       state.editingTask = action.payload;
       state.isEditingTaskInvalidated = false;
     },
+    setUserId: (state, action: PayloadAction<string>) => {
+      state.userId = action.payload;
+    },
     invalidateColumns: (state) => {
       state.isColumnsInvalidated = true;
     },
     invalidateEditingTask: (state) => {
       state.isEditingTaskInvalidated = true;
     },
-    // In kanbanSlice
     addTask: (
       state,
       action: PayloadAction<{
@@ -49,8 +51,6 @@ const kanbanSlice = createSlice({
       const column = state.columns.find((col) => col.id === columnId);
       if (column) {
         column.tasks.push({ id: nanoid(), title: taskTitle, priority });
-      } else {
-        console.error("Column not found:", columnId);
       }
     },
     deleteTask: (
@@ -97,7 +97,6 @@ const kanbanSlice = createSlice({
         }
       }
       state.editingTask = null;
-      state.isEditingTaskInvalidated = false;
     },
     dragEndTask: (
       state,
@@ -152,15 +151,15 @@ const kanbanSlice = createSlice({
       }
     },
     clearKanbanData: (state) => {
-      Object.assign(state, initialState);
+      Object.assign(state, { ...initialState, userId: state.userId });
     },
   },
 });
 
-// Export actions and reducer
 export const {
   setColumns,
   setEditingTask,
+  setUserId,
   invalidateColumns,
   invalidateEditingTask,
   addTask,

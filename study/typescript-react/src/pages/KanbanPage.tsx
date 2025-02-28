@@ -10,6 +10,7 @@ import { Modal, Input, InputRef, Select } from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setEditingTask,
+  setUserId,
   addTask,
   deleteTask,
   addColumn,
@@ -27,6 +28,9 @@ const KanbanPage: React.FC = () => {
   const { columns, editingTask } = useSelector(
     (state: RootState) => state.kanban
   );
+  const userId = useSelector(
+    (state: RootState) => state.user.userInfo?.id || ""
+  );
   const dispatch = useDispatch();
   const [newTaskPriority, setNewTaskPriority] = useState<
     "High" | "Medium" | "Low"
@@ -35,6 +39,13 @@ const KanbanPage: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
   const inputRef = useRef<InputRef>(null);
+
+  // Set userId in kanban state when it changes
+  useEffect(() => {
+    if (userId) {
+      dispatch(setUserId(userId));
+    }
+  }, [userId, dispatch]);
 
   useEffect(() => {
     if ((isNewTaskModalVisible || editingTask) && inputRef.current) {

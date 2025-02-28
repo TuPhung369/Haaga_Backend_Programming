@@ -251,23 +251,23 @@ const CalendarPage: React.FC = () => {
                 newEvent,
                 token
               );
-              await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+              await fetchAndUpdateEvents();
               setIsModalVisible(false);
             },
             onCancel: async () => {
               await updateEvent(eventId, newEvent, token);
-              await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+              await fetchAndUpdateEvents();
               setIsModalVisible(false);
             },
           });
         } else {
           await updateEvent(eventId, newEvent, token);
-          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+          await fetchAndUpdateEvents();
           setIsModalVisible(false);
         }
       } else {
         await createEvent(newEvent, token);
-        await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+        await fetchAndUpdateEvents();
         setIsModalVisible(false);
       }
     } catch (error) {

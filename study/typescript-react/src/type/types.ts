@@ -64,6 +64,7 @@ export interface KanbanState {
   editingTask: TaskKanban | null;
   isColumnsInvalidated: boolean;
   isEditingTaskInvalidated: boolean;
+  userId?: string;
 }
 export interface UserState {
   userInfo: User | null;
@@ -155,5 +156,4 @@ export interface FilterDropdownProps {
   close: () => void;
   visible: boolean;
 }
-
 
