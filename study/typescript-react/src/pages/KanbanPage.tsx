@@ -9,8 +9,9 @@ import {
   PlusOutlined,
   DeleteOutlined,
   ReloadOutlined,
+  SaveOutlined,
 } from "@ant-design/icons";
-import { Modal, Input, InputRef, Select, Button, message } from "antd";
+import { Modal, Input, InputRef, Select, Button, message, Spin } from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setEditingTask,
@@ -25,41 +26,74 @@ import {
   dragEndColumn,
   clearKanbanData,
   resetToDefaultColumns,
+  fetchUserBoards,
+  createUserBoard,
+  saveUserBoard,
 } from "../store/kanbanSlice";
 import { RootState, TaskKanban } from "../type/types";
 import { PriorityOptions } from "../utils/constant";
+import { AppDispatch } from "../store/RootState";
 
 const KanbanPage: React.FC = () => {
-  const { columns, editingTask } = useSelector(
-    (state: RootState) => state.kanban
-  );
+  const {
+    columns,
+    editingTask,
+    loading,
+    error,
+    boardId,
+    userBoards,
+  } = useSelector((state: RootState) => state.kanban);
   const userId = useSelector(
     (state: RootState) => state.user.userInfo?.id || ""
   );
-  const dispatch = useDispatch();
+  // Use AppDispatch type
+  const dispatch = useDispatch<AppDispatch>();
   const [newTaskPriority, setNewTaskPriority] = useState<
     "High" | "Medium" | "Low"
   >("Medium");
   const [isNewTaskModalVisible, setIsNewTaskModalVisible] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
   const inputRef = useRef<InputRef>(null);
 
-  // Check if columns are empty and initialize if needed
-  useEffect(() => {
-    if (!columns || columns.length === 0) {
-      console.log("Initializing Kanban board with default columns");
-      dispatch(resetToDefaultColumns());
-      message.info("Initialized Kanban board with default columns");
-    }
-  }, [columns, dispatch]);
-
-  // Set userId in kanban state when it changes
+  // Set userId in kanban state when it changes and fetch user's boards
   useEffect(() => {
     if (userId) {
       dispatch(setUserId(userId));
+
+      // Fetch the user's boards
+      dispatch(fetchUserBoards(userId))
+        .unwrap()
+        .then((boards) => {
+          // If user has no boards, create one
+          if (!boards || boards.length === 0) {
+            dispatch(
+              createUserBoard({
+                userId,
+                title: "My Kanban Board",
+              })
+            );
+          }
+        })
+        .catch(() => {
+          // If error fetching, create a new board
+          dispatch(
+            createUserBoard({
+              userId,
+              title: "My Kanban Board",
+            })
+          );
+        });
     }
   }, [userId, dispatch]);
+
+  // Mark board as having unsaved changes when columns are modified
+  useEffect(() => {
+    if (boardId) {
+      setHasChanges(true);
+    }
+  }, [columns, boardId]);
 
   useEffect(() => {
     if ((isNewTaskModalVisible || editingTask) && inputRef.current) {
@@ -71,6 +105,31 @@ const KanbanPage: React.FC = () => {
       inputRef.current.blur();
     }
   }, [isNewTaskModalVisible, editingTask]);
+
+  // Handle saving the board
+  const handleSaveBoard = () => {
+    if (userId && boardId) {
+      dispatch(
+        saveUserBoard({
+          boardId,
+          data: {
+            columns,
+            userId,
+          },
+        })
+      )
+        .unwrap()
+        .then(() => {
+          message.success("Board saved successfully");
+          setHasChanges(false);
+        })
+        .catch(() => {
+          message.error("Failed to save board");
+        });
+    } else {
+      message.error("Unable to save: missing board ID or user ID");
+    }
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -190,9 +249,72 @@ const KanbanPage: React.FC = () => {
   };
 
   const longestTitleLength = Math.max(
-    ...columns.map((col) => col.title.length)
+    ...(columns.length > 0 ? columns.map((col) => col.title.length) : [10])
   );
   const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 280)}px`;
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
+        <Spin size="large" tip="Loading Kanban Board..." />
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error && !columns.length) {
+    return (
+      <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-lg shadow-md">
+          <h2 className="text-xl mb-4 text-red-500">
+            Error loading Kanban board
+          </h2>
+          <p className="mb-4">{error}</p>
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            onClick={() => {
+              if (userId) {
+                dispatch(fetchUserBoards(userId));
+              }
+            }}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // If user has no boards
+  if ((userBoards?.length ?? 0) === 0 && !loading) {
+    return (
+      <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-lg shadow-md">
+          <h2 className="text-xl mb-4">No Kanban Board Found</h2>
+          <p className="mb-4">
+            You don't have any Kanban boards yet. Create one to get started.
+          </p>
+          <Button
+            type="primary"
+            onClick={() => {
+              if (userId) {
+                dispatch(
+                  createUserBoard({
+                    userId,
+                    title: "My Kanban Board",
+                  })
+                );
+              }
+            }}
+          >
+            Create Board
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Display warning if columns array is empty
   if (!columns || columns.length === 0) {
@@ -201,7 +323,7 @@ const KanbanPage: React.FC = () => {
         <div className="text-center p-8 bg-white rounded-lg shadow-md">
           <h2 className="text-xl mb-4">Kanban board is empty</h2>
           <p className="mb-4">
-            The board has no columns. Click the button below to initialize it.
+            Your board has no columns. Click the button below to initialize it.
           </p>
           <Button
             type="primary"
@@ -215,33 +337,52 @@ const KanbanPage: React.FC = () => {
     );
   }
 
+  // Main Kanban board UI
   return (
     <div className="kanban-board-container h-screen bg-gray-100 flex flex-col">
       <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-        <div className="flex justify-start items-center p-4 bg-white shadow-md">
-          <button
-            className="p-2 bg-blue-500 text-white rounded-full ml-2 mr-2 hover:bg-blue-600 transition"
-            onClick={() => handleAddColumn("New Column")}
+        <div className="flex justify-between items-center p-4 bg-white shadow-md">
+          <div className="flex">
+            <h2 className="text-xl font-semibold mr-4">
+              "My Kanban Board"
+            </h2>
+            <button
+              className="p-2 bg-blue-500 text-white rounded-full ml-2 mr-2 hover:bg-blue-600 transition"
+              onClick={() => handleAddColumn("New Column")}
+            >
+              <PlusOutlined style={{ fontSize: "16px", marginRight: "5px" }} />
+              Add Column
+            </button>
+            <button
+              className="p-2 bg-red-400 text-white rounded-full mr-2 hover:bg-red-500 transition"
+              onClick={handleClearBoard}
+            >
+              <DeleteOutlined
+                style={{ fontSize: "16px", marginRight: "5px" }}
+              />
+              Clear Tasks
+            </button>
+            <button
+              className="p-2 bg-yellow-500 text-white rounded-full mr-2 hover:bg-yellow-600 transition"
+              onClick={handleResetBoard}
+            >
+              <ReloadOutlined
+                style={{ fontSize: "16px", marginRight: "5px" }}
+              />
+              Reset Board
+            </button>
+          </div>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={handleSaveBoard}
+            loading={loading}
+            disabled={!hasChanges}
           >
-            <PlusOutlined style={{ fontSize: "16px", marginRight: "5px" }} />
-            Add Column
-          </button>
-          <button
-            className="p-2 bg-red-400 text-white rounded-full mr-2 hover:bg-red-500 transition"
-            onClick={handleClearBoard}
-          >
-            <DeleteOutlined style={{ fontSize: "16px", marginRight: "5px" }} />
-            Clear All Tasks
-          </button>
-          <button
-            className="p-2 bg-yellow-500 text-white rounded-full mr-2 hover:bg-yellow-600 transition"
-            onClick={handleResetBoard}
-          >
-            <ReloadOutlined style={{ fontSize: "16px", marginRight: "5px" }} />
-            Reset Board
-          </button>
+            Save Board
+          </Button>
         </div>
-        <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-120px)]">
+        <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-180px)]">
           <SortableContext
             items={columns.map((col) => col.id)}
             strategy={verticalListSortingStrategy}
@@ -293,7 +434,7 @@ const KanbanPage: React.FC = () => {
                 dispatch(setEditingTask({ ...editingTask, priority: value }))
               }
               className="mb-4 w-full"
-              options={PriorityOptions} // Use PriorityOptions here
+              options={PriorityOptions}
             />
             <div className="flex justify-between">
               <button
@@ -355,7 +496,7 @@ const KanbanPage: React.FC = () => {
             value={newTaskPriority}
             onChange={setNewTaskPriority}
             className="w-full"
-            options={PriorityOptions} // Use PriorityOptions here
+            options={PriorityOptions}
           />
         </Modal>
       </DndContext>
@@ -364,4 +505,3 @@ const KanbanPage: React.FC = () => {
 };
 
 export default KanbanPage;
-

@@ -57,11 +57,14 @@ export interface ColumnKanban {
   id: string;
   title: string;
   tasks: TaskKanban[];
+  position?: number;
+  boardId?: string;
 }
 export interface Board {
   id: string;
-  name: string;
-  userId: string;
+  title?: string;
+  columns?: ColumnKanban[];
+  userId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -73,13 +76,14 @@ export interface AuthState {
 export interface KanbanState {
   columns: ColumnKanban[];
   editingTask: TaskKanban | null;
-  userBoards: Board[];
+  userBoards?: Board[];
   isColumnsInvalidated: boolean;
   isEditingTaskInvalidated: boolean;
   userId: string;
   loading?: boolean;
   error?: string | null;
   activeBoard?: Board | null;
+  boardId?: string | null;
 }
 
 export interface KanbanBoardResponse {

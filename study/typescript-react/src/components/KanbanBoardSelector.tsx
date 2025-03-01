@@ -227,7 +227,7 @@ const KanbanPage: React.FC = () => {
         <div className="flex justify-start items-center p-4 bg-white shadow-md">
           <div className="mr-4">
             {activeBoard ? (
-              <span className="font-bold">{activeBoard.name}</span>
+              <span className="font-bold">{activeBoard.title}</span>
             ) : (
               <span className="text-gray-400">No board selected</span>
             )}
