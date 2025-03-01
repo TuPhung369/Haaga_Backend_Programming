@@ -5,6 +5,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import Column from "../components/ColumnKanban";
+import KanbanBoardSelector from "../components/KanbanBoardSelector";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -30,7 +31,7 @@ import { RootState, TaskKanban } from "../type/types";
 import { PriorityOptions } from "../utils/constant";
 
 const KanbanPage: React.FC = () => {
-  const { columns, editingTask } = useSelector(
+  const { columns, editingTask, activeBoard } = useSelector(
     (state: RootState) => state.kanban
   );
   const userId = useSelector(
@@ -44,15 +45,6 @@ const KanbanPage: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
   const inputRef = useRef<InputRef>(null);
-
-  // Check if columns are empty and initialize if needed
-  useEffect(() => {
-    if (!columns || columns.length === 0) {
-      console.log("Initializing Kanban board with default columns");
-      dispatch(resetToDefaultColumns());
-      message.info("Initialized Kanban board with default columns");
-    }
-  }, [columns, dispatch]);
 
   // Set userId in kanban state when it changes
   useEffect(() => {
@@ -71,6 +63,15 @@ const KanbanPage: React.FC = () => {
       inputRef.current.blur();
     }
   }, [isNewTaskModalVisible, editingTask]);
+
+  // Check if columns are empty and initialize if needed
+  useEffect(() => {
+    if (!columns || columns.length === 0) {
+      console.log("Initializing Kanban board with default columns");
+      dispatch(resetToDefaultColumns());
+      message.info("Initialized Kanban board with default columns");
+    }
+  }, [columns, dispatch]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -190,7 +191,7 @@ const KanbanPage: React.FC = () => {
   };
 
   const longestTitleLength = Math.max(
-    ...columns.map((col) => col.title.length)
+    ...(columns.length > 0 ? columns.map((col) => col.title.length) : [10])
   );
   const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 280)}px`;
 
@@ -217,8 +218,20 @@ const KanbanPage: React.FC = () => {
 
   return (
     <div className="kanban-board-container h-screen bg-gray-100 flex flex-col">
+      {/* Add the Board Selector at the top */}
+      <div className="p-4">
+        <KanbanBoardSelector />
+      </div>
+
       <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
         <div className="flex justify-start items-center p-4 bg-white shadow-md">
+          <div className="mr-4">
+            {activeBoard ? (
+              <span className="font-bold">{activeBoard.name}</span>
+            ) : (
+              <span className="text-gray-400">No board selected</span>
+            )}
+          </div>
           <button
             className="p-2 bg-blue-500 text-white rounded-full ml-2 mr-2 hover:bg-blue-600 transition"
             onClick={() => handleAddColumn("New Column")}
@@ -241,7 +254,7 @@ const KanbanPage: React.FC = () => {
             Reset Board
           </button>
         </div>
-        <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-120px)]">
+        <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-180px)]">
           <SortableContext
             items={columns.map((col) => col.id)}
             strategy={verticalListSortingStrategy}

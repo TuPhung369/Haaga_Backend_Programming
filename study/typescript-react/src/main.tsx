@@ -1,7 +1,8 @@
+// src/main.tsx
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
-import store from "./store/store";
+import store from "./store/store"; // Import the consolidated store
 import "antd/dist/reset.css";
 import "./index.css";
 import App from "./App";
@@ -19,3 +20,4 @@ ReactDOM.createRoot(rootElement as HTMLElement).render(
     </Provider>
   </StrictMode>
 );
+

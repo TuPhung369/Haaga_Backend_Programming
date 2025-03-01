@@ -1,7 +1,7 @@
 import axios from "axios";
 import { AxiosRequestHeaders } from "axios";
 
-const apiBaseUri = process.env.REACT_APP_API_BASE_URI;
+const apiBaseUri = import.meta.env.REACT_APP_API_BASE_URI;
 const instance = axios.create({
   baseURL: apiBaseUri,
   withCredentials: true,

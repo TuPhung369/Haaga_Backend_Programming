@@ -1,7 +1,9 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+// src/store/kanbanSlice.ts
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
 import { arrayMove } from "@dnd-kit/sortable";
-import { ColumnKanban, TaskKanban, KanbanState } from "../type/types";
+import { ColumnKanban, TaskKanban, KanbanState, Board } from "../type/types";
+import axios from "../utils/axios-customize";
 
 // Define initial state with priority included
 const initialState: KanbanState = {
@@ -16,14 +18,49 @@ const initialState: KanbanState = {
   isColumnsInvalidated: true,
   isEditingTaskInvalidated: true,
   userId: "",
+  userBoards: [],
+  activeBoard: null,
+  loading: false,
+  error: null,
 };
+
+// Async thunks
+export const fetchUserBoards = createAsyncThunk(
+  "kanban/fetchUserBoards",
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/kanban/boards/${userId}`);
+      return response.data;
+    } catch {
+      return rejectWithValue("Failed to fetch user boards");
+    }
+  }
+);
+
+export const createBoardThunk = createAsyncThunk(
+  "kanban/createBoard",
+  async (boardData: { name: string; userId: string }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post("/kanban/boards", boardData);
+      return response.data;
+    } catch {
+      return rejectWithValue("Failed to create board");
+    }
+  }
+);
 
 const kanbanSlice = createSlice({
   name: "kanban",
   initialState,
   reducers: {
     setColumns: (state, action: PayloadAction<ColumnKanban[]>) => {
-      state.columns = action.payload;
+      // Ensure we don't set empty columns array
+      if (action.payload && action.payload.length > 0) {
+        state.columns = action.payload;
+      } else {
+        // If payload is empty, reset to initialState columns
+        state.columns = initialState.columns;
+      }
       state.isColumnsInvalidated = false;
     },
     setEditingTask: (state, action: PayloadAction<TaskKanban | null>) => {
@@ -50,7 +87,14 @@ const kanbanSlice = createSlice({
       const { columnId, taskTitle, priority } = action.payload;
       const column = state.columns.find((col) => col.id === columnId);
       if (column) {
-        column.tasks.push({ id: nanoid(), title: taskTitle, priority });
+        column.tasks.push({
+          id: nanoid(),
+          title: taskTitle,
+          priority,
+          // Add the missing properties
+          position: column.tasks.length,
+          columnId: columnId,
+        });
       }
     },
     deleteTask: (
@@ -123,6 +167,11 @@ const kanbanSlice = createSlice({
             : targetCol.tasks.length;
         if (oldIndex !== newIndex) {
           sourceCol.tasks = arrayMove(sourceCol.tasks, oldIndex, newIndex);
+
+          // Update positions after reordering
+          sourceCol.tasks.forEach((task, index) => {
+            task.position = index;
+          });
         }
       } else {
         const movedTask = sourceCol.tasks.find((task) => task.id === activeId);
@@ -132,10 +181,26 @@ const kanbanSlice = createSlice({
         const overTaskIndex = targetCol.tasks.findIndex(
           (task) => task.id === overId
         );
-        if (overTaskIndex !== -1 && movedTask) {
-          targetCol.tasks.splice(overTaskIndex, 0, movedTask);
-        } else if (movedTask) {
-          targetCol.tasks.push(movedTask);
+
+        if (movedTask) {
+          // Update columnId of the moved task
+          movedTask.columnId = targetCol.id;
+
+          if (overTaskIndex !== -1) {
+            targetCol.tasks.splice(overTaskIndex, 0, movedTask);
+          } else {
+            targetCol.tasks.push(movedTask);
+          }
+
+          // Update positions in the target column
+          targetCol.tasks.forEach((task, index) => {
+            task.position = index;
+          });
+
+          // Update positions in the source column
+          sourceCol.tasks.forEach((task, index) => {
+            task.position = index;
+          });
         }
       }
     },
@@ -151,8 +216,63 @@ const kanbanSlice = createSlice({
       }
     },
     clearKanbanData: (state) => {
-      Object.assign(state, { ...initialState, userId: state.userId });
+      // Keep the column structure but clear the tasks
+      state.columns = state.columns.map((column) => ({
+        ...column,
+        tasks: [],
+      }));
+      // If columns array is empty for some reason, reset to initial state
+      if (state.columns.length === 0) {
+        state.columns = initialState.columns;
+      }
+      state.editingTask = null;
+      state.isColumnsInvalidated = false;
+      state.isEditingTaskInvalidated = false;
     },
+    resetToDefaultColumns: (state) => {
+      state.columns = initialState.columns;
+      state.editingTask = null;
+      state.isColumnsInvalidated = false;
+      state.isEditingTaskInvalidated = false;
+    },
+    // Add missing actions
+    setActiveBoard: (state, action: PayloadAction<Board | null>) => {
+      state.activeBoard = action.payload;
+    },
+    resetError: (state) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    // Handle fetchUserBoards async thunk
+    builder
+      .addCase(fetchUserBoards.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserBoards.fulfilled, (state, action) => {
+        state.loading = false;
+        state.userBoards = action.payload;
+      })
+      .addCase(fetchUserBoards.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Handle createBoardThunk async thunk
+    builder
+      .addCase(createBoardThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createBoardThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.userBoards.push(action.payload);
+      })
+      .addCase(createBoardThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 
@@ -171,6 +291,9 @@ export const {
   dragEndTask,
   dragEndColumn,
   clearKanbanData,
+  resetToDefaultColumns,
+  setActiveBoard,
+  resetError,
 } = kanbanSlice.actions;
 
 export default kanbanSlice.reducer;

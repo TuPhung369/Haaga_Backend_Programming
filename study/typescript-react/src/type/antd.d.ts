@@ -36,7 +36,7 @@ declare module "antd" {
     List,
     Mentions,
     Menu,
-    Message,
+    message,
     Modal,
     Notification,
     Pagination,
@@ -102,7 +102,7 @@ declare module "antd" {
   export const List: typeof List;
   export const Mentions: typeof Mentions;
   export const Menu: typeof Menu;
-  export const Message: typeof Message;
+  export const message: typeof message;
   export const Modal: typeof Modal;
   export const Notification: typeof Notification;
   export const Pagination: typeof Pagination;
@@ -159,3 +159,4 @@ declare module "antd" {
   // You can continue adding interfaces for other components like Form, Select, etc.,
   // based on their props in the Ant Design documentation
 }
+

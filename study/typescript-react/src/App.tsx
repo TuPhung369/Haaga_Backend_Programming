@@ -3,7 +3,7 @@ import {
   BrowserRouter as Router,
   Route,
   Routes,
-  useNavigate,
+  useNavigate, useLocation,
 } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Layout } from "antd";
@@ -150,18 +150,39 @@ interface MainLayoutProps {
   children: ReactNode;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => (
-  <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
-    <HeaderCustom />
-    <Layout>
-      <Sidebar />
-      <Content style={{ padding: "0" }}>{children}</Content>
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  // Get current route to apply specific styling
+  const location = useLocation();
+  const isKanbanRoute = location.pathname === "/kanban";
+
+  return (
+    <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+      <HeaderCustom />
+      <Layout>
+        <Sidebar />
+        <Content
+          style={{
+            padding: isKanbanRoute ? 0 : "24px", // Remove padding for Kanban to maximize space
+            height: "calc(100vh - 64px - 70px)", // Adjust for header and footer
+            overflow: "auto",
+          }}
+        >
+          {children}
+        </Content>
+      </Layout>
+      <Footer
+        style={{
+          textAlign: "center",
+          background: "white",
+          height: "70px",
+          padding: "24px",
+        }}
+      >
+        The Application ©2024 Created by Tu Phung
+      </Footer>
     </Layout>
-    <Footer style={{ textAlign: "center", background: "white" }}>
-      The Application ©2024 Created by Tu Phung
-    </Footer>
-  </Layout>
-);
+  );
+};
 
 export default App;
 

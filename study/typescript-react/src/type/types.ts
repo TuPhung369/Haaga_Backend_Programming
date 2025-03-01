@@ -47,12 +47,23 @@ export interface CalendarEvent {
 export interface TaskKanban {
   id: string;
   title: string;
+  description?: string;
   priority?: "High" | "Medium" | "Low";
+  position: number;
+  columnId: string;
+  createdAt?: string;
 }
 export interface ColumnKanban {
   id: string;
   title: string;
   tasks: TaskKanban[];
+}
+export interface Board {
+  id: string;
+  name: string;
+  userId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 export interface AuthState {
   token: string;
@@ -62,10 +73,23 @@ export interface AuthState {
 export interface KanbanState {
   columns: ColumnKanban[];
   editingTask: TaskKanban | null;
+  userBoards: Board[];
   isColumnsInvalidated: boolean;
   isEditingTaskInvalidated: boolean;
-  userId?: string;
+  userId: string;
+  loading?: boolean;
+  error?: string | null;
+  activeBoard?: Board | null;
 }
+
+export interface KanbanBoardResponse {
+  id: string;
+  title: string;
+  userId: string;
+  columns: ColumnKanban[];
+  createdAt?: string;
+}
+
 export interface UserState {
   userInfo: User | null;
   roles: Role[];
