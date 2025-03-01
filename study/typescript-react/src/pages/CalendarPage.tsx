@@ -493,7 +493,7 @@ const CalendarPage: React.FC = () => {
         <div
           style={{
             padding: "24px",
-            background: "#fff",
+            background: COLORS[12],
             minHeight: "85vh",
             minWidth: 900,
           }}
@@ -617,5 +617,4 @@ const CalendarPage: React.FC = () => {
 };
 
 export default CalendarPage;
-
 

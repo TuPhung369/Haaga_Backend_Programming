@@ -27,10 +27,10 @@ import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
 import { ValidationInput, AuthState, AuthError } from "../type/authType";
+import { COLORS } from "../utils/constant";
 
 const { Title } = Typography;
 const { Content } = Layout;
-
 
 const LoginPage: React.FC = () => {
   const oauth2ClientId = import.meta.env.VITE_OAUTH2_CLIENT_ID;
@@ -229,7 +229,7 @@ const LoginPage: React.FC = () => {
               style={{
                 textAlign: "center",
                 marginBottom: "20px",
-                color: "#FFFFFF",
+                color: COLORS[12],
               }}
             >
               Login
@@ -299,7 +299,7 @@ const LoginPage: React.FC = () => {
                       />
                       <span
                         style={{
-                          color: "#FFFFFF",
+                          color: COLORS[12],
                           fontWeight: 500,
                           fontSize: "16px",
                           cursor: "pointer",
@@ -312,7 +312,7 @@ const LoginPage: React.FC = () => {
                   <Col span={11}>
                     <span
                       style={{
-                        color: "#FFFFFF",
+                        color: COLORS[12],
                         fontWeight: 500,
                         fontSize: "16px",
                         cursor: "pointer",
@@ -349,7 +349,7 @@ const LoginPage: React.FC = () => {
                 <Row justify="center">
                   <span
                     style={{
-                      color: "#FFFFFF",
+                      color: COLORS[12],
                       fontWeight: 500,
                       fontSize: "16px",
                       cursor: "pointer",

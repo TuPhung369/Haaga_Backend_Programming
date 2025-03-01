@@ -252,6 +252,7 @@ export const addTask = createAsyncThunk(
       columnId: string;
       token: string;
       title: string;
+      description?: string;
       priority: "High" | "Medium" | "Low";
     },
     { rejectWithValue }
@@ -261,6 +262,7 @@ export const addTask = createAsyncThunk(
         columnId,
         token,
         title,
+        "", // No description
         priority
       );
       if (!board) return rejectWithValue("Failed to add task");

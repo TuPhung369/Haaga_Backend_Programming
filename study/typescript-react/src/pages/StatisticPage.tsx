@@ -594,7 +594,7 @@ const StatisticPage = () => {
       style: {
         fontSize: 14,
         fontWeight: "bold",
-        fill: "#fff",
+        fill: COLORS[12],
       },
     },
     tooltip: {
@@ -1475,5 +1475,4 @@ const StatisticPage = () => {
 };
 
 export default StatisticPage;
-
 

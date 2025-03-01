@@ -33,7 +33,7 @@ import {
 } from "../store/kanbanSlice";
 import { RootState, TaskKanban } from "../type/types";
 import { AppDispatch } from "../store/store";
-import { PriorityOptions } from "../utils/constant";
+import { PriorityOptions, COLORS } from "../utils/constant";
 import LoadingState from "../components/LoadingState";
 
 const KanbanPage: React.FC = () => {
@@ -54,6 +54,7 @@ const KanbanPage: React.FC = () => {
   const inputRef = useRef<InputRef>(null);
   const hasFetchedBoardsRef = useRef(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isHoveringResetButton, setIsHoveringResetButton] = useState(false);
 
   useEffect(() => {
     if (userId && token && !hasFetchedBoardsRef.current) {
@@ -186,6 +187,7 @@ const KanbanPage: React.FC = () => {
       message.error("Cannot add task: missing board ID or token");
       return;
     }
+    console.log("Adding task with priority:", newTaskPriority);
     dispatch(
       addTask({ columnId, token, title: title, priority: newTaskPriority })
     )
@@ -544,13 +546,16 @@ const KanbanPage: React.FC = () => {
               {activeBoard?.title || "Kanban Board"}
             </h2>
             <button
-              className="p-2 bg-blue-500 text-white rounded-full ml-2 mr-2 hover:bg-blue-600 transition"
+              className="!h-[60px] p-2 bg-blue-500 text-white rounded-full ml-2 mr-2 hover:bg-blue-600 transition"
               onClick={() => handleAddColumn("New Column")}
             >
               <PlusOutlined style={{ fontSize: "16px", marginRight: "5px" }} />
               Add Column
             </button>
             <button
+              style={{
+                height: "60px",
+              }}
               className="p-2 bg-red-400 text-white rounded-full mr-2 hover:bg-red-500 transition"
               onClick={handleClearBoard}
             >
@@ -560,14 +565,25 @@ const KanbanPage: React.FC = () => {
               Clear Tasks
             </button>
             <Button
-              style={{ height: "60px", paddingTop: 0, paddingBottom: 0 }}
-              className="p-2 bg-yellow-500 text-white rounded-full mr-2 hover:bg-yellow-600 transition"
+              style={{
+                height: "60px",
+                padding: "8px",
+                backgroundColor: isHoveringResetButton ? COLORS[7] : COLORS[8],
+                color: "white",
+                borderRadius: "9999px",
+                marginRight: "8px",
+                border: "none",
+                transition: "background-color 0.3s",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onMouseEnter={() => setIsHoveringResetButton(true)}
+              onMouseLeave={() => setIsHoveringResetButton(false)}
               onClick={handleResetBoard}
               loading={isResetting}
             >
-              <ReloadOutlined
-                style={{ fontSize: "16px", marginRight: "5px" }}
-              />
+              <ReloadOutlined style={{ fontSize: "16px" }} />
               Reset Board
             </Button>
           </div>
@@ -704,4 +720,5 @@ const KanbanPage: React.FC = () => {
 };
 
 export default KanbanPage;
+
 
