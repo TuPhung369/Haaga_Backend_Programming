@@ -38,7 +38,7 @@ declare module "antd" {
     Menu,
     message,
     Modal,
-    Notification,
+    notification,
     Pagination,
     Popconfirm,
     Popover,
@@ -104,7 +104,7 @@ declare module "antd" {
   export const Menu: typeof Menu;
   export const message: typeof message;
   export const Modal: typeof Modal;
-  export const Notification: typeof Notification;
+  export const notification: typeof notification;
   export const Pagination: typeof Pagination;
   export const Popconfirm: typeof Popconfirm;
   export const Popover: typeof Popover;

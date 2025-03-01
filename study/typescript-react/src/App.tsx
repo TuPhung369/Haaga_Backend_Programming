@@ -3,7 +3,8 @@ import {
   BrowserRouter as Router,
   Route,
   Routes,
-  useNavigate, useLocation,
+  useNavigate,
+  useLocation,
 } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Layout } from "antd";
@@ -162,8 +163,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <Sidebar />
         <Content
           style={{
-            padding: isKanbanRoute ? 0 : "24px", // Remove padding for Kanban to maximize space
-            height: "calc(100vh - 64px - 70px)", // Adjust for header and footer
+            padding: isKanbanRoute ? 0 : "24px",
+            height: "calc(100vh - 64px - 70px)",
             overflow: "auto",
           }}
         >

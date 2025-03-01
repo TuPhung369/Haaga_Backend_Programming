@@ -11,7 +11,7 @@ import {
   ReloadOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
-import { Modal, Input, InputRef, Select, Button, message, Spin } from "antd";
+import { Modal, Input, InputRef, Select, Button, message } from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setEditingTask,
@@ -34,6 +34,7 @@ import {
 import { RootState, TaskKanban } from "../type/types";
 import { AppDispatch } from "../store/store";
 import { PriorityOptions } from "../utils/constant";
+import LoadingState from "../components/LoadingState";
 
 const KanbanPage: React.FC = () => {
   const { columns, editingTask, loading, error, boardId, activeBoard } =
@@ -56,14 +57,12 @@ const KanbanPage: React.FC = () => {
 
   useEffect(() => {
     if (userId && token && !hasFetchedBoardsRef.current) {
-      console.log("Fetching boards for userId:", userId);
       hasFetchedBoardsRef.current = true;
       dispatch(setUserId(userId));
       dispatch(fetchUserBoards({ userId, token }))
         .unwrap()
         .then((boards) => {
           if (!boards || boards.length === 0) {
-            console.log("No boards found, creating a new board");
             dispatch(createUserBoard({ userId, token, title: "Kanban Board" }))
               .unwrap()
               .then(() => console.log("Board created successfully"))
@@ -72,8 +71,6 @@ const KanbanPage: React.FC = () => {
                 message.warning("Offline mode: Changes will be saved locally");
                 dispatch(resetToDefaultColumns());
               });
-          } else {
-            console.log("Boards fetched:", boards);
           }
         })
         .catch((err) => {
@@ -437,9 +434,11 @@ const KanbanPage: React.FC = () => {
   // Add back the loading condition check
   if (loading) {
     return (
-      <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
-        <Spin size="large" tip="Loading Kanban Board..." />
-      </div>
+      <LoadingState
+        size="large"
+        tip="Loading Kanban Board..."
+        fullscreen={true}
+      />
     );
   }
 
@@ -561,7 +560,7 @@ const KanbanPage: React.FC = () => {
               Clear Tasks
             </button>
             <Button
-              style={{ height: "30px", paddingTop: 0, paddingBottom: 0 }}
+              style={{ height: "60px", paddingTop: 0, paddingBottom: 0 }}
               className="p-2 bg-yellow-500 text-white rounded-full mr-2 hover:bg-yellow-600 transition"
               onClick={handleResetBoard}
               loading={isResetting}

@@ -1,4 +1,3 @@
-// src/components/LoadingState.tsx
 import React from "react";
 import { Spin } from "antd";
 
@@ -13,33 +12,38 @@ const LoadingState: React.FC<LoadingStateProps> = ({
   tip = "Loading...",
   fullscreen = false,
 }) => {
-  const containerStyle = fullscreen
-    ? {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.8)",
-        zIndex: 1000,
-      }
-    : {
+  // If fullscreen, use the Spin's built-in fullscreen mode
+  if (fullscreen) {
+    return <Spin size={size} tip={tip} fullscreen />;
+  }
+
+  // Otherwise use the nested pattern - create a placeholder div
+  // and wrap it with Spin
+  return (
+    <div
+      style={{
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         padding: "50px 0",
         width: "100%",
-      };
-
-  return (
-    <div style={containerStyle as React.CSSProperties}>
-      <Spin size={size} tip={tip} />
+        minHeight: "200px",
+      }}
+    >
+      <Spin size={size} tip={tip} spinning={true}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            minHeight: "200px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        ></div>
+      </Spin>
     </div>
   );
 };
 
 export default LoadingState;
-

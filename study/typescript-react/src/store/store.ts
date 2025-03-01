@@ -8,6 +8,7 @@ import kanbanReducer from "./kanbanSlice";
 import authReducer from "./authSlice";
 import userReducer from "./userSlice";
 import { RootState, AuthState, KanbanState, UserState } from "../type/types";
+import { resetAllData } from "./resetActions";
 
 // Environment check for development mode
 const isDevelopment = import.meta.env.MODE === "development";
@@ -113,7 +114,7 @@ const rootReducer: Reducer<
   action: Action
 ): RootState => {
   // When a logout action is dispatched, reset the state to initial state
-  if (action.type === "auth/logout") {
+  if (action.type === resetAllData.type) {
     localStorage.removeItem("appState");
     return appReducer(undefined, action);
   }
@@ -134,9 +135,6 @@ store.subscribe(() => {
     saveState(state);
   }
 });
-
-// Log initial state to console for debugging
-console.log("Initial Redux Store State:", store.getState());
 
 // Export store and types
 export default store;

@@ -153,7 +153,6 @@ const KanbanService = {
     token: string
   ): Promise<BoardData | null> => {
     try {
-      console.log("Attempting to reset board:", boardId);
       const response = await axios.post<SingleBoardResponse>(
         `${API_BASE_URI}/kanban/boards/${boardId}/reset`,
         {}, // Empty body as we're not sending any data
@@ -164,11 +163,6 @@ const KanbanService = {
           },
           timeout: 20000, // Increased timeout further
         }
-      );
-      console.log(
-        "Reset board response:",
-        response.status,
-        response.statusText
       );
       return response.data.result;
     } catch (error) {
@@ -253,11 +247,6 @@ const KanbanService = {
         data.position = position;
       }
 
-      console.log("Updating column with:", {
-        url: `${API_BASE_URI}/kanban/columns/${columnId}`,
-        data,
-      });
-
       const response = await axios.put<SingleBoardResponse>(
         `${API_BASE_URI}/kanban/columns/${columnId}`,
         data,
@@ -269,7 +258,6 @@ const KanbanService = {
         }
       );
 
-      console.log("Update column response:", response.data);
       return response.data.result;
     } catch (error) {
       console.error("Error updating column:", error);
@@ -303,14 +291,6 @@ const KanbanService = {
     priority?: "High" | "Medium" | "Low"
   ): Promise<BoardData | null> => {
     try {
-      // Log the request data to verify it
-      console.log("Creating task with data:", {
-        columnId,
-        title,
-        description,
-        priority,
-      });
-
       const response = await axios.post<SingleBoardResponse>(
         `${API_BASE_URI}/kanban/tasks`,
         {

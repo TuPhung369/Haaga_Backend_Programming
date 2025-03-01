@@ -666,7 +666,6 @@ const kanbanSlice = createSlice({
       .addCase(resetBoardToDefaults.rejected, (state, action) => {
         state.isLoading = false;
         state.error = (action.payload as string) || "Failed to reset board";
-        console.log("Board reset failed:", state.error);
       });
   },
 });
