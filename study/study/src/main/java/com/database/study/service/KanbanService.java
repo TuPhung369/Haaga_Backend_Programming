@@ -108,6 +108,77 @@ public class KanbanService {
         boardRepository.delete(board);
     }
 
+    @Transactional
+    public KanbanBoardResponse clearAllTasks(UUID boardId) {
+        KanbanBoard board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new AppException(ErrorCode.KANBAN_BOARD_NOT_FOUND));
+        
+        checkUserAccess(board.getUser().getId());
+        
+        // Delete all tasks in all columns
+        for (KanbanColumn column : board.getColumns()) {
+            taskRepository.deleteAll(column.getTasks());
+            column.getTasks().clear();
+        }
+        
+        // Save the board with empty task lists
+        board = boardRepository.save(board);
+        
+        // Get fresh board data
+        KanbanBoard freshBoard = refreshBoardData(board.getId());
+        return boardMapper.toResponse(freshBoard);
+    }
+
+    @Transactional
+    public KanbanBoardResponse resetBoardToDefaults(UUID boardId) {
+        KanbanBoard board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new AppException(ErrorCode.KANBAN_BOARD_NOT_FOUND));
+        
+        checkUserAccess(board.getUser().getId());
+        
+        // Create a new list of columns (we'll get them by reference)
+        List<KanbanColumn> columnsToRemove = new ArrayList<>(board.getColumns());
+        
+        // Clear all tasks from each column first
+        for (KanbanColumn column : columnsToRemove) {
+            // Make a copy of tasks to avoid ConcurrentModificationException
+            List<KanbanTask> tasksToRemove = new ArrayList<>(column.getTasks());
+            
+            // Remove each task from the column to maintain the relationship properly
+            for (KanbanTask task : tasksToRemove) {
+                column.getTasks().remove(task);
+                task.setColumn(null);
+                taskRepository.delete(task);
+            }
+        }
+        
+        // Clear the columns from the board
+        board.getColumns().clear();
+        
+        // Save the board with empty columns first
+        boardRepository.saveAndFlush(board);
+        
+        // Now delete the detached columns
+        for (KanbanColumn column : columnsToRemove) {
+            column.setBoard(null);
+            columnRepository.delete(column);
+        }
+        
+        // Create default columns
+        List<KanbanColumn> defaultColumns = createDefaultColumns(board);
+        
+        // Add the new columns to the board
+        for (KanbanColumn column : defaultColumns) {
+            column.setBoard(board);
+            board.getColumns().add(column);
+        }
+        
+        // Save the board with new columns
+        board = boardRepository.saveAndFlush(board);
+        
+        return boardMapper.toResponse(board);
+    }
+
     // Column operations
     @Transactional
     public KanbanBoardResponse createColumn(KanbanColumnRequest request) {
@@ -373,7 +444,7 @@ public class KanbanService {
     // Helper methods
     private List<KanbanColumn> createDefaultColumns(KanbanBoard board) {
         List<KanbanColumn> columns = new ArrayList<>();
-        String[] defaultTitles = {"Backlog","Pending", "To Do", "In Progress", "Done"};
+        String[] defaultTitles = {"Back log","Pending", "To Do", "In Progress", "Done"};
         
         for (int i = 0; i < defaultTitles.length; i++) {
             KanbanColumn column = KanbanColumn.builder()

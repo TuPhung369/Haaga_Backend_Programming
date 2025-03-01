@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -60,13 +61,29 @@ public class KanbanController {
 
     @DeleteMapping("/boards/{boardId}")
     public ApiResponse<String> deleteBoard(@PathVariable UUID boardId) {
-        kanbanService.deleteBoard(boardId);
-        return ApiResponse.<String>builder()
-                .code(2000)
-                .message("Board successfully deleted")
-                .result("Board ID: " + boardId)
-                .build();
+            kanbanService.deleteBoard(boardId);
+            return ApiResponse.<String>builder()
+                            .code(2000)
+                            .message("Board successfully deleted")
+                            .result("Board ID: " + boardId)
+                            .build();
     }
+
+    @PostMapping("/boards/{boardId}/clear-tasks")
+    public ApiResponse<KanbanBoardResponse> clearAllTasks(@PathVariable UUID boardId) {
+        KanbanBoardResponse board = kanbanService.clearAllTasks(boardId);
+        return ApiResponse.<KanbanBoardResponse>builder()
+                .result(board)
+                .build();
+     }
+
+    @PostMapping("/boards/{boardId}/reset")
+    public ApiResponse<KanbanBoardResponse> resetBoard(@PathVariable UUID boardId) {
+        KanbanBoardResponse resetBoard = kanbanService.resetBoardToDefaults(boardId);
+        return ApiResponse.<KanbanBoardResponse>builder()
+                .result(resetBoard)
+                .build();
+        }
 
     // Column endpoints
     @PostMapping("/columns")
