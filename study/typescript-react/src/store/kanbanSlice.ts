@@ -1,9 +1,8 @@
-// src/store/kanbanSlice.ts
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
 import { arrayMove } from "@dnd-kit/sortable";
 import { ColumnKanban, TaskKanban, KanbanState, Board } from "../type/types";
-import kanbanService from "../services/KanbanService";
+import KanbanService from "../services/KanbanService";
 
 // Define initial state with priority included
 const initialState: KanbanState = {
@@ -19,12 +18,47 @@ const initialState: KanbanState = {
   activeBoard: null,
 };
 
+// Default columns generator
+const getDefaultColumns = (boardId: string | null): ColumnKanban[] => [
+  {
+    id: nanoid(),
+    title: "Backlog",
+    tasks: [],
+    position: 0,
+    boardId: boardId || "",
+  },
+  {
+    id: nanoid(),
+    title: "To Do",
+    tasks: [],
+    position: 1,
+    boardId: boardId || "",
+  },
+  {
+    id: nanoid(),
+    title: "In Progress",
+    tasks: [],
+    position: 2,
+    boardId: boardId || "",
+  },
+  {
+    id: nanoid(),
+    title: "Done",
+    tasks: [],
+    position: 3,
+    boardId: boardId || "",
+  },
+];
+
 // Async thunk to fetch all user's boards
 export const fetchUserBoards = createAsyncThunk(
   "kanban/fetchUserBoards",
-  async (userId: string, { rejectWithValue }) => {
+  async (
+    { userId, token }: { userId: string; token: string },
+    { rejectWithValue }
+  ) => {
     try {
-      const boards = await kanbanService.getUserBoards(userId);
+      const boards = await KanbanService.getUserBoards(userId, token);
       return boards;
     } catch {
       return rejectWithValue("Failed to fetch user boards");
@@ -35,9 +69,12 @@ export const fetchUserBoards = createAsyncThunk(
 // Async thunk to fetch a specific board
 export const fetchBoardById = createAsyncThunk(
   "kanban/fetchBoardById",
-  async (boardId: string, { rejectWithValue }) => {
+  async (
+    { boardId, token }: { boardId: string; token: string },
+    { rejectWithValue }
+  ) => {
     try {
-      const board = await kanbanService.getBoardById(boardId);
+      const board = await KanbanService.getBoardById(boardId, token);
       if (!board) {
         return rejectWithValue("Board not found");
       }
@@ -52,11 +89,11 @@ export const fetchBoardById = createAsyncThunk(
 export const createUserBoard = createAsyncThunk(
   "kanban/createUserBoard",
   async (
-    { userId, title }: { userId: string; title?: string },
+    { userId, token, title }: { userId: string; token: string; title?: string },
     { rejectWithValue }
   ) => {
     try {
-      const board = await kanbanService.createBoard(userId, title);
+      const board = await KanbanService.createBoard(userId, token, title);
       if (!board) {
         return rejectWithValue("Failed to create board");
       }
@@ -73,15 +110,17 @@ export const saveUserBoard = createAsyncThunk(
   async (
     {
       boardId,
+      token,
       data,
     }: {
       boardId: string;
-      data: Partial<Board & { columns: ColumnKanban[] }>;
+      token: string;
+      data: Partial<Board>;
     },
     { rejectWithValue }
   ) => {
     try {
-      const board = await kanbanService.updateBoard(boardId, data);
+      const board = await KanbanService.updateBoard(boardId, token, data);
       if (!board) {
         return rejectWithValue("Failed to save board");
       }
@@ -92,12 +131,30 @@ export const saveUserBoard = createAsyncThunk(
   }
 );
 
+// Async thunk to delete a board
+export const deleteUserBoard = createAsyncThunk(
+  "kanban/deleteUserBoard",
+  async (
+    { boardId, token }: { boardId: string; token: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const success = await KanbanService.deleteBoard(boardId, token);
+      if (!success) {
+        return rejectWithValue("Failed to delete board");
+      }
+      return boardId;
+    } catch {
+      return rejectWithValue("Failed to delete board");
+    }
+  }
+);
+
 const kanbanSlice = createSlice({
   name: "kanban",
   initialState,
   reducers: {
     setColumns: (state, action: PayloadAction<ColumnKanban[]>) => {
-      // Ensure we don't set empty columns array
       if (action.payload && action.payload.length > 0) {
         state.columns = action.payload;
       }
@@ -117,9 +174,10 @@ const kanbanSlice = createSlice({
       state.activeBoard = action.payload;
       if (action.payload) {
         state.boardId = action.payload.id;
-        if (action.payload.columns && action.payload.columns.length > 0) {
-          state.columns = action.payload.columns;
-        }
+        state.columns =
+          action.payload.columns && action.payload.columns.length > 0
+            ? action.payload.columns
+            : getDefaultColumns(action.payload.id);
       }
     },
     invalidateColumns: (state) => {
@@ -225,8 +283,6 @@ const kanbanSlice = createSlice({
             : targetCol.tasks.length;
         if (oldIndex !== newIndex) {
           sourceCol.tasks = arrayMove(sourceCol.tasks, oldIndex, newIndex);
-
-          // Update positions after reordering
           sourceCol.tasks.forEach((task, index) => {
             task.position = index;
           });
@@ -241,21 +297,15 @@ const kanbanSlice = createSlice({
         );
 
         if (movedTask) {
-          // Update columnId of the moved task
           movedTask.columnId = targetCol.id;
-
           if (overTaskIndex !== -1) {
             targetCol.tasks.splice(overTaskIndex, 0, movedTask);
           } else {
             targetCol.tasks.push(movedTask);
           }
-
-          // Update positions in the target column
           targetCol.tasks.forEach((task, index) => {
             task.position = index;
           });
-
-          // Update positions in the source column
           sourceCol.tasks.forEach((task, index) => {
             task.position = index;
           });
@@ -271,15 +321,12 @@ const kanbanSlice = createSlice({
       const newIndex = state.columns.findIndex((col) => col.id === overId);
       if (oldIndex !== newIndex) {
         state.columns = arrayMove(state.columns, oldIndex, newIndex);
-
-        // Update positions after reordering
         state.columns.forEach((column, index) => {
           column.position = index;
         });
       }
     },
     clearKanbanData: (state) => {
-      // Keep the column structure but clear the tasks
       state.columns = state.columns.map((column) => ({
         ...column,
         tasks: [],
@@ -289,53 +336,7 @@ const kanbanSlice = createSlice({
       state.isEditingTaskInvalidated = false;
     },
     resetToDefaultColumns: (state) => {
-      // Generate a temporary boardId if one doesn't exist
-      const effectiveBoardId = state.boardId || `temp-board-${nanoid()}`;
-
-      // Always create default columns, even without a boardId
-      state.columns = [
-        {
-          id: nanoid(),
-          title: "Back log",
-          tasks: [],
-          position: 0,
-          boardId: effectiveBoardId,
-        },
-        {
-          id: nanoid(),
-          title: "Pending",
-          tasks: [],
-          position: 1,
-          boardId: effectiveBoardId,
-        },
-        {
-          id: nanoid(),
-          title: "To Do",
-          tasks: [],
-          position: 2,
-          boardId: effectiveBoardId,
-        },
-        {
-          id: nanoid(),
-          title: "In Progress",
-          tasks: [],
-          position: 3,
-          boardId: effectiveBoardId,
-        },
-        {
-          id: nanoid(),
-          title: "Done",
-          tasks: [],
-          position: 4,
-          boardId: effectiveBoardId,
-        },
-      ];
-
-      // Set the boardId if it wasn't already set
-      if (!state.boardId) {
-        state.boardId = effectiveBoardId;
-      }
-
+      state.columns = getDefaultColumns(state.boardId ?? null);
       state.editingTask = null;
       state.isColumnsInvalidated = false;
       state.isEditingTaskInvalidated = false;
@@ -354,24 +355,22 @@ const kanbanSlice = createSlice({
       .addCase(fetchUserBoards.fulfilled, (state, action) => {
         state.loading = false;
         state.userBoards = action.payload || [];
-
-        // If we have boards and no active board, set the first one as active
         if (action.payload && action.payload.length > 0 && !state.activeBoard) {
           const firstBoard = action.payload[0];
           state.activeBoard = firstBoard;
           state.boardId = firstBoard.id;
-          if (firstBoard.columns && firstBoard.columns.length > 0) {
-            state.columns = firstBoard.columns;
-          }
+          state.columns =
+            firstBoard.columns && firstBoard.columns.length > 0
+              ? firstBoard.columns
+              : getDefaultColumns(firstBoard.id);
         }
       })
       .addCase(fetchUserBoards.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      });
+      })
 
-    // Handle fetchBoardById async thunk
-    builder
+      // Handle fetchBoardById async thunk
       .addCase(fetchBoardById.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -380,93 +379,46 @@ const kanbanSlice = createSlice({
         state.loading = false;
         state.activeBoard = action.payload;
         state.boardId = action.payload.id;
-        if (action.payload.columns && action.payload.columns.length > 0) {
-          state.columns = action.payload.columns;
-        }
+        state.columns =
+          action.payload.columns && action.payload.columns.length > 0
+            ? action.payload.columns
+            : getDefaultColumns(action.payload.id);
       })
       .addCase(fetchBoardById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      });
+      })
 
-    // Handle createUserBoard async thunk
-    builder
+      // Handle createUserBoard async thunk
       .addCase(createUserBoard.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(createUserBoard.fulfilled, (state, action) => {
         state.loading = false;
-
-        // Add to user boards
         if (!state.userBoards) {
           state.userBoards = [];
         }
         state.userBoards.push(action.payload);
-
-        // Set as active board
         state.activeBoard = action.payload;
         state.boardId = action.payload.id;
-
-        // If the board has columns, use them, otherwise reset to defaults
-        if (action.payload.columns && action.payload.columns.length > 0) {
-          state.columns = action.payload.columns;
-        } else {
-          // Create default columns with the new boardId
-          state.columns = [
-            {
-              id: nanoid(),
-              title: "Back log",
-              tasks: [],
-              position: 0,
-              boardId: action.payload.id,
-            },
-            {
-              id: nanoid(),
-              title: "Pending",
-              tasks: [],
-              position: 1,
-              boardId: action.payload.id,
-            },
-            {
-              id: nanoid(),
-              title: "To Do",
-              tasks: [],
-              position: 2,
-              boardId: action.payload.id,
-            },
-            {
-              id: nanoid(),
-              title: "In Progress",
-              tasks: [],
-              position: 3,
-              boardId: action.payload.id,
-            },
-            {
-              id: nanoid(),
-              title: "Done",
-              tasks: [],
-              position: 4,
-              boardId: action.payload.id,
-            },
-          ];
-        }
+        state.columns =
+          action.payload.columns && action.payload.columns.length > 0
+            ? action.payload.columns
+            : getDefaultColumns(action.payload.id);
       })
       .addCase(createUserBoard.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      });
+      })
 
-    // Handle saveUserBoard async thunk
-    builder
+      // Handle saveUserBoard async thunk
       .addCase(saveUserBoard.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(saveUserBoard.fulfilled, (state, action) => {
         state.loading = false;
-
-        // Update board in userBoards array
         if (state.userBoards) {
           const boardIndex = state.userBoards.findIndex(
             (b) => b.id === action.payload.id
@@ -475,13 +427,34 @@ const kanbanSlice = createSlice({
             state.userBoards[boardIndex] = action.payload;
           }
         }
-
-        // Update active board
         if (state.activeBoard?.id === action.payload.id) {
           state.activeBoard = action.payload;
         }
       })
       .addCase(saveUserBoard.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Handle deleteUserBoard async thunk
+      .addCase(deleteUserBoard.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteUserBoard.fulfilled, (state, action) => {
+        state.loading = false;
+        if (state.userBoards) {
+          state.userBoards = state.userBoards.filter(
+            (board) => board.id !== action.payload
+          );
+        }
+        if (state.activeBoard?.id === action.payload) {
+          state.activeBoard = null;
+          state.boardId = null;
+          state.columns = [];
+        }
+      })
+      .addCase(deleteUserBoard.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -506,7 +479,7 @@ export const {
   dragEndColumn,
   clearKanbanData,
   resetToDefaultColumns,
-  resetError,
+  // Removed resetError since it wasn't defined
 } = kanbanSlice.actions;
 
 export default kanbanSlice.reducer;

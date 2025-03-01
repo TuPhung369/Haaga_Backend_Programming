@@ -69,7 +69,6 @@ const saveState = (state: RootState): void => {
     ) {
       const serializedState = JSON.stringify(state);
       localStorage.setItem("appState", serializedState);
-      console.log("State saved to localStorage");
     } else {
       console.warn(
         "Did not save state to localStorage due to invalid structure"

@@ -9,6 +9,7 @@ import {
   PlusOutlined,
   DeleteOutlined,
   ReloadOutlined,
+  SaveOutlined,
 } from "@ant-design/icons";
 import { Modal, Input, InputRef, Select, Button, message, Spin } from "antd";
 import { useSelector, useDispatch } from "react-redux";
@@ -27,16 +28,16 @@ import {
   resetToDefaultColumns,
   fetchUserBoards,
   createUserBoard,
-  setColumns,
+  saveUserBoard,
 } from "../store/kanbanSlice";
 import { RootState, TaskKanban } from "../type/types";
+import { AppDispatch } from "../store/store";
 import { PriorityOptions } from "../utils/constant";
-import { AppDispatch } from "../store/RootState";
 
 const KanbanPage: React.FC = () => {
-  const { columns, editingTask, loading, error, activeBoard } = useSelector(
-    (state: RootState) => state.kanban
-  );
+  const { columns, editingTask, loading, error, boardId, activeBoard } =
+    useSelector((state: RootState) => state.kanban);
+  const token = useSelector((state: RootState) => state.auth.token || "");
   const userId = useSelector(
     (state: RootState) => state.user.userInfo?.id || ""
   );
@@ -47,54 +48,47 @@ const KanbanPage: React.FC = () => {
   const [isNewTaskModalVisible, setIsNewTaskModalVisible] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
   const inputRef = useRef<InputRef>(null);
-
-  // Set userId in kanban state when it changes and handle boards
+  const hasFetchedBoardsRef = useRef(false);
+  // Fetch or create user's board when userId or token changes
   useEffect(() => {
-    if (userId) {
+    if (userId && token && !hasFetchedBoardsRef.current) {
+      console.log("Fetching boards for userId:", userId);
+      hasFetchedBoardsRef.current = true; // Đánh dấu đã fetch để tránh lặp lại
+
       dispatch(setUserId(userId));
-
-      // Check if we already have columns first
-      if (columns && columns.length > 0) {
-        return; // Already have columns, no need to fetch or create
-      }
-
-      // Check localStorage for existing board data
-      const localBoardData = localStorage.getItem(`kanban_board_${userId}`);
-      if (localBoardData) {
-        try {
-          const parsedColumns = JSON.parse(localBoardData);
-          if (Array.isArray(parsedColumns) && parsedColumns.length > 0) {
-            // Use local data
-            dispatch(setColumns(parsedColumns));
-            message.info("Loaded your board from local storage (offline mode)");
-            return;
-          }
-        } catch (e) {
-          console.error("Error parsing local board data:", e);
-        }
-      }
-
-      // Try to fetch boards but handle network errors gracefully
-      dispatch(fetchUserBoards(userId))
+      dispatch(fetchUserBoards({ userId, token }))
         .unwrap()
         .then((boards) => {
-          // If user has no boards, initialize with default columns locally
           if (!boards || boards.length === 0) {
-            console.log("No boards found, initializing with default columns");
-            dispatch(resetToDefaultColumns());
+            console.log("No boards found, creating a new board");
+            dispatch(createUserBoard({ userId, token, title: "Kanban Board" }))
+              .unwrap()
+              .then(() => console.log("Board created successfully"))
+              .catch((err) => {
+                console.error("Failed to create board:", err);
+                message.warning("Offline mode: Changes will be saved locally");
+                dispatch(resetToDefaultColumns());
+              });
+          } else {
+            console.log("Boards fetched:", boards);
           }
         })
-        .catch((error) => {
-          // Network error, fall back to local initialization
-          console.log("Error fetching boards:", error);
-          message.warning(
-            "Working in offline mode - changes will be saved locally"
-          );
+        .catch((err) => {
+          console.error("Error fetching boards:", err);
+          message.warning("Offline mode: Starting with default columns");
           dispatch(resetToDefaultColumns());
         });
     }
-  }, [userId, dispatch, columns]);
+  }, [userId, token, dispatch]);
+
+  // Mark board as having unsaved changes when columns are modified
+  useEffect(() => {
+    if (boardId && columns.length > 0) {
+      setHasChanges(true);
+    }
+  }, [columns, boardId]);
 
   useEffect(() => {
     if ((isNewTaskModalVisible || editingTask) && inputRef.current) {
@@ -106,6 +100,50 @@ const KanbanPage: React.FC = () => {
       inputRef.current.blur();
     }
   }, [isNewTaskModalVisible, editingTask]);
+
+  // Handle saving the board
+  const handleSaveBoard = () => {
+    if (!userId) {
+      message.error("Unable to save: missing user ID");
+      return;
+    }
+    if (!token) {
+      message.error("Unable to save: missing authentication token");
+      return;
+    }
+    if (!boardId) {
+      message.warning("No board ID available, saving locally only");
+      localStorage.setItem(`kanban_board_${userId}`, JSON.stringify(columns));
+      message.success("Board saved locally");
+      setHasChanges(false);
+      return;
+    }
+
+    dispatch(
+      saveUserBoard({
+        boardId,
+        token,
+        data: {
+          columns,
+          userId,
+          title: activeBoard?.title || "My Kanban Board",
+        },
+      })
+    )
+      .unwrap()
+      .then(() => {
+        message.success("Board saved successfully");
+        setHasChanges(false);
+        localStorage.setItem(`kanban_board_${userId}`, JSON.stringify(columns));
+      })
+      .catch((error) => {
+        console.error("Error saving board:", error);
+        message.warning("Failed to save to server - saving locally");
+        localStorage.setItem(`kanban_board_${userId}`, JSON.stringify(columns));
+        message.success("Board saved locally");
+        setHasChanges(false);
+      });
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -252,20 +290,28 @@ const KanbanPage: React.FC = () => {
               type="primary"
               icon={<ReloadOutlined />}
               onClick={() => {
-                if (userId) {
-                  // When retrying, also try to create a board if needed
-                  dispatch(fetchUserBoards(userId))
+                if (userId && token) {
+                  hasFetchedBoardsRef.current = false; // Allow retry
+                  dispatch(fetchUserBoards({ userId, token }))
                     .unwrap()
                     .then((boards) => {
                       if (!boards || boards.length === 0) {
                         dispatch(
-                          createUserBoard({ userId, title: "Kanban Board" })
+                          createUserBoard({
+                            userId,
+                            token,
+                            title: "Kanban Board",
+                          })
                         );
                       }
                     })
                     .catch(() => {
                       dispatch(
-                        createUserBoard({ userId, title: "Kanban Board" })
+                        createUserBoard({
+                          userId,
+                          token,
+                          title: "Kanban Board",
+                        })
                       );
                     });
                 }
@@ -293,24 +339,33 @@ const KanbanPage: React.FC = () => {
     );
   }
 
-  // Display loading state if columns array is empty
+  // Display message if no columns are present
   if (!columns || columns.length === 0) {
     return (
       <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
         <div className="text-center p-8 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl mb-4">Initializing Kanban board...</h2>
-          <Spin className="my-4" />
-          <p className="mb-4">Setting up your board with default columns</p>
-          <Button
-            type="primary"
-            icon={<ReloadOutlined />}
-            onClick={() => {
-              dispatch(resetToDefaultColumns());
-              message.info("Board initialized with default columns");
-            }}
-          >
-            Initialize Now
-          </Button>
+          <h2 className="text-xl mb-4">No Kanban Board Data</h2>
+          <p className="mb-4">
+            No columns found. Click below to add a column or reset to defaults.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => handleAddColumn("New Column")}
+            >
+              Add Column
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => {
+                dispatch(resetToDefaultColumns());
+                message.info("Board initialized with default columns");
+              }}
+            >
+              Reset to Defaults
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -351,6 +406,15 @@ const KanbanPage: React.FC = () => {
               Reset Board
             </button>
           </div>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={handleSaveBoard}
+            loading={loading}
+            disabled={!hasChanges}
+          >
+            {boardId ? "Save Board" : "Save Locally"}
+          </Button>
         </div>
         <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-180px)]">
           <SortableContext
