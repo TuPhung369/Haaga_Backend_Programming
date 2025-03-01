@@ -1,4 +1,5 @@
 import axios from "axios";
+import { AxiosError } from "axios";
 import { ColumnKanban, Board } from "../type/types";
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
@@ -25,12 +26,6 @@ interface SingleBoardResponse {
 
 // API service for Kanban
 const KanbanService = {
-  /**
-   * Get all boards for a user
-   * @param userId The ID of the user
-   * @param token Authentication token
-   * @returns The user's boards
-   */
   getUserBoards: async (
     userId: string,
     token: string
@@ -52,12 +47,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Get a specific board by ID
-   * @param boardId The ID of the board
-   * @param token Authentication token
-   * @returns The board data
-   */
   getBoardById: async (boardId: string, token: string): Promise<BoardData> => {
     try {
       const response = await axios.get<SingleBoardResponse>(
@@ -76,13 +65,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Create a new board for a user
-   * @param userId The ID of the user
-   * @param token Authentication token
-   * @param title Optional title for the board
-   * @returns The created board
-   */
   createBoard: async (
     userId: string,
     token: string,
@@ -106,13 +88,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Update a board
-   * @param boardId The ID of the board
-   * @param token Authentication token
-   * @param data The updated board data
-   * @returns The updated board
-   */
   updateBoard: async (
     boardId: string,
     token: string,
@@ -136,12 +111,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Delete a board
-   * @param boardId The ID of the board
-   * @param token Authentication token
-   * @returns Success status
-   */
   deleteBoard: async (boardId: string, token: string): Promise<boolean> => {
     try {
       await axios.delete(`${API_BASE_URI}/kanban/boards/${boardId}`, {
@@ -157,14 +126,88 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Create a new column in a board
-   * @param boardId The board ID
-   * @param token Authentication token
-   * @param title The column title
-   * @param position The position of the column
-   * @returns Updated board with the new column
-   */
+  clearAllTasks: async (
+    boardId: string,
+    token: string
+  ): Promise<BoardData | null> => {
+    try {
+      const response = await axios.post<SingleBoardResponse>(
+        `${API_BASE_URI}/kanban/boards/${boardId}/clear-tasks`,
+        {}, // Empty body since we're using path variable
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data.result;
+    } catch (error) {
+      console.error("Error clearing tasks:", error);
+      throw error;
+    }
+  },
+
+  resetBoard: async (
+    boardId: string,
+    token: string
+  ): Promise<BoardData | null> => {
+    try {
+      console.log("Attempting to reset board:", boardId);
+      const response = await axios.post<SingleBoardResponse>(
+        `${API_BASE_URI}/kanban/boards/${boardId}/reset`,
+        {}, // Empty body as we're not sending any data
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          timeout: 20000, // Increased timeout further
+        }
+      );
+      console.log(
+        "Reset board response:",
+        response.status,
+        response.statusText
+      );
+      return response.data.result;
+    } catch (error) {
+      const axiosError = error as AxiosError<unknown>;
+      const errorData = axiosError.response?.data || {};
+
+      console.error("Error resetting board details:", {
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        data: errorData,
+        message: axiosError.message,
+      });
+
+      // Check for specific error codes from the API
+      if ((errorData as { code: number }).code === 5000) {
+        console.error("Server error details:", errorData);
+
+        // If it's the generic server error, provide more helpful message
+        throw new Error(
+          "The server encountered an error while resetting the board. " +
+            "This might be due to server maintenance or high load. " +
+            "Please try again in a few minutes or contact support if the issue persists."
+        );
+      } else if (axiosError.code === "ERR_NETWORK") {
+        throw new Error(
+          "Network connection error. Please check your internet connection and try again."
+        );
+      } else if (axiosError.response?.status === 401) {
+        throw new Error("Authentication error. Please log in again.");
+      } else if (axiosError.response?.status === 403) {
+        throw new Error("You do not have permission to reset this board.");
+      } else if (axiosError.response?.status === 404) {
+        throw new Error("Board not found. It may have been deleted.");
+      } else {
+        throw new Error(axiosError.message || "Failed to reset board");
+      }
+    }
+  },
+
   createColumn: async (
     boardId: string,
     token: string,
@@ -189,14 +232,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Update a column
-   * @param columnId The column ID
-   * @param token Authentication token
-   * @param title The new title
-   * @param position Optional position update
-   * @returns Updated board with the modified column
-   */
   updateColumn: async (
     columnId: string,
     token: string,
@@ -242,12 +277,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Delete a column
-   * @param columnId The column ID
-   * @param token Authentication token
-   * @returns Updated board without the deleted column
-   */
   deleteColumn: async (columnId: string, token: string): Promise<BoardData> => {
     try {
       const response = await axios.delete<SingleBoardResponse>(
@@ -266,26 +295,30 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Create a new task
-   * @param columnId The column ID
-   * @param token Authentication token
-   * @param title The task title
-   * @param priority The task priority
-   * @param position The position of the task
-   * @returns Updated board with the new task
-   */
   createTask: async (
     columnId: string,
     token: string,
     title: string,
-    priority: "High" | "Medium" | "Low",
-    position: number
-  ): Promise<BoardData> => {
+    description?: string,
+    priority?: "High" | "Medium" | "Low"
+  ): Promise<BoardData | null> => {
     try {
+      // Log the request data to verify it
+      console.log("Creating task with data:", {
+        columnId,
+        title,
+        description,
+        priority,
+      });
+
       const response = await axios.post<SingleBoardResponse>(
         `${API_BASE_URI}/kanban/tasks`,
-        { columnId, title, priority, position },
+        {
+          columnId, // Make sure this is a valid UUID
+          title,
+          description: description || "",
+          priority: priority || "Medium",
+        },
         {
           headers: {
             "Content-Type": "application/json",
@@ -300,16 +333,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Update a task
-   * @param taskId The task ID
-   * @param token Authentication token
-   * @param title The new title
-   * @param priority The new priority
-   * @param columnId Optional new column ID
-   * @param position Optional new position
-   * @returns Updated board with the modified task
-   */
   updateTask: async (
     taskId: string,
     token: string,
@@ -346,12 +369,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Delete a task
-   * @param taskId The task ID
-   * @param token Authentication token
-   * @returns Updated board without the deleted task
-   */
   deleteTask: async (taskId: string, token: string): Promise<BoardData> => {
     try {
       const response = await axios.delete<SingleBoardResponse>(
@@ -370,11 +387,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Move a task to a different column or position
-   * @param params Object containing taskId, token, targetColumnId, and newPosition
-   * @returns Updated board with the moved task
-   */
   moveTask: async ({
     taskId,
     token,
@@ -404,11 +416,6 @@ const KanbanService = {
     }
   },
 
-  /**
-   * Move a column to a different position
-   * @param params Object containing columnId, token, and newPosition
-   * @returns Updated board with the moved column
-   */
   moveColumn: async ({
     columnId,
     token,

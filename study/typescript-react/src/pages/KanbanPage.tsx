@@ -29,6 +29,7 @@ import {
   fetchUserBoards,
   createUserBoard,
   saveUserBoard,
+  resetBoardToDefaults,
 } from "../store/kanbanSlice";
 import { RootState, TaskKanban } from "../type/types";
 import { AppDispatch } from "../store/store";
@@ -51,6 +52,7 @@ const KanbanPage: React.FC = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const inputRef = useRef<InputRef>(null);
   const hasFetchedBoardsRef = useRef(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     if (userId && token && !hasFetchedBoardsRef.current) {
@@ -182,12 +184,14 @@ const KanbanPage: React.FC = () => {
     }
   };
 
-  const handleAddTask = (columnId: string, taskTitle: string) => {
+  const handleAddTask = (columnId: string, title: string) => {
     if (!boardId || !token) {
       message.error("Cannot add task: missing board ID or token");
       return;
     }
-    dispatch(addTask({ columnId, token, taskTitle, priority: newTaskPriority }))
+    dispatch(
+      addTask({ columnId, token, title: title, priority: newTaskPriority })
+    )
       .unwrap()
       .catch((err) => {
         console.error("Failed to add task:", err);
@@ -291,37 +295,115 @@ const KanbanPage: React.FC = () => {
       message.error("Cannot clear tasks: missing board ID or token");
       return;
     }
-    Modal.confirm({
+
+    // Create modal instance
+    const modal = Modal.confirm({
       title: "Are you sure you want to clear all tasks?",
       content: "This will remove all tasks but keep your columns.",
+      okText: "Yes",
+      cancelText: "No",
+      okButtonProps: { loading: false },
       onOk: () => {
+        // Show loading immediately
+        modal.update({ okButtonProps: { loading: true } });
+
+        // Return undefined to let Modal handle the promise internally
         dispatch(clearKanbanData({ boardId, token }))
           .unwrap()
           .then(() => {
             message.success("All tasks have been cleared");
+            // Close modal on success
+            modal.destroy();
           })
           .catch((err) => {
             console.error("Failed to clear tasks:", err);
             message.error("Failed to clear tasks on server");
+            // Keep modal open on error, but stop loading
+            modal.update({ okButtonProps: { loading: false } });
+
+            // *Important*: Return a resolved promise to prevent the uncaught rejection
+            return Promise.resolve();
           });
+
+        // Return false to prevent Modal from automatically closing
+        return false;
       },
-      okText: "Yes",
-      cancelText: "No",
     });
   };
 
-  const handleResetBoard = () => {
-    Modal.confirm({
-      title: "Reset Kanban Board",
-      content:
-        "This will reset the board to default columns and remove all tasks. Are you sure?",
-      onOk: () => {
-        dispatch(resetToDefaultColumns());
-        message.success("Kanban board has been reset to defaults");
-      },
-      okText: "Yes",
-      cancelText: "No",
-    });
+  const handleResetBoard = async () => {
+    if (!boardId) {
+      message.error("Board ID is required");
+      return;
+    }
+
+    setIsResetting(true);
+
+    // Add retry logic with longer delays
+    let retryCount = 0;
+    const maxRetries = 2;
+    const delays = [2000, 5000]; // Increasing delays between retries
+
+    const attemptReset = async (): Promise<boolean> => {
+      try {
+        await dispatch(resetBoardToDefaults({ boardId, token })).unwrap();
+        message.success("Board has been reset to default settings");
+        return true;
+      } catch (error) {
+        const errorMessage =
+          typeof error === "string" ? error : "Failed to reset board";
+
+        if (retryCount < maxRetries) {
+          const delay = delays[retryCount];
+          retryCount++;
+          console.log(
+            `Retry attempt ${retryCount} of ${maxRetries} after ${delay}ms...`
+          );
+
+          message.info(
+            `Retrying reset operation (${retryCount}/${maxRetries})...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return attemptReset();
+        }
+
+        // If all retries fail, offer manual reset option
+        message.error(errorMessage);
+        console.error("Failed to reset board after retries:", errorMessage);
+
+        // Show a modal with alternative options
+        Modal.confirm({
+          title: "Reset Board Failed",
+          content: (
+            <div>
+              <p>
+                We couldn't automatically reset your board due to a server
+                error.
+              </p>
+              <p>Would you like to try these alternatives:</p>
+              <ul>
+                <li>Refresh the page and try again</li>
+                <li>Try manual board configuration</li>
+                <li>Contact support if the issue persists</li>
+              </ul>
+            </div>
+          ),
+          okText: "Refresh Page",
+          cancelText: "Cancel",
+          onOk: () => {
+            window.location.reload();
+          },
+        });
+
+        return false;
+      }
+    };
+
+    try {
+      await attemptReset();
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const showNewTaskModal = (columnId: string) => {
@@ -352,6 +434,7 @@ const KanbanPage: React.FC = () => {
   );
   const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 280)}px`;
 
+  // Add back the loading condition check
   if (loading) {
     return (
       <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
@@ -477,15 +560,17 @@ const KanbanPage: React.FC = () => {
               />
               Clear Tasks
             </button>
-            <button
+            <Button
+              style={{ height: "30px", paddingTop: 0, paddingBottom: 0 }}
               className="p-2 bg-yellow-500 text-white rounded-full mr-2 hover:bg-yellow-600 transition"
               onClick={handleResetBoard}
+              loading={isResetting}
             >
               <ReloadOutlined
                 style={{ fontSize: "16px", marginRight: "5px" }}
               />
               Reset Board
-            </button>
+            </Button>
           </div>
           <Button
             type="primary"
@@ -620,3 +705,4 @@ const KanbanPage: React.FC = () => {
 };
 
 export default KanbanPage;
+

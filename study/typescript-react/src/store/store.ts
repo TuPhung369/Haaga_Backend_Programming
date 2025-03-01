@@ -1,4 +1,9 @@
-import { configureStore, Reducer, Action } from "@reduxjs/toolkit"; // Add Reducer and Action
+import {
+  configureStore,
+  Reducer,
+  Action,
+  combineReducers,
+} from "@reduxjs/toolkit";
 import kanbanReducer from "./kanbanSlice";
 import authReducer from "./authSlice";
 import userReducer from "./userSlice";
@@ -79,28 +84,54 @@ const saveState = (state: RootState): void => {
   }
 };
 
-// Configure the store with explicit typing for reducers
+// Create the app reducer with proper typing
+const appReducer = combineReducers({
+  auth: authReducer as Reducer<
+    AuthState,
+    Action,
+    Partial<AuthState> | undefined
+  >,
+  kanban: kanbanReducer as Reducer<
+    KanbanState,
+    Action,
+    Partial<KanbanState> | undefined
+  >,
+  user: userReducer as Reducer<
+    UserState,
+    Action,
+    Partial<UserState> | undefined
+  >,
+});
+
+// Root reducer with logout handling and proper state typing
+const rootReducer: Reducer<
+  RootState,
+  Action,
+  Partial<RootState> | undefined
+> = (
+  state: RootState | Partial<RootState> | undefined,
+  action: Action
+): RootState => {
+  // When a logout action is dispatched, reset the state to initial state
+  if (action.type === "auth/logout") {
+    localStorage.removeItem("appState");
+    return appReducer(undefined, action);
+  }
+  return appReducer(state, action);
+};
+
+// Create store with the root reducer
 const store = configureStore({
-  reducer: {
-    auth: authReducer as Reducer<AuthState, Action, AuthState | undefined>,
-    kanban: kanbanReducer as Reducer<
-      KanbanState,
-      Action,
-      KanbanState | undefined
-    >,
-    user: userReducer as Reducer<UserState, Action, UserState | undefined>,
-  },
+  reducer: rootReducer,
   preloadedState: loadState(),
   devTools: isDevelopment,
 });
 
 // Subscribe to state changes with typed state
 store.subscribe(() => {
-  const state = store.getState() as RootState; // Explicitly type as RootState
+  const state = store.getState() as RootState;
   if (state.auth.isAuthenticated) {
     saveState(state);
-  } else {
-    localStorage.removeItem("appState"); // Clear localStorage on logout
   }
 });
 

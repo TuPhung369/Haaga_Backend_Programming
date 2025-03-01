@@ -19,7 +19,9 @@ const initialState: KanbanState = {
   loading: false,
   error: null,
   boardId: null,
+  isLoading: false,
   userBoards: [],
+  boardData: null,
   activeBoard: null,
 };
 
@@ -130,6 +132,35 @@ export const saveUserBoard = createAsyncThunk(
   }
 );
 
+export const resetBoardToDefaults = createAsyncThunk(
+  "kanban/resetBoardToDefaults",
+  async (
+    { boardId, token }: { boardId: string; token: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const result = await KanbanService.resetBoard(boardId, token);
+
+      if (!result) {
+        return rejectWithValue(
+          "Failed to reset board: No data returned from server"
+        );
+      }
+
+      return result;
+    } catch (error) {
+      // Handle Error object properly
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to reset board: Unknown error";
+
+      console.error("Error resetting board:", error);
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 export const addColumn = createAsyncThunk(
   "kanban/addColumn",
   async (
@@ -215,26 +246,22 @@ export const addTask = createAsyncThunk(
     {
       columnId,
       token,
-      taskTitle,
+      title,
       priority,
     }: {
       columnId: string;
       token: string;
-      taskTitle: string;
+      title: string;
       priority: "High" | "Medium" | "Low";
     },
-    { getState, rejectWithValue }
+    { rejectWithValue }
   ) => {
     try {
-      const state = getState() as RootState;
-      const column = state.kanban.columns.find((col) => col.id === columnId);
-      const position = column ? column.tasks.length : 0;
       const board = await KanbanService.createTask(
         columnId,
         token,
-        taskTitle,
-        priority,
-        position
+        title,
+        priority
       );
       if (!board) return rejectWithValue("Failed to add task");
       return board;
@@ -386,17 +413,10 @@ export const clearKanbanData = createAsyncThunk(
   "kanban/clearKanbanData",
   async (
     { boardId, token }: { boardId: string; token: string },
-    { getState, rejectWithValue }
+    { rejectWithValue }
   ) => {
     try {
-      const state = getState() as RootState;
-      const columnsWithoutTasks = state.kanban.columns.map((col) => ({
-        ...col,
-        tasks: [],
-      }));
-      const board = await KanbanService.updateBoard(boardId, token, {
-        columns: columnsWithoutTasks,
-      });
+      const board = await KanbanService.clearAllTasks(boardId, token);
       if (!board) return rejectWithValue("Failed to clear tasks");
       return board;
     } catch {
@@ -633,6 +653,20 @@ const kanbanSlice = createSlice({
       .addCase(clearKanbanData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      .addCase(resetBoardToDefaults.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(resetBoardToDefaults.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.boardData = action.payload;
+        state.error = null;
+      })
+      .addCase(resetBoardToDefaults.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = (action.payload as string) || "Failed to reset board";
+        console.log("Board reset failed:", state.error);
       });
   },
 });

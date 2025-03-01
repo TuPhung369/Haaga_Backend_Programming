@@ -84,6 +84,8 @@ export interface KanbanState {
   error?: string | null;
   activeBoard?: Board | null;
   boardId?: string | null;
+  isLoading?: boolean;
+  boardData?: KanbanBoardResponse | null;
 }
 
 export interface KanbanBoardResponse {
