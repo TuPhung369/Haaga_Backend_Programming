@@ -289,39 +289,53 @@ const kanbanSlice = createSlice({
       state.isEditingTaskInvalidated = false;
     },
     resetToDefaultColumns: (state) => {
-      // Create default columns with boardId
-      if (state.boardId) {
-        state.columns = [
-          {
-            id: nanoid(),
-            title: "Backlog",
-            tasks: [],
-            position: 0,
-            boardId: state.boardId,
-          },
-          {
-            id: nanoid(),
-            title: "To Do",
-            tasks: [],
-            position: 1,
-            boardId: state.boardId,
-          },
-          {
-            id: nanoid(),
-            title: "In Progress",
-            tasks: [],
-            position: 2,
-            boardId: state.boardId,
-          },
-          {
-            id: nanoid(),
-            title: "Done",
-            tasks: [],
-            position: 3,
-            boardId: state.boardId,
-          },
-        ];
+      // Generate a temporary boardId if one doesn't exist
+      const effectiveBoardId = state.boardId || `temp-board-${nanoid()}`;
+
+      // Always create default columns, even without a boardId
+      state.columns = [
+        {
+          id: nanoid(),
+          title: "Back log",
+          tasks: [],
+          position: 0,
+          boardId: effectiveBoardId,
+        },
+        {
+          id: nanoid(),
+          title: "Pending",
+          tasks: [],
+          position: 1,
+          boardId: effectiveBoardId,
+        },
+        {
+          id: nanoid(),
+          title: "To Do",
+          tasks: [],
+          position: 2,
+          boardId: effectiveBoardId,
+        },
+        {
+          id: nanoid(),
+          title: "In Progress",
+          tasks: [],
+          position: 3,
+          boardId: effectiveBoardId,
+        },
+        {
+          id: nanoid(),
+          title: "Done",
+          tasks: [],
+          position: 4,
+          boardId: effectiveBoardId,
+        },
+      ];
+
+      // Set the boardId if it wasn't already set
+      if (!state.boardId) {
+        state.boardId = effectiveBoardId;
       }
+
       state.editingTask = null;
       state.isColumnsInvalidated = false;
       state.isEditingTaskInvalidated = false;
@@ -402,30 +416,37 @@ const kanbanSlice = createSlice({
           state.columns = [
             {
               id: nanoid(),
-              title: "Backlog",
+              title: "Back log",
               tasks: [],
               position: 0,
               boardId: action.payload.id,
             },
             {
               id: nanoid(),
-              title: "To Do",
+              title: "Pending",
               tasks: [],
               position: 1,
               boardId: action.payload.id,
             },
             {
               id: nanoid(),
-              title: "In Progress",
+              title: "To Do",
               tasks: [],
               position: 2,
               boardId: action.payload.id,
             },
             {
               id: nanoid(),
-              title: "Done",
+              title: "In Progress",
               tasks: [],
               position: 3,
+              boardId: action.payload.id,
+            },
+            {
+              id: nanoid(),
+              title: "Done",
+              tasks: [],
+              position: 4,
               boardId: action.payload.id,
             },
           ];
