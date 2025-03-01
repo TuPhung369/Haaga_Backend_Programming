@@ -1,10 +1,15 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
-import { arrayMove } from "@dnd-kit/sortable";
-import { ColumnKanban, TaskKanban, KanbanState, Board } from "../type/types";
+import {
+  ColumnKanban,
+  TaskKanban,
+  KanbanState,
+  Board,
+  RootState,
+} from "../type/types";
 import KanbanService from "../services/KanbanService";
 
-// Define initial state with priority included
+// Define initial state
 const initialState: KanbanState = {
   columns: [],
   editingTask: null,
@@ -22,35 +27,42 @@ const initialState: KanbanState = {
 const getDefaultColumns = (boardId: string | null): ColumnKanban[] => [
   {
     id: nanoid(),
-    title: "Backlog",
+    title: "Back log",
     tasks: [],
     position: 0,
     boardId: boardId || "",
   },
   {
     id: nanoid(),
-    title: "To Do",
+    title: "Pending",
     tasks: [],
     position: 1,
     boardId: boardId || "",
   },
   {
     id: nanoid(),
-    title: "In Progress",
+    title: "To Do",
     tasks: [],
     position: 2,
     boardId: boardId || "",
   },
   {
     id: nanoid(),
-    title: "Done",
+    title: "In Progress",
     tasks: [],
     position: 3,
     boardId: boardId || "",
   },
+  {
+    id: nanoid(),
+    title: "Done",
+    tasks: [],
+    position: 4,
+    boardId: boardId || "",
+  },
 ];
 
-// Async thunk to fetch all user's boards
+// Async thunks
 export const fetchUserBoards = createAsyncThunk(
   "kanban/fetchUserBoards",
   async (
@@ -66,7 +78,6 @@ export const fetchUserBoards = createAsyncThunk(
   }
 );
 
-// Async thunk to fetch a specific board
 export const fetchBoardById = createAsyncThunk(
   "kanban/fetchBoardById",
   async (
@@ -75,9 +86,7 @@ export const fetchBoardById = createAsyncThunk(
   ) => {
     try {
       const board = await KanbanService.getBoardById(boardId, token);
-      if (!board) {
-        return rejectWithValue("Board not found");
-      }
+      if (!board) return rejectWithValue("Board not found");
       return board;
     } catch {
       return rejectWithValue("Failed to fetch board");
@@ -85,7 +94,6 @@ export const fetchBoardById = createAsyncThunk(
   }
 );
 
-// Async thunk to create user's board
 export const createUserBoard = createAsyncThunk(
   "kanban/createUserBoard",
   async (
@@ -94,9 +102,7 @@ export const createUserBoard = createAsyncThunk(
   ) => {
     try {
       const board = await KanbanService.createBoard(userId, token, title);
-      if (!board) {
-        return rejectWithValue("Failed to create board");
-      }
+      if (!board) return rejectWithValue("Failed to create board");
       return board;
     } catch {
       return rejectWithValue("Failed to create board");
@@ -104,7 +110,6 @@ export const createUserBoard = createAsyncThunk(
   }
 );
 
-// Async thunk to save board state
 export const saveUserBoard = createAsyncThunk(
   "kanban/saveUserBoard",
   async (
@@ -112,18 +117,12 @@ export const saveUserBoard = createAsyncThunk(
       boardId,
       token,
       data,
-    }: {
-      boardId: string;
-      token: string;
-      data: Partial<Board>;
-    },
+    }: { boardId: string; token: string; data: Partial<Board> },
     { rejectWithValue }
   ) => {
     try {
       const board = await KanbanService.updateBoard(boardId, token, data);
-      if (!board) {
-        return rejectWithValue("Failed to save board");
-      }
+      if (!board) return rejectWithValue("Failed to save board");
       return board;
     } catch {
       return rejectWithValue("Failed to save board");
@@ -131,21 +130,277 @@ export const saveUserBoard = createAsyncThunk(
   }
 );
 
-// Async thunk to delete a board
-export const deleteUserBoard = createAsyncThunk(
-  "kanban/deleteUserBoard",
+export const addColumn = createAsyncThunk(
+  "kanban/addColumn",
   async (
-    { boardId, token }: { boardId: string; token: string },
+    {
+      boardId,
+      token,
+      title,
+    }: { boardId: string; token: string; title: string },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      const state = getState() as RootState;
+      const position = state.kanban.columns.length;
+      const board = await KanbanService.createColumn(
+        boardId,
+        token,
+        title,
+        position
+      );
+      if (!board) return rejectWithValue("Failed to add column");
+      return board;
+    } catch {
+      return rejectWithValue("Failed to add column");
+    }
+  }
+);
+
+export const editColumn = createAsyncThunk(
+  "kanban/editColumn",
+  async (
+    {
+      columnId,
+      token,
+      newTitle,
+    }: { columnId: string; token: string; newTitle: string },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      const state = getState() as RootState;
+      const column = state.kanban.columns.find((col) => col.id === columnId);
+      const position = column?.position;
+      const boardId = state.kanban.boardId; // Get boardId from state
+
+      if (!boardId) {
+        return rejectWithValue("Cannot edit column: missing board ID");
+      }
+
+      const board = await KanbanService.updateColumn(
+        columnId,
+        token,
+        newTitle,
+        boardId, // Pass boardId to the service
+        position
+      );
+
+      if (!board) return rejectWithValue("Failed to edit column");
+      return board;
+    } catch {
+      return rejectWithValue("Failed to edit column");
+    }
+  }
+);
+
+export const deleteColumn = createAsyncThunk(
+  "kanban/deleteColumn",
+  async (
+    { columnId, token }: { columnId: string; token: string },
     { rejectWithValue }
   ) => {
     try {
-      const success = await KanbanService.deleteBoard(boardId, token);
-      if (!success) {
-        return rejectWithValue("Failed to delete board");
-      }
-      return boardId;
+      const board = await KanbanService.deleteColumn(columnId, token);
+      if (!board) return rejectWithValue("Failed to delete column");
+      return board;
     } catch {
-      return rejectWithValue("Failed to delete board");
+      return rejectWithValue("Failed to delete column");
+    }
+  }
+);
+
+export const addTask = createAsyncThunk(
+  "kanban/addTask",
+  async (
+    {
+      columnId,
+      token,
+      taskTitle,
+      priority,
+    }: {
+      columnId: string;
+      token: string;
+      taskTitle: string;
+      priority: "High" | "Medium" | "Low";
+    },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      const state = getState() as RootState;
+      const column = state.kanban.columns.find((col) => col.id === columnId);
+      const position = column ? column.tasks.length : 0;
+      const board = await KanbanService.createTask(
+        columnId,
+        token,
+        taskTitle,
+        priority,
+        position
+      );
+      if (!board) return rejectWithValue("Failed to add task");
+      return board;
+    } catch {
+      return rejectWithValue("Failed to add task");
+    }
+  }
+);
+
+export const deleteTask = createAsyncThunk(
+  "kanban/deleteTask",
+  async (
+    { taskId, token }: { taskId: string; token: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const board = await KanbanService.deleteTask(taskId, token);
+      if (!board) return rejectWithValue("Failed to delete task");
+      return board;
+    } catch {
+      return rejectWithValue("Failed to delete task");
+    }
+  }
+);
+
+export const saveTaskEdit = createAsyncThunk(
+  "kanban/saveTaskEdit",
+  async (
+    {
+      taskId,
+      token,
+      newTitle,
+      priority,
+    }: {
+      taskId: string;
+      token: string;
+      newTitle: string;
+      priority: "High" | "Medium" | "Low";
+    },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      const state = getState() as RootState;
+      const column = state.kanban.columns.find((col) =>
+        col.tasks.some((task) => task.id === taskId)
+      );
+      const task = column?.tasks.find((t) => t.id === taskId);
+      const board = await KanbanService.updateTask(
+        taskId,
+        token,
+        newTitle,
+        priority,
+        column?.id,
+        task?.position
+      );
+      if (!board) return rejectWithValue("Failed to save task edit");
+      return board;
+    } catch {
+      return rejectWithValue("Failed to save task edit");
+    }
+  }
+);
+
+export const dragEndTask = createAsyncThunk(
+  "kanban/dragEndTask",
+  async (
+    {
+      activeId,
+      overId,
+      token,
+    }: { activeId: string; overId: string; token: string },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      const state = getState() as RootState;
+      const sourceCol = state.kanban.columns.find((col) =>
+        col.tasks.some((task) => task.id === activeId)
+      );
+      const targetCol = state.kanban.columns.find(
+        (col) =>
+          col.id === overId || col.tasks.some((task) => task.id === overId)
+      );
+
+      if (!sourceCol || !targetCol)
+        return rejectWithValue("Invalid drag operation");
+
+      const sourceTasks = sourceCol.tasks;
+      const targetTasks = targetCol.tasks;
+      const movedTask = sourceTasks.find((task) => task.id === activeId);
+      if (!movedTask) return rejectWithValue("Task not found");
+
+      const newPosition =
+        targetCol.id === overId
+          ? targetTasks.length
+          : targetTasks.findIndex((task) => task.id === overId);
+
+      const board = await KanbanService.moveTask({
+        taskId: activeId,
+        token,
+        targetColumnId: targetCol.id,
+        newPosition,
+      });
+
+      if (!board) return rejectWithValue("Failed to move task");
+      return board;
+    } catch {
+      return rejectWithValue("Failed to move task");
+    }
+  }
+);
+
+export const dragEndColumn = createAsyncThunk(
+  "kanban/dragEndColumn",
+  async (
+    {
+      activeId,
+      overId,
+      token,
+    }: { activeId: string; overId: string; token: string },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      const state = getState() as RootState;
+      const oldIndex = state.kanban.columns.findIndex(
+        (col) => col.id === activeId
+      );
+      const newIndex = state.kanban.columns.findIndex(
+        (col) => col.id === overId
+      );
+
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex)
+        return rejectWithValue("Invalid column drag operation");
+
+      const board = await KanbanService.moveColumn({
+        columnId: activeId,
+        token,
+        newPosition: newIndex,
+      });
+
+      if (!board) return rejectWithValue("Failed to move column");
+      return board;
+    } catch {
+      return rejectWithValue("Failed to move column");
+    }
+  }
+);
+
+export const clearKanbanData = createAsyncThunk(
+  "kanban/clearKanbanData",
+  async (
+    { boardId, token }: { boardId: string; token: string },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      const state = getState() as RootState;
+      const columnsWithoutTasks = state.kanban.columns.map((col) => ({
+        ...col,
+        tasks: [],
+      }));
+      const board = await KanbanService.updateBoard(boardId, token, {
+        columns: columnsWithoutTasks,
+      });
+      if (!board) return rejectWithValue("Failed to clear tasks");
+      return board;
+    } catch {
+      return rejectWithValue("Failed to clear tasks");
     }
   }
 );
@@ -154,12 +409,6 @@ const kanbanSlice = createSlice({
   name: "kanban",
   initialState,
   reducers: {
-    setColumns: (state, action: PayloadAction<ColumnKanban[]>) => {
-      if (action.payload && action.payload.length > 0) {
-        state.columns = action.payload;
-      }
-      state.isColumnsInvalidated = false;
-    },
     setEditingTask: (state, action: PayloadAction<TaskKanban | null>) => {
       state.editingTask = action.payload;
       state.isEditingTaskInvalidated = false;
@@ -177,176 +426,17 @@ const kanbanSlice = createSlice({
         state.columns =
           action.payload.columns && action.payload.columns.length > 0
             ? action.payload.columns
-            : getDefaultColumns(action.payload.id);
+            : getDefaultColumns(action.payload.id || null);
       }
-    },
-    invalidateColumns: (state) => {
-      state.isColumnsInvalidated = true;
-    },
-    invalidateEditingTask: (state) => {
-      state.isEditingTaskInvalidated = true;
-    },
-    addTask: (
-      state,
-      action: PayloadAction<{
-        columnId: string;
-        taskTitle: string;
-        priority: "High" | "Medium" | "Low";
-      }>
-    ) => {
-      const { columnId, taskTitle, priority } = action.payload;
-      const column = state.columns.find((col) => col.id === columnId);
-      if (column) {
-        column.tasks.push({
-          id: nanoid(),
-          title: taskTitle,
-          priority,
-          position: column.tasks.length,
-          columnId: columnId,
-        });
-      }
-    },
-    deleteTask: (
-      state,
-      action: PayloadAction<{ columnId: string; taskId: string }>
-    ) => {
-      const { columnId, taskId } = action.payload;
-      const column = state.columns.find((col) => col.id === columnId);
-      if (column) {
-        column.tasks = column.tasks.filter((task) => task.id !== taskId);
-      }
-    },
-    addColumn: (state, action: PayloadAction<string>) => {
-      const newColumn = {
-        id: nanoid(),
-        title: action.payload,
-        tasks: [],
-        position: state.columns.length,
-        boardId: state.boardId || "",
-      };
-      state.columns.push(newColumn);
-    },
-    editColumn: (
-      state,
-      action: PayloadAction<{ columnId: string; newTitle: string }>
-    ) => {
-      const { columnId, newTitle } = action.payload;
-      const column = state.columns.find((col) => col.id === columnId);
-      if (column) {
-        column.title = newTitle;
-      }
-    },
-    deleteColumn: (state, action: PayloadAction<string>) => {
-      state.columns = state.columns.filter((col) => col.id !== action.payload);
-    },
-    saveTaskEdit: (
-      state,
-      action: PayloadAction<{
-        taskId: string;
-        newTitle: string;
-        priority: "High" | "Medium" | "Low";
-      }>
-    ) => {
-      const { taskId, newTitle, priority } = action.payload;
-      for (const column of state.columns) {
-        const task = column.tasks.find((t) => t.id === taskId);
-        if (task) {
-          task.title = newTitle;
-          task.priority = priority;
-          break;
-        }
-      }
-      state.editingTask = null;
-    },
-    dragEndTask: (
-      state,
-      action: PayloadAction<{ activeId: string; overId: string }>
-    ) => {
-      const { activeId, overId } = action.payload;
-      const sourceCol = state.columns.find((col) =>
-        col.tasks.some((task) => task.id === activeId)
-      );
-      const targetCol = state.columns.find(
-        (col) =>
-          col.id === overId || col.tasks.some((task) => task.id === overId)
-      );
-
-      if (!sourceCol || !targetCol) return;
-
-      if (sourceCol.id === targetCol.id) {
-        const oldIndex = sourceCol.tasks.findIndex(
-          (task) => task.id === activeId
-        );
-        const newIndex =
-          targetCol.tasks.findIndex((task) => task.id === overId) !== -1
-            ? targetCol.tasks.findIndex((task) => task.id === overId)
-            : targetCol.tasks.length;
-        if (oldIndex !== newIndex) {
-          sourceCol.tasks = arrayMove(sourceCol.tasks, oldIndex, newIndex);
-          sourceCol.tasks.forEach((task, index) => {
-            task.position = index;
-          });
-        }
-      } else {
-        const movedTask = sourceCol.tasks.find((task) => task.id === activeId);
-        sourceCol.tasks = sourceCol.tasks.filter(
-          (task) => task.id !== activeId
-        );
-        const overTaskIndex = targetCol.tasks.findIndex(
-          (task) => task.id === overId
-        );
-
-        if (movedTask) {
-          movedTask.columnId = targetCol.id;
-          if (overTaskIndex !== -1) {
-            targetCol.tasks.splice(overTaskIndex, 0, movedTask);
-          } else {
-            targetCol.tasks.push(movedTask);
-          }
-          targetCol.tasks.forEach((task, index) => {
-            task.position = index;
-          });
-          sourceCol.tasks.forEach((task, index) => {
-            task.position = index;
-          });
-        }
-      }
-    },
-    dragEndColumn: (
-      state,
-      action: PayloadAction<{ activeId: string; overId: string }>
-    ) => {
-      const { activeId, overId } = action.payload;
-      const oldIndex = state.columns.findIndex((col) => col.id === activeId);
-      const newIndex = state.columns.findIndex((col) => col.id === overId);
-      if (oldIndex !== newIndex) {
-        state.columns = arrayMove(state.columns, oldIndex, newIndex);
-        state.columns.forEach((column, index) => {
-          column.position = index;
-        });
-      }
-    },
-    clearKanbanData: (state) => {
-      state.columns = state.columns.map((column) => ({
-        ...column,
-        tasks: [],
-      }));
-      state.editingTask = null;
-      state.isColumnsInvalidated = false;
-      state.isEditingTaskInvalidated = false;
     },
     resetToDefaultColumns: (state) => {
-      state.columns = getDefaultColumns(state.boardId ?? null);
+      state.columns = getDefaultColumns(state.boardId || null);
       state.editingTask = null;
       state.isColumnsInvalidated = false;
       state.isEditingTaskInvalidated = false;
-    },
-    resetError: (state) => {
-      state.error = null;
     },
   },
   extraReducers: (builder) => {
-    // Handle fetchUserBoards async thunk
     builder
       .addCase(fetchUserBoards.pending, (state) => {
         state.loading = true;
@@ -369,8 +459,6 @@ const kanbanSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-
-      // Handle fetchBoardById async thunk
       .addCase(fetchBoardById.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -388,17 +476,13 @@ const kanbanSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-
-      // Handle createUserBoard async thunk
       .addCase(createUserBoard.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(createUserBoard.fulfilled, (state, action) => {
         state.loading = false;
-        if (!state.userBoards) {
-          state.userBoards = [];
-        }
+        if (!state.userBoards) state.userBoards = [];
         state.userBoards.push(action.payload);
         state.activeBoard = action.payload;
         state.boardId = action.payload.id;
@@ -411,8 +495,6 @@ const kanbanSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-
-      // Handle saveUserBoard async thunk
       .addCase(saveUserBoard.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -423,38 +505,132 @@ const kanbanSlice = createSlice({
           const boardIndex = state.userBoards.findIndex(
             (b) => b.id === action.payload.id
           );
-          if (boardIndex !== -1) {
-            state.userBoards[boardIndex] = action.payload;
-          }
+          if (boardIndex !== -1) state.userBoards[boardIndex] = action.payload;
         }
         if (state.activeBoard?.id === action.payload.id) {
           state.activeBoard = action.payload;
+          state.columns = action.payload.columns || state.columns;
         }
       })
       .addCase(saveUserBoard.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-
-      // Handle deleteUserBoard async thunk
-      .addCase(deleteUserBoard.pending, (state) => {
+      .addCase(addColumn.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(deleteUserBoard.fulfilled, (state, action) => {
+      .addCase(addColumn.fulfilled, (state, action) => {
         state.loading = false;
-        if (state.userBoards) {
-          state.userBoards = state.userBoards.filter(
-            (board) => board.id !== action.payload
-          );
-        }
-        if (state.activeBoard?.id === action.payload) {
-          state.activeBoard = null;
-          state.boardId = null;
-          state.columns = [];
-        }
+        state.columns = action.payload.columns || state.columns;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
       })
-      .addCase(deleteUserBoard.rejected, (state, action) => {
+      .addCase(addColumn.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(editColumn.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editColumn.fulfilled, (state, action) => {
+        state.loading = false;
+        state.columns = action.payload.columns || state.columns;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
+      })
+      .addCase(editColumn.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(deleteColumn.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteColumn.fulfilled, (state, action) => {
+        state.loading = false;
+        state.columns = action.payload.columns || state.columns;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
+      })
+      .addCase(deleteColumn.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(addTask.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addTask.fulfilled, (state, action) => {
+        state.loading = false;
+        state.columns = action.payload.columns || state.columns;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
+      })
+      .addCase(addTask.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(deleteTask.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteTask.fulfilled, (state, action) => {
+        state.loading = false;
+        state.columns = action.payload.columns || state.columns;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
+      })
+      .addCase(deleteTask.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(saveTaskEdit.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(saveTaskEdit.fulfilled, (state, action) => {
+        state.loading = false;
+        state.columns = action.payload.columns || state.columns;
+        state.editingTask = null;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
+      })
+      .addCase(saveTaskEdit.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(dragEndTask.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(dragEndTask.fulfilled, (state, action) => {
+        state.loading = false;
+        state.columns = action.payload.columns || state.columns;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
+      })
+      .addCase(dragEndTask.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(dragEndColumn.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(dragEndColumn.fulfilled, (state, action) => {
+        state.loading = false;
+        state.columns = action.payload.columns || state.columns;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
+      })
+      .addCase(dragEndColumn.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(clearKanbanData.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(clearKanbanData.fulfilled, (state, action) => {
+        state.loading = false;
+        state.columns = action.payload.columns || state.columns;
+        if (state.activeBoard) state.activeBoard.columns = state.columns;
+      })
+      .addCase(clearKanbanData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -462,24 +638,11 @@ const kanbanSlice = createSlice({
 });
 
 export const {
-  setColumns,
   setEditingTask,
   setUserId,
   setBoardId,
   setActiveBoard,
-  invalidateColumns,
-  invalidateEditingTask,
-  addTask,
-  deleteTask,
-  addColumn,
-  editColumn,
-  deleteColumn,
-  saveTaskEdit,
-  dragEndTask,
-  dragEndColumn,
-  clearKanbanData,
   resetToDefaultColumns,
-  // Removed resetError since it wasn't defined
 } = kanbanSlice.actions;
 
 export default kanbanSlice.reducer;

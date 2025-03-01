@@ -51,12 +51,11 @@ const KanbanPage: React.FC = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const inputRef = useRef<InputRef>(null);
   const hasFetchedBoardsRef = useRef(false);
-  // Fetch or create user's board when userId or token changes
+
   useEffect(() => {
     if (userId && token && !hasFetchedBoardsRef.current) {
       console.log("Fetching boards for userId:", userId);
-      hasFetchedBoardsRef.current = true; // Đánh dấu đã fetch để tránh lặp lại
-
+      hasFetchedBoardsRef.current = true;
       dispatch(setUserId(userId));
       dispatch(fetchUserBoards({ userId, token }))
         .unwrap()
@@ -83,7 +82,6 @@ const KanbanPage: React.FC = () => {
     }
   }, [userId, token, dispatch]);
 
-  // Mark board as having unsaved changes when columns are modified
   useEffect(() => {
     if (boardId && columns.length > 0) {
       setHasChanges(true);
@@ -101,7 +99,6 @@ const KanbanPage: React.FC = () => {
     }
   }, [isNewTaskModalVisible, editingTask]);
 
-  // Handle saving the board
   const handleSaveBoard = () => {
     if (!userId) {
       message.error("Unable to save: missing user ID");
@@ -147,34 +144,71 @@ const KanbanPage: React.FC = () => {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over) return;
+    if (!over || active.id === over.id) return;
+
+    if (!token) {
+      message.error(
+        "Cannot perform drag operation: missing authentication token"
+      );
+      return;
+    }
 
     if (active.data.current?.type === "task") {
       dispatch(
         dragEndTask({
           activeId: active.id as string,
           overId: over.id as string,
+          token,
         })
-      );
+      )
+        .unwrap()
+        .catch((err) => {
+          console.error("Failed to move task:", err);
+          message.error("Failed to move task on server");
+        });
     } else if (active.data.current?.type === "column") {
       dispatch(
         dragEndColumn({
           activeId: active.id as string,
           overId: over.id as string,
+          token,
         })
-      );
+      )
+        .unwrap()
+        .catch((err) => {
+          console.error("Failed to move column:", err);
+          message.error("Failed to move column on server");
+        });
     }
   };
 
   const handleAddTask = (columnId: string, taskTitle: string) => {
-    dispatch(addTask({ columnId, taskTitle, priority: newTaskPriority }));
+    if (!boardId || !token) {
+      message.error("Cannot add task: missing board ID or token");
+      return;
+    }
+    dispatch(addTask({ columnId, token, taskTitle, priority: newTaskPriority }))
+      .unwrap()
+      .catch((err) => {
+        console.error("Failed to add task:", err);
+        message.error("Failed to add task to server");
+      });
   };
 
   const handleDeleteTask = (columnId: string, taskId: string) => {
+    if (!token) {
+      message.error("Cannot delete task: missing token");
+      return;
+    }
     Modal.confirm({
       title: "Are you sure you want to delete this task?",
       onOk: () => {
-        dispatch(deleteTask({ columnId, taskId }));
+        dispatch(deleteTask({ taskId, token }))
+          .unwrap()
+          .catch((err) => {
+            console.error("Failed to delete task:", err);
+            message.error("Failed to delete task from server");
+          });
       },
       okText: "Yes",
       cancelText: "No",
@@ -182,18 +216,49 @@ const KanbanPage: React.FC = () => {
   };
 
   const handleAddColumn = (columnTitle: string) => {
-    dispatch(addColumn(columnTitle));
+    if (!boardId || !token) {
+      message.error("Cannot add column: missing board ID or token");
+      return;
+    }
+    dispatch(addColumn({ boardId, token, title: columnTitle }))
+      .unwrap()
+      .catch((err) => {
+        console.error("Failed to add column:", err);
+        message.error("Failed to add column to server");
+      });
   };
 
   const handleEditColumn = (columnId: string, newTitle: string) => {
-    dispatch(editColumn({ columnId, newTitle }));
+    if (!token) {
+      message.error("Cannot edit column: missing token");
+      return;
+    }
+    if (!boardId) {
+      message.error("Cannot edit column: missing board ID");
+      return;
+    }
+    dispatch(editColumn({ columnId, token, newTitle }))
+      .unwrap()
+      .catch((err) => {
+        console.error("Failed to edit column:", err);
+        message.error("Failed to edit column on server");
+      });
   };
 
   const handleDeleteColumn = (columnId: string) => {
+    if (!token) {
+      message.error("Cannot delete column: missing token");
+      return;
+    }
     Modal.confirm({
       title: "Are you sure you want to delete this column?",
       onOk: () => {
-        dispatch(deleteColumn(columnId));
+        dispatch(deleteColumn({ columnId, token }))
+          .unwrap()
+          .catch((err) => {
+            console.error("Failed to delete column:", err);
+            message.error("Failed to delete column from server");
+          });
       },
       okText: "Yes",
       cancelText: "No",
@@ -209,16 +274,36 @@ const KanbanPage: React.FC = () => {
     newTitle: string,
     priority: "High" | "Medium" | "Low"
   ) => {
-    dispatch(saveTaskEdit({ taskId, newTitle, priority }));
+    if (!token) {
+      message.error("Cannot save task edit: missing token");
+      return;
+    }
+    dispatch(saveTaskEdit({ taskId, token, newTitle, priority }))
+      .unwrap()
+      .catch((err) => {
+        console.error("Failed to save task edit:", err);
+        message.error("Failed to save task edit on server");
+      });
   };
 
   const handleClearBoard = () => {
+    if (!boardId || !token) {
+      message.error("Cannot clear tasks: missing board ID or token");
+      return;
+    }
     Modal.confirm({
       title: "Are you sure you want to clear all tasks?",
       content: "This will remove all tasks but keep your columns.",
       onOk: () => {
-        dispatch(clearKanbanData());
-        message.success("All tasks have been cleared");
+        dispatch(clearKanbanData({ boardId, token }))
+          .unwrap()
+          .then(() => {
+            message.success("All tasks have been cleared");
+          })
+          .catch((err) => {
+            console.error("Failed to clear tasks:", err);
+            message.error("Failed to clear tasks on server");
+          });
       },
       okText: "Yes",
       cancelText: "No",
@@ -267,7 +352,6 @@ const KanbanPage: React.FC = () => {
   );
   const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 280)}px`;
 
-  // Show loading state
   if (loading) {
     return (
       <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
@@ -276,7 +360,6 @@ const KanbanPage: React.FC = () => {
     );
   }
 
-  // Show error state with offline mode option
   if (error && !columns.length) {
     return (
       <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
@@ -291,7 +374,7 @@ const KanbanPage: React.FC = () => {
               icon={<ReloadOutlined />}
               onClick={() => {
                 if (userId && token) {
-                  hasFetchedBoardsRef.current = false; // Allow retry
+                  hasFetchedBoardsRef.current = false;
                   dispatch(fetchUserBoards({ userId, token }))
                     .unwrap()
                     .then((boards) => {
@@ -339,7 +422,6 @@ const KanbanPage: React.FC = () => {
     );
   }
 
-  // Display message if no columns are present
   if (!columns || columns.length === 0) {
     return (
       <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
@@ -371,7 +453,6 @@ const KanbanPage: React.FC = () => {
     );
   }
 
-  // Main Kanban board UI
   return (
     <div className="kanban-board-container h-screen bg-gray-100 flex flex-col">
       <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
@@ -539,4 +620,3 @@ const KanbanPage: React.FC = () => {
 };
 
 export default KanbanPage;
-
