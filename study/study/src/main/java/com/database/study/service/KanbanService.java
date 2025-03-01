@@ -208,15 +208,7 @@ public class KanbanService {
         }
     }
     
-        // Get fresh board data with updated positions
-        KanbanBoard freshBoard = boardRepository.findById(board.getId())
-                .orElseThrow(() -> new AppException(ErrorCode.KANBAN_BOARD_NOT_FOUND));
-        
-        // Make sure tasks are properly loaded
-        List<KanbanColumn> columnsWithTasks = columnRepository.findByBoardIdWithTasksOrderByPositionAsc(freshBoard.getId());
-        freshBoard.getColumns().clear();
-        freshBoard.getColumns().addAll(columnsWithTasks);
-        
+        KanbanBoard freshBoard = refreshBoardData(board.getId());
         return boardMapper.toResponse(freshBoard);
     }
 
@@ -367,24 +359,14 @@ public class KanbanService {
             task.setPosition(newPosition);
             taskRepository.save(task);
         }
-        
-        // Refresh the board to ensure we get the latest state
-        KanbanBoard freshBoard = boardRepository.findById(sourceColumn.getBoard().getId())
-                .orElseThrow(() -> new AppException(ErrorCode.KANBAN_BOARD_NOT_FOUND));
-        
-        // Clear all tasks from columns to rebuild the relationships
-        freshBoard.getColumns().forEach(col -> col.getTasks().clear());
-        
+                
         // Fetch all tasks for this board and assign them to the correct columns
         // for (KanbanColumn col : freshBoard.getColumns()) {
         //     List<KanbanTask> columnTasks = taskRepository.findByColumnIdOrderByPositionAsc(col.getId());
         //     col.getTasks().addAll(columnTasks);
         // }
         // Make sure tasks are properly loaded
-        List<KanbanColumn> columnsWithTasks = columnRepository.findByBoardIdWithTasksOrderByPositionAsc(freshBoard.getId());
-        freshBoard.getColumns().clear();
-        freshBoard.getColumns().addAll(columnsWithTasks);
-        
+        KanbanBoard freshBoard = refreshBoardData(sourceColumn.getBoard().getId());
         return boardMapper.toResponse(freshBoard);
     }
 
@@ -442,4 +424,19 @@ public class KanbanService {
         log.error("User does not have permission to access resource owned by user ID: {}", resourceOwnerId);
         throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
     }
+
+    private KanbanBoard refreshBoardData(UUID boardId) {
+    // Get fresh board data
+    KanbanBoard freshBoard = boardRepository.findById(boardId)
+            .orElseThrow(() -> new AppException(ErrorCode.KANBAN_BOARD_NOT_FOUND));
+    
+    // Load columns with their tasks
+    List<KanbanColumn> columnsWithTasks = columnRepository.findByBoardIdWithTasksOrderByPositionAsc(boardId);
+    
+    // Replace the columns in the board
+    freshBoard.getColumns().clear();
+    freshBoard.getColumns().addAll(columnsWithTasks);
+    
+    return freshBoard;
+}
 }
