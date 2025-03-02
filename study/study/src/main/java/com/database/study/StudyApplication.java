@@ -1,7 +1,7 @@
 package com.database.study;
 
-import lombok.extern.slf4j.Slf4j;
 import io.github.cdimascio.dotenv.Dotenv;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -9,97 +9,136 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication(scanBasePackages = { "com.database.study" })
 public class StudyApplication {
 
-	public static void main(String[] args) {
-		// Load environment variables from .env file
-		Dotenv dotenv = Dotenv.configure()
-				.filename(".env") // Specify the file name
-				.load();
+    public static void main(String[] args) {
+        // Load environment variables from .env file
+        Dotenv dotenv = Dotenv.configure()
+                .filename(".env")
+                .ignoreIfMissing() // Don't fail if .env is missing, allow fallback to defaults
+                .load();
 
-		if (dotenv == null) {
-			System.err.println("Dotenv failed to load the .env file.");
-			return; // Exit application
-		}
+        if (dotenv == null) {
+            log.error("Failed to load .env file. Check file permissions or path.");
+            System.err.println("Failed to load .env file.");
+            return;
+        }
 
-		// Load and validate environment variables
-		String dbUrlDev = dotenv.get("DB_URL_DEV");
-		String dbUsernameDev = dotenv.get("DB_USERNAME_DEV");
-		String dbPasswordDev = dotenv.get("DB_PASSWORD_DEV");
+        // Get the active profile (default to "dev" if not set)
+        String activeProfile = System.getProperty("spring.profiles.active", "dev");
+        log.info("Active profile detected: {}", activeProfile);
 
-		String dbUrlGoogle = dotenv.get("DB_URL_GOOGLE");
-		String dbUsernameGoogle = dotenv.get("DB_USERNAME_GOOGLE");
-		String dbPasswordGoogle = dotenv.get("DB_PASSWORD_GOOGLE");
+        // Load and set environment variables based on the active profile
+        if ("dev".equals(activeProfile)) {
+            configureDevProfile(dotenv);
+        } else if ("google".equals(activeProfile)) {
+            configureGoogleProfile(dotenv);
+        } else if ("aws".equals(activeProfile)) {
+            configureAwsProfile(dotenv);
+        } else {
+            log.error("Unsupported profile: {}. Supported profiles are 'dev', 'google', 'aws'.", activeProfile);
+            return;
+        }
 
-		String dbUrlAws = dotenv.get("DB_URL_AWS");
-		String dbUsernameAws = dotenv.get("DB_USERNAME_AWS");
-		String dbPasswordAws = dotenv.get("DB_PASSWORD_AWS");
+        // Start the Spring Boot application
+        try {
+            SpringApplication.run(StudyApplication.class, args);
+        } catch (Exception e) {
+            log.error("Failed to start Spring Boot application", e);
+            throw e; // Ensure the exception is visible in Maven output
+        }
+    }
 
-		String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
-		String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
+    private static void configureDevProfile(Dotenv dotenv) {
+        String dbUrlDev = dotenv.get("DB_URL_DEV");
+        String dbUsernameDev = dotenv.get("DB_USERNAME_DEV");
+        String dbPasswordDev = dotenv.get("DB_PASSWORD_DEV");
+        String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
+        String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
+        String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
 
-		String desktopClientId = dotenv.get("DESKTOP_CLIENT_ID");
-		String desktopClientSecret = dotenv.get("DESKTOP_CLIENT_SECRET");
+        // Validate required variables for dev profile
+        if (dbUrlDev == null || dbUsernameDev == null || dbPasswordDev == null ||
+            oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
+            log.error("Missing required DEV environment variables. Required: DB_URL_DEV, DB_USERNAME_DEV, DB_PASSWORD_DEV, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
+            System.err.println("Missing required DEV environment variables.");
+            return;
+        }
 
-		String githubClientId = dotenv.get("GITHUB_CLIENT_ID");
-		String githubClientSecret = dotenv.get("GITHUB_CLIENT_SECRET");
+        // Set system properties for Spring to use
+        setSystemProperty("DB_URL_DEV", dbUrlDev);
+        setSystemProperty("DB_USERNAME_DEV", dbUsernameDev);
+        setSystemProperty("DB_PASSWORD_DEV", dbPasswordDev);
+        setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
+        setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
+        setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
 
-		String baseUrl = dotenv.get("BASE_URL");
+        // Optional variables
+        setSystemProperty("BASE_URL", dotenv.get("BASE_URL"));
+        setSystemProperty("GITHUB_CLIENT_ID", dotenv.get("GITHUB_CLIENT_ID"));
+        setSystemProperty("GITHUB_CLIENT_SECRET", dotenv.get("GITHUB_CLIENT_SECRET"));
+        setSystemProperty("GITHUB_REDIRECT_URI", dotenv.get("GITHUB_REDIRECT_URI"));
+        setSystemProperty("APP_BASE_URI", dotenv.get("APP_BASE_URI"));
+        setSystemProperty("CLIENT_REDIRECT_URI", dotenv.get("CLIENT_REDIRECT_URI"));
+        setSystemProperty("CLIENT_GIT_REDIRECT_URI", dotenv.get("CLIENT_GIT_REDIRECT_URI"));
+        setSystemProperty("DESKTOP_CLIENT_ID", dotenv.get("DESKTOP_CLIENT_ID"));
+        setSystemProperty("DESKTOP_CLIENT_SECRET", dotenv.get("DESKTOP_CLIENT_SECRET"));
 
-		String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
-		String githubRedirectUri = dotenv.get("GITHUB_REDIRECT_URI");
+        log.info("DEV profile configured successfully with MySQL datasource: {}", dbUrlDev);
+    }
 
-		String appBaseUri = dotenv.get("APP_BASE_URI");
-		String clientRedirectUri = dotenv.get("CLIENT_REDIRECT_URI");
-		String clientGitRedirectUri = dotenv.get("CLIENT_GIT_REDIRECT_URI");
+    private static void configureGoogleProfile(Dotenv dotenv) {
+        String dbUrlGoogle = dotenv.get("DB_URL_GOOGLE");
+        String dbUsernameGoogle = dotenv.get("DB_USERNAME_GOOGLE");
+        String dbPasswordGoogle = dotenv.get("DB_PASSWORD_GOOGLE");
+        String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
+        String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
+        String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
 
-		if (dbUrlGoogle == null || dbUsernameGoogle == null || dbPasswordGoogle == null || oauth2ClientId == null
-				|| oauth2ClientSecret == null || dbUrlAws == null || dbUsernameAws == null || dbPasswordAws == null) {
-			System.err.println("Required environment variables are missing. Please check your .env file.");
-			return; // Exit application
-		}
+        if (dbUrlGoogle == null || dbUsernameGoogle == null || dbPasswordGoogle == null ||
+            oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
+            log.error("Missing required GOOGLE environment variables. Required: DB_URL_GOOGLE, DB_USERNAME_GOOGLE, DB_PASSWORD_GOOGLE, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
+            return;
+        }
 
-		// Set system properties from environment variables
-		setSystemProperty("DB_URL_DEV", dbUrlDev);
-		setSystemProperty("DB_USERNAME_DEV", dbUsernameDev);
-		setSystemProperty("DB_PASSWORD_DEV", dbPasswordDev);
+        setSystemProperty("DB_URL_GOOGLE", dbUrlGoogle);
+        setSystemProperty("DB_USERNAME_GOOGLE", dbUsernameGoogle);
+        setSystemProperty("DB_PASSWORD_GOOGLE", dbPasswordGoogle);
+        setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
+        setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
+        setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
 
-		setSystemProperty("DB_URL_GOOGLE", dbUrlGoogle);
-		setSystemProperty("DB_USERNAME_GOOGLE", dbUsernameGoogle);
-		setSystemProperty("DB_PASSWORD_GOOGLE", dbPasswordGoogle);
+        log.info("GOOGLE profile configured successfully with MySQL datasource: {}", dbUrlGoogle);
+    }
 
-		setSystemProperty("DB_URL_AWS", dbUrlAws);
-		setSystemProperty("DB_USERNAME_AWS", dbUsernameAws);
-		setSystemProperty("DB_PASSWORD_AWS", dbPasswordAws);
+    private static void configureAwsProfile(Dotenv dotenv) {
+        String dbUrlAws = dotenv.get("DB_URL_AWS");
+        String dbUsernameAws = dotenv.get("DB_USERNAME_AWS");
+        String dbPasswordAws = dotenv.get("DB_PASSWORD_AWS");
+        String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
+        String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
+        String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
 
-		setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
-		setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
+        if (dbUrlAws == null || dbUsernameAws == null || dbPasswordAws == null ||
+            oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
+            log.error("Missing required AWS environment variables. Required: DB_URL_AWS, DB_USERNAME_AWS, DB_PASSWORD_AWS, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
+            return;
+        }
 
-		setSystemProperty("DESKTOP_CLIENT_ID", desktopClientId);
-		setSystemProperty("DESKTOP_CLIENT_SECRET", desktopClientSecret);
+        setSystemProperty("DB_URL_AWS", dbUrlAws);
+        setSystemProperty("DB_USERNAME_AWS", dbUsernameAws);
+        setSystemProperty("DB_PASSWORD_AWS", dbPasswordAws);
+        setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
+        setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
+        setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
 
-		setSystemProperty("GITHUB_CLIENT_ID", githubClientId);
-		setSystemProperty("GITHUB_CLIENT_SECRET", githubClientSecret);
+        log.info("AWS profile configured successfully with MySQL datasource: {}", dbUrlAws);
+    }
 
-		setSystemProperty("BASE_URL", baseUrl);
-
-		setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
-		setSystemProperty("GITHUB_REDIRECT_URI", githubRedirectUri);
-
-		setSystemProperty("APP_BASE_URI", appBaseUri);
-		setSystemProperty("CLIENT_REDIRECT_URI", clientRedirectUri);
-		setSystemProperty("CLIENT_GIT_REDIRECT_URI", clientGitRedirectUri);
-
-		// Start the application
-		SpringApplication.run(StudyApplication.class, args);
-	}
-
-	/**
-	 * Helper method to set a system property if the value is not null.
-	 */
-	private static void setSystemProperty(String key, String value) {
-		if (value != null) {
-			System.setProperty(key, value);
-		} else {
-			System.err.println("Environment variable for " + key + " is not set. Please check your .env file.");
-		}
-	}
+    private static void setSystemProperty(String key, String value) {
+        if (value != null) {
+            System.setProperty(key, value);
+            log.debug("Set system property: {} = {}", key, value);
+        } else {
+            log.warn("Environment variable for {} is not set.", key);
+        }
+    }
 }

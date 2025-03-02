@@ -10,5 +10,7 @@ import java.util.UUID;
 @Repository
 public interface EventRepository extends JpaRepository<Event, String> {
     List<Event> findByUserId(UUID userId);
+
     List<Event> findBySeriesId(String seriesId);
+    void deleteByUserId(UUID userId);
 }

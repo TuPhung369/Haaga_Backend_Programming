@@ -13,6 +13,8 @@ import com.database.study.repository.UserRepository;
 import com.database.study.entity.Role;
 import com.database.study.enums.ENUMS;
 import com.database.study.repository.RoleRepository;
+import com.database.study.repository.EventRepository;
+import com.database.study.repository.KanbanBoardRepository;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,9 @@ public class UserService {
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
   RoleRepository roleRepository;
+  EventRepository eventRepository;
+  KanbanBoardRepository kanbanBoardRepository;
+
 
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
   // match EXACTLY the permission name or ROLE_ADMIN also)
@@ -142,11 +147,14 @@ public class UserService {
   }
 
   @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
+  @Transactional
   public void deleteUser(UUID userId) {
-    if (userRepository.existsById(userId)) {
+      if (!userRepository.existsById(userId)) {
+          throw new AppException(ErrorCode.USER_NOT_FOUND);
+      }
+      userRepository.deleteUserRolesByUserId(userId);
+      eventRepository.deleteByUserId(userId);
+      kanbanBoardRepository.deleteBoardsByUserId(userId);
       userRepository.deleteById(userId);
-    } else {
-      throw new AppException(ErrorCode.USER_NOT_FOUND);
-    }
   }
 }

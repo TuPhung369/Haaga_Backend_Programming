@@ -11,4 +11,5 @@ import java.util.UUID;
 @Repository
 public interface KanbanBoardRepository extends JpaRepository<KanbanBoard, UUID> {
     List<KanbanBoard> findByUserId(UUID userId);
+    void deleteBoardsByUserId(UUID userId);
 }

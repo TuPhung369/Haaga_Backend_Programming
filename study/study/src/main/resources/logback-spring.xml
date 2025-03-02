@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Console Appender chính với highlighting và định dạng tốt hơn -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) %cyan(%-40.40logger{39}) -
+        %msg%n%boldRed(%xException{10})</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Console Appender chỉ cho ERROR và WARN -->
+  <appender name="ERROR_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} %boldRed(%level) %boldYellow(%-40.40logger{39}) -
+        %boldRed(%msg) %n%boldRed(%xException{full})</pattern>
+    </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>WARN</level>
+    </filter>
+  </appender>
+
+  <!-- File Appender cho các lỗi -->
+  <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/error.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/error-%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n%xException{full}</pattern>
+    </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>WARN</level>
+    </filter>
+  </appender>
+
+  <!-- File Appender cho tất cả logs -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/application.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/application-%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n%xException</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Khi phát hiện Exception, in ra đầy đủ stack trace với màu đỏ đậm -->
+  <appender name="STDOUT_EXCEPTION" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%boldRed(%xException{full})</pattern>
+    </encoder>
+    <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+      <evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">
+        <marker>EXCEPTION</marker>
+      </evaluator>
+      <onMatch>ACCEPT</onMatch>
+      <onMismatch>DENY</onMismatch>
+    </filter>
+  </appender>
+
+  <!-- Các loggers chuyên biệt -->
+  <logger name="com.database.study" level="INFO" additivity="false">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="ERROR_CONSOLE" />
+    <appender-ref ref="FILE" />
+    <appender-ref ref="ERROR_FILE" />
+  </logger>
+
+  <!-- Đặt cấu hình cụ thể cho các package Spring để lọc bớt logs không cần thiết -->
+  <logger name="org.springframework" level="INFO" additivity="false">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="ERROR_CONSOLE" />
+    <appender-ref ref="FILE" />
+  </logger>
+
+  <logger name="org.springframework.boot" level="INFO" additivity="false">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="ERROR_CONSOLE" />
+    <appender-ref ref="FILE" />
+  </logger>
+
+  <!-- Cấu hình cho Hibernate -->
+  <logger name="org.hibernate.SQL" level="WARN" additivity="false">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="FILE" />
+  </logger>
+
+  <logger name="org.hibernate.type" level="TRACE" additivity="false">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="FILE" />
+  </logger>
+
+  <!-- Cấu hình đặc biệt để hiển thị các "Caused by:" trong lỗi -->
+  <logger name="ch.qos.logback.classic.PatternLayout" level="DEBUG" additivity="false">
+    <appender-ref ref="STDOUT" />
+  </logger>
+
+  <!-- Root logger - định nghĩa level mặc định cho tất cả các logger khác -->
+  <root level="INFO">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="ERROR_CONSOLE" />
+    <appender-ref ref="FILE" />
+    <appender-ref ref="ERROR_FILE" />
+  </root>
+  <turboFilter class="ch.qos.logback.classic.turbo.MarkerFilter">
+    <Marker>org.springframework.boot.devtools.restart.SilentExitExceptionHandler$SilentExitException</Marker>
+    <OnMatch>DENY</OnMatch>
+  </turboFilter>
+</configuration>

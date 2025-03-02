@@ -13,6 +13,7 @@ import java.util.UUID;
 @Repository
 public interface KanbanColumnRepository extends JpaRepository<KanbanColumn, UUID> {
     List<KanbanColumn> findByBoardIdOrderByPositionAsc(UUID boardId);
+    void deleteByBoardId(UUID boardId);
     
     @Query("SELECT MAX(c.position) FROM KanbanColumn c WHERE c.board.id = ?1")
     Integer findMaxPositionByBoardId(UUID boardId);

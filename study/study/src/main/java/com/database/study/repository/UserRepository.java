@@ -6,6 +6,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -13,4 +16,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   boolean existsByUsername(String username);
 
   Optional<User> findByUsername(String username);
+
+  @Modifying
+  @Query(value = "DELETE FROM user_roles WHERE user_id = :userId", nativeQuery = true)
+  void deleteUserRolesByUserId(@Param("userId") UUID userId);
 }

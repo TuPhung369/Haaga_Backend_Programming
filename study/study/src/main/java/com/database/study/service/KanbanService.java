@@ -102,11 +102,12 @@ public class KanbanService {
     public void deleteBoard(UUID boardId) {
         KanbanBoard board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new AppException(ErrorCode.KANBAN_BOARD_NOT_FOUND));
-        
+
         checkUserAccess(board.getUser().getId());
-        
+        columnRepository.deleteByBoardId(boardId);
         boardRepository.delete(board);
     }
+    
 
     @Transactional
     public KanbanBoardResponse clearAllTasks(UUID boardId) {
