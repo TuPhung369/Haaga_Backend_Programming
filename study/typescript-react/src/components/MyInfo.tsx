@@ -11,7 +11,7 @@ import {
 } from "antd";
 import { EditOutlined } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
-import { invalidateUserInfo } from "../store/userSlice";
+import { invalidateUserInfo, setAllUsers } from "../store/userSlice";
 import { updateMyInfo } from "../services/userService";
 import validateInput from "../utils/validateInput";
 import { AxiosError } from "axios";
@@ -34,7 +34,9 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
   } | null>(null);
 
   const { token, loginSocial } = useSelector((state: RootState) => state.auth);
-  const { userInfo, roles } = useSelector((state: RootState) => state.user);
+  const { userInfo, roles, allUsers } = useSelector(
+    (state: RootState) => state.user
+  );
   const dispatch = useDispatch();
 
   const openNotificationWithIcon = useCallback(
@@ -96,8 +98,19 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
       }
 
       if (userInfo) {
-        await updateMyInfo(userInfo.id, values, token);
+        const response = await updateMyInfo(userInfo.id, values, token);
         dispatch(invalidateUserInfo());
+        if (response && response.result) {
+          const updatedUser = response.result;
+          dispatch(
+            setAllUsers(
+              allUsers.map((user) =>
+                user.id === updatedUser.id ? updatedUser : user
+              )
+            )
+          );
+        }
+
         setNotificationMessage({
           type: "success",
           message: "Success",

@@ -19,7 +19,7 @@ const OAuth2RedirectHandler = () => {
         setAuthData({
           token,
           isAuthenticated: true,
-          loginSocial: true,
+          loginSocial: false,
         })
       );
       // Navigate to the home page
@@ -34,3 +34,4 @@ const OAuth2RedirectHandler = () => {
 };
 
 export default OAuth2RedirectHandler;
+
