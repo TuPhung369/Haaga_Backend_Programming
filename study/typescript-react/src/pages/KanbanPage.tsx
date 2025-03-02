@@ -56,8 +56,43 @@ const KanbanPage: React.FC = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [isHoveringResetButton, setIsHoveringResetButton] = useState(false);
 
+  const prevUserIdRef = useRef(userId);
+
   useEffect(() => {
-    if (userId && token && !hasFetchedBoardsRef.current) {
+    if (prevUserIdRef.current !== userId) {
+      console.log("User ID changed, updating kanban store");
+      hasFetchedBoardsRef.current = false;
+      prevUserIdRef.current = userId;
+
+      if (userId && token) {
+        dispatch(setUserId(userId));
+        dispatch(fetchUserBoards({ userId, token }))
+          .unwrap()
+          .then((boards) => {
+            if (!boards || boards.length === 0) {
+              dispatch(
+                createUserBoard({ userId, token, title: "Kanban Board" })
+              )
+                .unwrap()
+                .then(() => console.log("Board created successfully"))
+                .catch((err) => {
+                  console.error("Failed to create board:", err);
+                  message.warning(
+                    "Offline mode: Changes will be saved locally"
+                  );
+                  dispatch(resetToDefaultColumns());
+                });
+            }
+          })
+          .catch((err) => {
+            console.error("Error fetching boards:", err);
+            message.warning("Offline mode: Starting with default columns");
+            dispatch(resetToDefaultColumns());
+          });
+
+        hasFetchedBoardsRef.current = true;
+      }
+    } else if (userId && token && !hasFetchedBoardsRef.current) {
       hasFetchedBoardsRef.current = true;
       dispatch(setUserId(userId));
       dispatch(fetchUserBoards({ userId, token }))
@@ -123,7 +158,7 @@ const KanbanPage: React.FC = () => {
         data: {
           columns,
           userId,
-          title: activeBoard?.title || "My Kanban Board",
+          title: activeBoard?.title || "Kanban Board",
         },
       })
     )
@@ -546,44 +581,34 @@ const KanbanPage: React.FC = () => {
               {activeBoard?.title || "Kanban Board"}
             </h2>
             <button
-              className="!h-[60px] p-2 bg-blue-500 text-white rounded-full ml-2 mr-2 hover:bg-blue-600 transition"
+              className="h-10 w-32 sm:w-28 md:w-32 lg:w-32 bg-blue-500 text-white rounded-full ml-2 mr-2 hover:bg-blue-600 transition flex items-center justify-center"
               onClick={() => handleAddColumn("New Column")}
             >
-              <PlusOutlined style={{ fontSize: "16px", marginRight: "5px" }} />
+              <PlusOutlined className="text-base mr-1" />
               Add Column
             </button>
+
             <button
-              style={{
-                height: "60px",
-              }}
-              className="p-2 bg-red-400 text-white rounded-full mr-2 hover:bg-red-500 transition"
+              className="h-10 w-32 sm:w-28 md:w-32 lg:w-[125px] bg-red-400 text-white rounded-full mr-2 hover:bg-red-600 transition flex items-center justify-center"
               onClick={handleClearBoard}
             >
-              <DeleteOutlined
-                style={{ fontSize: "16px", marginRight: "5px" }}
-              />
+              <DeleteOutlined className="text-base mr-1" />
               Clear Tasks
             </button>
+
             <Button
+              className="h-10 w-32 sm:w-28 md:w-32 lg:w-32 rounded-full mr-2 flex items-center justify-center transition"
               style={{
-                height: "60px",
-                padding: "8px",
                 backgroundColor: isHoveringResetButton ? COLORS[7] : COLORS[8],
                 color: "white",
-                borderRadius: "9999px",
-                marginRight: "8px",
                 border: "none",
-                transition: "background-color 0.3s",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
               }}
               onMouseEnter={() => setIsHoveringResetButton(true)}
               onMouseLeave={() => setIsHoveringResetButton(false)}
               onClick={handleResetBoard}
               loading={isResetting}
             >
-              <ReloadOutlined style={{ fontSize: "16px" }} />
+              <ReloadOutlined className="text-base mr-1" />
               Reset Board
             </Button>
           </div>
@@ -720,5 +745,4 @@ const KanbanPage: React.FC = () => {
 };
 
 export default KanbanPage;
-
 

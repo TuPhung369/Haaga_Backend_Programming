@@ -88,10 +88,18 @@ const CalendarPage: React.FC = () => {
     }
   }, [dispatch, userId, token]);
 
-  // Khởi tạo dữ liệu từ API
+  // Add this piece of code to track the previous userId
+  const prevUserIdRef = useRef(userId);
+
   useEffect(() => {
-    fetchAndUpdateEvents();
-  }, [fetchAndUpdateEvents]);
+    // Check if userId has changed
+    if (prevUserIdRef.current !== userId) {
+      fetchAndUpdateEvents();
+      prevUserIdRef.current = userId;
+    } else if (events.length === 0 && userId) {
+      fetchAndUpdateEvents();
+    }
+  }, [userId, fetchAndUpdateEvents, events.length]);
 
   useEffect(() => {
     if (isModalVisible && inputRef.current) {
@@ -330,7 +338,7 @@ const CalendarPage: React.FC = () => {
             exceptions: [...(masterEvent.exceptions || []), { originalStart }],
           };
           await updateEvent(masterEvent.id, updatedMasterEvent, token);
-          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+          await fetchAndUpdateEvents();
         },
         onCancel: async () => {
           const updatedEvent = {
@@ -340,7 +348,7 @@ const CalendarPage: React.FC = () => {
             date: new Date(start).toISOString(),
           };
           await updateEventSeries(seriesId, updatedEvent, token);
-          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+          await fetchAndUpdateEvents();
         },
       });
     } else {
@@ -351,7 +359,7 @@ const CalendarPage: React.FC = () => {
         date: new Date(start).toISOString(),
       };
       await updateEvent(event.id, updatedEvent, token);
-      await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+      await fetchAndUpdateEvents();
     }
   };
 
@@ -380,7 +388,7 @@ const CalendarPage: React.FC = () => {
             repeat: "none",
           };
           await createEvent(newException, token);
-          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+          await fetchAndUpdateEvents();
         },
         onCancel: async () => {
           const updatedEvent = {
@@ -390,7 +398,7 @@ const CalendarPage: React.FC = () => {
             date: new Date(start).toISOString(),
           };
           await updateEventSeries(seriesId, updatedEvent, token);
-          await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+          await fetchAndUpdateEvents();
         },
       });
     } else {
@@ -401,7 +409,7 @@ const CalendarPage: React.FC = () => {
         date: new Date(start).toISOString(),
       };
       await updateEvent(event.id, updatedEvent, token);
-      await fetchAndUpdateEvents(); // Lấy lại dữ liệu từ API
+      await fetchAndUpdateEvents();
     }
   };
 

@@ -4,8 +4,8 @@ import React from "react";
 import { Layout, notification } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-// import { clearAuthData } from "../store/authSlice";
-// import { clearUserInfo } from "../store/userSlice";
+import { clearAuthData } from "../store/authSlice";
+import { clearUserInfo } from "../store/userSlice";
 import { resetAllData } from "../store/resetActions";
 import CustomButton from "./CustomButton";
 import { RootState } from "../store/RootState";
@@ -19,9 +19,9 @@ const HeaderCustom: React.FC = () => {
   const dispatch = useDispatch();
 
   const handleLogout = () => {
-    // dispatch(clearAuthData());
-    // dispatch(clearUserInfo());
-    dispatch(resetAllData());
+    dispatch(clearAuthData());
+    dispatch(clearUserInfo());
+    //dispatch(resetAllData());
     navigate("/login");
     notification.success({
       message: "Logged out successfully!",

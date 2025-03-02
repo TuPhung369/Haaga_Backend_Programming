@@ -68,7 +68,7 @@ const KanbanService = {
   createBoard: async (
     userId: string,
     token: string,
-    title: string = "My Kanban Board"
+    title: string = "Kanban Board"
   ): Promise<BoardData> => {
     try {
       const response = await axios.post<SingleBoardResponse>(
