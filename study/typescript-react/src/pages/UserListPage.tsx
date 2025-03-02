@@ -20,7 +20,6 @@ import {
   Select,
   Button,
   notification,
-  GetProps,
 } from "antd";
 import {
   UserAddOutlined,
@@ -52,7 +51,7 @@ const { confirm } = Modal;
 const { Content } = Layout;
 const { Option } = Select;
 
-type ColumnType<T extends object> = GetProps<typeof Table.Column<T>>;
+type ColumnType<T extends object> = Parameters<typeof Table.Column<T>>[0];
 interface UserListPageProps {
   style?: React.CSSProperties;
 }
@@ -423,7 +422,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
     filterDropdownProps: {
       onOpenChange: (visible: boolean) => {
         if (visible) {
-          setTimeout(() => searchInput.current?.select(), 100);
+          setTimeout(() => searchInput.current?.focus(), 100);
         }
       },
     },
@@ -454,7 +453,6 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
     clearFilters?.();
     setSearchText("");
     setSearchedColumn("");
-    console.log("Filters reset.");
   };
 
   const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
@@ -722,5 +720,4 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
 };
 
 export default UserListPage;
-
 

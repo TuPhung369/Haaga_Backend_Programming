@@ -28,6 +28,7 @@ declare module "antd" {
     Dropdown,
     Empty,
     Form,
+    GetProps,
     Grid,
     Image,
     Input,
@@ -94,6 +95,7 @@ declare module "antd" {
   export const Dropdown: typeof Dropdown;
   export const Empty: typeof Empty;
   export const Form: typeof Form;
+  export const GetProps: typeof GetProps;
   export const Grid: typeof Grid;
   export const Image: typeof Image;
   export const Input: typeof Input;
