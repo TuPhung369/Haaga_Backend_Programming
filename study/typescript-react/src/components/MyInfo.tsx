@@ -165,12 +165,10 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
               }}
             >
               User Information
-              {!loginSocial && (
-                <EditOutlined
-                  onClick={showModalUpdate}
-                  style={{ cursor: "pointer", marginLeft: "10px" }}
-                />
-              )}
+              <EditOutlined
+                onClick={showModalUpdate}
+                style={{ cursor: "pointer", marginLeft: "10px" }}
+              />
             </div>
           }
           bordered
@@ -246,7 +244,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
             label="Email"
             rules={[{ required: true, message: "Please input the email!" }]}
           >
-            <Input />
+            <Input disabled={loginSocial ? true : false} />
           </Form.Item>
           <Form.Item
             name="firstname"
@@ -295,4 +293,5 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
 };
 
 export default MyInfo;
+
 
