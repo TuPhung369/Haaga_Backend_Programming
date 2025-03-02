@@ -85,23 +85,23 @@ public class ApplicationInitConfig {
 
         if (!isAdminTomExists) {
           createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
-              "tuphung010787@gmail.com", ENUMS.Role.ADMIN.name());
+              "tuphungAdmin@gmail.com", ENUMS.Role.ADMIN.name());
           createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("1999-03-03"),
-              "tuphung010787@gmail.com", ENUMS.Role.MANAGER.name());
+              "tuphungManager@gmail.com", ENUMS.Role.MANAGER.name());
           createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
-              "tuphung010787@gmail.com", ENUMS.Role.USER.name());
+              "tuphungUser@gmail.com", ENUMS.Role.USER.name());
 
           // Generate 100 users with the same password and random roles
           Random random = new Random();
           ENUMS.Role[] roles = ENUMS.Role.values();
 
-          IntStream.rangeClosed(1, 300).forEach(i -> {
+          IntStream.rangeClosed(1, 369).forEach(i -> {
             ENUMS.Role randomRole = roles[random.nextInt(roles.length)];
             String username = randomRole.name() + "Tom" + i;
             String password = "Thanhcong6(";
             String firstName = "User" + i;
             String lastName = randomRole.name();
-            LocalDate dob = LocalDate.parse("1998-01-01").plusDays(i);
+            LocalDate dob = LocalDate.parse("1976-01-01").plusDays(i*30);
             String email = username + "@gmail.com";
             String role = randomRole.name();
             createUserIfNotExists(username, password, firstName, lastName, dob, email, role);

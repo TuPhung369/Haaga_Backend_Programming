@@ -26,6 +26,7 @@ import validateInput from "../utils/validateInput";
 import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
+import { resetAllData } from "../store/resetActions";
 import { ValidationInput, AuthState, AuthError } from "../type/authType";
 import { COLORS } from "../utils/constant";
 
@@ -78,6 +79,7 @@ const LoginPage: React.FC = () => {
       const data = await authenticateUser(values.username, values.password);
       const response = await introspectToken(data.result.token);
       if (response.result?.valid) {
+        dispatch(resetAllData());
         dispatch(
           setAuthData({
             token: data.result.token,

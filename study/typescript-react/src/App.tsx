@@ -23,6 +23,7 @@ import HeaderCustom from "./components/HeaderCustom";
 import Sidebar from "./components/Sidebar";
 import { introspectToken } from "./services/authService";
 import { clearAuthData } from "./store/authSlice";
+import { resetAllData } from "./store/resetActions";
 import { RootState } from "./type/types";
 
 const { Content, Footer } = Layout;
@@ -47,14 +48,18 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
           if (!response.result?.valid) {
             console.warn("Invalid token, redirecting to login...");
             dispatch(clearAuthData());
+            dispatch(resetAllData());
             navigate("/login");
           }
         } catch (error) {
           console.error("Error during token introspection:", error);
           dispatch(clearAuthData());
+          dispatch(resetAllData());
           navigate("/login");
         }
       } else {
+        dispatch(clearAuthData());
+        dispatch(resetAllData());
         navigate("/login");
       }
       setIsChecking(false);
