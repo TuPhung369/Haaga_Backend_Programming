@@ -13,6 +13,7 @@ import lombok.experimental.FieldDefaults;
 public class AuthenticationRequest {
   String username;
   String password;
+  String sessionIdentifier;
 
   public AuthenticationRequest() {
   }

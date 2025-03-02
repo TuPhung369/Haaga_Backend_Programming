@@ -18,6 +18,8 @@ public class InvalidatedToken {
   @Id
   String id;
 
+  String sessionId;
+
   @Column(length = 500, nullable = false)
   String token;
 
@@ -26,6 +28,8 @@ public class InvalidatedToken {
 
   Date expiryTime;
   Date expiryRefreshTime;
-  String name;
+  
+  @Column(nullable = false)
+  String username;
   String description;
 }

@@ -12,9 +12,11 @@ public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedTok
 
   Optional<InvalidatedToken> findByRefreshToken(String token);
 
-  Optional<InvalidatedToken> findByName(String name);
+  Optional<InvalidatedToken> findByUsername(String username);
+  Optional<InvalidatedToken> findByUsernameAndSessionId(String username, String sessionId);
+  void deleteByUsernameAndSessionId(String username, String sessionId);
 
-  void deleteByName(String name);
+  void deleteByUsername(String username);
 
   void deleteByToken(String token);
 

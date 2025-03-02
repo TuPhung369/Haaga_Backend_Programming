@@ -17,6 +17,9 @@ import java.util.Map;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.ArrayList;
+import java.util.UUID;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,7 +98,8 @@ public class OAuth2TokenController {
    */
   @Transactional
   @GetMapping("/redirect")
-  public ResponseEntity<?> handleGoogleRedirect(@RequestParam("code") String code) {
+  public ResponseEntity<?> handleGoogleRedirect(@RequestParam("code") String code,
+        HttpServletRequest servletRequest) {
     log.info("STEP 2: Received authorization code from Google: {}", code);
 
     // Step 2.1: Prepare Token Exchange Request
@@ -148,20 +152,21 @@ public class OAuth2TokenController {
 
         // Step 4: Create or Retrieve User
         log.info("STEP 7: Checking if user exists");
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByEmail(email)
             .orElseGet(() -> {
               log.info("STEP 7: User not found, creating new user");
 
-              // Create a new user instance using the createUser method from UserService
+              // Create a new user instance
               UserCreationRequest userCreationRequest = new UserCreationRequest();
               userCreationRequest.setUsername(username);
-              userCreationRequest.setPassword(idToken);
+              // Generate a random password for OAuth users
+              userCreationRequest.setPassword(UUID.randomUUID().toString());
               userCreationRequest.setFirstname(firstName);
               userCreationRequest.setLastname(lastName + "Google");
               userCreationRequest.setDob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9));
               userCreationRequest.setEmail(email);
               userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
-
+              
               UserResponse newUserResponse = userService.createUser(userCreationRequest);
               User newUser = userMapper.toUser(newUserResponse);
 
@@ -179,7 +184,15 @@ public class OAuth2TokenController {
         authRequest.setUsername(user.getUsername());
         authRequest.setPassword(idToken);
 
-        AuthenticationResponse authResponse = authenticationService.authenticate(authRequest);
+        // Then later when you need the session ID:
+        String sessionId = servletRequest.getHeader("User-Agent");
+        // You might want to combine this with some unique identifier:
+        sessionId = sessionId + "-" + UUID.randomUUID().toString();
+        
+        AuthenticationResponse authResponse = authenticationService.authenticateOAuth(
+            user.getUsername(), 
+            sessionId
+        );
         log.info("STEP 11: Authentication successful");
 
         // Step 6: Redirect to Client-Side with Generated Token

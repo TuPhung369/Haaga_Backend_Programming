@@ -14,8 +14,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
   boolean existsByUsername(String username);
+  boolean existsByEmail(String email);
 
   Optional<User> findByUsername(String username);
+  Optional<User> findByEmail(String email);
 
   @Modifying
   @Query(value = "DELETE FROM user_roles WHERE user_id = :userId", nativeQuery = true)

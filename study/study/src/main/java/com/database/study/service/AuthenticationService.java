@@ -88,34 +88,34 @@ public class AuthenticationService {
     }
     invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
 
-    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByName(user.getUsername());
-    String token;
-    String jwtId;
-    if (existingTokenOpt.isPresent() && existingTokenOpt.get().getExpiryTime().after(new Date())) {
-      token = existingTokenOpt.get().getToken();
-      jwtId = existingTokenOpt.get().getId();
-    } else {
-      jwtId = UUID.randomUUID().toString();
-      token = generateToken(user, jwtId);
+    //Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByName(user.getUsername());
+    // Always generate a new token and jwtId
+      String jwtId = UUID.randomUUID().toString();
+      String token = generateToken(user, jwtId);
       String refreshToken = generateRefreshToken(user, jwtId);
+
+      // Create session identifier (like device ID or client ID)
+      String sessionId = request.getSessionIdentifier();
+      if (sessionId == null) {
+          sessionId = UUID.randomUUID().toString(); // Default value if client doesn't provide one
+      }
       Date expiryTime = extractTokenExpiry(token);
       Date expireRefreshTime = extractTokenExpiry(refreshToken);
       // Instant expireInstant = expiryTime.toInstant().plus(SURPLUS_EXPIRE_TIME,
       // ChronoUnit.HOURS);
       // Date expireRefreshTime = Date.from(expireInstant);
 
-      // Save the new token
+      // Save token with unique combination of username and session ID
       InvalidatedToken newToken = InvalidatedToken.builder()
           .id(jwtId)
           .token(token)
           .refreshToken(refreshToken)
           .expiryTime(expiryTime)
           .expiryRefreshTime(expireRefreshTime)
-          .name(user.getUsername())
-          .description("Newly issued token")
+          .username(user.getUsername())
+          .description("Session: " + sessionId)
           .build();
       invalidatedTokenRepository.save(newToken);
-    }
 
     // Create and return the authentication response
     AuthenticationResponse response = AuthenticationResponse.builder()
@@ -124,6 +124,42 @@ public class AuthenticationService {
         .build();
     return response;
   }
+
+@Transactional
+public AuthenticationResponse authenticateOAuth(String username, String sessionId) {
+  User user = userRepository.findByUsername(username)
+      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+  
+  // Skip password check completely - user is already authenticated by OAuth
+  String jwtId = UUID.randomUUID().toString();
+  String token = generateToken(user, jwtId);
+  String refreshToken = generateRefreshToken(user, jwtId);
+  
+  // Use provided sessionId or generate one
+  if (sessionId == null) {
+    sessionId = UUID.randomUUID().toString();
+  }
+  
+  Date expiryTime = extractTokenExpiry(token);
+  Date expireRefreshTime = extractTokenExpiry(refreshToken);
+  
+  InvalidatedToken newToken = InvalidatedToken.builder()
+      .id(jwtId)
+      .token(token)
+      .refreshToken(refreshToken)
+      .expiryTime(expiryTime)
+      .expiryRefreshTime(expireRefreshTime)
+      .username(user.getUsername())
+      .description("OAuth Session: " + sessionId)
+      .build();
+  
+  invalidatedTokenRepository.save(newToken);
+  
+  return AuthenticationResponse.builder()
+      .token(token)
+      .authenticated(true)
+      .build();
+}
 
   public ApiResponse<Void> resetPassword(ResetPasswordRequest request) {
     User user = userRepository.findByUsername(request.getUsername())
@@ -201,10 +237,10 @@ public class AuthenticationService {
     var user = userRepository.findByUsername(signedRefreshToken.getJWTClaimsSet().getSubject())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByName(user.getUsername());
+    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByUsername(user.getUsername());
 
     if (existingTokenOpt.isPresent() && existingTokenOpt.get().getExpiryRefreshTime().after(new Date())) {
-      invalidatedTokenRepository.deleteByName(user.getUsername());
+      invalidatedTokenRepository.deleteByUsername(user.getUsername());
     }
 
     String jwtId = UUID.randomUUID().toString();
@@ -225,7 +261,7 @@ public class AuthenticationService {
         .refreshToken(newRefreshToken)
         .expiryTime(expiryTime)
         .expiryRefreshTime(expireRefreshTime)
-        .name(user.getUsername())
+        .username(user.getUsername())
         .description("Newly issued refresh token")
         .build();
 
