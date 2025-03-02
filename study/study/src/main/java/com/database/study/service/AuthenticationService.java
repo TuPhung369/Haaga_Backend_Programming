@@ -337,6 +337,5 @@ public class AuthenticationService {
         .parseSignedClaims(token)
         .getPayload();
     return claims.getExpiration();
-}
-
+  }
 }
