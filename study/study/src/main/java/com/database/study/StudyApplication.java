@@ -2,6 +2,10 @@ package com.database.study;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -9,41 +13,66 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication(scanBasePackages = { "com.database.study" })
 public class StudyApplication {
 
+    // Giữ trạng thái giữa các context khác nhau
+    private static final AtomicBoolean hasLogged = new AtomicBoolean(false);
+
     public static void main(String[] args) {
-        // Load environment variables from .env file
-        Dotenv dotenv = Dotenv.configure()
-                .filename(".env")
-                .ignoreIfMissing() // Don't fail if .env is missing, allow fallback to defaults
-                .load();
+        // Kiểm tra thread hiện tại
+        String currentThread = Thread.currentThread().getName();
+        
+        // Chỉ tiếp tục thực thi nếu chưa log hoặc nếu đây là thread restartedMain
+        if (hasLogged.compareAndSet(false, true) || "restartedMain".equals(currentThread)) {
+            try {
+                // Load environment variables from .env file
+                Dotenv dotenv = Dotenv.configure()
+                        .filename(".env")
+                        .ignoreIfMissing() // Don't fail if .env is missing, allow fallback to defaults
+                        .load();
 
-        if (dotenv == null) {
-            log.error("Failed to load .env file. Check file permissions or path.");
-            System.err.println("Failed to load .env file.");
-            return;
-        }
+                if (dotenv == null) {
+                    log.error("Failed to load .env file. Check file permissions or path.");
+                    System.err.println("Failed to load .env file.");
+                    return;
+                }
 
-        // Get the active profile (default to "dev" if not set)
-        String activeProfile = System.getProperty("spring.profiles.active", "dev");
-        log.info("Active profile detected: {}", activeProfile);
+                // Get the active profile (default to "dev" if not set)
+                String activeProfile = System.getProperty("spring.profiles.active", "dev");
+                
+                // Chỉ log từ một thread
+                if ("restartedMain".equals(currentThread)) {
+                    log.info("Active profile detected: {}", activeProfile);
+                }
 
-        // Load and set environment variables based on the active profile
-        if ("dev".equals(activeProfile)) {
-            configureDevProfile(dotenv);
-        } else if ("google".equals(activeProfile)) {
-            configureGoogleProfile(dotenv);
-        } else if ("aws".equals(activeProfile)) {
-            configureAwsProfile(dotenv);
-        } else {
-            log.error("Unsupported profile: {}. Supported profiles are 'dev', 'google', 'aws'.", activeProfile);
-            return;
-        }
+                // Load and set environment variables based on the active profile
+                if ("dev".equals(activeProfile)) {
+                    configureDevProfile(dotenv);
+                } else if ("google".equals(activeProfile)) {
+                    configureGoogleProfile(dotenv);
+                } else if ("aws".equals(activeProfile)) {
+                    configureAwsProfile(dotenv);
+                } else {
+                    log.error("Unsupported profile: {}. Supported profiles are 'dev', 'google', 'aws'.", activeProfile);
+                    return;
+                }
 
-        // Start the Spring Boot application
-        try {
-            SpringApplication.run(StudyApplication.class, args);
-        } catch (Exception e) {
-            log.error("Failed to start Spring Boot application", e);
-            throw e; // Ensure the exception is visible in Maven output
+                // Start the Spring Boot application
+                SpringApplication application = new SpringApplication(StudyApplication.class);
+                
+                // Vô hiệu hóa banner để giảm log
+                application.setBannerMode(Banner.Mode.OFF);
+                
+                // Vô hiệu hóa log khởi động
+                application.setLogStartupInfo(false);
+                
+                // Chạy ứng dụng
+                application.run(args);
+            } catch (Exception e) {
+                if (e.getClass().getName().contains("SilentExitException")) {
+                    // Không log gì cả cho exception này
+                } else {
+                    log.error("Application crashed!", e);
+                }
+            }
         }
     }
 
@@ -82,7 +111,6 @@ public class StudyApplication {
         setSystemProperty("DESKTOP_CLIENT_ID", dotenv.get("DESKTOP_CLIENT_ID"));
         setSystemProperty("DESKTOP_CLIENT_SECRET", dotenv.get("DESKTOP_CLIENT_SECRET"));
 
-        log.info("DEV profile configured successfully with MySQL datasource: {}", dbUrlDev);
     }
 
     private static void configureGoogleProfile(Dotenv dotenv) {

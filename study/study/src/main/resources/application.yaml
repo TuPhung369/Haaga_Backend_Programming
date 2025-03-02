@@ -10,14 +10,15 @@ spring:
       enabled: true
   devtools:
     restart:
-      enabled: false
+      enabled: true
+      log-condition-evaluation-delta: false
+  # main:
+  #   banner-mode: off
+  #   log-startup-info: false
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+    show-sql: false
   security:
     oauth2:
       client:
@@ -35,11 +36,12 @@ spring:
             user-name-attribute: sub
 logging:
   level:
-    root: INFO # Global log level
-    "[com.database.study]": INFO # Detailed logs for your application's package
-    "[org.hibernate.SQL]": WARN # Show SQL queries
-    "[org.hibernate.type]": TRACE # Show SQL parameters
-    "[org.springframework]": DEBUG # Spring framework logs
-    "[org.springframework.security]": DEBUG
-    "[org.springframework.security.oauth2]": DEBUG
+    root: WARN # Global log level
+    "[com.database.study]": WARN # Detailed logs for your application's package
+    "[org.springframework.boot.devtools]": WARN
+    "[org.hibernate.SQL]": ERROR # Show SQL queries
+    "[org.hibernate.type]": ERROR # Show SQL parameters
+    "[org.springframework]": ERROR # Spring framework logs
+    "[org.springframework.security]": ERROR
+    "[org.springframework.security.oauth2]": ERROR
 
