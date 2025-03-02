@@ -30,6 +30,7 @@ import {
   createUserBoard,
   saveUserBoard,
   resetBoardToDefaults,
+  setActiveBoard,
 } from "../store/kanbanSlice";
 import { RootState, TaskKanban } from "../type/types";
 import { AppDispatch } from "../store/store";
@@ -37,8 +38,15 @@ import { PriorityOptions, COLORS } from "../utils/constant";
 import LoadingState from "../components/LoadingState";
 
 const KanbanPage: React.FC = () => {
-  const { columns, editingTask, loading, error, boardId, activeBoard } =
-    useSelector((state: RootState) => state.kanban);
+  const {
+    columns,
+    editingTask,
+    loading,
+    error,
+    boardId,
+    activeBoard,
+    userBoards,
+  } = useSelector((state: RootState) => state.kanban);
   const token = useSelector((state: RootState) => state.auth.token || "");
   const userId = useSelector(
     (state: RootState) => state.user.userInfo?.id || ""
@@ -122,6 +130,28 @@ const KanbanPage: React.FC = () => {
       setHasChanges(true);
     }
   }, [columns, boardId]);
+
+  useEffect(() => {
+    // Chỉ thực hiện khi có userBoards và userId
+    if (userBoards && userBoards.length > 0 && userId) {
+      // Tìm board của người dùng hiện tại
+      const currentUserBoards = userBoards.filter(
+        (board) => board.userId === userId
+      );
+
+      // Nếu không có activeBoard hoặc activeBoard không thuộc về người dùng hiện tại
+      if (
+        !activeBoard ||
+        (activeBoard.userId !== userId && currentUserBoards.length > 0)
+      ) {
+
+        // Lấy board đầu tiên của người dùng hiện tại
+        if (currentUserBoards.length > 0) {
+          dispatch(setActiveBoard(currentUserBoards[0]));
+        }
+      }
+    }
+  }, [userBoards, userId, activeBoard, dispatch]);
 
   useEffect(() => {
     if ((isNewTaskModalVisible || editingTask) && inputRef.current) {
@@ -222,14 +252,29 @@ const KanbanPage: React.FC = () => {
       message.error("Cannot add task: missing board ID or token");
       return;
     }
-    console.log("Adding task with priority:", newTaskPriority);
     dispatch(
       addTask({ columnId, token, title: title, priority: newTaskPriority })
     )
       .unwrap()
       .catch((err) => {
         console.error("Failed to add task:", err);
-        message.error("Failed to add task to server");
+
+        // Kiểm tra lỗi quyền truy cập
+        if (typeof err === "string" && err.includes("permission")) {
+          message.error(
+            "You don't have permission. Switching to your board..."
+          );
+
+          // Tìm board thuộc về người dùng hiện tại
+          const currentUserBoard = userBoards?.find(
+            (board) => board.userId === userId
+          );
+          if (currentUserBoard) {
+            dispatch(setActiveBoard(currentUserBoard));
+          }
+        } else {
+          message.error("Failed to add task to server");
+        }
       });
   };
 

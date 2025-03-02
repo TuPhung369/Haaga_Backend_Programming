@@ -1,94 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <!-- Tắt log mặc định của Logback -->
-  <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
-
-  <!-- Console Appender chỉ cho ERROR và WARN -->
-  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) %cyan(%-40.40logger{39}) -
-        %msg%n%boldRed(%xException{full})</pattern>
-    </encoder>
-    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>WARN</level>
-    </filter>
-  </appender>
-
-  <!-- File Appender cho tất cả logs (vẫn giữ lại để ghi log đầy đủ) -->
-  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/application.log</file>
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>logs/application-%d{yyyy-MM-dd}.log</fileNamePattern>
-      <maxHistory>7</maxHistory>
-    </rollingPolicy>
-    <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n%xException</pattern>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level){ERROR=red, WARN=yellow,
+        INFO=green, DEBUG=cyan, TRACE=blue} %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
 
-  <!-- File Appender cho các lỗi -->
-  <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/error.log</file>
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>logs/error-%d{yyyy-MM-dd}.log</fileNamePattern>
-      <maxHistory>30</maxHistory>
-    </rollingPolicy>
-    <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n%xException{full}</pattern>
-    </encoder>
-    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>WARN</level>
-    </filter>
-  </appender>
+  <!-- <root level="info">
+    <appender-ref ref="STDOUT" />
+  </root> -->
 
-  <!-- Lọc bỏ log từ thread 'main' (chỉ giữ lại log từ 'restartedMain') -->
-  <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-    <appender-ref ref="CONSOLE" />
-    <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
-      <evaluator>
-        <expression>return !("main".equals(mdc.get("threadName")) || "main".equals(thread));</expression>
-      </evaluator>
-      <OnMismatch>DENY</OnMismatch>
-      <OnMatch>NEUTRAL</OnMatch>
-    </filter>
-  </appender>
-
-  <!-- Cấu hình đặc biệt để lọc các loại Exception không mong muốn -->
-  <turboFilter class="ch.qos.logback.classic.turbo.MarkerFilter">
-    <Marker>org.springframework.boot.devtools.restart.SilentExitExceptionHandler$SilentExitException</Marker>
-    <OnMatch>DENY</OnMatch>
-  </turboFilter>
-
-  <!-- Đặc biệt lọc StudyApplication -->
-  <logger name="com.database.study.StudyApplication" level="WARN">
-    <appender-ref ref="FILE" />
+  <logger name="com.database.study" level="info">
+    <appender-ref ref="STDOUT" />
   </logger>
-
-  <!-- Lọc bỏ các request matcher warning từ Spring Security -->
-  <logger name="org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher"
-    level="ERROR" />
-  <logger name="org.springframework.security.web.context.HttpSessionSecurityContextRepository"
-    level="ERROR" />
-  <logger name="org.springframework.security.web.access.expression" level="ERROR" />
-
-  <!-- Lọc bớt thông tin Hibernate -->
-  <logger name="org.hibernate" level="WARN" />
-
-  <!-- Lọc bớt thông tin Spring -->
-  <logger name="org.springframework" level="WARN" />
-  <logger name="org.springframework.boot.devtools.restart" level="ERROR" />
-
-  <!-- Package của ứng dụng - giữ nguyên để ghi log đầy đủ vào file -->
-  <logger name="com.database.study" level="INFO" additivity="false">
-    <appender-ref ref="ASYNC" />
-    <appender-ref ref="FILE" />
-    <appender-ref ref="ERROR_FILE" />
-  </logger>
-
-  <!-- Root logger - chỉ hiển thị WARN và ERROR trong console -->
-  <root level="WARN">
-    <appender-ref ref="ASYNC" />
-    <appender-ref ref="FILE" />
-    <appender-ref ref="ERROR_FILE" />
-  </root>
+  <logger name="org.hibernate.SQL" level="warn" />
+  <logger name="org.hibernate.type" level="trace" />
+  <logger name="org.springframework" level="info" />
 </configuration>
