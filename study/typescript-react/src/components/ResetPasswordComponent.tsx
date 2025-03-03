@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Form,
   Input,
@@ -8,8 +8,10 @@ import {
   Card,
   notification,
   Space,
+  Row,
+  Col,
 } from "antd";
-import { LockOutlined, NumberOutlined, KeyOutlined } from "@ant-design/icons";
+import { LockOutlined, KeyOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { resetPasswordWithToken } from "../services/authService";
 import { AxiosError } from "axios";
@@ -27,16 +29,65 @@ const ResetPasswordComponent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [verificationCode, setVerificationCode] = useState<string[]>(
+    new Array(6).fill("")
+  );
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Handle input change for verification code
+  const handleChange = (value: string, index: number) => {
+    const newVerificationCode = [...verificationCode];
+
+    // Only allow digits
+    const digit = value.replace(/[^0-9]/g, "").slice(-1);
+    newVerificationCode[index] = digit;
+    setVerificationCode(newVerificationCode);
+
+    // Move to next input field if this one is filled
+    if (digit && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  // Handle backspace to navigate to previous input
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    if (e.key === "Backspace" && !verificationCode[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle paste event for verification code
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text/plain").trim();
+
+    // Only process if the pasted content looks like a verification code
+    if (/^\d{6}$/.test(pastedData)) {
+      const digits = pastedData.split("");
+      setVerificationCode(digits);
+
+      // Focus the last input after pasting
+      inputRefs.current[5]?.focus();
+    }
+  };
 
   const handleSubmit = async (values: ResetPasswordFormValues) => {
+    // Combine verification code digits
+    const token = verificationCode.join("");
+
+    if (token.length !== 6) {
+      setError("Please enter a complete 6-digit verification code");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const response = await resetPasswordWithToken(
-        values.token,
-        values.newPassword
-      );
+      const response = await resetPasswordWithToken(token, values.newPassword);
       notification.success({
         message: "Password Reset Successful",
         description:
@@ -85,29 +136,49 @@ const ResetPasswordComponent: React.FC = () => {
         size="large"
         autoComplete="off"
       >
-        {/* Verification Code Input with improved styling */}
+        {/* Verification Code Input with individual boxes */}
         <Form.Item
-          name="token"
           label={<Text strong>Verification Code</Text>}
-          rules={[
-            { required: true, message: "Please enter the verification code!" },
-          ]}
+          required
+          style={{ marginBottom: "30px" }}
         >
-          <Input
-            prefix={<NumberOutlined style={{ color: "#1890ff" }} />}
-            placeholder="Enter 6-digit code"
-            maxLength={6}
-            size="large"
-            style={{
-              height: "50px",
-              fontSize: "18px",
-              textAlign: "center",
-              letterSpacing: "8px",
-            }}
-          />
+          <div style={{ textAlign: "center" }}>
+            <Row gutter={12} justify="center">
+              {verificationCode.map((digit, index) => (
+                <Col key={index}>
+                  <Input
+                    ref={(el) => (inputRefs.current[index] = el)}
+                    value={digit}
+                    onChange={(e) => handleChange(e.target.value, index)}
+                    onKeyDown={(e) => handleKeyDown(e, index)}
+                    onPaste={index === 0 ? handlePaste : undefined}
+                    maxLength={1}
+                    style={{
+                      width: "55px",
+                      height: "55px",
+                      fontSize: "24px",
+                      textAlign: "center",
+                      borderRadius: "8px",
+                      borderColor: digit ? "#1890ff" : undefined,
+                      boxShadow: digit
+                        ? "0 0 0 2px rgba(24,144,255,0.2)"
+                        : undefined,
+                      transition: "all 0.3s",
+                    }}
+                  />
+                </Col>
+              ))}
+            </Row>
+            <Text
+              type="secondary"
+              style={{ display: "block", marginTop: "8px", fontSize: "12px" }}
+            >
+              Enter the 6-digit code sent to your email
+            </Text>
+          </div>
         </Form.Item>
 
-        <div style={{ marginTop: "32px", marginBottom: "8px" }}>
+        <div style={{ marginTop: "20px", marginBottom: "8px" }}>
           <Text strong style={{ fontSize: "16px" }}>
             Create New Password
           </Text>
@@ -120,7 +191,7 @@ const ResetPasswordComponent: React.FC = () => {
               { required: true, message: "Please input your new password!" },
               {
                 pattern:
-                  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&()#])[A-Za-z\d@$!%*?&()#]{8,}$/,
                 message:
                   "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
               },
