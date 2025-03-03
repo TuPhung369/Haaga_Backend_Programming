@@ -8,13 +8,25 @@ spring:
   h2:
     console:
       enabled: true
-  devtools:
-    restart:
-      enabled: true
-      log-condition-evaluation-delta: false
+  # devtools:
+  #   restart:
+  #     enabled: false
+  #     log-condition-evaluation-delta: false
   # main:
   #   banner-mode: off
   #   log-startup-info: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: tuphung010787@gmail.com
+    password: "nfgz gdhb uuab ocmn"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
   jpa:
     hibernate:
       ddl-auto: update
@@ -36,12 +48,9 @@ spring:
             user-name-attribute: sub
 logging:
   level:
-    root: WARN # Global log level
-    "[com.database.study]": WARN # Detailed logs for your application's package
-    "[org.springframework.boot.devtools]": WARN
-    "[org.hibernate.SQL]": ERROR # Show SQL queries
-    "[org.hibernate.type]": ERROR # Show SQL parameters
-    "[org.springframework]": ERROR # Spring framework logs
-    "[org.springframework.security]": ERROR
+    root: DEBUG # Global log level
+    "[org.springframework]": DEBUG # Spring framework logs
+    "[org.springframework.boot]": DEBUG
+    "[org.springframework.beans.factory]": DEBUG
     "[org.springframework.security.oauth2]": ERROR
 

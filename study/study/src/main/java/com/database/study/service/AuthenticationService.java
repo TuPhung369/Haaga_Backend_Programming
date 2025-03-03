@@ -2,9 +2,12 @@ package com.database.study.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.database.study.dto.request.AuthenticationRequest;
+import com.database.study.dto.request.ForgotPasswordRequest;
+import com.database.study.dto.request.VerifyResetTokenRequest;
 import com.database.study.dto.request.LogoutRequest;
 import com.database.study.dto.request.ResetPasswordRequest;
 import com.database.study.dto.request.UserCreationRequest;
@@ -15,6 +18,7 @@ import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.dto.response.IntrospectResponse;
 import com.database.study.dto.response.RefreshTokenResponse;
 import com.database.study.entity.InvalidatedToken;
+import com.database.study.entity.PasswordResetToken;
 import com.database.study.entity.Role;
 import com.database.study.entity.User;
 import com.database.study.enums.ENUMS;
@@ -22,6 +26,7 @@ import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.mapper.UserMapper;
 import com.database.study.repository.InvalidatedTokenRepository;
+import com.database.study.repository.PasswordResetTokenRepository;
 import com.database.study.repository.RoleRepository;
 import com.database.study.repository.UserRepository;
 import com.nimbusds.jose.JOSEException;
@@ -37,6 +42,7 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.JWSVerifier;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -52,6 +58,8 @@ import org.springframework.transaction.annotation.Transactional;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.util.Random;
+
 import java.util.List;
 import java.util.Set;
 
@@ -67,6 +75,8 @@ public class AuthenticationService {
   RoleRepository roleRepository;
   UserMapper userMapper;
   InvalidatedTokenRepository invalidatedTokenRepository;
+  EmailService emailService;
+  PasswordResetTokenRepository passwordResetTokenRepository;
 
   // protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
   protected static final byte[] SECRET_KEY_BYTES = Base64.getDecoder()
@@ -125,42 +135,43 @@ public class AuthenticationService {
     return response;
   }
 
-@Transactional
-public AuthenticationResponse authenticateOAuth(String username, String sessionId) {
-  User user = userRepository.findByUsername(username)
-      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-  
-  // Skip password check completely - user is already authenticated by OAuth
-  String jwtId = UUID.randomUUID().toString();
-  String token = generateToken(user, jwtId);
-  String refreshToken = generateRefreshToken(user, jwtId);
-  
-  // Use provided sessionId or generate one
-  if (sessionId == null) {
-    sessionId = UUID.randomUUID().toString();
+  @Transactional
+  public AuthenticationResponse authenticateOAuth(String username, String sessionId) {
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+    
+    // Skip password check completely - user is already authenticated by OAuth
+    String jwtId = UUID.randomUUID().toString();
+    String token = generateToken(user, jwtId);
+    String refreshToken = generateRefreshToken(user, jwtId);
+    
+    // Use provided sessionId or generate one
+    if (sessionId == null) {
+      sessionId = UUID.randomUUID().toString();
+    }
+    
+    Date expiryTime = extractTokenExpiry(token);
+    Date expireRefreshTime = extractTokenExpiry(refreshToken);
+    
+    InvalidatedToken newToken = InvalidatedToken.builder()
+        .id(jwtId)
+        .token(token)
+        .refreshToken(refreshToken)
+        .expiryTime(expiryTime)
+        .expiryRefreshTime(expireRefreshTime)
+        .username(user.getUsername())
+        .description("OAuth Session: " + sessionId)
+        .build();
+    
+    invalidatedTokenRepository.save(newToken);
+    
+    return AuthenticationResponse.builder()
+        .token(token)
+        .authenticated(true)
+        .build();
   }
-  
-  Date expiryTime = extractTokenExpiry(token);
-  Date expireRefreshTime = extractTokenExpiry(refreshToken);
-  
-  InvalidatedToken newToken = InvalidatedToken.builder()
-      .id(jwtId)
-      .token(token)
-      .refreshToken(refreshToken)
-      .expiryTime(expiryTime)
-      .expiryRefreshTime(expireRefreshTime)
-      .username(user.getUsername())
-      .description("OAuth Session: " + sessionId)
-      .build();
-  
-  invalidatedTokenRepository.save(newToken);
-  
-  return AuthenticationResponse.builder()
-      .token(token)
-      .authenticated(true)
-      .build();
-}
 
+  @Transactional
   public ApiResponse<Void> resetPassword(ResetPasswordRequest request) {
     User user = userRepository.findByUsername(request.getUsername())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
@@ -171,6 +182,90 @@ public AuthenticationResponse authenticateOAuth(String username, String sessionI
 
     return ApiResponse.<Void>builder()
         .message("Password reset successfully!")
+        .build();
+  }
+
+  @Transactional
+  public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
+      User user = userRepository.findByUsername(request.getUsername())
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+          
+      // Verify email matches
+      if (!user.getEmail().equals(request.getEmail())) {
+          throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+      }
+      
+      // Check for existing token and delete it
+      passwordResetTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
+          .ifPresent(token -> passwordResetTokenRepository.delete(token));
+          
+      // Generate random 6-digit code
+      String resetCode = generateSixDigitCode();
+      
+      // Create new token valid for 15 minutes
+      PasswordResetToken resetToken = PasswordResetToken.builder()
+          .token(resetCode)
+          .username(user.getUsername())
+          .email(user.getEmail())
+          .expiryDate(LocalDateTime.now().plusMinutes(15))
+          .used(false)
+          .build();
+          
+      passwordResetTokenRepository.save(resetToken);
+      
+      // Send email with reset code
+      String emailBody = String.format(
+          "Hello %s,\n\n" +
+          "You requested to reset your password. Please use the following code to reset your password:\n\n" +
+          "%s\n\n" +
+          "This code will expire in 15 minutes.\n\n" +
+          "If you did not request a password reset, please ignore this email.\n\n" +
+          "Best regards,\nThe Support Team",
+          user.getFirstname(),
+          resetCode
+      );
+      
+      emailService.sendSimpleMessage(
+          user.getEmail(),
+          "Password Reset Code",
+          emailBody
+      );
+      
+      return ApiResponse.<Void>builder()
+          .message("Password reset code has been sent to your email")
+          .build();
+  }
+
+  @Transactional
+  public ApiResponse<Void> resetPasswordWithToken(VerifyResetTokenRequest request) {
+    PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+        .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+    // Check if token is expired
+    if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+      passwordResetTokenRepository.delete(resetToken);
+      throw new AppException(ErrorCode.INVALID_TOKEN);
+    }
+
+    // Check if token has been used
+    if (resetToken.isUsed()) {
+      throw new AppException(ErrorCode.INVALID_TOKEN);
+    }
+
+    // Get the user and update password
+    User user = userRepository.findByUsername(resetToken.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    String encodedPassword = passwordEncoder.encode(request.getNewPassword());
+    user.setPassword(encodedPassword);
+    userRepository.save(user);
+
+    // Mark token as used
+    resetToken.setUsed(true);
+    passwordResetTokenRepository.save(resetToken);
+
+    return ApiResponse.<Void>builder()
+        .message("Password has been reset successfully")
         .build();
   }
 
@@ -374,4 +469,16 @@ public AuthenticationResponse authenticateOAuth(String username, String sessionI
         .getPayload();
     return claims.getExpiration();
   }
+
+     private String generateSixDigitCode() {
+        Random random = new Random();
+        int code = 100000 + random.nextInt(900000); // Generates a number between 100000 and 999999
+        return String.valueOf(code);
+    }
+    
+    // Add a scheduled task to clean up expired tokens
+    @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // Run once a day
+    public void cleanupExpiredTokens() {
+        passwordResetTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
+    }
 }

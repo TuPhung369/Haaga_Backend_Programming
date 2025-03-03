@@ -3,6 +3,8 @@ package com.database.study.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.database.study.dto.request.*;
+import com.database.study.dto.request.ForgotPasswordRequest;
+import com.database.study.dto.request.VerifyResetTokenRequest;
 import com.database.study.dto.response.*;
 import com.database.study.security.GoogleTokenValidation;
 import com.database.study.service.AuthenticationService;
@@ -67,6 +69,16 @@ public class AuthenticationController {
   @PostMapping("/resetPassword")
   public ApiResponse<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
     return authenticationService.resetPassword(request);
+  }
+
+  @PostMapping("/forgot-password")
+  public ApiResponse<Void> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+      return authenticationService.initiatePasswordReset(request);
+  }
+  
+  @PostMapping("/reset-password-with-token")
+  public ApiResponse<Void> resetPasswordWithToken(@RequestBody VerifyResetTokenRequest request) {
+      return authenticationService.resetPasswordWithToken(request);
   }
 
   // Register a new user

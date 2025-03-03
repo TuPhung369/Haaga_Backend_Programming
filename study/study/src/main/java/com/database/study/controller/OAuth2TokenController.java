@@ -5,7 +5,6 @@ import com.database.study.service.UserService;
 import com.database.study.entity.User;
 import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
-import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.response.UserResponse;
@@ -180,9 +179,9 @@ public class OAuth2TokenController {
 
         // Step 5: Authenticate User and Return Tokens
         log.info("STEP 10: Authenticating user");
-        AuthenticationRequest authRequest = new AuthenticationRequest();
-        authRequest.setUsername(user.getUsername());
-        authRequest.setPassword(idToken);
+        // ForgotPasswordRequest authRequest = new ForgotPasswordRequest();
+        // authRequest.setUsername(user.getUsername());
+        // authRequest.setPassword(idToken);
 
         // Then later when you need the session ID:
         String sessionId = servletRequest.getHeader("User-Agent");
