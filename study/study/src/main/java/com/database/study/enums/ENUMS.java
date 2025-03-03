@@ -58,7 +58,8 @@ public class ENUMS {
     INVALID_OPERATION("Invalid operation"),
     KANBAN_BOARD_NOT_FOUND("Kanban board not found"),
     KANBAN_COLUMN_NOT_FOUND("Kanban column not found"),
-    KANBAN_TASK_NOT_FOUND("Kanban task not found");
+    KANBAN_TASK_NOT_FOUND("Kanban task not found"),
+    ACCOUNT_NOT_VERIFIED("Account not verified. Please check your email for verification code.");
 
     private final String message;
   }

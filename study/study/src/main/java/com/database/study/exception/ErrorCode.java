@@ -62,7 +62,8 @@ public enum ErrorCode {
         KANBAN_COLUMN_NOT_FOUND(4047, ENUMS.ErrorMessages.KANBAN_COLUMN_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()), // Not found
         KANBAN_TASK_NOT_FOUND(4048, ENUMS.ErrorMessages.KANBAN_TASK_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
-                        ENUMS.Severity.LOW.name()); // Not found
+                        ENUMS.Severity.LOW.name()), // Not found
+        ACCOUNT_NOT_VERIFIED(4012, ENUMS.ErrorMessages.ACCOUNT_NOT_VERIFIED.getMessage(), HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()); // Unauthorized
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
                 this.code = code;

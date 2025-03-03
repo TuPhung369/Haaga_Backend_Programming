@@ -11,12 +11,14 @@ import com.database.study.dto.request.VerifyResetTokenRequest;
 import com.database.study.dto.request.LogoutRequest;
 import com.database.study.dto.request.ResetPasswordRequest;
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.request.VerifyEmailRequest;
 import com.database.study.dto.request.IntrospectRequest;
 import com.database.study.dto.request.RefreshTokenRequest;
 import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.dto.response.IntrospectResponse;
 import com.database.study.dto.response.RefreshTokenResponse;
+import com.database.study.entity.EmailVerificationToken;
 import com.database.study.entity.InvalidatedToken;
 import com.database.study.entity.PasswordResetToken;
 import com.database.study.entity.Role;
@@ -25,6 +27,7 @@ import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.mapper.UserMapper;
+import com.database.study.repository.EmailVerificationTokenRepository;
 import com.database.study.repository.InvalidatedTokenRepository;
 import com.database.study.repository.PasswordResetTokenRepository;
 import com.database.study.repository.RoleRepository;
@@ -77,6 +80,7 @@ public class AuthenticationService {
   InvalidatedTokenRepository invalidatedTokenRepository;
   EmailService emailService;
   PasswordResetTokenRepository passwordResetTokenRepository;
+  EmailVerificationTokenRepository emailVerificationTokenRepository;
 
   // protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
   protected static final byte[] SECRET_KEY_BYTES = Base64.getDecoder()
@@ -95,6 +99,10 @@ public class AuthenticationService {
     boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
     if (!authenticated) {
       throw new AppException(ErrorCode.PASSWORD_MISMATCH);
+    }
+        // If CREATED BY ADMIN, MANAGER, How?
+    if (!user.isActive()) {
+      throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
     }
     invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
 
@@ -258,34 +266,99 @@ public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
         .build();
   }
 
-  @Transactional
+ @Transactional
   public ApiResponse<Void> register(UserCreationRequest request) {
-    if (userRepository.existsByUsername(request.getUsername())) {
-      throw new AppException(ErrorCode.USER_EXISTS);
-    }
+      if (userRepository.existsByUsername(request.getUsername())) {
+        throw new AppException(ErrorCode.USER_EXISTS);
+      }
 
-    User user = userMapper.toUser(request);
-    user.setPassword(passwordEncoder.encode(request.getPassword()));
+      User user = userMapper.toUser(request);
+      user.setPassword(passwordEncoder.encode(request.getPassword()));
+      
+      // Set account as inactive until email verification
+      user.setActive(false);
 
-    // Set default role as USER if roles are not provided or empty
-    List<String> roles = request.getRoles();
-    if (roles == null || roles.isEmpty()) {
-      roles = new ArrayList<>();
-      roles.add(ENUMS.Role.USER.name());
-    }
+      // Set default role as USER if roles are not provided or empty
+      List<String> roles = request.getRoles();
+      if (roles == null || roles.isEmpty()) {
+        roles = new ArrayList<>();
+        roles.add(ENUMS.Role.USER.name());
+      }
 
-    // Fetch Role entities based on role names
-    Set<Role> roleEntities = roles.stream()
-        .map(roleName -> roleRepository.findByName(roleName)
-            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
-        .collect(Collectors.toSet());
-    user.setRoles(roleEntities);
+      // Fetch Role entities based on role names
+      Set<Role> roleEntities = roles.stream()
+          .map(roleName -> roleRepository.findByName(roleName)
+              .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+          .collect(Collectors.toSet());
+      user.setRoles(roleEntities);
 
-    userRepository.save(user);
+      userRepository.save(user);
+      
+      // Generate verification code and send email
+      String verificationCode = generateSixDigitCode();
+      
+      // Check for existing token and delete it
+      emailVerificationTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
+          .ifPresent(token -> emailVerificationTokenRepository.delete(token));
+          
+      // Create new token valid for 15 minutes
+      EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+          .token(verificationCode)
+          .username(user.getUsername())
+          .email(user.getEmail())
+          .expiryDate(LocalDateTime.now().plusMinutes(15))
+          .used(false)
+          .build();
+          
+      emailVerificationTokenRepository.save(verificationToken);
+      
+      // Send verification email
+      emailService.sendEmailVerificationCode(
+          user.getEmail(),
+          user.getFirstname(),
+          verificationCode
+      );
 
-    return ApiResponse.<Void>builder()
-        .message("User registered successfully!")
-        .build();
+      return ApiResponse.<Void>builder()
+          .message("User registered successfully! Please check your email to verify your account.")
+          .build();
+  }
+
+  @Transactional
+  public ApiResponse<Void> verifyEmail(VerifyEmailRequest request) {
+      EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(request.getToken())
+          .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+      
+      // Check if token is for the correct user
+      if (!verificationToken.getUsername().equals(request.getUsername())) {
+          throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+      }
+
+      // Check if token is expired
+      if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+          emailVerificationTokenRepository.delete(verificationToken);
+          throw new AppException(ErrorCode.INVALID_TOKEN);
+      }
+
+      // Check if token has been used
+      if (verificationToken.isUsed()) {
+          throw new AppException(ErrorCode.INVALID_TOKEN);
+      }
+
+      // Get the user and update active status
+      User user = userRepository.findByUsername(verificationToken.getUsername())
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+      user.setActive(true);
+      userRepository.save(user);
+
+      // Mark token as used
+      verificationToken.setUsed(true);
+      emailVerificationTokenRepository.save(verificationToken);
+
+      return ApiResponse.<Void>builder()
+          .message("Email verified successfully. You can now log in.")
+          .build();
   }
 
   @Transactional

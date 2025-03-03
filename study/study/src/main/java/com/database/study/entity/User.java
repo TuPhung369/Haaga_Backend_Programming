@@ -26,6 +26,9 @@ public class User {
   String firstname;
   String lastname;
   LocalDate dob;
+  @Column(nullable = false)
+  @Builder.Default
+  boolean active = false;
 
   @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(name = "user_roles",

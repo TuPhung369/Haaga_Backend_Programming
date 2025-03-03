@@ -3,8 +3,6 @@ package com.database.study.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.database.study.dto.request.*;
-import com.database.study.dto.request.ForgotPasswordRequest;
-import com.database.study.dto.request.VerifyResetTokenRequest;
 import com.database.study.dto.response.*;
 import com.database.study.security.GoogleTokenValidation;
 import com.database.study.service.AuthenticationService;
@@ -22,7 +20,6 @@ import java.util.Map;
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
 
-  // Dependency injection
   AuthenticationService authenticationService;
   GoogleTokenValidation googleTokenValidationService;
 
@@ -45,7 +42,6 @@ public class AuthenticationController {
         .build();
   }
 
-  // Refresh token
   @PostMapping("/refreshToken")
   public ApiResponse<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request)
       throws JOSEException, ParseException {
@@ -55,7 +51,6 @@ public class AuthenticationController {
         .build();
   }
 
-  // Logout user
   @PostMapping("/logout")
   public ApiResponse<Void> logout(@RequestBody LogoutRequest request)
       throws JOSEException, ParseException {
@@ -65,7 +60,6 @@ public class AuthenticationController {
         .build();
   }
 
-  // Reset user password
   @PostMapping("/resetPassword")
   public ApiResponse<Void> resetPassword(@RequestBody ResetPasswordRequest request) {
     return authenticationService.resetPassword(request);
@@ -81,10 +75,14 @@ public class AuthenticationController {
       return authenticationService.resetPasswordWithToken(request);
   }
 
-  // Register a new user
   @PostMapping("/register")
   public ApiResponse<Void> register(@RequestBody UserCreationRequest request) {
     return authenticationService.register(request);
+  }
+
+  @PostMapping("/verify-email")
+  public ApiResponse<Void> verifyEmail(@RequestBody VerifyEmailRequest request) {
+    return authenticationService.verifyEmail(request);
   }
 
   // Validate Google ID token
