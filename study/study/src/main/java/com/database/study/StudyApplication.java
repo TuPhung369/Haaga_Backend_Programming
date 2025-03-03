@@ -83,6 +83,10 @@ public class StudyApplication {
         String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
         String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
         String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
+        String emailServerUsername = dotenv.get("EMAIL_SERVER_USERNAME");
+        String emailServerPassword = dotenv.get("EMAIL_SERVER_PASSWORD");
+        String emailServerHost = dotenv.get("EMAIL_SERVER_HOST");
+        String emailServerPort = dotenv.get("EMAIL_SERVER_PORT");
 
         // Validate required variables for dev profile
         if (dbUrlDev == null || dbUsernameDev == null || dbPasswordDev == null ||
@@ -99,6 +103,10 @@ public class StudyApplication {
         setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
         setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
         setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
+        setSystemProperty("EMAIL_SERVER_USERNAME", emailServerUsername);
+        setSystemProperty("EMAIL_SERVER_PASSWORD", emailServerPassword);
+        setSystemProperty("EMAIL_SERVER_HOST", emailServerHost);
+        setSystemProperty("EMAIL_SERVER_PORT", emailServerPort);
 
         // Optional variables
         setSystemProperty("BASE_URL", dotenv.get("BASE_URL"));

@@ -16,10 +16,10 @@ spring:
   #   banner-mode: off
   #   log-startup-info: false
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: tuphung010787@gmail.com
-    password: "nfgz gdhb uuab ocmn"
+    host: ${EMAIL_SERVER_HOST}
+    port: ${EMAIL_SERVER_PORT}
+    username: ${EMAIL_SERVER_USERNAME}
+    password: ${EMAIL_SERVER_PASSWORD}
     properties:
       mail:
         smtp:

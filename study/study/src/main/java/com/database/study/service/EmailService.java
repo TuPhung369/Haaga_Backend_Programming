@@ -30,7 +30,7 @@ public class EmailService {
             helper.setText(text, true); // Set to true to enable HTML content
             
             emailSender.send(message);
-            log.info("Email sent successfully to: {}", to);
+            // log.info("Email sent successfully to: {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send email to: {}", to, e);
             throw new RuntimeException("Failed to send email", e);
