@@ -177,7 +177,7 @@ public class OAuth2TokenController {
 
         log.info("STEP 9: User retrieved or created: {}", user);
 
-        // Step 5: Authenticate User and Return Tokens
+        // Step 5: Authenticate User and Return TokensHermanni, 00550 Helsinki
         log.info("STEP 10: Authenticating user");
         // ForgotPasswordRequest authRequest = new ForgotPasswordRequest();
         // authRequest.setUsername(user.getUsername());
