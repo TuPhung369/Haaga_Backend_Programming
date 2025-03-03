@@ -186,55 +186,44 @@ public class AuthenticationService {
   }
 
   @Transactional
-  public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
-      User user = userRepository.findByUsername(request.getUsername())
-          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-          
-      // Verify email matches
-      if (!user.getEmail().equals(request.getEmail())) {
-          throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
-      }
-      
-      // Check for existing token and delete it
-      passwordResetTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
-          .ifPresent(token -> passwordResetTokenRepository.delete(token));
-          
-      // Generate random 6-digit code
-      String resetCode = generateSixDigitCode();
-      
-      // Create new token valid for 15 minutes
-      PasswordResetToken resetToken = PasswordResetToken.builder()
-          .token(resetCode)
-          .username(user.getUsername())
-          .email(user.getEmail())
-          .expiryDate(LocalDateTime.now().plusMinutes(15))
-          .used(false)
-          .build();
-          
-      passwordResetTokenRepository.save(resetToken);
-      
-      // Send email with reset code
-      String emailBody = String.format(
-          "Hello %s,\n\n" +
-          "You requested to reset your password. Please use the following code to reset your password:\n\n" +
-          "%s\n\n" +
-          "This code will expire in 15 minutes.\n\n" +
-          "If you did not request a password reset, please ignore this email.\n\n" +
-          "Best regards,\nThe Support Team",
-          user.getFirstname(),
-          resetCode
-      );
-      
-      emailService.sendSimpleMessage(
-          user.getEmail(),
-          "Password Reset Code",
-          emailBody
-      );
-      
-      return ApiResponse.<Void>builder()
-          .message("Password reset code has been sent to your email")
-          .build();
-  }
+public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
+    User user = userRepository.findByUsername(request.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+        
+    // Verify email matches
+    if (!user.getEmail().equals(request.getEmail())) {
+        throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+    }
+    
+    // Check for existing token and delete it
+    passwordResetTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
+        .ifPresent(token -> passwordResetTokenRepository.delete(token));
+        
+    // Generate random 6-digit code
+    String resetCode = generateSixDigitCode();
+    
+    // Create new token valid for 15 minutes
+    PasswordResetToken resetToken = PasswordResetToken.builder()
+        .token(resetCode)
+        .username(user.getUsername())
+        .email(user.getEmail())
+        .expiryDate(LocalDateTime.now().plusMinutes(15))
+        .used(false)
+        .build();
+        
+    passwordResetTokenRepository.save(resetToken);
+    
+    // Send HTML email with styled verification code
+    emailService.sendPasswordResetEmail(
+        user.getEmail(),
+        user.getFirstname(),
+        resetCode
+    );
+    
+    return ApiResponse.<Void>builder()
+        .message("Password reset code has been sent to your email")
+        .build();
+}
 
   @Transactional
   public ApiResponse<Void> resetPasswordWithToken(VerifyResetTokenRequest request) {
