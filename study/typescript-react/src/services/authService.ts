@@ -63,6 +63,40 @@ export const registerUser = async (
   }
 };
 
+export const verifyEmail = async (
+  username: string,
+  token: string
+): Promise<GenericResponse> => {
+  try {
+    const response = await apiClient.post<GenericResponse>(
+      "/auth/verify-email",
+      {
+        username,
+        token,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error during email verification:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
+
+export const resendVerificationEmail = async (
+  username: string
+): Promise<GenericResponse> => {
+  try {
+    const response = await apiClient.post<GenericResponse>(
+      "/auth/resend-verification",
+      { username }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error resending verification email:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
+
 export const resetPassword = async (
   username: string,
   newPassword: string

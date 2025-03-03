@@ -14,6 +14,7 @@ import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.request.VerifyEmailRequest;
 import com.database.study.dto.request.IntrospectRequest;
 import com.database.study.dto.request.RefreshTokenRequest;
+import com.database.study.dto.request.ResendVerificationRequest;
 import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.dto.response.IntrospectResponse;
@@ -93,74 +94,51 @@ public class AuthenticationService {
 
   @Transactional
   public AuthenticationResponse authenticate(AuthenticationRequest request) {
-    com.database.study.entity.User user = userRepository.findByUsername(request.getUsername())
+    User user = userRepository.findByUsername(request.getUsername())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
     boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
     if (!authenticated) {
       throw new AppException(ErrorCode.PASSWORD_MISMATCH);
     }
-        // If CREATED BY ADMIN, MANAGER, How?
+          
     if (!user.isActive()) {
       throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
     }
+    
+    // Xóa token hết hạn
     invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
 
-    //Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByName(user.getUsername());
-    // Always generate a new token and jwtId
-      String jwtId = UUID.randomUUID().toString();
-      String token = generateToken(user, jwtId);
-      String refreshToken = generateRefreshToken(user, jwtId);
-
-      // Create session identifier (like device ID or client ID)
-      String sessionId = request.getSessionIdentifier();
-      if (sessionId == null) {
-          sessionId = UUID.randomUUID().toString(); // Default value if client doesn't provide one
-      }
-      Date expiryTime = extractTokenExpiry(token);
-      Date expireRefreshTime = extractTokenExpiry(refreshToken);
-      // Instant expireInstant = expiryTime.toInstant().plus(SURPLUS_EXPIRE_TIME,
-      // ChronoUnit.HOURS);
-      // Date expireRefreshTime = Date.from(expireInstant);
-
-      // Save token with unique combination of username and session ID
-      InvalidatedToken newToken = InvalidatedToken.builder()
-          .id(jwtId)
-          .token(token)
-          .refreshToken(refreshToken)
-          .expiryTime(expiryTime)
-          .expiryRefreshTime(expireRefreshTime)
-          .username(user.getUsername())
-          .description("Session: " + sessionId)
-          .build();
-      invalidatedTokenRepository.save(newToken);
-
-    // Create and return the authentication response
-    AuthenticationResponse response = AuthenticationResponse.builder()
-        .token(token)
-        .authenticated(true)
-        .build();
-    return response;
-  }
-
-  @Transactional
-  public AuthenticationResponse authenticateOAuth(String username, String sessionId) {
-    User user = userRepository.findByUsername(username)
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+    // Tìm token hiện tại của user
+    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByUsername(user.getUsername());
     
-    // Skip password check completely - user is already authenticated by OAuth
+    if (existingTokenOpt.isPresent()) {
+      InvalidatedToken existingToken = existingTokenOpt.get();
+      Date currentTime = new Date();
+      
+      // Nếu token còn hạn, sử dụng lại
+      if (existingToken.getExpiryTime().after(currentTime)) {
+        // log.info("Reusing existing valid token for user: {}", user.getUsername());
+        
+        return AuthenticationResponse.builder()
+            .token(existingToken.getToken())
+            .authenticated(true)
+            .build();
+      } else {
+        // Nếu token hết hạn, xóa nó
+        invalidatedTokenRepository.delete(existingToken);
+      }
+    }
+    
+    // Tạo token mới nếu không có token hợp lệ
     String jwtId = UUID.randomUUID().toString();
     String token = generateToken(user, jwtId);
     String refreshToken = generateRefreshToken(user, jwtId);
     
-    // Use provided sessionId or generate one
-    if (sessionId == null) {
-      sessionId = UUID.randomUUID().toString();
-    }
-    
     Date expiryTime = extractTokenExpiry(token);
     Date expireRefreshTime = extractTokenExpiry(refreshToken);
     
+    // Lưu token mới (không sử dụng sessionId)
     InvalidatedToken newToken = InvalidatedToken.builder()
         .id(jwtId)
         .token(token)
@@ -168,11 +146,65 @@ public class AuthenticationService {
         .expiryTime(expiryTime)
         .expiryRefreshTime(expireRefreshTime)
         .username(user.getUsername())
-        .description("OAuth Session: " + sessionId)
+        .description("Login at " + new Date())
         .build();
     
     invalidatedTokenRepository.save(newToken);
     
+    // Trả về response
+    return AuthenticationResponse.builder()
+        .token(token)
+        .authenticated(true)
+        .build();
+  }
+
+  @Transactional
+  public AuthenticationResponse authenticateOAuth(String username) {
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    // Xóa token hết hạn
+    invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+
+    // Tìm token hiện tại
+    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByUsername(user.getUsername());
+
+    if (existingTokenOpt.isPresent()) {
+      InvalidatedToken existingToken = existingTokenOpt.get();
+      Date currentTime = new Date();
+
+      if (existingToken.getExpiryTime().after(currentTime)) {
+        //log.info("Reusing existing valid OAuth token for user: {}", user.getUsername());
+
+        return AuthenticationResponse.builder()
+            .token(existingToken.getToken())
+            .authenticated(true)
+            .build();
+      } else {
+        invalidatedTokenRepository.delete(existingToken);
+      }
+    }
+
+    // Tạo token mới
+    String jwtId = UUID.randomUUID().toString();
+    String token = generateToken(user, jwtId);
+    String refreshToken = generateRefreshToken(user, jwtId);
+
+    Date expiryTime = extractTokenExpiry(token);
+    Date expireRefreshTime = extractTokenExpiry(refreshToken);
+
+    InvalidatedToken newToken = InvalidatedToken.builder()
+        .id(jwtId)
+        .token(token)
+        .refreshToken(refreshToken)
+        .expiryTime(expiryTime)
+        .expiryRefreshTime(expireRefreshTime)
+        .username(user.getUsername())
+        .description("OAuth Login at " + new Date())
+        .build();
+
+    invalidatedTokenRepository.save(newToken);
+
     return AuthenticationResponse.builder()
         .token(token)
         .authenticated(true)
@@ -195,42 +227,41 @@ public class AuthenticationService {
 
   @Transactional
   public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
-      User user = userRepository.findByUsername(request.getUsername())
-          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-          
-      // Verify email matches
-      if (!user.getEmail().equals(request.getEmail())) {
-          throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
-      }
-      
-      // Check for existing token and delete it
-      passwordResetTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
-          .ifPresent(token -> passwordResetTokenRepository.delete(token));
-          
-      // Generate random 6-digit code
-      String resetCode = generateSixDigitCode();
-      
-      // Create new token valid for 15 minutes
-      PasswordResetToken resetToken = PasswordResetToken.builder()
-          .token(resetCode)
-          .username(user.getUsername())
-          .email(user.getEmail())
-          .expiryDate(LocalDateTime.now().plusMinutes(15))
-          .used(false)
-          .build();
-          
-      passwordResetTokenRepository.save(resetToken);
-      
-      // Send HTML email with styled verification code
-      emailService.sendPasswordResetEmail(
-          user.getEmail(),
-          user.getFirstname(),
-          resetCode
-      );
-      
-      return ApiResponse.<Void>builder()
-          .message("Password reset code has been sent to your email")
-          .build();
+    User user = userRepository.findByUsername(request.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    // Verify email matches
+    if (!user.getEmail().equals(request.getEmail())) {
+      throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+    }
+
+    // Check for existing token and delete it
+    passwordResetTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
+        .ifPresent(token -> passwordResetTokenRepository.delete(token));
+
+    // Generate random 6-digit code
+    String resetCode = generateSixDigitCode();
+
+    // Create new token valid for 15 minutes
+    PasswordResetToken resetToken = PasswordResetToken.builder()
+        .token(resetCode)
+        .username(user.getUsername())
+        .email(user.getEmail())
+        .expiryDate(LocalDateTime.now().plusMinutes(15))
+        .used(false)
+        .build();
+
+    passwordResetTokenRepository.save(resetToken);
+
+    // Send HTML email with styled verification code
+    emailService.sendPasswordResetEmail(
+        user.getEmail(),
+        user.getFirstname(),
+        resetCode);
+
+    return ApiResponse.<Void>builder()
+        .message("Password reset code has been sent to your email")
+        .build();
   }
 
   @Transactional
@@ -266,99 +297,141 @@ public class AuthenticationService {
         .build();
   }
 
- @Transactional
+  @Transactional
   public ApiResponse<Void> register(UserCreationRequest request) {
-      if (userRepository.existsByUsername(request.getUsername())) {
-        throw new AppException(ErrorCode.USER_EXISTS);
-      }
+    if (userRepository.existsByUsername(request.getUsername())) {
+      throw new AppException(ErrorCode.USER_EXISTS);
+    }
 
-      User user = userMapper.toUser(request);
-      user.setPassword(passwordEncoder.encode(request.getPassword()));
-      
-      // If not provided, set it to false by default (requiring email verification)
-      user.setActive(request.getActive() != null ? request.getActive() : false);
+    User user = userMapper.toUser(request);
+    user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-      // Set default role as USER if roles are not provided or empty
-      List<String> roles = request.getRoles();
-      if (roles == null || roles.isEmpty()) {
-        roles = new ArrayList<>();
-        roles.add(ENUMS.Role.USER.name());
-      }
+    // If not provided, set it to false by default (requiring email verification)
+    user.setActive(request.getActive() != null ? request.getActive() : false);
 
-      // Fetch Role entities based on role names
-      Set<Role> roleEntities = roles.stream()
-          .map(roleName -> roleRepository.findByName(roleName)
-              .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
-          .collect(Collectors.toSet());
-      user.setRoles(roleEntities);
+    // Set default role as USER if roles are not provided or empty
+    List<String> roles = request.getRoles();
+    if (roles == null || roles.isEmpty()) {
+      roles = new ArrayList<>();
+      roles.add(ENUMS.Role.USER.name());
+    }
 
-      userRepository.save(user);
-      if (!user.isActive()) {
-        // Generate verification code and send email
-        String verificationCode = generateSixDigitCode();
+    // Fetch Role entities based on role names
+    Set<Role> roleEntities = roles.stream()
+        .map(roleName -> roleRepository.findByName(roleName)
+            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+        .collect(Collectors.toSet());
+    user.setRoles(roleEntities);
 
-        // Check for existing token and delete it
-        emailVerificationTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
-            .ifPresent(token -> emailVerificationTokenRepository.delete(token));
+    userRepository.save(user);
+    if (!user.isActive()) {
+      // Generate verification code and send email
+      String verificationCode = generateSixDigitCode();
 
-        // Create new token valid for 15 minutes
-        EmailVerificationToken verificationToken = EmailVerificationToken.builder()
-            .token(verificationCode)
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .expiryDate(LocalDateTime.now().plusMinutes(15))
-            .used(false)
-            .build();
+      // Check for existing token and delete it
+      emailVerificationTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
+          .ifPresent(token -> emailVerificationTokenRepository.delete(token));
 
-        emailVerificationTokenRepository.save(verificationToken);
+      // Create new token valid for 15 minutes
+      EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+          .token(verificationCode)
+          .username(user.getUsername())
+          .email(user.getEmail())
+          .expiryDate(LocalDateTime.now().plusMinutes(15))
+          .used(false)
+          .build();
 
-        // Send verification email
-        emailService.sendEmailVerificationCode(
-            user.getEmail(),
-            user.getFirstname(),
-            verificationCode);
-      };
+      emailVerificationTokenRepository.save(verificationToken);
 
-        return ApiResponse.<Void>builder()
-            .message("User registered successfully! Please check your email to verify your account.")
-            .build();
+      // Send verification email
+      emailService.sendEmailVerificationCode(
+          user.getEmail(),
+          user.getFirstname(),
+          verificationCode);
+    }
+    ;
+
+    return ApiResponse.<Void>builder()
+        .message("User registered successfully! Please check your email to verify your account.")
+        .build();
   }
 
   @Transactional
   public ApiResponse<Void> verifyEmail(VerifyEmailRequest request) {
-      EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(request.getToken())
-          .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
-      
-      // Check if token is for the correct user
-      if (!verificationToken.getUsername().equals(request.getUsername())) {
-          throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
-      }
+    EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(request.getToken())
+        .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
 
-      // Check if token is expired
-      if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-          emailVerificationTokenRepository.delete(verificationToken);
-          throw new AppException(ErrorCode.INVALID_TOKEN);
-      }
+    // Check if token is for the correct user
+    if (!verificationToken.getUsername().equals(request.getUsername())) {
+      throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+    }
 
-      // Check if token has been used
-      if (verificationToken.isUsed()) {
-          throw new AppException(ErrorCode.INVALID_TOKEN);
-      }
+    // Check if token is expired
+    if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+      emailVerificationTokenRepository.delete(verificationToken);
+      throw new AppException(ErrorCode.INVALID_TOKEN);
+    }
 
-      // Get the user and update active status
-      User user = userRepository.findByUsername(verificationToken.getUsername())
-          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+    // Check if token has been used
+    if (verificationToken.isUsed()) {
+      throw new AppException(ErrorCode.INVALID_TOKEN);
+    }
 
-      user.setActive(true);
-      userRepository.save(user);
+    // Get the user and update active status
+    User user = userRepository.findByUsername(verificationToken.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-      // Mark token as used
-      verificationToken.setUsed(true);
-      emailVerificationTokenRepository.save(verificationToken);
+    user.setActive(true);
+    userRepository.save(user);
 
+    // Mark token as used
+    verificationToken.setUsed(true);
+    emailVerificationTokenRepository.save(verificationToken);
+
+    return ApiResponse.<Void>builder()
+        .message("Email verified successfully. You can now log in.")
+        .build();
+  }
+
+  @Transactional
+  public ApiResponse<Void> resendVerificationEmail(ResendVerificationRequest request) {
+    User user = userRepository.findByUsername(request.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    // Check if user is already active
+    if (user.isActive()) {
       return ApiResponse.<Void>builder()
-          .message("Email verified successfully. You can now log in.")
+          .message("Your account is already verified. You can log in.")
           .build();
+    }
+
+    // Delete any existing verification tokens for this user
+    emailVerificationTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
+        .ifPresent(token -> emailVerificationTokenRepository.delete(token));
+
+    // Generate a new verification code
+    String verificationCode = generateSixDigitCode();
+
+    // Create new token valid for 15 minutes
+    EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+        .token(verificationCode)
+        .username(user.getUsername())
+        .email(user.getEmail())
+        .expiryDate(LocalDateTime.now().plusMinutes(15))
+        .used(false)
+        .build();
+
+    emailVerificationTokenRepository.save(verificationToken);
+
+    // Send verification email
+    emailService.sendEmailVerificationCode(
+        user.getEmail(),
+        user.getFirstname(),
+        verificationCode);
+
+    return ApiResponse.<Void>builder()
+        .message("Verification code has been sent to your email.")
+        .build();
   }
 
   @Transactional
@@ -532,15 +605,15 @@ public class AuthenticationService {
     return claims.getExpiration();
   }
 
-     private String generateSixDigitCode() {
-        Random random = new Random();
-        int code = 100000 + random.nextInt(900000); // Generates a number between 100000 and 999999
-        return String.valueOf(code);
-    }
-    
-    // Add a scheduled task to clean up expired tokens
-    @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // Run once a day
-    public void cleanupExpiredTokens() {
-        passwordResetTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
-    }
+  private String generateSixDigitCode() {
+    Random random = new Random();
+    int code = 100000 + random.nextInt(900000); // Generates a number between 100000 and 999999
+    return String.valueOf(code);
+  }
+
+  // Add a scheduled task to clean up expired tokens
+  @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // Run once a day
+  public void cleanupExpiredTokens() {
+    passwordResetTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
+  }
 }

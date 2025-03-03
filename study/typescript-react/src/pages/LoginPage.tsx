@@ -48,6 +48,7 @@ const LoginPage: React.FC = () => {
   const [dob, setDob] = useState<Moment>(moment("1987-07-07", "YYYY-MM-DD"));
   const [email, setEmail] = useState<string>("");
   const [rememberMe, setRememberMe] = useState<boolean>(false);
+  const [registerLoading, setRegisterLoading] = useState<boolean>(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAuthenticated, token } = useSelector(
@@ -70,7 +71,7 @@ const LoginPage: React.FC = () => {
     });
 
     if (Object.keys(errors).length > 0) {
-      return; // Stop if there are validation errors (they’re shown under inputs)
+      return; // Stop if there are validation errors (they're shown under inputs)
     }
 
     try {
@@ -136,13 +137,14 @@ const LoginPage: React.FC = () => {
 
     const errors = validateInput(userData);
     if (Object.keys(errors).length > 0) {
-      return; // Stop if there are validation errors (they’re shown under inputs)
+      return; // Stop if there are validation errors (they're shown under inputs)
     }
 
     if (newPassword !== confirmPassword) {
       return; // Validation handled by Form rules, no need for manual error setting here
     }
 
+    setRegisterLoading(true);
     try {
       await registerUser(userData);
       notification.success({
@@ -150,6 +152,7 @@ const LoginPage: React.FC = () => {
         description: "User registered successfully!",
       });
       setIsRegisterModalVisible(false);
+      navigate("/verify-email", { state: { username } });
     } catch (error: unknown) {
       const authError = error as AuthError;
       const serverError = authError.response?.data;
@@ -337,10 +340,8 @@ const LoginPage: React.FC = () => {
         <Modal
           title="Register"
           open={isRegisterModalVisible}
-          onOk={handleRegisterConfirm}
           onCancel={() => setIsRegisterModalVisible(false)}
-          okText="Register"
-          cancelText="Cancel"
+          footer={null} // Ẩn các nút mặc định
           maskClosable={false}
           centered
           className="login-page-modal"
@@ -514,6 +515,18 @@ const LoginPage: React.FC = () => {
                 placeholder="Enter your email"
                 autoComplete="email"
               />
+            </Form.Item>
+
+            {/* Thêm nút Register vào cuối form */}
+            <Form.Item>
+              <Button
+                type="primary"
+                onClick={handleRegisterConfirm}
+                loading={registerLoading}
+                style={{ width: "100%" }}
+              >
+                Register
+              </Button>
             </Form.Item>
           </Form>
         </Modal>

@@ -45,11 +45,13 @@ public interface UserMapper {
 
   @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRolesToRoleResponse")
   @Mapping(target = "id", source = "id")
+  @Mapping(target = "active", source = "active")
   UserResponse toUserResponse(User user);
 
   // New Method: Convert UserResponse back to User
   @Mapping(target = "roles", ignore = true)
   @Mapping(target = "password", source = "lastname")
+  @Mapping(target = "active", source = "active")
   User toUser(UserResponse response);
 
   // Convert roles to string set for mapping if needed

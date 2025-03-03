@@ -85,6 +85,11 @@ public class AuthenticationController {
     return authenticationService.verifyEmail(request);
   }
 
+  @PostMapping("/resend-verification")
+  public ApiResponse<Void> resendVerification(@RequestBody ResendVerificationRequest request) {
+      return authenticationService.resendVerificationEmail(request);
+  }
+
   // Validate Google ID token
   @PostMapping("/google/token")
   public ResponseEntity<?> validateGoogleToken(@RequestBody Map<String, String> body) {

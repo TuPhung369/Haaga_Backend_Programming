@@ -15,6 +15,8 @@ import com.database.study.enums.ENUMS;
 import com.database.study.repository.RoleRepository;
 import com.database.study.repository.EventRepository;
 import com.database.study.repository.KanbanBoardRepository;
+import com.database.study.repository.EmailVerificationTokenRepository;
+import com.database.study.repository.InvalidatedTokenRepository;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,8 @@ public class UserService {
   RoleRepository roleRepository;
   EventRepository eventRepository;
   KanbanBoardRepository kanbanBoardRepository;
+  EmailVerificationTokenRepository emailVerificationTokenRepository;
+  InvalidatedTokenRepository invalidatedTokenRepository;
 
 
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
@@ -147,15 +151,57 @@ public class UserService {
     return userMapper.toUserResponse(updatedUser);
   }
 
-  @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
-  @Transactional
-  public void deleteUser(UUID userId) {
-      if (!userRepository.existsById(userId)) {
-          throw new AppException(ErrorCode.USER_NOT_FOUND);
-      }
-      userRepository.deleteUserRolesByUserId(userId);
-      eventRepository.deleteByUserId(userId);
-      kanbanBoardRepository.deleteBoardsByUserId(userId);
-      userRepository.deleteById(userId);
-  }
+   @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
+    @Transactional
+    public void deleteUser(UUID userId) {
+        // Find user first to get username before deletion
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        String username = user.getUsername();
+        log.info("Deleting user with ID: {} and username: {}", userId, username);
+        
+        try {
+            // Delete all tokens related to user
+            try {
+                // Delete email verification tokens
+                emailVerificationTokenRepository.deleteByUsername(username);
+                log.info("Deleted email verification tokens for user: {}", username);
+            } catch (Exception e) {
+                log.error("Error deleting email verification tokens for user: {}", username, e);
+            }
+            
+            try {
+                // Delete invalidated tokens
+                invalidatedTokenRepository.deleteByUsername(username);
+                log.info("Deleted invalidated tokens for user: {}", username);
+            } catch (Exception e) {
+                log.error("Error deleting invalidated tokens for user: {}", username, e);
+            }
+            
+            // Delete user relationships
+            userRepository.deleteUserRolesByUserId(userId);
+            eventRepository.deleteByUserId(userId);
+            kanbanBoardRepository.deleteBoardsByUserId(userId);
+            
+            // Finally delete the user
+            userRepository.deleteById(userId);
+            log.info("Successfully deleted user with ID: {} and username: {}", userId, username);
+        } catch (Exception e) {
+            log.error("Error during user deletion process for user ID: {}", userId, e);
+            throw new AppException(ErrorCode.GENERAL_EXCEPTION);
+        }
+    }
+  
+    /**
+     * Delete a user by username (alternative method)
+     */
+    @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
+    @Transactional
+    public void deleteUserByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+        
+        deleteUser(user.getId());
+    }
 }

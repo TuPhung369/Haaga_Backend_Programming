@@ -182,15 +182,9 @@ public class OAuth2TokenController {
         // ForgotPasswordRequest authRequest = new ForgotPasswordRequest();
         // authRequest.setUsername(user.getUsername());
         // authRequest.setPassword(idToken);
-
-        // Then later when you need the session ID:
-        String sessionId = servletRequest.getHeader("User-Agent");
-        // You might want to combine this with some unique identifier:
-        sessionId = sessionId + "-" + UUID.randomUUID().toString();
         
         AuthenticationResponse authResponse = authenticationService.authenticateOAuth(
-            user.getUsername(), 
-            sessionId
+            user.getUsername()
         );
         log.info("STEP 11: Authentication successful");
 

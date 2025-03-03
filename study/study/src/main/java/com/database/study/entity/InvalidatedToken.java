@@ -18,8 +18,6 @@ public class InvalidatedToken {
   @Id
   String id;
 
-  String sessionId;
-
   @Column(length = 500, nullable = false)
   String token;
 
