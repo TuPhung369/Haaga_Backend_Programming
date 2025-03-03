@@ -60,6 +60,7 @@ public class UserService {
 
     User user = userMapper.toUser(request);
     user.setPassword(passwordEncoder.encode(request.getPassword()));
+    user.setActive(true);
 
     // Set default role as USER if roles are not provided or empty
     List<String> roles = request.getRoles();

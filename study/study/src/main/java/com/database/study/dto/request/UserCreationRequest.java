@@ -47,4 +47,6 @@ public class UserCreationRequest {
   @NotNull(message = "ROLES_NOT_NULL")
   @NotEmptyListConstraint(message = "ROLES_NOT_NULL")
   List<String> roles;
+
+  Boolean active;
 }

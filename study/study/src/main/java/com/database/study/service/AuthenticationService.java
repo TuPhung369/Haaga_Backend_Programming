@@ -194,44 +194,44 @@ public class AuthenticationService {
   }
 
   @Transactional
-public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
-    User user = userRepository.findByUsername(request.getUsername())
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-        
-    // Verify email matches
-    if (!user.getEmail().equals(request.getEmail())) {
-        throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
-    }
-    
-    // Check for existing token and delete it
-    passwordResetTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
-        .ifPresent(token -> passwordResetTokenRepository.delete(token));
-        
-    // Generate random 6-digit code
-    String resetCode = generateSixDigitCode();
-    
-    // Create new token valid for 15 minutes
-    PasswordResetToken resetToken = PasswordResetToken.builder()
-        .token(resetCode)
-        .username(user.getUsername())
-        .email(user.getEmail())
-        .expiryDate(LocalDateTime.now().plusMinutes(15))
-        .used(false)
-        .build();
-        
-    passwordResetTokenRepository.save(resetToken);
-    
-    // Send HTML email with styled verification code
-    emailService.sendPasswordResetEmail(
-        user.getEmail(),
-        user.getFirstname(),
-        resetCode
-    );
-    
-    return ApiResponse.<Void>builder()
-        .message("Password reset code has been sent to your email")
-        .build();
-}
+  public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
+      User user = userRepository.findByUsername(request.getUsername())
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+          
+      // Verify email matches
+      if (!user.getEmail().equals(request.getEmail())) {
+          throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+      }
+      
+      // Check for existing token and delete it
+      passwordResetTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
+          .ifPresent(token -> passwordResetTokenRepository.delete(token));
+          
+      // Generate random 6-digit code
+      String resetCode = generateSixDigitCode();
+      
+      // Create new token valid for 15 minutes
+      PasswordResetToken resetToken = PasswordResetToken.builder()
+          .token(resetCode)
+          .username(user.getUsername())
+          .email(user.getEmail())
+          .expiryDate(LocalDateTime.now().plusMinutes(15))
+          .used(false)
+          .build();
+          
+      passwordResetTokenRepository.save(resetToken);
+      
+      // Send HTML email with styled verification code
+      emailService.sendPasswordResetEmail(
+          user.getEmail(),
+          user.getFirstname(),
+          resetCode
+      );
+      
+      return ApiResponse.<Void>builder()
+          .message("Password reset code has been sent to your email")
+          .build();
+  }
 
   @Transactional
   public ApiResponse<Void> resetPasswordWithToken(VerifyResetTokenRequest request) {
@@ -275,8 +275,8 @@ public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
       User user = userMapper.toUser(request);
       user.setPassword(passwordEncoder.encode(request.getPassword()));
       
-      // Set account as inactive until email verification
-      user.setActive(false);
+      // If not provided, set it to false by default (requiring email verification)
+      user.setActive(request.getActive() != null ? request.getActive() : false);
 
       // Set default role as USER if roles are not provided or empty
       List<String> roles = request.getRoles();
@@ -293,35 +293,35 @@ public ApiResponse<Void> initiatePasswordReset(ForgotPasswordRequest request) {
       user.setRoles(roleEntities);
 
       userRepository.save(user);
-      
-      // Generate verification code and send email
-      String verificationCode = generateSixDigitCode();
-      
-      // Check for existing token and delete it
-      emailVerificationTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
-          .ifPresent(token -> emailVerificationTokenRepository.delete(token));
-          
-      // Create new token valid for 15 minutes
-      EmailVerificationToken verificationToken = EmailVerificationToken.builder()
-          .token(verificationCode)
-          .username(user.getUsername())
-          .email(user.getEmail())
-          .expiryDate(LocalDateTime.now().plusMinutes(15))
-          .used(false)
-          .build();
-          
-      emailVerificationTokenRepository.save(verificationToken);
-      
-      // Send verification email
-      emailService.sendEmailVerificationCode(
-          user.getEmail(),
-          user.getFirstname(),
-          verificationCode
-      );
+      if (!user.isActive()) {
+        // Generate verification code and send email
+        String verificationCode = generateSixDigitCode();
 
-      return ApiResponse.<Void>builder()
-          .message("User registered successfully! Please check your email to verify your account.")
-          .build();
+        // Check for existing token and delete it
+        emailVerificationTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
+            .ifPresent(token -> emailVerificationTokenRepository.delete(token));
+
+        // Create new token valid for 15 minutes
+        EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+            .token(verificationCode)
+            .username(user.getUsername())
+            .email(user.getEmail())
+            .expiryDate(LocalDateTime.now().plusMinutes(15))
+            .used(false)
+            .build();
+
+        emailVerificationTokenRepository.save(verificationToken);
+
+        // Send verification email
+        emailService.sendEmailVerificationCode(
+            user.getEmail(),
+            user.getFirstname(),
+            verificationCode);
+      };
+
+        return ApiResponse.<Void>builder()
+            .message("User registered successfully! Please check your email to verify your account.")
+            .build();
   }
 
   @Transactional

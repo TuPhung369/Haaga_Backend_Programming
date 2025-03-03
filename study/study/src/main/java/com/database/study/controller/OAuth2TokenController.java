@@ -165,7 +165,7 @@ public class OAuth2TokenController {
               userCreationRequest.setDob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9));
               userCreationRequest.setEmail(email);
               userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
-              
+              userCreationRequest.setActive(true);
               UserResponse newUserResponse = userService.createUser(userCreationRequest);
               User newUser = userMapper.toUser(newUserResponse);
 

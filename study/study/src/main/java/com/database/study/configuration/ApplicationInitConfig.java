@@ -85,11 +85,11 @@ public class ApplicationInitConfig {
 
         if (!isAdminTomExists) {
           createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
-              "tuphungAdmin@gmail.com", ENUMS.Role.ADMIN.name());
+              "tuphungAdmin@gmail.com", ENUMS.Role.ADMIN.name(), true);
           createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("1999-03-03"),
-              "tuphungManager@gmail.com", ENUMS.Role.MANAGER.name());
+              "tuphungManager@gmail.com", ENUMS.Role.MANAGER.name(), true);
           createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),
-              "tuphungUser@gmail.com", ENUMS.Role.USER.name());
+              "tuphungUser@gmail.com", ENUMS.Role.USER.name(), true);
 
           // Generate 100 users with the same password and random roles
           Random random = new Random();
@@ -104,7 +104,8 @@ public class ApplicationInitConfig {
             LocalDate dob = LocalDate.parse("1976-01-01").plusDays(i*30);
             String email = username + "@gmail.com";
             String role = randomRole.name();
-            createUserIfNotExists(username, password, firstName, lastName, dob, email, role);
+            boolean active = true;
+            createUserIfNotExists(username, password, firstName, lastName, dob, email, role, active);
           });
         }
 
@@ -125,7 +126,8 @@ public class ApplicationInitConfig {
       String lastname,
       LocalDate dob,
       String email,
-      String roleName) {
+      String roleName,
+      boolean active) {
 
     if (userRepository.findByUsername(username).isEmpty()) {
       UserCreationRequest userRequest = new UserCreationRequest();
@@ -138,6 +140,7 @@ public class ApplicationInitConfig {
 
       User user = userMapper.toUser(userRequest);
       user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+      user.setActive(active);
 
       // Fetch Role entities and assign to the User
       Set<Role> roleEntities = new HashSet<>();

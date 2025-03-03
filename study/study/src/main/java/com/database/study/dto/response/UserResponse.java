@@ -21,4 +21,5 @@ public class UserResponse {
   LocalDate dob;
 
   Set<RoleResponse> roles;
+  boolean active;
 }
