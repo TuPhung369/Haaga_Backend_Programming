@@ -16,7 +16,6 @@ import {
 import {
   authenticateUser,
   introspectToken,
-  resetPassword,
   registerUser,
 } from "../services/authService";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
@@ -38,8 +37,7 @@ const LoginPage: React.FC = () => {
   const oauth2RedirectUri = import.meta.env.VITE_OAUTH2_REDIRECT_URI;
   const appBaseUri = import.meta.env.VITE_BASE_URI;
 
-  const [isForgotPasswordModalVisible, setIsForgotPasswordModalVisible] =
-    useState<boolean>(false);
+  useState<boolean>(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] =
     useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
@@ -111,39 +109,7 @@ const LoginPage: React.FC = () => {
   };
 
   const handleForgotPassword = () => {
-    setUsername("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setIsForgotPasswordModalVisible(true);
-  };
-
-  const handleForgotPasswordConfirm = async () => {
-    const errors = validateInput({ username, password: newPassword });
-    if (Object.keys(errors).length > 0) {
-      return; // Stop if there are validation errors (they’re shown under inputs)
-    }
-
-    if (newPassword !== confirmPassword) {
-      return; // Validation handled by Form rules, no need for manual error setting here
-    }
-
-    try {
-      await resetPassword(username, newPassword);
-      notification.success({
-        message: "Success",
-        description: "Password reset successfully!",
-      });
-      setIsForgotPasswordModalVisible(false);
-    } catch (error: unknown) {
-      const authError = error as AuthError;
-      const serverError = authError.response?.data;
-      const message =
-        serverError?.message || "An error occurred during password reset";
-      notification.error({
-        message: `Error ${serverError?.httpCode || ""}`,
-        description: message,
-      });
-    }
+    navigate("/forgot-password");
   };
 
   const handleRegister = () => {
@@ -366,98 +332,6 @@ const LoginPage: React.FC = () => {
             </Form>
           </Card>
         </Content>
-
-        {/* Forgot Password Modal */}
-        <Modal
-          title="Reset Your Password"
-          open={isForgotPasswordModalVisible}
-          onOk={handleForgotPasswordConfirm}
-          onCancel={() => setIsForgotPasswordModalVisible(false)}
-          okText="Reset Password"
-          cancelText="Cancel"
-          maskClosable={false}
-          centered
-          className="login-page-modal"
-        >
-          <Form
-            layout="vertical"
-            className="login-page-modal-form"
-            autoComplete="off"
-          >
-            <Form.Item
-              name="username"
-              label="Username"
-              rules={[
-                { required: true, message: "Please enter your username!" },
-                {
-                  validator: (_, value) => {
-                    const errors = validateInput({ username: value });
-                    return errors.username
-                      ? Promise.reject(errors.username)
-                      : Promise.resolve();
-                  },
-                },
-              ]}
-              className="login-page-modal-form-item"
-            >
-              <Input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                autoComplete="username"
-              />
-            </Form.Item>
-            <Form.Item
-              name="newPassword"
-              label="New Password"
-              rules={[
-                { required: true, message: "Please enter your new password!" },
-                {
-                  validator: (_, value) => {
-                    const errors = validateInput({ password: value });
-                    return errors.password
-                      ? Promise.reject(errors.password)
-                      : Promise.resolve();
-                  },
-                },
-              ]}
-              className="login-page-modal-form-item"
-            >
-              <Input.Password
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter your new password"
-                autoComplete="new-password"
-              />
-            </Form.Item>
-            <Form.Item
-              name="confirmPassword"
-              label="Confirm Password"
-              rules={[
-                {
-                  required: true,
-                  message: "Please confirm your new password!",
-                },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    if (!value || getFieldValue("newPassword") === value) {
-                      return Promise.resolve();
-                    }
-                    return Promise.reject("Passwords do not match!");
-                  },
-                }),
-              ]}
-              className="login-page-modal-form-item"
-            >
-              <Input.Password
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your new password"
-                autoComplete="new-password"
-              />
-            </Form.Item>
-          </Form>
-        </Modal>
 
         {/* Register Modal */}
         <Modal
