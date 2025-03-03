@@ -16,7 +16,7 @@ import com.database.study.repository.RoleRepository;
 import com.database.study.repository.EventRepository;
 import com.database.study.repository.KanbanBoardRepository;
 import com.database.study.repository.EmailVerificationTokenRepository;
-import com.database.study.repository.InvalidatedTokenRepository;
+import com.database.study.repository.ActiveTokenRepository;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +46,7 @@ public class UserService {
   EventRepository eventRepository;
   KanbanBoardRepository kanbanBoardRepository;
   EmailVerificationTokenRepository emailVerificationTokenRepository;
-  InvalidatedTokenRepository invalidatedTokenRepository;
+  ActiveTokenRepository invalidatedTokenRepository;
 
 
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:

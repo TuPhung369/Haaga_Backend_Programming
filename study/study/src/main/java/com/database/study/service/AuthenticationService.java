@@ -10,6 +10,7 @@ import com.database.study.dto.request.ForgotPasswordRequest;
 import com.database.study.dto.request.VerifyResetTokenRequest;
 import com.database.study.dto.request.LogoutRequest;
 import com.database.study.dto.request.ResetPasswordRequest;
+import com.database.study.dto.request.TokenRefreshRequest;
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.request.VerifyEmailRequest;
 import com.database.study.dto.request.IntrospectRequest;
@@ -19,8 +20,9 @@ import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.dto.response.IntrospectResponse;
 import com.database.study.dto.response.RefreshTokenResponse;
+import com.database.study.dto.response.TokenRefreshResponse;
 import com.database.study.entity.EmailVerificationToken;
-import com.database.study.entity.InvalidatedToken;
+import com.database.study.entity.ActiveToken;
 import com.database.study.entity.PasswordResetToken;
 import com.database.study.entity.Role;
 import com.database.study.entity.User;
@@ -29,10 +31,11 @@ import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.mapper.UserMapper;
 import com.database.study.repository.EmailVerificationTokenRepository;
-import com.database.study.repository.InvalidatedTokenRepository;
+import com.database.study.repository.ActiveTokenRepository;
 import com.database.study.repository.PasswordResetTokenRepository;
 import com.database.study.repository.RoleRepository;
 import com.database.study.repository.UserRepository;
+
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -41,13 +44,12 @@ import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.JWSVerifier;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
@@ -78,15 +80,17 @@ public class AuthenticationService {
   PasswordEncoder passwordEncoder;
   RoleRepository roleRepository;
   UserMapper userMapper;
-  InvalidatedTokenRepository invalidatedTokenRepository;
+  ActiveTokenRepository activeTokenRepository;
   EmailService emailService;
   PasswordResetTokenRepository passwordResetTokenRepository;
   EmailVerificationTokenRepository emailVerificationTokenRepository;
 
-  // protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
+  // Protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
   protected static final byte[] SECRET_KEY_BYTES = Base64.getDecoder()
       .decode("2fl9V3Xl0ks5yX9dGuVHRV1H6ld9F0OjhrYhP7QvxqJrB/1OLKJHpPoMxSBcUe3EEC6Hq0kseMfUQlhK2w2yQA==");
   static final int SURPLUS_EXPIRE_TIME = 7;
+  static final long TOKEN_EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
+  static final long REFRESH_TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
 
   public static byte[] getSecretKeyBytes() {
     return SECRET_KEY_BYTES;
@@ -106,31 +110,55 @@ public class AuthenticationService {
       throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
     }
     
-    // Xóa token hết hạn
-    invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    // Delete expired tokens
+    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
 
-    // Tìm token hiện tại của user
-    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByUsername(user.getUsername());
+    // Find current user token
+    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
     
     if (existingTokenOpt.isPresent()) {
-      InvalidatedToken existingToken = existingTokenOpt.get();
+      ActiveToken existingToken = existingTokenOpt.get();
       Date currentTime = new Date();
       
-      // Nếu token còn hạn, sử dụng lại
+      // If token is still valid, reuse it
       if (existingToken.getExpiryTime().after(currentTime)) {
-        // log.info("Reusing existing valid token for user: {}", user.getUsername());
+        log.info("Reusing existing valid token for user: {}", user.getUsername());
         
         return AuthenticationResponse.builder()
             .token(existingToken.getToken())
+            .refreshToken(existingToken.getRefreshToken())
             .authenticated(true)
             .build();
-      } else {
-        // Nếu token hết hạn, xóa nó
-        invalidatedTokenRepository.delete(existingToken);
+      } 
+      // If access token expired but refresh token is valid, create new access token
+      else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+        log.info("Access token expired but refresh token valid. Generating new access token for user: {}", user.getUsername());
+        
+        String newToken = generateToken(user, existingToken.getId());
+        Date newExpiryTime = extractTokenExpiry(newToken);
+        
+        // Update only access token, keep refresh token
+        existingToken.setToken(newToken);
+        existingToken.setExpiryTime(newExpiryTime);
+        existingToken.setDescription("Refreshed at " + new Date());
+        
+        activeTokenRepository.save(existingToken);
+        
+        return AuthenticationResponse.builder()
+            .token(newToken)
+            .refreshToken(existingToken.getRefreshToken())
+            .authenticated(true)
+            .build();
+      } 
+      // Both tokens expired, delete and create new ones
+      else {
+        log.info("All tokens expired for user: {}, creating new tokens", user.getUsername());
+        activeTokenRepository.delete(existingToken);
       }
     }
     
-    // Tạo token mới nếu không có token hợp lệ
+    // Create new tokens if none valid exist
     String jwtId = UUID.randomUUID().toString();
     String token = generateToken(user, jwtId);
     String refreshToken = generateRefreshToken(user, jwtId);
@@ -138,8 +166,8 @@ public class AuthenticationService {
     Date expiryTime = extractTokenExpiry(token);
     Date expireRefreshTime = extractTokenExpiry(refreshToken);
     
-    // Lưu token mới (không sử dụng sessionId)
-    InvalidatedToken newToken = InvalidatedToken.builder()
+    // Save new token
+    ActiveToken newToken = ActiveToken.builder()
         .id(jwtId)
         .token(token)
         .refreshToken(refreshToken)
@@ -149,11 +177,12 @@ public class AuthenticationService {
         .description("Login at " + new Date())
         .build();
     
-    invalidatedTokenRepository.save(newToken);
+    activeTokenRepository.save(newToken);
     
-    // Trả về response
+    // Return response with both tokens
     return AuthenticationResponse.builder()
         .token(token)
+        .refreshToken(refreshToken)
         .authenticated(true)
         .build();
   }
@@ -163,29 +192,55 @@ public class AuthenticationService {
     User user = userRepository.findByUsername(username)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-    // Xóa token hết hạn
-    invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    // Delete expired tokens
+    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
 
-    // Tìm token hiện tại
-    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByUsername(user.getUsername());
+    // Find current token
+    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
 
     if (existingTokenOpt.isPresent()) {
-      InvalidatedToken existingToken = existingTokenOpt.get();
+      ActiveToken existingToken = existingTokenOpt.get();
       Date currentTime = new Date();
 
+      // If token is still valid, reuse it
       if (existingToken.getExpiryTime().after(currentTime)) {
-        //log.info("Reusing existing valid OAuth token for user: {}", user.getUsername());
-
+        log.info("Reusing existing valid OAuth token for user: {}", user.getUsername());
+        
         return AuthenticationResponse.builder()
             .token(existingToken.getToken())
+            .refreshToken(existingToken.getRefreshToken())
             .authenticated(true)
             .build();
-      } else {
-        invalidatedTokenRepository.delete(existingToken);
+      } 
+      // If access token expired but refresh token is valid, create new access token
+      else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+        log.info("OAuth access token expired but refresh token valid. Generating new access token for user: {}", user.getUsername());
+        
+        String newToken = generateToken(user, existingToken.getId());
+        Date newExpiryTime = extractTokenExpiry(newToken);
+        
+        // Update only access token, keep refresh token
+        existingToken.setToken(newToken);
+        existingToken.setExpiryTime(newExpiryTime);
+        existingToken.setDescription("OAuth Refreshed at " + new Date());
+        
+        activeTokenRepository.save(existingToken);
+        
+        return AuthenticationResponse.builder()
+            .token(newToken)
+            .refreshToken(existingToken.getRefreshToken())
+            .authenticated(true)
+            .build();
+      } 
+      // Both tokens expired, delete and create new ones
+      else {
+        log.info("All OAuth tokens expired for user: {}, creating new tokens", user.getUsername());
+        activeTokenRepository.delete(existingToken);
       }
     }
 
-    // Tạo token mới
+    // Create new tokens
     String jwtId = UUID.randomUUID().toString();
     String token = generateToken(user, jwtId);
     String refreshToken = generateRefreshToken(user, jwtId);
@@ -193,7 +248,7 @@ public class AuthenticationService {
     Date expiryTime = extractTokenExpiry(token);
     Date expireRefreshTime = extractTokenExpiry(refreshToken);
 
-    InvalidatedToken newToken = InvalidatedToken.builder()
+    ActiveToken newToken = ActiveToken.builder()
         .id(jwtId)
         .token(token)
         .refreshToken(refreshToken)
@@ -203,11 +258,61 @@ public class AuthenticationService {
         .description("OAuth Login at " + new Date())
         .build();
 
-    invalidatedTokenRepository.save(newToken);
+    activeTokenRepository.save(newToken);
 
     return AuthenticationResponse.builder()
         .token(token)
+        .refreshToken(refreshToken)
         .authenticated(true)
+        .build();
+  }
+  
+  /**
+   * New method to refresh access token using refresh token
+   */
+  @Transactional
+  public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
+    String refreshToken = request.getRefreshToken();
+    
+    // Find the token record by refresh token
+    ActiveToken tokenRecord = activeTokenRepository.findByRefreshToken(refreshToken)
+        .orElseThrow(() -> new AppException(ErrorCode.INVALID_REFRESH_TOKEN));
+    
+    // Verify refresh token is still valid
+    Date currentTime = new Date();
+    if (tokenRecord.getExpiryRefreshTime().before(currentTime)) {
+      activeTokenRepository.delete(tokenRecord);
+      throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+    }
+    
+    // Get username from refresh token
+    String username;
+    try {
+      SignedJWT signedJWT = SignedJWT.parse(refreshToken);
+      username = signedJWT.getJWTClaimsSet().getSubject();
+    } catch (Exception e) {
+      throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+    }
+    
+    // Find the user
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+    
+    // Generate new access token
+    String newToken = generateToken(user, tokenRecord.getId());
+    Date newExpiryTime = extractTokenExpiry(newToken);
+    
+    // Update the access token
+    tokenRecord.setToken(newToken);
+    tokenRecord.setExpiryTime(newExpiryTime);
+    tokenRecord.setDescription("Refreshed at " + new Date());
+    
+    activeTokenRepository.save(tokenRecord);
+    
+    return TokenRefreshResponse.builder()
+        .token(newToken)
+        .refreshToken(refreshToken) // Return the same refresh token
+        .refreshed(true)
         .build();
   }
 
@@ -349,7 +454,6 @@ public class AuthenticationService {
           user.getFirstname(),
           verificationCode);
     }
-    ;
 
     return ApiResponse.<Void>builder()
         .message("User registered successfully! Please check your email to verify your account.")
@@ -443,18 +547,18 @@ public class AuthenticationService {
 
     // Retrieve the existing UUID from the token claims
     String uuid = signedToken.getJWTClaimsSet().getJWTID();
-    // Delete all expired tokens before adding the new entry
-    invalidatedTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    
+    // Delete all expired tokens
+    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
 
-    // Find the existing InvalidatedToken by UUID
-    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findById(uuid);
+    // Find the existing ActiveToken by UUID
+    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findById(uuid);
     if (existingTokenOpt.isPresent()) {
-      // Update only the description field
-      InvalidatedToken existingToken = existingTokenOpt.get();
-      // existingToken.getDescription());
+      // Update description field
+      ActiveToken existingToken = existingTokenOpt.get();
       existingToken.setDescription("Logged OUT at: " + formattedDate);
-      invalidatedTokenRepository.save(existingToken);
-      invalidatedTokenRepository.flush(); // Flush using to changes the database
+      activeTokenRepository.save(existingToken);
+      activeTokenRepository.flush();
     } else {
       throw new AppException(ErrorCode.INVALID_TOKEN);
     }
@@ -467,25 +571,20 @@ public class AuthenticationService {
     var user = userRepository.findByUsername(signedRefreshToken.getJWTClaimsSet().getSubject())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-    Optional<InvalidatedToken> existingTokenOpt = invalidatedTokenRepository.findByUsername(user.getUsername());
+    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
 
     if (existingTokenOpt.isPresent() && existingTokenOpt.get().getExpiryRefreshTime().after(new Date())) {
-      invalidatedTokenRepository.deleteByUsername(user.getUsername());
+      activeTokenRepository.deleteByUsername(user.getUsername());
     }
 
     String jwtId = UUID.randomUUID().toString();
     String newAccessToken = generateToken(user, jwtId);
     String newRefreshToken = generateRefreshToken(user, jwtId);
-    // SignedJWT signedNewAccessToken = verifyToken(newAccessToken);
-    // SignedJWT signedNewRefreshToken = verifyToken(newRefreshToken);
 
     Date expiryTime = extractTokenExpiry(newAccessToken);
     Date expireRefreshTime = extractTokenExpiry(newRefreshToken);
-    // Instant expireInstant = expiryTime.toInstant().plus(SURPLUS_EXPIRE_TIME,
-    // ChronoUnit.HOURS);
-    // Date expireRefreshTime = Date.from(expireInstant);
 
-    InvalidatedToken newInvalidatedToken = InvalidatedToken.builder()
+    ActiveToken newActiveToken = ActiveToken.builder()
         .id(jwtId)
         .token(newAccessToken)
         .refreshToken(newRefreshToken)
@@ -495,13 +594,38 @@ public class AuthenticationService {
         .description("Newly issued refresh token")
         .build();
 
-    invalidatedTokenRepository.save(newInvalidatedToken);
+    activeTokenRepository.save(newActiveToken);
 
     RefreshTokenResponse response = RefreshTokenResponse.builder()
         .token(newAccessToken)
         .authenticated(true)
         .build();
     return response;
+  }
+
+  @Transactional
+  public ApiResponse<Void> logout(String authToken) {
+    String token = authToken;
+    if (token.startsWith("Bearer ")) {
+      token = token.substring(7);
+    }
+    
+    try {
+      Claims claims = extractAllClaims(token);
+      String username = claims.getSubject();
+      
+      // Delete user tokens
+      activeTokenRepository.deleteByUsername(username);
+      
+      return ApiResponse.<Void>builder()
+          .message("Logged out successfully")
+          .build();
+    } catch (Exception e) {
+      log.error("Error during logout: {}", e.getMessage());
+      return ApiResponse.<Void>builder()
+          .message("Logout failed")
+          .build();
+    }
   }
 
   public IntrospectResponse introspect(IntrospectRequest request) {
@@ -511,7 +635,6 @@ public class AuthenticationService {
       verifyToken(token);
       isValid = true;
     } catch (Exception e) {
-      // e.getMessage(), e);
       isValid = false;
     }
     IntrospectResponse response = IntrospectResponse.builder()
@@ -531,40 +654,15 @@ public class AuthenticationService {
     return signedJWT;
   }
 
-  public String generateToken(com.database.study.entity.User user, String jwtId) {
+  public String generateToken(User user, String jwtId) {
     try {
-      JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512); // Use HS512 algorithm
+      JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
       JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
           .subject(user.getUsername())
           .claim("userId", user.getId().toString())
           .issuer("tommem.com")
           .issueTime(new Date())
-          .expirationTime(new Date(new Date().getTime() + 60 * 60 * 1000)) // 60 * 60 * 1 hour expiration
-          .jwtID(jwtId)
-          .claim("scope", buildScope(user))
-          .build();
-      Payload payload = new Payload(jwtClaimsSet.toJSONObject());
-
-      JWSObject jwsObject = new JWSObject(jwsHeader, payload);
-      jwsObject.sign(new MACSigner(SECRET_KEY_BYTES)); // Make sure the key is correct!
-      String token = jwsObject.serialize();
-
-      return token;
-    } catch (Exception e) {
-      log.error("Error generating token: {}", e.getMessage(), e);
-      return null;
-    }
-  }
-
-  private String generateRefreshToken(com.database.study.entity.User user, String jwtId) {
-    try {
-      JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512); // Use HS512 algorithm
-      JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-          .subject(user.getUsername())
-          .claim("userId", user.getId().toString())
-          .issuer("tommem.com")
-          .issueTime(new Date())
-          .expirationTime(new Date(new Date().getTime() + 60 * 60 * (1 + SURPLUS_EXPIRE_TIME) * 1000))
+          .expirationTime(new Date(new Date().getTime() + TOKEN_EXPIRY_TIME))
           .jwtID(jwtId)
           .claim("scope", buildScope(user))
           .build();
@@ -581,7 +679,32 @@ public class AuthenticationService {
     }
   }
 
-  private String buildScope(com.database.study.entity.User user) {
+  private String generateRefreshToken(User user, String jwtId) {
+    try {
+      JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
+      JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+          .subject(user.getUsername())
+          .claim("userId", user.getId().toString())
+          .issuer("tommem.com")
+          .issueTime(new Date())
+          .expirationTime(new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME))
+          .jwtID(jwtId)
+          .claim("scope", buildScope(user))
+          .build();
+      Payload payload = new Payload(jwtClaimsSet.toJSONObject());
+
+      JWSObject jwsObject = new JWSObject(jwsHeader, payload);
+      jwsObject.sign(new MACSigner(SECRET_KEY_BYTES));
+      String token = jwsObject.serialize();
+
+      return token;
+    } catch (Exception e) {
+      log.error("Error generating refresh token: {}", e.getMessage(), e);
+      return null;
+    }
+  }
+
+  private String buildScope(User user) {
     // Build the scope based on user roles
     StringJoiner scopeJoiner = new StringJoiner(" ");
     if (!CollectionUtils.isEmpty(user.getRoles())) {
@@ -591,7 +714,7 @@ public class AuthenticationService {
           role.getPermissions()
               .forEach(permission -> scopeJoiner.add(permission.getName()));
         }
-      }); // Use scopeJoiner instead of stringJoiner
+      });
     }
     return scopeJoiner.toString();
   }
@@ -604,6 +727,14 @@ public class AuthenticationService {
         .getPayload();
     return claims.getExpiration();
   }
+  
+  private Claims extractAllClaims(String token) {
+    return Jwts.parser()
+        .verifyWith(Keys.hmacShaKeyFor(SECRET_KEY_BYTES))
+        .build()
+        .parseSignedClaims(token)
+        .getPayload();
+  }
 
   private String generateSixDigitCode() {
     Random random = new Random();
@@ -611,9 +742,13 @@ public class AuthenticationService {
     return String.valueOf(code);
   }
 
-  // Add a scheduled task to clean up expired tokens
+  // Scheduled task to clean up expired tokens
   @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // Run once a day
   public void cleanupExpiredTokens() {
     passwordResetTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
+    
+    // Also clean up expired tokens
+    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
   }
 }

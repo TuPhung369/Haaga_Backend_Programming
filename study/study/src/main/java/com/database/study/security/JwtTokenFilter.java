@@ -5,8 +5,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.database.study.repository.InvalidatedTokenRepository;
-import com.database.study.entity.InvalidatedToken;
+import com.database.study.repository.ActiveTokenRepository;
+import com.database.study.entity.ActiveToken;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 
@@ -22,7 +22,7 @@ import java.util.Optional;
 public class JwtTokenFilter extends OncePerRequestFilter {
 
   @Autowired
-  private InvalidatedTokenRepository invalidatedTokenRepository;
+  private ActiveTokenRepository activeTokenRepository;
 
   @Override
   protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -33,8 +33,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
       String token = authorizationHeader.substring(7);
 
-      // Check if the token exists in the InvalidatedToken repository
-      Optional<InvalidatedToken> validToken  = invalidatedTokenRepository.findByToken(token);
+      // Check if the token exists in the ActiveToken repository
+      Optional<ActiveToken> validToken  = activeTokenRepository.findByToken(token);
       if (!validToken .isPresent()) {
         throw new AppException(ErrorCode.INVALID_TOKEN);
       }

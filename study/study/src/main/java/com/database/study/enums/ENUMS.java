@@ -59,7 +59,9 @@ public class ENUMS {
     KANBAN_BOARD_NOT_FOUND("Kanban board not found"),
     KANBAN_COLUMN_NOT_FOUND("Kanban column not found"),
     KANBAN_TASK_NOT_FOUND("Kanban task not found"),
-    ACCOUNT_NOT_VERIFIED("Account not verified. Please check your email for verification code.");
+    ACCOUNT_NOT_VERIFIED("Account not verified. Please check your email for verification code."),
+    INVALID_REFRESH_TOKEN("Invalid refresh token"),
+    REFRESH_TOKEN_EXPIRED("Refresh token expired");
 
     private final String message;
   }
