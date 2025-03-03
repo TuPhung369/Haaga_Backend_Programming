@@ -10,7 +10,8 @@ import { useSelector, useDispatch } from "react-redux";
 import { Layout } from "antd";
 
 import LoginPage from "./pages/LoginPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ResetPasswordComponent from "./components/ResetPasswordComponent";
+import ForgotPasswordComponent from "./components/ForgotPasswordComponent";
 import CalendarPage from "./pages/CalendarPage";
 import KanbanPage from "./pages/KanbanPage";
 import HomePage from "./pages/HomePage";
@@ -76,7 +77,8 @@ const App: React.FC = () => (
   <Router>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/resetpassword" element={<ResetPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordComponent />} />
+      <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
       <Route path="/oauths/redirect" element={<OAuth2RedirectHandler />} />
       <Route
         path="/"

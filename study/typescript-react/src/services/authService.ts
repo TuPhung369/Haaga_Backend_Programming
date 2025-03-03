@@ -82,6 +82,44 @@ export const resetPassword = async (
   }
 };
 
+export const forgotPassword = async (
+  username: string,
+  email: string
+): Promise<GenericResponse> => {
+  try {
+    const response = await apiClient.post<GenericResponse>(
+      "/auth/forgot-password",
+      {
+        username,
+        email,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error during forgot password request:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
+
+export const resetPasswordWithToken = async (
+  token: string,
+  newPassword: string
+): Promise<GenericResponse> => {
+  try {
+    const response = await apiClient.post<GenericResponse>(
+      "/auth/reset-password-with-token",
+      {
+        token,
+        newPassword,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error during password reset with token:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
+
 export const logoutUser = async (token: string): Promise<GenericResponse> => {
   try {
     const response = await apiClient.post<GenericResponse>(
