@@ -5,6 +5,10 @@ server:
 spring:
   profiles:
     active: dev # google || aws || dev
+  sql:
+    init:
+      mode: never
+      platform: mysql
   h2:
     console:
       enabled: true
@@ -29,8 +33,8 @@ spring:
             required: true
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: false
+      ddl-auto: validate # Set to 'none' to prevent Hibernate from modifying the schema; rely on schema.sql
+    show-sql: true
   security:
     oauth2:
       client:

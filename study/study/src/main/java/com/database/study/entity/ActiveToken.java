@@ -22,10 +22,10 @@ public class ActiveToken {
     @Id
     private String id;
     
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "LONGTEXT")
     private String token;
     
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "LONGTEXT")
     private String refreshToken;
     
     private Date expiryTime;
