@@ -46,6 +46,7 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
+
 logging:
   level:
     root: DEBUG # Global log level
@@ -53,4 +54,5 @@ logging:
     "[org.springframework.boot]": DEBUG
     "[org.springframework.beans.factory]": DEBUG
     "[org.springframework.security.oauth2]": ERROR
+    "[org.springframework.web.cors]": DEBUG
 

@@ -84,6 +84,7 @@ public class AuthenticationService {
   EmailService emailService;
   PasswordResetTokenRepository passwordResetTokenRepository;
   EmailVerificationTokenRepository emailVerificationTokenRepository;
+  EncryptionService encryptionService;
 
   // Protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
   protected static final byte[] SECRET_KEY_BYTES = Base64.getDecoder()
@@ -125,9 +126,12 @@ public class AuthenticationService {
       if (existingToken.getExpiryTime().after(currentTime)) {
         log.info("Reusing existing valid token for user: {}", user.getUsername());
         
+      // Encrypt the refresh token before sending
+            String encryptedRefreshToken = encryptionService.encryptToken(existingToken.getRefreshToken());
+
         return AuthenticationResponse.builder()
             .token(existingToken.getToken())
-            .refreshToken(existingToken.getRefreshToken())
+            .refreshToken(encryptedRefreshToken)
             .authenticated(true)
             .build();
       } 
@@ -144,10 +148,10 @@ public class AuthenticationService {
         existingToken.setDescription("Refreshed at " + new Date());
         
         activeTokenRepository.save(existingToken);
-        
+        String encryptedRefreshToken = encryptionService.encryptToken(existingToken.getRefreshToken());
         return AuthenticationResponse.builder()
             .token(newToken)
-            .refreshToken(existingToken.getRefreshToken())
+            .refreshToken(encryptedRefreshToken)
             .authenticated(true)
             .build();
       } 
@@ -178,11 +182,11 @@ public class AuthenticationService {
         .build();
     
     activeTokenRepository.save(newToken);
-    
+    String encryptedRefreshToken = encryptionService.encryptToken(refreshToken);
     // Return response with both tokens
     return AuthenticationResponse.builder()
         .token(token)
-        .refreshToken(refreshToken)
+        .refreshToken(encryptedRefreshToken)
         .authenticated(true)
         .build();
   }
@@ -565,43 +569,62 @@ public class AuthenticationService {
   }
 
   @Transactional
-  public RefreshTokenResponse refreshToken(RefreshTokenRequest request) throws ParseException, JOSEException {
-    SignedJWT signedRefreshToken = verifyToken(request.getToken());
-
-    var user = userRepository.findByUsername(signedRefreshToken.getJWTClaimsSet().getSubject())
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-
-    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
-
-    if (existingTokenOpt.isPresent() && existingTokenOpt.get().getExpiryRefreshTime().after(new Date())) {
-      activeTokenRepository.deleteByUsername(user.getUsername());
+public RefreshTokenResponse refreshToken(RefreshTokenRequest request) throws ParseException, JOSEException {
+    try {
+        // Decrypt the refresh token from the client
+        String decryptedRefreshToken = encryptionService.decryptToken(request.getToken());
+        
+        // Use the decrypted token for verification
+        SignedJWT signedRefreshToken = verifyToken(decryptedRefreshToken);
+        
+        // Find the user associated with the token
+        User user = userRepository.findByUsername(signedRefreshToken.getJWTClaimsSet().getSubject())
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+        
+        // Find existing tokens for this user
+        Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+        
+        // If there's an existing token and it's not expired, delete it
+        if (existingTokenOpt.isPresent() && existingTokenOpt.get().getExpiryRefreshTime().after(new Date())) {
+            activeTokenRepository.deleteByUsername(user.getUsername());
+        }
+        
+        // Create new tokens
+        String jwtId = UUID.randomUUID().toString();
+        String newAccessToken = generateToken(user, jwtId);
+        String newRefreshToken = generateRefreshToken(user, jwtId);
+        
+        Date expiryTime = extractTokenExpiry(newAccessToken);
+        Date expireRefreshTime = extractTokenExpiry(newRefreshToken);
+        
+        // Save the new tokens
+        ActiveToken newActiveToken = ActiveToken.builder()
+            .id(jwtId)
+            .token(newAccessToken)
+            .refreshToken(newRefreshToken) // Store the unencrypted refresh token
+            .expiryTime(expiryTime)
+            .expiryRefreshTime(expireRefreshTime)
+            .username(user.getUsername())
+            .description("Newly issued refresh token")
+            .build();
+        
+        activeTokenRepository.save(newActiveToken);
+        
+        // Encrypt the new refresh token for the response
+        String encryptedRefreshToken = encryptionService.encryptToken(newRefreshToken);
+        
+        // Return the response with the new tokens
+        return RefreshTokenResponse.builder()
+            .token(newAccessToken)
+            .refreshToken(encryptedRefreshToken) // Send encrypted refresh token
+            .authenticated(true)
+            .build();
+            
+    } catch (Exception e) {
+        log.error("Error refreshing token: {}", e.getMessage(), e);
+        throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
     }
-
-    String jwtId = UUID.randomUUID().toString();
-    String newAccessToken = generateToken(user, jwtId);
-    String newRefreshToken = generateRefreshToken(user, jwtId);
-
-    Date expiryTime = extractTokenExpiry(newAccessToken);
-    Date expireRefreshTime = extractTokenExpiry(newRefreshToken);
-
-    ActiveToken newActiveToken = ActiveToken.builder()
-        .id(jwtId)
-        .token(newAccessToken)
-        .refreshToken(newRefreshToken)
-        .expiryTime(expiryTime)
-        .expiryRefreshTime(expireRefreshTime)
-        .username(user.getUsername())
-        .description("Newly issued refresh token")
-        .build();
-
-    activeTokenRepository.save(newActiveToken);
-
-    RefreshTokenResponse response = RefreshTokenResponse.builder()
-        .token(newAccessToken)
-        .authenticated(true)
-        .build();
-    return response;
-  }
+}
 
   @Transactional
   public ApiResponse<Void> logout(String authToken) {
@@ -751,4 +774,5 @@ public class AuthenticationService {
     activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
     activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
   }
+
 }
