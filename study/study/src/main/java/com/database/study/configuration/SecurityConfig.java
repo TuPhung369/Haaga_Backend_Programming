@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -48,22 +49,39 @@ public class SecurityConfig {
   @Autowired
   private JwtTokenFilter jwtTokenFilter;
 
-  @Bean
+    @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
     httpSecurity
+        // Add security context configuration to preserve the context
+        .securityContext(context -> context
+            .requireExplicitSave(false)) // This ensures context is automatically saved
+        
+        // Add your JWT filter
         .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
+        
+        // Configure session management to be stateless but preserve context
+        .sessionManagement(session -> session
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            
+        // Your existing request authorization
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
             .anyRequest().authenticated())
+            
+        // Either remove or modify OAuth2 resource server to not process JWT tokens
+        // that are handled by your custom filter
         .oauth2Login(oauth2 -> oauth2
             .defaultSuccessUrl(clientRedirectUrl, true)
             .failureUrl("/login?error"))
-        .oauth2ResourceServer(oauth2 -> oauth2
-            .jwt(jwt -> jwt
-                .decoder(customJwtDecoder)
-                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-            .authenticationEntryPoint(new JwtAuthenticationEntryPoint()))
+            
+        // Comment out or modify this to not override your filter's authentication
+        // .oauth2ResourceServer(oauth2 -> oauth2
+        //     .jwt(jwt -> jwt
+        //         .decoder(customJwtDecoder)
+        //         .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+        //     .authenticationEntryPoint(new JwtAuthenticationEntryPoint()))
+        
         .csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()));
 

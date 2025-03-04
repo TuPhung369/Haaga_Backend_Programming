@@ -75,6 +75,15 @@ public class TokenSecurity {
             return null;
         }
     }
+
+    public String extractScopeFromToken(String plainToken) {
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(plainToken);
+            return signedJWT.getJWTClaimsSet().getStringClaim("scope");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract scope from token", e);
+        }
+    }
     
     /**
      * Extracts username from an encrypted token
