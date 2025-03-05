@@ -1,8 +1,9 @@
 import axios from "axios";
 import { AxiosError } from "axios";
-import { ColumnKanban, Board } from "../type/types";
+import { ColumnKanban, Board, ExtendApiError } from "../type/types";
 
-const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
+const API_BASE_URI =
+  import.meta.env.VITE_API_BASE_URI || "http://localhost:9095/identify_service";
 
 // Define interfaces for board data based on actual backend response
 interface BoardData {
@@ -24,6 +25,45 @@ interface SingleBoardResponse {
   result: BoardData;
 }
 
+// Define type for error data from the API
+interface ApiErrorResponse {
+  code?: number;
+  message?: string;
+  httpCode?: number;
+  success?: boolean;
+  severity?: string;
+}
+
+/**
+ * Helper function to create a standardized error object
+ */
+const createErrorObject = (
+  error: unknown,
+  defaultMessage: string,
+  errorType: ExtendApiError["errorType"]
+): ExtendApiError => {
+  const extendedError: ExtendApiError = {
+    message: defaultMessage,
+    errorType: errorType,
+    originalError: error,
+  };
+
+  if (error && typeof error === "object" && "response" in error) {
+    const axiosError = error as AxiosError<ApiErrorResponse>;
+    if (axiosError.response?.data?.message) {
+      extendedError.message = axiosError.response.data.message;
+    }
+    if (axiosError.response?.data?.code) {
+      extendedError.code = axiosError.response.data.code;
+    }
+    if (axiosError.response?.status) {
+      extendedError.httpCode = String(axiosError.response.status);
+    }
+  }
+
+  return extendedError;
+};
+
 // API service for Kanban
 const KanbanService = {
   getUserBoards: async (
@@ -43,7 +83,12 @@ const KanbanService = {
       return response.data.result || [];
     } catch (error) {
       console.error("Error getting user boards:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        "Failed to fetch user boards",
+        "FETCH"
+      );
+      throw extendedError;
     }
   },
 
@@ -61,7 +106,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error getting board:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to fetch board ${boardId}`,
+        "FETCH"
+      );
+      throw extendedError;
     }
   },
 
@@ -84,7 +134,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error creating board:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        "Failed to create board",
+        "CREATE"
+      );
+      throw extendedError;
     }
   },
 
@@ -107,7 +162,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error updating board:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to update board ${boardId}`,
+        "UPDATE"
+      );
+      throw extendedError;
     }
   },
 
@@ -122,7 +182,12 @@ const KanbanService = {
       return true;
     } catch (error) {
       console.error("Error deleting board:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to delete board ${boardId}`,
+        "DELETE"
+      );
+      throw extendedError;
     }
   },
 
@@ -144,7 +209,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error clearing tasks:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to clear tasks from board ${boardId}`,
+        "UPDATE"
+      );
+      throw extendedError;
     }
   },
 
@@ -166,7 +236,7 @@ const KanbanService = {
       );
       return response.data.result;
     } catch (error) {
-      const axiosError = error as AxiosError<unknown>;
+      const axiosError = error as AxiosError<ApiErrorResponse>;
       const errorData = axiosError.response?.data || {};
 
       console.error("Error resetting board details:", {
@@ -176,29 +246,33 @@ const KanbanService = {
         message: axiosError.message,
       });
 
-      // Check for specific error codes from the API
-      if ((errorData as { code: number }).code === 5000) {
-        console.error("Server error details:", errorData);
+      // Create a structured error object
+      const extendedError: ExtendApiError = {
+        message: "Failed to reset board",
+        errorType: "UPDATE",
+        originalError: error,
+        details: axiosError.message,
+      };
 
-        // If it's the generic server error, provide more helpful message
-        throw new Error(
+      // Check for specific error codes from the API
+      if ((errorData as { code?: number }).code === 5000) {
+        extendedError.message =
           "The server encountered an error while resetting the board. " +
-            "This might be due to server maintenance or high load. " +
-            "Please try again in a few minutes or contact support if the issue persists."
-        );
+          "This might be due to server maintenance or high load. " +
+          "Please try again in a few minutes or contact support if the issue persists.";
       } else if (axiosError.code === "ERR_NETWORK") {
-        throw new Error(
-          "Network connection error. Please check your internet connection and try again."
-        );
+        extendedError.message =
+          "Network connection error. Please check your internet connection and try again.";
       } else if (axiosError.response?.status === 401) {
-        throw new Error("Authentication error. Please log in again.");
+        extendedError.message = "Authentication error. Please log in again.";
       } else if (axiosError.response?.status === 403) {
-        throw new Error("You do not have permission to reset this board.");
+        extendedError.message =
+          "You do not have permission to reset this board.";
       } else if (axiosError.response?.status === 404) {
-        throw new Error("Board not found. It may have been deleted.");
-      } else {
-        throw new Error(axiosError.message || "Failed to reset board");
+        extendedError.message = "Board not found. It may have been deleted.";
       }
+
+      throw extendedError;
     }
   },
 
@@ -222,7 +296,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error creating column:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        "Failed to create column",
+        "CREATE"
+      );
+      throw extendedError;
     }
   },
 
@@ -230,17 +309,17 @@ const KanbanService = {
     columnId: string,
     token: string,
     title: string,
-    boardId: string, // Add this parameter
+    boardId: string,
     position?: number
   ): Promise<BoardData | null> => {
     try {
       const data: {
         title: string;
-        boardId: string; // Include this in your data object
+        boardId: string;
         position?: number;
       } = {
         title,
-        boardId, // Set the boardId
+        boardId,
       };
 
       if (position !== undefined) {
@@ -261,7 +340,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error updating column:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to update column ${columnId}`,
+        "UPDATE"
+      );
+      throw extendedError;
     }
   },
 
@@ -279,7 +363,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error deleting column:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to delete column ${columnId}`,
+        "DELETE"
+      );
+      throw extendedError;
     }
   },
 
@@ -294,7 +383,7 @@ const KanbanService = {
       const response = await axios.post<SingleBoardResponse>(
         `${API_BASE_URI}/kanban/tasks`,
         {
-          columnId, // Make sure this is a valid UUID
+          columnId,
           title,
           description: description || "",
           priority: priority || "Medium",
@@ -309,7 +398,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error creating task:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        "Failed to create task",
+        "CREATE"
+      );
+      throw extendedError;
     }
   },
 
@@ -345,7 +439,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error updating task:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to update task ${taskId}`,
+        "UPDATE"
+      );
+      throw extendedError;
     }
   },
 
@@ -363,7 +462,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error deleting task:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to delete task ${taskId}`,
+        "DELETE"
+      );
+      throw extendedError;
     }
   },
 
@@ -392,7 +496,12 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error moving task:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to move task ${taskId}`,
+        "UPDATE"
+      );
+      throw extendedError;
     }
   },
 
@@ -419,10 +528,16 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error moving column:", error);
-      throw error;
+      const extendedError = createErrorObject(
+        error,
+        `Failed to move column ${columnId}`,
+        "UPDATE"
+      );
+      throw extendedError;
     }
   },
 };
 
 export default KanbanService;
+
 

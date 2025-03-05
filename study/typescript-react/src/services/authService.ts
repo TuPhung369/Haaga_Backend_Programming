@@ -1,20 +1,23 @@
 import axios from "axios";
-import type { AxiosError } from "axios";
 import { ValidationInput } from "../type/authType";
 import {
-  ApiError,
+  AxiosErrorWithData,
+  ExtendApiError,
   AuthResponse,
   IntrospectResponse,
   GenericResponse,
 } from "../type/types";
 
-const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
+const API_BASE_URI =
+  import.meta.env.VITE_API_BASE_URI || "http://localhost:9095/identify_service";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URI,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
+  timeout: 10000, // Add timeout to prevent indefinite waiting
 });
 
 export const authenticateUser = async (
@@ -28,8 +31,27 @@ export const authenticateUser = async (
     });
     return response.data;
   } catch (error) {
-    console.error("Error authenticating user:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Authentication failed",
+      errorType: "FETCH",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error authenticating user:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -43,8 +65,27 @@ export const introspectToken = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error introspecting token:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Token introspection failed",
+      errorType: "FETCH",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error introspecting token:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -58,8 +99,27 @@ export const registerUser = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error during registration:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Registration failed",
+      errorType: "CREATE",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error during registration:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -77,8 +137,27 @@ export const verifyEmail = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error during email verification:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Email verification failed",
+      errorType: "UPDATE",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error during email verification:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -92,8 +171,27 @@ export const resendVerificationEmail = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error resending verification email:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Failed to resend verification email",
+      errorType: "CREATE",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error resending verification email:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -111,8 +209,27 @@ export const resetPassword = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error during reset password:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Failed to reset password",
+      errorType: "UPDATE",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error during reset password:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -130,8 +247,27 @@ export const forgotPassword = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error during forgot password request:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Failed to process forgot password request",
+      errorType: "CREATE",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error during forgot password request:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -149,8 +285,27 @@ export const resetPasswordWithToken = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error during password reset with token:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Failed to reset password with token",
+      errorType: "UPDATE",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error during password reset with token:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -167,8 +322,27 @@ export const logoutUser = async (token: string): Promise<GenericResponse> => {
     );
     return response.data;
   } catch (error) {
-    console.error("Error during logout:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Failed to logout",
+      errorType: "UPDATE",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error during logout:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -181,8 +355,27 @@ export const exchangeAuthorizationCode = async (
     });
     return response.data;
   } catch (error) {
-    console.error("Error exchanging authorization code:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Failed to exchange authorization code",
+      errorType: "FETCH",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error exchanging authorization code:", extendedError);
+    throw extendedError;
   }
 };
 
@@ -195,8 +388,27 @@ export const validateGoogleToken = async (
     });
     return response.data;
   } catch (error) {
-    console.error("Error validating Google ID token:", error);
-    throw error as AxiosError<ApiError>;
+    const extendedError: ExtendApiError = {
+      message: "Failed to validate Google token",
+      errorType: "FETCH",
+      originalError: error,
+    };
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as AxiosErrorWithData;
+      if (axiosError.response?.data?.message) {
+        extendedError.message = axiosError.response.data.message;
+      }
+      if (axiosError.response?.data?.code) {
+        extendedError.code = axiosError.response.data.code;
+      }
+      if (axiosError.response?.status) {
+        extendedError.httpCode = String(axiosError.response.status);
+      }
+    }
+
+    console.error("Error validating Google ID token:", extendedError);
+    throw extendedError;
   }
 };
 

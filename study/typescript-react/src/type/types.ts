@@ -1,3 +1,6 @@
+import { AxiosError } from "axios";
+
+// Basic API Error interface
 export interface ApiError {
   code?: number;
   message?: string;
@@ -5,16 +8,54 @@ export interface ApiError {
   httpCode?: string;
   severity?: string;
 }
+
+// Extended API Error for more detailed error information
 export interface ExtendApiError extends ApiError {
   errorType?: "CREATE" | "FETCH" | "DELETE" | "UPDATE";
   details?: string;
+  originalError?: unknown; // Store the original error for debugging
 }
+
+// Type for API Error that can be used with AxiosError
+export type AxiosErrorWithData = AxiosError<ApiError>;
+
+// Helper function to safely extract error message from any error
+export const getErrorMessage = (error: unknown): string => {
+  // If it's an Axios error with our API format
+  if (error && typeof error === "object" && "isAxiosError" in error) {
+    const axiosError = error as AxiosErrorWithData;
+    return (
+      axiosError.response?.data?.message ||
+      axiosError.message ||
+      "An unknown error occurred"
+    );
+  }
+
+  // If it's a standard Error object
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // If it's a string
+  if (typeof error === "string") {
+    return error;
+  }
+
+  // Fallback
+  return "An unknown error occurred";
+};
+
+// Auth response from server
 export interface AuthResponse {
   code: number;
   result: {
     token: string;
     authenticated?: boolean;
+    refreshToken?: string;
+    expiresIn?: number;
   };
+  message?: string;
+  httpCode?: number;
 }
 
 export interface IntrospectResponse {
@@ -44,6 +85,7 @@ export interface CalendarEvent {
   userId?: string;
   exceptions?: { originalStart: string }[];
 }
+
 export interface TaskKanban {
   id: string;
   title: string;
@@ -53,6 +95,7 @@ export interface TaskKanban {
   columnId: string;
   createdAt?: string;
 }
+
 export interface ColumnKanban {
   id: string;
   title: string;
@@ -60,6 +103,7 @@ export interface ColumnKanban {
   position?: number;
   boardId?: string;
 }
+
 export interface Board {
   id: string;
   title?: string;
@@ -68,11 +112,13 @@ export interface Board {
   createdAt?: string;
   updatedAt?: string;
 }
+
 export interface AuthState {
   token: string;
   isAuthenticated: boolean;
   loginSocial: boolean;
 }
+
 export interface KanbanState {
   columns: ColumnKanban[];
   editingTask: TaskKanban | null;
@@ -120,36 +166,42 @@ export interface Permission {
   description: string;
   color: string;
 }
+
 // Response Single permission for create/delete
 export interface PermissionResponse {
   code: number;
   result: Permission;
   message?: string;
 }
+
 // Array of permissions for getAll
 export interface PermissionsResponse {
   code: number;
   result: Permission[];
   message?: string;
 }
+
 export interface Role {
   name: string;
   description: string;
   color: string;
   permissions?: Permission[];
 }
+
 // Response Single role for create/delete
 export interface RoleResponse {
   code: number;
   result: Role;
   message?: string;
 }
+
 // Array of roles for getAll
 export interface RolesResponse {
   code: number;
   result: Role[];
   message?: string;
 }
+
 export interface User {
   id: string;
   username: string;
@@ -159,20 +211,31 @@ export interface User {
   email: string;
   roles: Role[];
 }
+
 export interface UserResponse {
   code?: number;
   result: User;
 }
+
 export interface UsersResponse {
   code?: number;
   data: User[];
   message?: string;
 }
 
+// Standardized API response type
+export interface ApiResponse<T> {
+  code: number;
+  result: T;
+  message?: string;
+  httpCode?: number;
+}
+
 export interface QuantityChart {
   name: string;
   value: number;
 }
+
 export interface PercentChart {
   name: string;
   value: number;

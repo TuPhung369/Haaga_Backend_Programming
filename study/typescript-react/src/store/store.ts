@@ -17,7 +17,7 @@ const isDevelopment = import.meta.env.MODE === "development";
 const loadState = (): Partial<RootState> | undefined => {
   try {
     const serializedState = localStorage.getItem("appState");
-    if (serializedState === null) {
+    if (!serializedState) {
       console.log("No state found in localStorage, using initial state");
       return undefined;
     }
@@ -31,6 +31,7 @@ const loadState = (): Partial<RootState> | undefined => {
 
     const validState: Partial<RootState> = {};
 
+    // Validate auth state
     if (
       parsedState.auth &&
       typeof parsedState.auth.isAuthenticated === "boolean" &&
@@ -39,24 +40,24 @@ const loadState = (): Partial<RootState> | undefined => {
     ) {
       validState.auth = parsedState.auth;
     } else {
-      console.warn(
-        "Invalid auth state in localStorage, using initial auth state"
-      );
+      console.warn("Invalid auth state in localStorage, skipping auth state");
     }
 
+    // Validate kanban state
     if (parsedState.kanban && Array.isArray(parsedState.kanban.columns)) {
       validState.kanban = parsedState.kanban;
     } else {
       console.warn(
-        "Invalid kanban state in localStorage, using initial kanban state"
+        "Invalid kanban state in localStorage, skipping kanban state"
       );
     }
 
+    // Validate user state
     if (parsedState.user) {
       validState.user = parsedState.user;
     }
 
-    return validState;
+    return Object.keys(validState).length > 0 ? validState : undefined;
   } catch (err) {
     console.error("Could not load state from localStorage:", err);
     return undefined;
@@ -66,26 +67,19 @@ const loadState = (): Partial<RootState> | undefined => {
 // Save state to localStorage
 const saveState = (state: RootState): void => {
   try {
-    if (
-      state &&
-      state.auth &&
-      state.kanban &&
-      Array.isArray(state.kanban.columns) &&
-      state.user
-    ) {
-      const serializedState = JSON.stringify(state);
-      localStorage.setItem("appState", serializedState);
-    } else {
-      console.warn(
-        "Did not save state to localStorage due to invalid structure"
-      );
-    }
+    const stateToSave: RootState = {
+      auth: state.auth,
+      kanban: state.kanban,
+      user: state.user,
+    };
+    const serializedState = JSON.stringify(stateToSave);
+    localStorage.setItem("appState", serializedState);
   } catch (err) {
     console.error("Could not save state to localStorage:", err);
   }
 };
 
-// Create the app reducer with proper typing
+// Combine reducers
 const appReducer = combineReducers({
   auth: authReducer as Reducer<
     AuthState,
@@ -104,7 +98,7 @@ const appReducer = combineReducers({
   >,
 });
 
-// Root reducer with logout handling and proper state typing
+// Root reducer with reset handling
 const rootReducer: Reducer<
   RootState,
   Action,
@@ -113,7 +107,6 @@ const rootReducer: Reducer<
   state: RootState | Partial<RootState> | undefined,
   action: Action
 ): RootState => {
-  // When a logout action is dispatched, reset the state to initial state
   if (action.type === resetAllData.type) {
     localStorage.removeItem("appState");
     return appReducer(undefined, action);
@@ -121,18 +114,20 @@ const rootReducer: Reducer<
   return appReducer(state, action);
 };
 
-// Create store with the root reducer
+// Create store
 const store = configureStore({
   reducer: rootReducer,
   preloadedState: loadState(),
   devTools: isDevelopment,
 });
 
-// Subscribe to state changes with typed state
+// Subscribe to state changes
 store.subscribe(() => {
   const state = store.getState() as RootState;
   if (state.auth.isAuthenticated) {
     saveState(state);
+  } else {
+    localStorage.removeItem("appState"); // Clear state if not authenticated
   }
 });
 

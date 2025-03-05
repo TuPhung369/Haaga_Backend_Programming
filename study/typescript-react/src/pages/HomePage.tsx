@@ -12,7 +12,7 @@ const HomePage = () => {
     <Layout style={{ padding: "0 24px 24px" }}>
       <Content style={{ marginTop: "12px" }}>
         <MyInfo />
-        <UserListPage style={{ padding: "0", margin: "0" }} />
+        {/* <UserListPage style={{ padding: "0", margin: "0" }} /> */}
       </Content>
     </Layout>
   );
