@@ -663,6 +663,16 @@ const kanbanSlice = createSlice({
       .addCase(resetBoardToDefaults.fulfilled, (state, action) => {
         state.isLoading = false;
         state.boardData = action.payload;
+
+        // Add these lines to update columns and activeBoard
+        state.columns =
+          action.payload.columns || getDefaultColumns(action.payload.id);
+
+        // Update the activeBoard if it's the same board that was reset
+        if (state.activeBoard && state.activeBoard.id === action.payload.id) {
+          state.activeBoard = action.payload;
+        }
+
         state.error = null;
       })
       .addCase(resetBoardToDefaults.rejected, (state, action) => {

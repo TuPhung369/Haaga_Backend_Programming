@@ -31,6 +31,7 @@ import {
   saveUserBoard,
   resetBoardToDefaults,
   setActiveBoard,
+  fetchBoardById,
 } from "../store/kanbanSlice";
 import { RootState, TaskKanban } from "../type/types";
 import { AppDispatch } from "../store/store";
@@ -144,7 +145,6 @@ const KanbanPage: React.FC = () => {
         !activeBoard ||
         (activeBoard.userId !== userId && currentUserBoards.length > 0)
       ) {
-
         // Lấy board đầu tiên của người dùng hiện tại
         if (currentUserBoards.length > 0) {
           dispatch(setActiveBoard(currentUserBoards[0]));
@@ -425,7 +425,16 @@ const KanbanPage: React.FC = () => {
 
     const attemptReset = async (): Promise<boolean> => {
       try {
-        await dispatch(resetBoardToDefaults({ boardId, token })).unwrap();
+        const result = await dispatch(
+          resetBoardToDefaults({ boardId, token })
+        ).unwrap();
+
+        // After successful reset, explicitly update the active board
+        dispatch(setActiveBoard(result));
+
+        // If needed, also explicitly fetch the board again to ensure everything is in sync
+        dispatch(fetchBoardById({ boardId, token }));
+
         message.success("Board has been reset to default settings");
         return true;
       } catch (error) {
