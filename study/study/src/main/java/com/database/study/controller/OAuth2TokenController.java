@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -100,7 +101,7 @@ public class OAuth2TokenController {
   @Transactional
   @GetMapping("/redirect")
   public ResponseEntity<?> handleGoogleRedirect(@RequestParam("code") String code,
-        HttpServletRequest servletRequest) {
+        HttpServletRequest request, HttpServletResponse response) {
     log.info("STEP 2: Received authorization code from Google: {}", code);
 
     // Step 2.1: Prepare Token Exchange Request
@@ -115,22 +116,22 @@ public class OAuth2TokenController {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+    HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
 
     try {
       log.info("STEP 3: Exchanging authorization code for tokens");
       // Step 2.2: Exchange Authorization Code for Token
-      ResponseEntity<Map<String, String>> response = restTemplate.exchange(
+      ResponseEntity<Map<String, String>> tokenResponse = restTemplate.exchange(
           tokenUri,
           HttpMethod.POST,
-          request,
+          requestEntity,
           new ParameterizedTypeReference<>() {
           });
 
       // Step 2.3: Validate Response
-      if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+      if (tokenResponse.getStatusCode().is2xxSuccessful() && tokenResponse.getBody() != null) {
         log.info("STEP 4: Token exchange successful");
-        Map<String, String> responseBody = response.getBody();
+        Map<String, String> responseBody = tokenResponse.getBody();
 
         if (responseBody == null || !responseBody.containsKey("id_token")) {
           log.error("STEP 4: Token exchange failed, no ID token found in response");
@@ -163,7 +164,7 @@ public class OAuth2TokenController {
               // Generate a random password for OAuth users
               userCreationRequest.setPassword(UUID.randomUUID().toString());
               userCreationRequest.setFirstname(firstName);
-              userCreationRequest.setLastname(lastName + "Google");
+              userCreationRequest.setLastname(lastName != null ? lastName + "Google" : "GoogleUser");
               userCreationRequest.setDob(birthdate != null ? LocalDate.parse(birthdate) : LocalDate.of(1999, 9, 9));
               userCreationRequest.setEmail(email);
               userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
@@ -179,26 +180,27 @@ public class OAuth2TokenController {
 
         log.info("STEP 9: User retrieved or created: {}", user);
 
-        // Step 5: Authenticate User and Return Tokens Hermanni, 00550 Helsinki
+        // Step 5: Authenticate User and Return Tokens
         log.info("STEP 10: Authenticating user");
-        // ForgotPasswordRequest authRequest = new ForgotPasswordRequest();
-        // authRequest.setUsername(user.getUsername());
-        // authRequest.setPassword(idToken);
         
-        AuthenticationResponse authResponse = authenticationService.authenticateOAuth(
-            user.getUsername()
+        // Use the cookie-based authentication
+        AuthenticationResponse authResponse = authenticationService.authenticateWithCookies(
+            user.getUsername(),
+            response
         );
+        
         log.info("STEP 11: Authentication successful");
 
-        // Step 6: Redirect to Client-Side with Generated Token
+        // Step 6: Redirect to Client-Side with Access Token in URL
+        // (Refresh token is now in a cookie)
         log.info("STEP 12: Redirecting to client with token");
         String redirectUrl = String.format("%s?token=%s",
                             clientRedirectUrl,
                             URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       } else {
-        log.error("STEP 3: Token exchange failed with response: {}", response.getStatusCode());
-        throw new AppException("Token exchange failed with response: " + response.getStatusCode());
+        log.error("STEP 3: Token exchange failed with response: {}", tokenResponse.getStatusCode());
+        throw new AppException("Token exchange failed with response: " + tokenResponse.getStatusCode());
       }
     } catch (HttpClientErrorException | HttpServerErrorException e) {
       log.error("STEP 3: Error exchanging token: {}", e.getResponseBodyAsString(), e);

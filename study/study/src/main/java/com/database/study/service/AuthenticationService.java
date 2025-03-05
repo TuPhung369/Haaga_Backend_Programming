@@ -58,6 +58,10 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.ArrayList;
 import java.util.Base64;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,6 +90,7 @@ public class AuthenticationService {
   EmailVerificationTokenRepository emailVerificationTokenRepository;
   EncryptionService encryptionService;
   TokenSecurity tokenSecurity;
+  CookieService cookieService;
 
   // Protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
   protected static final byte[] SECRET_KEY_BYTES = Base64.getDecoder()
@@ -201,106 +206,106 @@ public class AuthenticationService {
         .build();
   }
   
-@Transactional
-public AuthenticationResponse authenticateOAuth(String username) {
-    User user = userRepository.findByUsername(username)
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+  @Transactional
+  public AuthenticationResponse authenticateOAuth(String username) {
+      User user = userRepository.findByUsername(username)
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-    // Delete expired tokens
-    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
-    // Define longer expiry for OAuth tokens
-    final long OAUTH_TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes for OAuth tokens
+      // Delete expired tokens
+      activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+      activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+      // Define longer expiry for OAuth tokens
+      final long OAUTH_TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes for OAuth tokens
 
-    // Find current token
-    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+      // Find current token
+      Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
 
-    if (existingTokenOpt.isPresent()) {
-        ActiveToken existingToken = existingTokenOpt.get();
-        Date currentTime = new Date();
+      if (existingTokenOpt.isPresent()) {
+          ActiveToken existingToken = existingTokenOpt.get();
+          Date currentTime = new Date();
 
-        // If token is still valid, reuse it
-        if (existingToken.getExpiryTime().after(currentTime)) {
-            log.info("Reusing existing valid OAuth token for user: {}", user.getUsername());
-            
-            return AuthenticationResponse.builder()
-                .token(existingToken.getToken())
-                .refreshToken(existingToken.getRefreshToken())
-                .authenticated(true)
-                .build();
-        } 
-        // If access token expired but refresh token is valid, create new access token
-        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
-            log.info("OAuth access token expired but refresh token valid. Generating new access token for user: {}", user.getUsername());
-            
-            // Generate new plain JWT token
-            String plainNewAccessToken = generateToken(user, existingToken.getId());
-            Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
-            
-            // Encrypt new token for storage and client
-            String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
-            
-            // Update only access token, keep refresh token
-            existingToken.setToken(encryptedNewAccessToken);
-            existingToken.setExpiryTime(newExpiryTime);
-            existingToken.setDescription("OAuth Refreshed at " + new Date());
-            
-            activeTokenRepository.save(existingToken);
-            
-            return AuthenticationResponse.builder()
-                .token(encryptedNewAccessToken)
-                .refreshToken(existingToken.getRefreshToken())
-                .authenticated(true)
-                .build();
-        } 
-        // Both tokens expired, delete and create new ones
-        else {
-            log.info("All OAuth tokens expired for user: {}, creating new tokens", user.getUsername());
-            activeTokenRepository.delete(existingToken);
-        }
-    }
+          // If token is still valid, reuse it
+          if (existingToken.getExpiryTime().after(currentTime)) {
+              log.info("Reusing existing valid OAuth token for user: {}", user.getUsername());
+              
+              return AuthenticationResponse.builder()
+                  .token(existingToken.getToken())
+                  .refreshToken(existingToken.getRefreshToken())
+                  .authenticated(true)
+                  .build();
+          } 
+          // If access token expired but refresh token is valid, create new access token
+          else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+              log.info("OAuth access token expired but refresh token valid. Generating new access token for user: {}", user.getUsername());
+              
+              // Generate new plain JWT token
+              String plainNewAccessToken = generateToken(user, existingToken.getId());
+              Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+              
+              // Encrypt new token for storage and client
+              String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+              
+              // Update only access token, keep refresh token
+              existingToken.setToken(encryptedNewAccessToken);
+              existingToken.setExpiryTime(newExpiryTime);
+              existingToken.setDescription("OAuth Refreshed at " + new Date());
+              
+              activeTokenRepository.save(existingToken);
+              
+              return AuthenticationResponse.builder()
+                  .token(encryptedNewAccessToken)
+                  .refreshToken(existingToken.getRefreshToken())
+                  .authenticated(true)
+                  .build();
+          } 
+          // Both tokens expired, delete and create new ones
+          else {
+              log.info("All OAuth tokens expired for user: {}, creating new tokens", user.getUsername());
+              activeTokenRepository.delete(existingToken);
+          }
+      }
 
-    // Create new tokens
-    String jwtId = UUID.randomUUID().toString();
-    
-    // Generate plain JWT tokens
-    // Generate plain JWT tokens WITH LONGER EXPIRY TIME FOR OAUTH
-    String plainAccessToken = generateOAuthToken(user, jwtId, OAUTH_TOKEN_EXPIRY_TIME);
-    String plainRefreshToken = generateRefreshToken(user, jwtId);
+      // Create new tokens
+      String jwtId = UUID.randomUUID().toString();
+      
+      // Generate plain JWT tokens
+      // Generate plain JWT tokens WITH LONGER EXPIRY TIME FOR OAUTH
+      String plainAccessToken = generateOAuthToken(user, jwtId, OAUTH_TOKEN_EXPIRY_TIME);
+      String plainRefreshToken = generateRefreshToken(user, jwtId);
 
-    // Add debug log to verify the token content
-    log.debug("OAuth plain token generated for user {}: {} (first 20 chars)", 
-              user.getUsername(), 
-              plainAccessToken.substring(0, Math.min(20, plainAccessToken.length())));
+      // Add debug log to verify the token content
+      log.debug("OAuth plain token generated for user {}: {} (first 20 chars)", 
+                user.getUsername(), 
+                plainAccessToken.substring(0, Math.min(20, plainAccessToken.length())));
 
-    // Get expiry dates from plain JWT tokens
-    Date expiryTime = extractTokenExpiry(plainAccessToken);
-    Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+      // Get expiry dates from plain JWT tokens
+      Date expiryTime = extractTokenExpiry(plainAccessToken);
+      Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
 
-    // Encrypt tokens for storage and client
-    String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
-    String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
+      // Encrypt tokens for storage and client
+      String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
+      String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
 
-    // Store encrypted tokens in database
-    ActiveToken newToken = ActiveToken.builder()
-        .id(jwtId)
-        .token(encryptedAccessToken)
-        .refreshToken(encryptedRefreshToken)
-        .expiryTime(expiryTime)
-        .expiryRefreshTime(expireRefreshTime)
-        .username(user.getUsername())
-        .description("OAuth Login at " + new Date())
-        .build();
+      // Store encrypted tokens in database
+      ActiveToken newToken = ActiveToken.builder()
+          .id(jwtId)
+          .token(encryptedAccessToken)
+          .refreshToken(encryptedRefreshToken)
+          .expiryTime(expiryTime)
+          .expiryRefreshTime(expireRefreshTime)
+          .username(user.getUsername())
+          .description("OAuth Login at " + new Date())
+          .build();
 
-    activeTokenRepository.save(newToken);
+      activeTokenRepository.save(newToken);
 
-    // Return encrypted tokens to client
-    return AuthenticationResponse.builder()
-        .token(encryptedAccessToken)
-        .refreshToken(encryptedRefreshToken)
-        .authenticated(true)
-        .build();
-}
+      // Return encrypted tokens to client
+      return AuthenticationResponse.builder()
+          .token(encryptedAccessToken)
+          .refreshToken(encryptedRefreshToken)
+          .authenticated(true)
+          .build();
+  }
 
   @Transactional
   public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
@@ -348,6 +353,321 @@ public AuthenticationResponse authenticateOAuth(String username) {
         .build();
   }
 
+  @Transactional
+public AuthenticationResponse authenticateWithCookies(AuthenticationRequest request, HttpServletResponse httpResponse) {
+    // 1. Authenticate the user - same as your current logic
+    User user = userRepository.findByUsername(request.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
+    if (!authenticated) {
+        throw new AppException(ErrorCode.PASSWORD_MISMATCH);
+    }
+
+    if (!user.isActive()) {
+        throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
+    }
+
+    // 2. Clean up expired tokens
+    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+
+    // 3. Check for existing tokens
+    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+
+    if (existingTokenOpt.isPresent()) {
+        ActiveToken existingToken = existingTokenOpt.get();
+        Date currentTime = new Date();
+
+        // If access token is still valid, reuse it
+        if (existingToken.getExpiryTime().after(currentTime)) {
+            // Set refresh token in cookie
+            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
+            
+            // Return only the access token in the response body
+            return AuthenticationResponse.builder()
+                .token(existingToken.getToken())
+                .authenticated(true)
+                .build();
+        }
+        // If access token expired but refresh token is valid, create new access token
+        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+            // Generate new plain JWT token
+            String plainNewAccessToken = generateToken(user, existingToken.getId());
+            Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+
+            // Encrypt new token
+            String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+
+            // Update only access token, keep refresh token
+            existingToken.setToken(encryptedNewAccessToken);
+            existingToken.setExpiryTime(newExpiryTime);
+            existingToken.setDescription("Refreshed at " + new Date());
+
+            activeTokenRepository.save(existingToken);
+
+            // Set refresh token in cookie
+            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
+            
+            // Return only the access token in the response body
+            return AuthenticationResponse.builder()
+                .token(encryptedNewAccessToken)
+                .authenticated(true)
+                .build();
+        }
+        // Both tokens expired, delete and create new ones
+        else {
+            activeTokenRepository.delete(existingToken);
+        }
+    }
+
+    // 4. Create new tokens
+    String jwtId = UUID.randomUUID().toString();
+    String plainAccessToken = generateToken(user, jwtId);
+    String plainRefreshToken = generateRefreshToken(user, jwtId);
+
+    Date expiryTime = extractTokenExpiry(plainAccessToken);
+    Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+
+    // Encrypt tokens
+    String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
+    String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
+
+    // 5. Save encrypted tokens in database
+    ActiveToken newToken = ActiveToken.builder()
+        .id(jwtId)
+        .token(encryptedAccessToken)
+        .refreshToken(encryptedRefreshToken)
+        .expiryTime(expiryTime)
+        .expiryRefreshTime(expireRefreshTime)
+        .username(user.getUsername())
+        .description("Login at " + new Date())
+        .build();
+
+    activeTokenRepository.save(newToken);
+
+    // 6. Set refresh token in cookie
+    cookieService.createRefreshTokenCookie(httpResponse, encryptedRefreshToken);
+    
+    // 7. Return only the access token in the response body
+    return AuthenticationResponse.builder()
+        .token(encryptedAccessToken)
+        .authenticated(true)
+        .build();
+}
+
+/**
+ * Overloaded method for OAuth2 authentication that takes username directly
+ */
+@Transactional
+public AuthenticationResponse authenticateWithCookies(String username, HttpServletResponse httpResponse) {
+    // 1. Get the user
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    // 2. Clean up expired tokens
+    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+
+    // 3. Check for existing tokens
+    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+
+    if (existingTokenOpt.isPresent()) {
+        ActiveToken existingToken = existingTokenOpt.get();
+        Date currentTime = new Date();
+
+        // If access token is still valid, reuse it
+        if (existingToken.getExpiryTime().after(currentTime)) {
+            // Set refresh token in cookie
+            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
+            
+            // Return only the access token in the response body
+            return AuthenticationResponse.builder()
+                .token(existingToken.getToken())
+                .authenticated(true)
+                .build();
+        } 
+        // If access token expired but refresh token is valid, create new access token
+        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+            // Generate new plain JWT token
+            String plainNewAccessToken = generateToken(user, existingToken.getId());
+            Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+
+            // Encrypt new token
+            String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+
+            // Update only access token, keep refresh token
+            existingToken.setToken(encryptedNewAccessToken);
+            existingToken.setExpiryTime(newExpiryTime);
+            existingToken.setDescription("Refreshed at " + new Date());
+
+            activeTokenRepository.save(existingToken);
+
+            // Set refresh token in cookie
+            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
+            
+            // Return only the access token in the response body
+            return AuthenticationResponse.builder()
+                .token(encryptedNewAccessToken)
+                .authenticated(true)
+                .build();
+        }
+        // Both tokens expired, delete and create new ones
+        else {
+            activeTokenRepository.delete(existingToken);
+        }
+    }
+
+    // 4. Create new tokens
+    String jwtId = UUID.randomUUID().toString();
+    String plainAccessToken = generateToken(user, jwtId);
+    String plainRefreshToken = generateRefreshToken(user, jwtId);
+
+    Date expiryTime = extractTokenExpiry(plainAccessToken);
+    Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+
+    // Encrypt tokens
+    String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
+    String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
+
+    // 5. Save encrypted tokens in database
+    ActiveToken newToken = ActiveToken.builder()
+        .id(jwtId)
+        .token(encryptedAccessToken)
+        .refreshToken(encryptedRefreshToken)
+        .expiryTime(expiryTime)
+        .expiryRefreshTime(expireRefreshTime)
+        .username(user.getUsername())
+        .description("OAuth Login at " + new Date())
+        .build();
+
+    activeTokenRepository.save(newToken);
+
+    // 6. Set refresh token in cookie
+    cookieService.createRefreshTokenCookie(httpResponse, encryptedRefreshToken);
+    
+    // 7. Return only the access token in the response body
+    return AuthenticationResponse.builder()
+        .token(encryptedAccessToken)
+        .authenticated(true)
+        .build();
+}
+
+/**
+ * Refreshes access token using the refresh token from cookies
+ * @param httpRequest The HTTP request containing the refresh token cookie
+ * @param httpResponse The HTTP response for setting updated cookies
+ * @return New access token
+ */
+@Transactional
+public RefreshTokenResponse refreshTokenFromCookie(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    try {
+        // 1. Get the encrypted refresh token from cookie
+        String encryptedRefreshToken = cookieService.getRefreshTokenFromCookies(httpRequest);
+        
+        if (encryptedRefreshToken == null) {
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+        
+        // 2. Decrypt it to get the plain JWT
+        String plainRefreshToken = encryptionService.decryptToken(encryptedRefreshToken);
+        
+        // 3. Extract username from the plain JWT
+        String username = extractUsernameFromJwt(plainRefreshToken);
+        if (username == null) {
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+        
+        // 4. Find token record by username
+        Optional<ActiveToken> tokenOpt = activeTokenRepository.findByUsername(username);
+        if (!tokenOpt.isPresent()) {
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+        
+        ActiveToken tokenRecord = tokenOpt.get();
+        
+        // 5. Verify encrypted tokens match
+        if (!tokenRecord.getRefreshToken().equals(encryptedRefreshToken)) {
+            throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+        
+        // 6. Verify refresh token is still valid
+        Date currentTime = new Date();
+        if (tokenRecord.getExpiryRefreshTime().before(currentTime)) {
+            activeTokenRepository.delete(tokenRecord);
+            cookieService.deleteRefreshTokenCookie(httpResponse);
+            throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+        }
+        
+        // 7. Get the user
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+        
+        // 8. Generate new plain JWT access token
+        String plainNewAccessToken = generateToken(user, tokenRecord.getId());
+        Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+        
+        // 9. Encrypt new token for storage and client
+        String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+        
+        // 10. Update stored token
+        tokenRecord.setToken(encryptedNewAccessToken);
+        tokenRecord.setExpiryTime(newExpiryTime);
+        tokenRecord.setDescription("Refreshed at " + new Date());
+        
+        activeTokenRepository.save(tokenRecord);
+        
+        // 11. Return only the access token in the response body
+        return RefreshTokenResponse.builder()
+            .token(encryptedNewAccessToken)
+            .authenticated(true)
+            .refreshed(true)
+            .build();
+    } catch (AppException e) {
+        throw e;
+    } catch (Exception e) {
+        log.error("Error refreshing token: {}", e.getMessage(), e);
+        throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+    }
+}
+
+/**
+ * Logs out a user by invalidating tokens and clearing cookies
+ * @param httpResponse HTTP response for clearing cookies
+ */
+@Transactional
+public ApiResponse<Void> logoutWithCookies(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    try {
+        // Get the encrypted refresh token from cookie
+        String encryptedRefreshToken = cookieService.getRefreshTokenFromCookies(httpRequest);
+        
+        if (encryptedRefreshToken != null) {
+            // Decrypt to get username
+            String plainRefreshToken = encryptionService.decryptToken(encryptedRefreshToken);
+            String username = extractUsernameFromJwt(plainRefreshToken);
+            
+            if (username != null) {
+                // Delete token from database
+                activeTokenRepository.deleteByUsername(username);
+            }
+        }
+        
+        // Clear the cookie regardless of token validity
+        cookieService.deleteRefreshTokenCookie(httpResponse);
+        
+        return ApiResponse.<Void>builder()
+            .message("Logged out successfully")
+            .build();
+    } catch (Exception e) {
+        // Still clear cookie even if error occurs
+        cookieService.deleteRefreshTokenCookie(httpResponse);
+        
+        log.error("Error during logout: {}", e.getMessage());
+        return ApiResponse.<Void>builder()
+            .message("Logged out successfully")
+            .build();
+    }
+}
   @Transactional
   public ApiResponse<Void> resetPassword(ResetPasswordRequest request) {
     User user = userRepository.findByUsername(request.getUsername())
@@ -664,7 +984,7 @@ public AuthenticationResponse authenticateOAuth(String username) {
     }
 }
 
-private String extractUsernameFromJwt(String token) {
+  private String extractUsernameFromJwt(String token) {
   try {
     SignedJWT signedJWT = SignedJWT.parse(token);
     return signedJWT.getJWTClaimsSet().getSubject();

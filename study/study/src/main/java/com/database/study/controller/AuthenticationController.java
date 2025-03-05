@@ -14,6 +14,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.text.ParseException;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class AuthenticationController {
 
   AuthenticationService authenticationService;
   GoogleTokenValidation googleTokenValidationService;
+
 
   // Authenticate user and generate token
   @PostMapping("/token")
@@ -67,7 +71,7 @@ public class AuthenticationController {
 
   @PostMapping("/forgot-password")
   public ApiResponse<Void> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-      return authenticationService.initiatePasswordReset(request);
+    return authenticationService.initiatePasswordReset(request);
   }
   
   @PostMapping("/reset-password-with-token")
@@ -102,4 +106,36 @@ public class AuthenticationController {
     }
   }
 
+  // Cookie-based authentication endpoints
+  @PostMapping("/token/cookie")
+  public ApiResponse<AuthenticationResponse> authenticateWithCookies(
+          @RequestBody AuthenticationRequest request,
+          HttpServletResponse response) {
+      
+      var result = authenticationService.authenticateWithCookies(request, response);
+      
+      return ApiResponse.<AuthenticationResponse>builder()
+          .result(result)
+          .build();
+  }
+
+  @PostMapping("/refresh/cookie")
+  public ApiResponse<RefreshTokenResponse> refreshTokenFromCookie(
+          HttpServletRequest request,
+          HttpServletResponse response) {
+      
+      var result = authenticationService.refreshTokenFromCookie(request, response);
+      
+      return ApiResponse.<RefreshTokenResponse>builder()
+          .result(result)
+          .build();
+  }
+
+  @PostMapping("/logout/cookie")
+  public ApiResponse<Void> logoutWithCookies(
+          HttpServletRequest request,
+          HttpServletResponse response) {
+      
+      return authenticationService.logoutWithCookies(request, response);
+  }
 }

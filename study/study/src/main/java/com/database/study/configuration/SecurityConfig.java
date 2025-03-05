@@ -42,7 +42,7 @@ public class SecurityConfig {
   private final String[] PUBLIC_ENDPOINTS = { "/users/**", "/auth/token", "/auth/introspect", "/auth/logout",
       "/auth/refreshToken", "/auth/resetPassword", "/auth/forgot-password", "/auth/reset-password-with-token", "/auth/register", "/auth/verify-email", "/auth/google/token", "/oauth2/**",
       "https://accounts.google.com/o/oauth2/**", "/o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token" };
-
+  private final String[] COOKIES_ENDPOINTS = { "/auth/token/cookie", "/auth/logout/cookie", "/auth/refresh/cookie" };
   // @Autowired
   // private CustomJwtDecoder customJwtDecoder;
 
@@ -67,6 +67,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+            .requestMatchers(HttpMethod.POST, COOKIES_ENDPOINTS).permitAll()
             .anyRequest().authenticated())
             
         // Either remove or modify OAuth2 resource server to not process JWT tokens
@@ -92,9 +93,11 @@ public class SecurityConfig {
   CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.setAllowedOrigins(List.of(appBaseUrl));
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
+    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
     configuration.setAllowCredentials(true);
     configuration.addAllowedHeader("*");
+    configuration.setExposedHeaders(List.of("Authorization")); // Expose Authorization header
+
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
     return source;
