@@ -6,6 +6,8 @@ import {
   AuthResponse,
   IntrospectResponse,
   GenericResponse,
+  RefreshTokenResponse,
+  ApiResponse,
 } from "../type/types";
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
@@ -15,6 +17,7 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 export const authenticateUser = async (
@@ -33,6 +36,23 @@ export const authenticateUser = async (
   }
 };
 
+// New cookie-based authentication function
+export const authenticateUserWithCookies = async (
+  username: string,
+  password: string
+): Promise<AuthResponse> => {
+  try {
+    const response = await apiClient.post<AuthResponse>("/auth/token/cookie", {
+      username,
+      password,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error authenticating user with cookies:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
+
 export const introspectToken = async (
   token: string
 ): Promise<IntrospectResponse> => {
@@ -44,6 +64,30 @@ export const introspectToken = async (
     return response.data;
   } catch (error) {
     console.error("Error introspecting token:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
+
+// New function to refresh token using cookie
+export const refreshTokenFromCookie = async (): Promise<
+  ApiResponse<RefreshTokenResponse>
+> => {
+  try {
+    const response = await apiClient.post<RefreshTokenResponse>(
+      "/auth/refresh/cookie"
+    );
+
+    // Wrap the response in ApiResponse format if it's not already in that format
+    if (response.data && !("result" in response.data)) {
+      return {
+        code: response.status,
+        result: response.data,
+      };
+    }
+
+    return response.data as ApiResponse<RefreshTokenResponse>;
+  } catch (error) {
+    console.error("Error refreshing token from cookie:", error);
     throw error as AxiosError<ApiError>;
   }
 };
@@ -172,6 +216,19 @@ export const logoutUser = async (token: string): Promise<GenericResponse> => {
   }
 };
 
+// New cookie-based logout function
+export const logoutUserWithCookies = async (): Promise<GenericResponse> => {
+  try {
+    const response = await apiClient.post<GenericResponse>(
+      "/auth/logout/cookie"
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error during cookie-based logout:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
+
 export const exchangeAuthorizationCode = async (
   code: string
 ): Promise<AuthResponse> => {
@@ -200,3 +257,4 @@ export const validateGoogleToken = async (
   }
 };
 
+export default apiClient;

@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 //import { clearUserInfo } from "../store/userSlice";
 import { resetAllData } from "../store/resetActions";
 import CustomButton from "./CustomButton";
+import { logoutUserWithCookies } from "../services/authService";
 import { RootState } from "../store/RootState";
 
 const { Header } = Layout;
@@ -18,14 +19,32 @@ const HeaderCustom: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const handleLogout = () => {
-    //dispatch(clearAuthData());
-    //dispatch(clearUserInfo());
-    dispatch(resetAllData());
-    navigate("/login");
-    notification.success({
-      message: "Logged out successfully!",
-    });
+  const handleLogout = async () => {
+    try {
+      // Call cookie-based logout API
+      await logoutUserWithCookies();
+
+      // Clear Redux state
+      dispatch(resetAllData());
+
+      // Navigate to login page
+      navigate("/login");
+
+      notification.success({
+        message: "Logged out successfully!",
+      });
+    } catch (error) {
+      console.error("Error during logout:", error);
+
+      // Still clear Redux state and redirect even if API call fails
+      dispatch(resetAllData());
+      navigate("/login");
+
+      notification.info({
+        message: "Logged out",
+        description: "You have been logged out of the application.",
+      });
+    }
   };
 
   return (

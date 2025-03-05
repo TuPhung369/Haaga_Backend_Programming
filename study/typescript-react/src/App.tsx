@@ -1,4 +1,7 @@
 import React, { useState, useEffect, ReactNode } from "react";
+import { initializeAuth } from "./utils/authSetup";
+import { setupAxiosInterceptors } from "./utils/authSetup";
+import apiClient from "./services/authService";
 import {
   BrowserRouter as Router,
   Route,
@@ -33,6 +36,10 @@ const { Content, Footer } = Layout;
 interface AuthWrapperProps {
   children: ReactNode;
 }
+
+// Initialize auth and setup axios interceptors
+initializeAuth();
+setupAxiosInterceptors(apiClient);
 
 const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
@@ -72,6 +79,44 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
 
   if (isChecking) return null;
   return isAuthenticated ? <>{children}</> : null;
+};
+
+interface MainLayoutProps {
+  children: ReactNode;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  // Get current route to apply specific styling
+  const location = useLocation();
+  const isKanbanRoute = location.pathname === "/kanban";
+
+  return (
+    <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+      <HeaderCustom />
+      <Layout>
+        <Sidebar />
+        <Content
+          style={{
+            padding: isKanbanRoute ? 0 : "24px",
+            height: "calc(100vh - 64px - 70px)",
+            overflow: "auto",
+          }}
+        >
+          {children}
+        </Content>
+      </Layout>
+      <Footer
+        style={{
+          textAlign: "center",
+          background: "white",
+          height: "70px",
+          padding: "24px",
+        }}
+      >
+        The Application ©2024 Created by Tu Phung
+      </Footer>
+    </Layout>
+  );
 };
 
 const App: React.FC = () => (
@@ -155,44 +200,6 @@ const App: React.FC = () => (
     </Routes>
   </Router>
 );
-
-interface MainLayoutProps {
-  children: ReactNode;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  // Get current route to apply specific styling
-  const location = useLocation();
-  const isKanbanRoute = location.pathname === "/kanban";
-
-  return (
-    <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
-      <HeaderCustom />
-      <Layout>
-        <Sidebar />
-        <Content
-          style={{
-            padding: isKanbanRoute ? 0 : "24px",
-            height: "calc(100vh - 64px - 70px)",
-            overflow: "auto",
-          }}
-        >
-          {children}
-        </Content>
-      </Layout>
-      <Footer
-        style={{
-          textAlign: "center",
-          background: "white",
-          height: "70px",
-          padding: "24px",
-        }}
-      >
-        The Application ©2024 Created by Tu Phung
-      </Footer>
-    </Layout>
-  );
-};
 
 export default App;
 

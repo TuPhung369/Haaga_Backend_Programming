@@ -14,7 +14,7 @@ import {
   DatePicker,
 } from "antd";
 import {
-  authenticateUser,
+  authenticateUserWithCookies,
   introspectToken,
   registerUser,
 } from "../services/authService";
@@ -75,7 +75,11 @@ const LoginPage: React.FC = () => {
     }
 
     try {
-      const data = await authenticateUser(values.username, values.password);
+      // Use the cookie-based authentication endpoint
+      const data = await authenticateUserWithCookies(
+        values.username,
+        values.password
+      );
       const response = await introspectToken(data.result.token);
       if (response.result?.valid) {
         dispatch(resetAllData());

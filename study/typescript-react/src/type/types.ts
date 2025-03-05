@@ -24,6 +24,18 @@ export interface IntrospectResponse {
   };
 }
 
+export interface ApiResponse<T> {
+  code?: number;
+  message?: string;
+  result: T;
+}
+
+export interface RefreshTokenResponse {
+  token: string;
+  authenticated: boolean;
+  refreshed: boolean;
+}
+
 export interface GenericResponse {
   code: number;
   message?: string;
@@ -186,4 +198,5 @@ export interface FilterDropdownProps {
   close: () => void;
   visible: boolean;
 }
+
 
