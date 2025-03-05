@@ -13,6 +13,8 @@ import com.database.study.security.GoogleTokenValidation;
 import com.database.study.mapper.UserMapper;
 
 import java.util.Map;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.ArrayList;
@@ -177,7 +179,7 @@ public class OAuth2TokenController {
 
         log.info("STEP 9: User retrieved or created: {}", user);
 
-        // Step 5: Authenticate User and Return TokensHermanni, 00550 Helsinki
+        // Step 5: Authenticate User and Return Tokens Hermanni, 00550 Helsinki
         log.info("STEP 10: Authenticating user");
         // ForgotPasswordRequest authRequest = new ForgotPasswordRequest();
         // authRequest.setUsername(user.getUsername());
@@ -190,7 +192,9 @@ public class OAuth2TokenController {
 
         // Step 6: Redirect to Client-Side with Generated Token
         log.info("STEP 12: Redirecting to client with token");
-        String redirectUrl = String.format("%s?token=%s", clientRedirectUrl, authResponse.getToken());
+        String redirectUrl = String.format("%s?token=%s",
+                            clientRedirectUrl,
+                            URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       } else {
         log.error("STEP 3: Token exchange failed with response: {}", response.getStatusCode());

@@ -43,8 +43,8 @@ public class SecurityConfig {
       "/auth/refreshToken", "/auth/resetPassword", "/auth/forgot-password", "/auth/reset-password-with-token", "/auth/register", "/auth/verify-email", "/auth/google/token", "/oauth2/**",
       "https://accounts.google.com/o/oauth2/**", "/o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token" };
 
-  @Autowired
-  private CustomJwtDecoder customJwtDecoder;
+  // @Autowired
+  // private CustomJwtDecoder customJwtDecoder;
 
   @Autowired
   private JwtTokenFilter jwtTokenFilter;

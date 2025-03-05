@@ -91,7 +91,7 @@ public class AuthenticationService {
   protected static final byte[] SECRET_KEY_BYTES = Base64.getDecoder()
       .decode("2fl9V3Xl0ks5yX9dGuVHRV1H6ld9F0OjhrYhP7QvxqJrB/1OLKJHpPoMxSBcUe3EEC6Hq0kseMfUQlhK2w2yQA==");
   static final int SURPLUS_EXPIRE_TIME = 7;
-  static final long TOKEN_EXPIRY_TIME = 1 * 60 * 1000; // 1 minutes
+  static final long TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 1 minutes
   static final long REFRESH_TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
 
   public static byte[] getSecretKeyBytes() {
@@ -144,8 +144,8 @@ public class AuthenticationService {
         String plainNewAccessToken = generateToken(user, existingToken.getId());
         Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
 
-        // Encrypt new token using TokenSecurity
-        String encryptedNewAccessToken = tokenSecurity.encryptForClient(plainNewAccessToken);
+        // Encrypt new token
+        String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
 
         // Update only access token, keep refresh token
         existingToken.setToken(encryptedNewAccessToken);
@@ -176,9 +176,9 @@ public class AuthenticationService {
     Date expiryTime = extractTokenExpiry(plainAccessToken);
     Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
 
-    // Encrypt tokens using TokenSecurity
-    String encryptedAccessToken = tokenSecurity.encryptForClient(plainAccessToken);
-    String encryptedRefreshToken = tokenSecurity.encryptForClient(plainRefreshToken);
+    // Encrypt tokens
+    String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
+    String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
 
     // 5. Save encrypted tokens in database
     ActiveToken newToken = ActiveToken.builder()
@@ -200,72 +200,92 @@ public class AuthenticationService {
         .authenticated(true)
         .build();
   }
-       
-  @Transactional
-  public AuthenticationResponse authenticateOAuth(String username) {
+  
+@Transactional
+public AuthenticationResponse authenticateOAuth(String username) {
     User user = userRepository.findByUsername(username)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
     // Delete expired tokens
     activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
     activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+    // Define longer expiry for OAuth tokens
+    final long OAUTH_TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes for OAuth tokens
 
     // Find current token
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
 
     if (existingTokenOpt.isPresent()) {
-      ActiveToken existingToken = existingTokenOpt.get();
-      Date currentTime = new Date();
+        ActiveToken existingToken = existingTokenOpt.get();
+        Date currentTime = new Date();
 
-      // If token is still valid, reuse it
-      if (existingToken.getExpiryTime().after(currentTime)) {
-        log.info("Reusing existing valid OAuth token for user: {}", user.getUsername());
-        
-        return AuthenticationResponse.builder()
-            .token(existingToken.getToken())
-            .refreshToken(existingToken.getRefreshToken())
-            .authenticated(true)
-            .build();
-      } 
-      // If access token expired but refresh token is valid, create new access token
-      else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
-        log.info("OAuth access token expired but refresh token valid. Generating new access token for user: {}", user.getUsername());
-        
-        String newToken = generateToken(user, existingToken.getId());
-        Date newExpiryTime = extractTokenExpiry(newToken);
-        
-        // Update only access token, keep refresh token
-        existingToken.setToken(newToken);
-        existingToken.setExpiryTime(newExpiryTime);
-        existingToken.setDescription("OAuth Refreshed at " + new Date());
-        
-        activeTokenRepository.save(existingToken);
-        
-        return AuthenticationResponse.builder()
-            .token(newToken)
-            .refreshToken(existingToken.getRefreshToken())
-            .authenticated(true)
-            .build();
-      } 
-      // Both tokens expired, delete and create new ones
-      else {
-        log.info("All OAuth tokens expired for user: {}, creating new tokens", user.getUsername());
-        activeTokenRepository.delete(existingToken);
-      }
+        // If token is still valid, reuse it
+        if (existingToken.getExpiryTime().after(currentTime)) {
+            log.info("Reusing existing valid OAuth token for user: {}", user.getUsername());
+            
+            return AuthenticationResponse.builder()
+                .token(existingToken.getToken())
+                .refreshToken(existingToken.getRefreshToken())
+                .authenticated(true)
+                .build();
+        } 
+        // If access token expired but refresh token is valid, create new access token
+        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+            log.info("OAuth access token expired but refresh token valid. Generating new access token for user: {}", user.getUsername());
+            
+            // Generate new plain JWT token
+            String plainNewAccessToken = generateToken(user, existingToken.getId());
+            Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+            
+            // Encrypt new token for storage and client
+            String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+            
+            // Update only access token, keep refresh token
+            existingToken.setToken(encryptedNewAccessToken);
+            existingToken.setExpiryTime(newExpiryTime);
+            existingToken.setDescription("OAuth Refreshed at " + new Date());
+            
+            activeTokenRepository.save(existingToken);
+            
+            return AuthenticationResponse.builder()
+                .token(encryptedNewAccessToken)
+                .refreshToken(existingToken.getRefreshToken())
+                .authenticated(true)
+                .build();
+        } 
+        // Both tokens expired, delete and create new ones
+        else {
+            log.info("All OAuth tokens expired for user: {}, creating new tokens", user.getUsername());
+            activeTokenRepository.delete(existingToken);
+        }
     }
 
     // Create new tokens
     String jwtId = UUID.randomUUID().toString();
-    String token = generateToken(user, jwtId);
-    String refreshToken = generateRefreshToken(user, jwtId);
+    
+    // Generate plain JWT tokens
+    // Generate plain JWT tokens WITH LONGER EXPIRY TIME FOR OAUTH
+    String plainAccessToken = generateOAuthToken(user, jwtId, OAUTH_TOKEN_EXPIRY_TIME);
+    String plainRefreshToken = generateRefreshToken(user, jwtId);
 
-    Date expiryTime = extractTokenExpiry(token);
-    Date expireRefreshTime = extractTokenExpiry(refreshToken);
+    // Add debug log to verify the token content
+    log.debug("OAuth plain token generated for user {}: {} (first 20 chars)", 
+              user.getUsername(), 
+              plainAccessToken.substring(0, Math.min(20, plainAccessToken.length())));
 
+    // Get expiry dates from plain JWT tokens
+    Date expiryTime = extractTokenExpiry(plainAccessToken);
+    Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+
+    // Encrypt tokens for storage and client
+    String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
+    String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
+
+    // Store encrypted tokens in database
     ActiveToken newToken = ActiveToken.builder()
         .id(jwtId)
-        .token(token)
-        .refreshToken(refreshToken)
+        .token(encryptedAccessToken)
+        .refreshToken(encryptedRefreshToken)
         .expiryTime(expiryTime)
         .expiryRefreshTime(expireRefreshTime)
         .username(user.getUsername())
@@ -274,13 +294,14 @@ public class AuthenticationService {
 
     activeTokenRepository.save(newToken);
 
+    // Return encrypted tokens to client
     return AuthenticationResponse.builder()
-        .token(token)
-        .refreshToken(refreshToken)
+        .token(encryptedAccessToken)
+        .refreshToken(encryptedRefreshToken)
         .authenticated(true)
         .build();
-  }
-  
+}
+
   @Transactional
   public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
     String refreshToken = request.getRefreshToken();
@@ -680,41 +701,51 @@ private String extractUsernameFromJwt(String token) {
 
   public IntrospectResponse introspect(IntrospectRequest request) {
     String encryptedToken = request.getToken();
-    boolean isValid;
-    
-    try {
-        // 1. First decrypt the token received from the client
-        String plainJwtToken = tokenSecurity.decryptFromClient(encryptedToken);
-        
-        // 2. Verify the decrypted JWT token
-        verifyToken(plainJwtToken);
-        
-        // 3. Also verify it exists in our database
-        String username = tokenSecurity.extractUsernameFromToken(plainJwtToken);
-        if (username != null) {
-            Optional<ActiveToken> activeTokenOpt = activeTokenRepository.findByUsername(username);
-            if (!activeTokenOpt.isPresent() || !activeTokenOpt.get().getToken().equals(encryptedToken)) {
-                throw new AppException(ErrorCode.INVALID_TOKEN);
-            }
-            
-            // Check if token has expired in database
-            if (activeTokenOpt.get().getExpiryTime().before(new Date())) {
-                throw new AppException(ErrorCode.INVALID_TOKEN);
-            }
-        } else {
-            throw new AppException(ErrorCode.INVALID_TOKEN);
-        }
-        
-        isValid = true;
-    } catch (Exception e) {
-        log.warn("Token introspection failed: {}", e.getMessage());
-        isValid = false;
+
+    // Detailed logging
+    log.info("Introspect received token: {}", encryptedToken);
+    log.info("Token length: {}", encryptedToken != null ? encryptedToken.length() : 0);
+
+    if (encryptedToken == null || encryptedToken.isEmpty()) {
+      log.warn("Introspection request with null or empty token");
+      return IntrospectResponse.builder().valid(false).build();
     }
-    
-    IntrospectResponse response = IntrospectResponse.builder()
-        .valid(isValid)
-        .build();
-    return response;
+
+    // Log the first few characters to diagnose issues
+    log.debug("Introspect token received (first 10 chars): {}",
+        encryptedToken.substring(0, Math.min(10, encryptedToken.length())));
+
+    try {
+            // 1. First decrypt the token received from the client
+      encryptedToken = encryptedToken.trim();
+              // Sanitize before decrypting (same logic as in decryptToken)
+        String sanitizedToken = encryptedToken.trim()
+            .replace(" ", "+")
+            .replace("\n", "")
+            .replace("\r", "")
+            .replace("\t", "");
+
+
+      String plainJwtToken = encryptionService.decryptToken(sanitizedToken );
+
+      // 2. Verify the decrypted JWT token
+      verifyToken(plainJwtToken);
+
+      // 3. Also verify it exists in our database
+      String username = tokenSecurity.extractUsernameFromToken(plainJwtToken);
+      if (username == null) {
+            return IntrospectResponse.builder().valid(false).build();
+      }
+      
+        Optional<ActiveToken> tokenOpt = activeTokenRepository.findByUsername(username);
+        if (!tokenOpt.isPresent() || tokenOpt.get().getExpiryTime().before(new Date())) {
+            return IntrospectResponse.builder().valid(false).build();
+        }
+        return IntrospectResponse.builder().valid(true).build();
+    } catch (Exception e) {
+        log.warn("Token validation failed: {}", e.getMessage());
+        return IntrospectResponse.builder().valid(false).build();
+    }
 }
 
   private SignedJWT verifyToken(String token) throws ParseException, JOSEException {
@@ -776,6 +807,31 @@ private String extractUsernameFromJwt(String token) {
       log.error("Error generating refresh token: {}", e.getMessage(), e);
       return null;
     }
+  }
+
+  // Add this new method for OAuth tokens with longer expiry time
+  private String generateOAuthToken(User user, String jwtId, long expiryTimeMillis) {
+      try {
+          JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
+          JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+              .subject(user.getUsername())
+              .claim("userId", user.getId().toString())
+              .issuer("tommem.com")
+              .issueTime(new Date())
+              .expirationTime(new Date(new Date().getTime() + expiryTimeMillis)) // Use passed expiry time
+              .jwtID(jwtId)
+              .claim("scope", buildScope(user))
+              .claim("tokenSource", "oauth") // Add a marker that this is an OAuth token
+              .build();
+          Payload payload = new Payload(jwtClaimsSet.toJSONObject());
+
+          JWSObject jwsObject = new JWSObject(jwsHeader, payload);
+          jwsObject.sign(new MACSigner(SECRET_KEY_BYTES));
+          return jwsObject.serialize();
+      } catch (Exception e) {
+          log.error("Error generating OAuth token: {}", e.getMessage(), e);
+          return null;
+      }
   }
 
   private String buildScope(User user) {

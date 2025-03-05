@@ -13,8 +13,13 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class EncryptionService {
+
+    private static final Logger log = LoggerFactory.getLogger(EncryptionService.class);
 
     @Value("${ENCRYPTION_KEY}")
     private String encryptionKey;
@@ -61,35 +66,66 @@ public class EncryptionService {
      * Decrypts the refresh token received from the client
      */
     public String decryptToken(String encryptedToken) {
-        try {
-            // Decode from Base64
-            byte[] decodedToken = Base64.getDecoder().decode(encryptedToken);
-
-            // Derive a proper AES key (32 bytes for AES-256)
-            byte[] decodedKey = deriveAesKey(encryptionKey);
-            SecretKey secretKey = new SecretKeySpec(decodedKey, "AES");
-
-            // Extract IV and ciphertext
-            ByteBuffer byteBuffer = ByteBuffer.wrap(decodedToken);
-            byte[] iv = new byte[GCM_IV_LENGTH];
-            byteBuffer.get(iv);
-
-            byte[] cipherText = new byte[byteBuffer.remaining()];
-            byteBuffer.get(cipherText);
-
-            // Initialize cipher for decryption
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
-
-            // Decrypt the token
-            byte[] decryptedToken = cipher.doFinal(cipherText);
-            return new String(decryptedToken, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new RuntimeException("Error decrypting token", e);
+    try {
+        if (encryptedToken == null || encryptedToken.isEmpty()) {
+            log.warn("Attempted to decrypt null or empty token");
+            throw new IllegalArgumentException("Token cannot be null or empty");
         }
-    }
 
+        // Clean the token
+        encryptedToken = encryptedToken.trim();
+        
+
+log.debug("Attempting to decrypt token: '{}'...", 
+                 encryptedToken.length() > 10 ? encryptedToken.substring(0, 10) + "..." : encryptedToken);
+        String sanitizedToken = encryptedToken.trim()
+            .replace(" ", "+")
+            .replace("\n", "")
+            .replace("\r", "")
+            .replace("\t", "");
+        
+        log.debug("Sanitized token (first 10 chars): {}", 
+                sanitizedToken.substring(0, Math.min(10, sanitizedToken.length())));
+        // Decode from Base64
+        byte[] decodedToken;
+        try {
+            decodedToken = Base64.getDecoder().decode(sanitizedToken);
+        } catch (IllegalArgumentException e) {
+            log.error("Base64 decoding failed: {}", e.getMessage());
+            throw new IllegalArgumentException("Failed to decode Base64: " + e.getMessage());
+        }
+        log.debug("Token decoded from Base64, length: {}", decodedToken.length);
+
+        // Derive a proper AES key (32 bytes for AES-256)
+        byte[] decodedKey = deriveAesKey(encryptionKey);
+        SecretKey secretKey = new SecretKeySpec(decodedKey, "AES");
+
+        // Extract IV and ciphertext
+        ByteBuffer byteBuffer = ByteBuffer.wrap(decodedToken);
+        byte[] iv = new byte[GCM_IV_LENGTH];
+        byteBuffer.get(iv);
+
+        byte[] cipherText = new byte[byteBuffer.remaining()];
+        byteBuffer.get(cipherText);
+
+        // Initialize cipher for decryption
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
+
+        // Decrypt the token
+        byte[] decryptedToken = cipher.doFinal(cipherText);
+        log.debug("Token successfully decrypted");
+        return new String(decryptedToken, StandardCharsets.UTF_8);
+    } catch (IllegalArgumentException e) {
+        log.error("Invalid Base64 format: {}", e.getMessage());
+        throw new RuntimeException("Error decrypting token: Invalid format", e);
+    } catch (Exception e) {
+        log.error("Error decrypting token: {}", e.getMessage(), e);
+        throw new RuntimeException("Error decrypting token", e);
+    }
+}
+    
     /**
      * Derive a fixed-length AES key (32 bytes for AES-256) from the provided encryption key
      */

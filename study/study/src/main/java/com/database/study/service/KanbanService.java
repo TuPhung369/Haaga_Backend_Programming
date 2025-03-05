@@ -460,42 +460,50 @@ public class KanbanService {
     }
 
     private void checkUserAccess(UUID resourceOwnerId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
-        }
-
-        // Skip check for admins
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        if (isAdmin) {
-            return;
-        }
-
-        // For JWT authentication
-        if (authentication.getPrincipal() instanceof Jwt) {
-            Jwt jwt = (Jwt) authentication.getPrincipal();
-            
-            // Check if userId claim exists and matches resource owner
-            String tokenUserId = jwt.getClaimAsString("userId");
-            if (tokenUserId != null && tokenUserId.equals(resourceOwnerId.toString())) {
-                return;
-            }
-            
-            // Check if username/sub matches resource owner's username
-            String sub = jwt.getClaimAsString("sub");
-            if (sub != null) {
-                User resourceOwner = userRepository.findById(resourceOwnerId)
-                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-                if (resourceOwner.getUsername().equals(sub)) {
-                    return;
-                }
-            }
-        }
-        
-        log.error("User does not have permission to access resource owned by user ID: {}", resourceOwnerId);
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null || !authentication.isAuthenticated()) {
         throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
     }
+
+    // Skip check for admins
+    boolean isAdmin = authentication.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    if (isAdmin) {
+        return;
+    }
+    
+    // Get the authenticated username
+    String username = authentication.getName();
+    
+    // Fetch the resource owner once
+    User resourceOwner = userRepository.findById(resourceOwnerId)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    
+    // Check if username matches directly
+    if (resourceOwner.getUsername().equals(username)) {
+        return; // Allow access if usernames match
+    }
+
+    // For JWT authentication - additional checks
+    if (authentication.getPrincipal() instanceof Jwt) {
+        Jwt jwt = (Jwt) authentication.getPrincipal();
+        
+        // Check if userId claim exists and matches resource owner
+        String tokenUserId = jwt.getClaimAsString("userId");
+        if (tokenUserId != null && tokenUserId.equals(resourceOwnerId.toString())) {
+            return;
+        }
+        
+        // Check if username/sub matches resource owner's username
+        String sub = jwt.getClaimAsString("sub");
+        if (sub != null && resourceOwner.getUsername().equals(sub)) {
+            return;
+        }
+    }
+    
+    log.error("User does not have permission to access resource owned by user ID: {}", resourceOwnerId);
+    throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+}
 
     private KanbanBoard refreshBoardData(UUID boardId) {
     // Get fresh board data
