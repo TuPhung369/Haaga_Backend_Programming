@@ -13,7 +13,7 @@ public class CookieService {
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
     
-    @Value("${APP_BASE_URI:http://localhost:3000}")
+    @Value("${APP_BASE_URI}")
     private String appBaseUri;
     
     @Value("${cookie.secure:false}")
