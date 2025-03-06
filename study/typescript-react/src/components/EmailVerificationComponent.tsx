@@ -38,8 +38,8 @@ const EmailVerificationComponent: React.FC = () => {
       notification.info({
         message: "Verification Required",
         description:
-          "Please check your email for a 6-digit verification code and enter it here to complete your registration.",
-        duration: 8,
+          "Please check your email for a 6-digit verification code",
+        duration: 6,
       });
 
       // Focus the first digit input after a short delay

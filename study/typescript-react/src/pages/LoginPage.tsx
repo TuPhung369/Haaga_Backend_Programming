@@ -153,10 +153,6 @@ const LoginPage: React.FC = () => {
     setRegisterLoading(true);
     try {
       await registerUser(userData);
-      notification.success({
-        message: "Success",
-        description: "User registered successfully!",
-      });
       setIsRegisterModalVisible(false);
       navigate("/verify-email", { state: { username } });
     } catch (error: unknown) {
