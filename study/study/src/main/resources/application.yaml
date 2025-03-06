@@ -2,7 +2,13 @@ server:
   port: 9095
   servlet:
     context-path: /identify_service
+    session:
+      tracking-modes: cookie
+      cookie:
+        enabled: false
 spring:
+  session:
+    store-type: none
   profiles:
     active: dev # google || aws || dev
   sql:
