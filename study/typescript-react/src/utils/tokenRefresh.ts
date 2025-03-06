@@ -4,8 +4,8 @@ import { setAuthData } from "../store/authSlice";
 import store from "../store/store";
 import { ApiResponse, RefreshTokenResponse } from "../type/types";
 
-// Fixed refresh interval - refresh every 25 minutes
-const REFRESH_INTERVAL = 25 * 60 * 1000;
+// Fixed refresh interval - refresh every 50 minutes
+const REFRESH_INTERVAL = 50 * 60 * 1000;
 
 type NodeJSTimeout = ReturnType<typeof setTimeout>;
 
