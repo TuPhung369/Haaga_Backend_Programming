@@ -26,10 +26,14 @@ import OAuth2RedirectHandler from "./components/OAuth2RedirectHandler";
 import StatisticPage from "./pages/StatisticPage";
 import HeaderCustom from "./components/HeaderCustom";
 import Sidebar from "./components/Sidebar";
-import { introspectToken } from "./services/authService";
-import { clearAuthData } from "./store/authSlice";
+import {
+  introspectToken,
+  refreshTokenFromCookie,
+} from "./services/authService";
+import { clearAuthData, setAuthData } from "./store/authSlice";
 import { resetAllData } from "./store/resetActions";
 import { RootState } from "./type/types";
+import { setupTokenRefresh } from "./utils/tokenRefresh";
 
 const { Content, Footer } = Layout;
 
@@ -53,9 +57,28 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
     const checkTokenValidity = async () => {
       if (token) {
         try {
+          const refreshResponse = await refreshTokenFromCookie();
+          // If refresh is successful, update the token in the store
+          if (
+            refreshResponse &&
+            refreshResponse.result &&
+            refreshResponse.result.token
+          ) {
+            dispatch(
+              setAuthData({
+                token: refreshResponse.result.token,
+                isAuthenticated: true,
+                loginSocial: false,
+              })
+            );
+            setupTokenRefresh(refreshResponse.result.token);
+          }
+
+          // Then introspect the token
           const response = await introspectToken(token);
           if (!response.result?.valid) {
             console.warn("Invalid token, redirecting to login...");
+            throw new Error("Invalid token");
             dispatch(clearAuthData());
             dispatch(resetAllData());
             navigate("/login");
