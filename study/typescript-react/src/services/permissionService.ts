@@ -1,6 +1,11 @@
 import axios from "axios";
 import type { AxiosError } from "axios";
-import { Permission, PermissionResponse, PermissionsResponse, ApiError } from "../type/types";
+import {
+  Permission,
+  PermissionResponse,
+  PermissionsResponse,
+  ApiError,
+} from "../type/types";
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 
 // Axios instance with default headers
@@ -9,6 +14,7 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 export const createPermission = async (

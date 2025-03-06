@@ -15,7 +15,6 @@ import {
 } from "antd";
 import {
   authenticateUserWithCookies,
-  introspectToken,
   registerUser,
 } from "../services/authService";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
@@ -36,7 +35,7 @@ const { Content } = Layout;
 const LoginPage: React.FC = () => {
   const oauth2ClientId = import.meta.env.VITE_OAUTH2_CLIENT_ID;
   const oauth2RedirectUri = import.meta.env.VITE_OAUTH2_REDIRECT_URI;
-  const appBaseUri = import.meta.env.VITE_BASE_URI;
+  // const appBaseUri = import.meta.env.VITE_BASE_URI;
 
   useState<boolean>(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] =
@@ -62,6 +61,7 @@ const LoginPage: React.FC = () => {
     }
   }, [navigate, isAuthenticated, token]);
 
+  // Updated login function in src/pages/LoginPage.tsx
   const handleLogin = async (values: {
     username: string;
     password: string;
@@ -81,9 +81,12 @@ const LoginPage: React.FC = () => {
         values.username,
         values.password
       );
-      const response = await introspectToken(data.result.token);
-      if (response.result?.valid) {
+
+      if (data && data.result && data.result.token) {
+        // First clear any existing data
         dispatch(resetAllData());
+
+        // Then set the new auth data
         dispatch(
           setAuthData({
             token: data.result.token,
@@ -91,12 +94,19 @@ const LoginPage: React.FC = () => {
             loginSocial: false,
           })
         );
+
+        // Set up token refresh
         setupTokenRefresh(data.result.token);
+
         notification.success({
           message: "Success",
           description: "Logged in successfully!",
         });
-        window.location.href = appBaseUri;
+
+        // Redirect to home page
+        navigate("/");
+      } else {
+        throw new Error("Invalid response format from server");
       }
     } catch (error: unknown) {
       const authError = error as AuthError;
@@ -538,6 +548,7 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
+
 
 
 

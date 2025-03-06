@@ -11,6 +11,7 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 export const createUser = async (
@@ -135,4 +136,5 @@ export const deleteUser = async (
     throw error as AxiosError<ApiError>;
   }
 };
+
 

@@ -51,10 +51,10 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 cookie:
-  secure: ${COOKIE_SECURE:false} # Set to true in production
-  http-only: ${COOKIE_HTTP_ONLY:true}
-  same-site: ${COOKIE_SAME_SITE:Lax} # Options: Strict, Lax, None
-  max-age: ${COOKIE_MAX_AGE:604800} # 7 days in seconds
+  secure: false # This should be false for localhost (http) development
+  http-only: true
+  same-site: Lax # Try changing to "None" for cross-domain requests
+  max-age: 604800
 
 logging:
   level:

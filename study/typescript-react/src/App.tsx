@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ReactNode } from "react";
 import { initializeAuth } from "./utils/authSetup";
-import { setupAxiosInterceptors } from "./utils/authSetup";
+import { setupAxiosInterceptors } from "./utils/axiosSetup";
 import apiClient from "./services/authService";
 import {
   BrowserRouter as Router,
@@ -42,8 +42,8 @@ interface AuthWrapperProps {
 }
 
 // Initialize auth and setup axios interceptors
-initializeAuth();
-setupAxiosInterceptors(apiClient);
+// We must do this AFTER store has been initialized
+// This is now done in a useEffect in the App component
 
 const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
@@ -54,42 +54,61 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   );
 
   useEffect(() => {
+    let validationInProgress = false;
     const checkTokenValidity = async () => {
+      if (validationInProgress) return;
+      validationInProgress = true;
       if (token) {
         try {
-          const refreshResponse = await refreshTokenFromCookie();
-          // If refresh is successful, update the token in the store
-          if (
-            refreshResponse &&
-            refreshResponse.result &&
-            refreshResponse.result.token
-          ) {
-            dispatch(
-              setAuthData({
-                token: refreshResponse.result.token,
-                isAuthenticated: true,
-                loginSocial: false,
-              })
-            );
-            setupTokenRefresh(refreshResponse.result.token);
+          // First check if the current token is valid
+          try {
+            const response = await introspectToken(token);
+            if (response.result?.valid) {
+              // Token is valid, we can proceed
+              setIsChecking(false);
+              return; // Exit early - no need to refresh
+            }
+            // If we reach here, token is invalid - fall through to refresh attempt
+          } catch {
+            console.log("Token validation failed, trying refresh...");
+            // Continue to refresh attempt
           }
 
-          // Then introspect the token
-          const response = await introspectToken(token);
-          if (!response.result?.valid) {
-            console.warn("Invalid token, redirecting to login...");
-            throw new Error("Invalid token");
-            dispatch(clearAuthData());
-            dispatch(resetAllData());
-            navigate("/login");
+          // Only try refreshing if the initial token validation failed
+          try {
+            const refreshResponse = await refreshTokenFromCookie();
+            if (refreshResponse?.result?.token) {
+              dispatch(
+                setAuthData({
+                  token: refreshResponse.result.token,
+                  isAuthenticated: true,
+                  loginSocial: false,
+                })
+              );
+              setupTokenRefresh(refreshResponse.result.token);
+              setIsChecking(false);
+              return; // Success - exit function
+            }
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
+            // Fall through to logout
           }
-        } catch (error) {
-          console.error("Error during token introspection:", error);
+
+          // If we reach here, both validation and refresh failed
+          console.warn("Authentication failed, redirecting to login...");
           dispatch(clearAuthData());
           dispatch(resetAllData());
           navigate("/login");
+        } catch (error) {
+          console.error("Error during authentication flow:", error);
+          dispatch(clearAuthData());
+          dispatch(resetAllData());
+          navigate("/login");
+        } finally {
+          validationInProgress = false;
         }
       } else {
+        // No token, redirect to login
         dispatch(clearAuthData());
         dispatch(resetAllData());
         navigate("/login");
@@ -142,87 +161,95 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   );
 };
 
-const App: React.FC = () => (
-  <Router>
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/reset-password" element={<ResetPasswordComponent />} />
-      <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
-      <Route path="/oauths/redirect" element={<OAuth2RedirectHandler />} />
-      <Route path="/verify-email" element={<EmailVerificationComponent />} />
-      <Route
-        path="/"
-        element={
-          <AuthWrapper>
-            <MainLayout>
-              <HomePage />
-            </MainLayout>
-          </AuthWrapper>
-        }
-      />
-      <Route
-        path="/userList"
-        element={
-          <AuthWrapper>
-            <MainLayout>
-              <UserListPage />
-            </MainLayout>
-          </AuthWrapper>
-        }
-      />
-      <Route
-        path="/roles"
-        element={
-          <AuthWrapper>
-            <MainLayout>
-              <RolesPage />
-            </MainLayout>
-          </AuthWrapper>
-        }
-      />
-      <Route
-        path="/permissions"
-        element={
-          <AuthWrapper>
-            <MainLayout>
-              <PermissionsPage />
-            </MainLayout>
-          </AuthWrapper>
-        }
-      />
-      <Route
-        path="/statistics"
-        element={
-          <AuthWrapper>
-            <MainLayout>
-              <StatisticPage />
-            </MainLayout>
-          </AuthWrapper>
-        }
-      />
-      <Route
-        path="/calendar"
-        element={
-          <AuthWrapper>
-            <MainLayout>
-              <CalendarPage />
-            </MainLayout>
-          </AuthWrapper>
-        }
-      />
-      <Route
-        path="/kanban"
-        element={
-          <AuthWrapper>
-            <MainLayout>
-              <KanbanPage />
-            </MainLayout>
-          </AuthWrapper>
-        }
-      />
-    </Routes>
-  </Router>
-);
+const App: React.FC = () => {
+  // Initialize auth and setup axios interceptors
+  useEffect(() => {
+    initializeAuth();
+    setupAxiosInterceptors(apiClient);
+  }, []);
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordComponent />} />
+        <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
+        <Route path="/oauths/redirect" element={<OAuth2RedirectHandler />} />
+        <Route path="/verify-email" element={<EmailVerificationComponent />} />
+        <Route
+          path="/"
+          element={
+            <AuthWrapper>
+              <MainLayout>
+                <HomePage />
+              </MainLayout>
+            </AuthWrapper>
+          }
+        />
+        <Route
+          path="/userList"
+          element={
+            <AuthWrapper>
+              <MainLayout>
+                <UserListPage />
+              </MainLayout>
+            </AuthWrapper>
+          }
+        />
+        <Route
+          path="/roles"
+          element={
+            <AuthWrapper>
+              <MainLayout>
+                <RolesPage />
+              </MainLayout>
+            </AuthWrapper>
+          }
+        />
+        <Route
+          path="/permissions"
+          element={
+            <AuthWrapper>
+              <MainLayout>
+                <PermissionsPage />
+              </MainLayout>
+            </AuthWrapper>
+          }
+        />
+        <Route
+          path="/statistics"
+          element={
+            <AuthWrapper>
+              <MainLayout>
+                <StatisticPage />
+              </MainLayout>
+            </AuthWrapper>
+          }
+        />
+        <Route
+          path="/calendar"
+          element={
+            <AuthWrapper>
+              <MainLayout>
+                <CalendarPage />
+              </MainLayout>
+            </AuthWrapper>
+          }
+        />
+        <Route
+          path="/kanban"
+          element={
+            <AuthWrapper>
+              <MainLayout>
+                <KanbanPage />
+              </MainLayout>
+            </AuthWrapper>
+          }
+        />
+      </Routes>
+    </Router>
+  );
+};
 
 export default App;
 

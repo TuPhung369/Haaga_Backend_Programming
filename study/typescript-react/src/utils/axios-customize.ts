@@ -1,28 +1,26 @@
-import axios from "axios";
-import { AxiosRequestHeaders } from "axios";
+// src/utils/axios-customize.ts
+import axios, { InternalAxiosRequestConfig } from "axios";
+import store from "../store/store";
 
-const apiBaseUri = import.meta.env.REACT_APP_API_BASE_URI;
+const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 const instance = axios.create({
-  baseURL: apiBaseUri,
+  baseURL: API_BASE_URI,
   withCredentials: true,
 });
 
-// Function to generate headers with token if available
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
+// Request interceptor to automatically add the token to all requests
 instance.interceptors.request.use(
-  function (config) {
-    // Merge headers with type assertion
-    config.headers = {
-      ...config.headers,
-      "Content-Type": "application/json",
-      ...getAuthHeader(),
-    } as AxiosRequestHeaders;
+  function (config: InternalAxiosRequestConfig) {
+    // Get the token from the Redux store
+    const { token } = store.getState().auth;
 
-    console.log("Request config with headers:", config); // Debug logging
+    // If token exists, add it to the Authorization header
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
   },
   function (error) {
@@ -31,9 +29,10 @@ instance.interceptors.request.use(
   }
 );
 
+// Response interceptor
 instance.interceptors.response.use(
   function (response) {
-    console.log("Response data:", response.data); // Debug logging
+    // For successful responses, extract the data if it exists
     if (response && response.data) {
       return response.data;
     } else {
@@ -51,4 +50,6 @@ instance.interceptors.response.use(
 );
 
 export default instance;
+
+
 

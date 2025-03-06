@@ -9,6 +9,7 @@ import {
   RefreshTokenResponse,
   ApiResponse,
 } from "../type/types";
+import store from "../store/store";
 
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 
@@ -18,7 +19,24 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true,
+  timeout: 10000,
 });
+
+apiClient.interceptors.request.use(
+  function (config) {
+    const { token } = store.getState().auth;
+
+    if (token) {
+      // Use the correct type assertion for headers
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  function (error) {
+    return Promise.reject(error);
+  }
+);
 
 export const authenticateUser = async (
   username: string,
@@ -42,6 +60,7 @@ export const authenticateUserWithCookies = async (
   password: string
 ): Promise<AuthResponse> => {
   try {
+    //console.log("Calling API at:", `${API_BASE_URI}/auth/token/cookie`);
     const response = await apiClient.post<AuthResponse>("/auth/token/cookie", {
       username,
       password,
@@ -53,18 +72,48 @@ export const authenticateUserWithCookies = async (
   }
 };
 
+let introspectionInProgress = false;
+let lastIntrospectTime = 0;
+const INTROSPECT_COOLDOWN = 2000; // 2 seconds
+
 export const introspectToken = async (
   token: string
 ): Promise<IntrospectResponse> => {
+  // Only allow one introspection at a time and respect cooldown
+  const now = Date.now();
+  if (
+    introspectionInProgress ||
+    now - lastIntrospectTime < INTROSPECT_COOLDOWN
+  ) {
+    // Return cached result or a promised-based delay + retry
+    return new Promise((resolve) => {
+      const wait = Math.max(
+        0,
+        INTROSPECT_COOLDOWN - (now - lastIntrospectTime)
+      );
+      setTimeout(() => resolve(introspectToken(token)), wait);
+    });
+  }
+
+  introspectionInProgress = true;
+  lastIntrospectTime = now;
+
   try {
     const response = await apiClient.post<IntrospectResponse>(
       "/auth/introspect",
-      { token }
+      { token },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     return response.data;
   } catch (error) {
     console.error("Error introspecting token:", error);
     throw error as AxiosError<ApiError>;
+  } finally {
+    introspectionInProgress = false;
   }
 };
 
@@ -259,4 +308,8 @@ export const validateGoogleToken = async (
 };
 
 export default apiClient;
+
+import { setupAxiosInterceptors } from "../utils/axiosSetup";
+
+setupAxiosInterceptors(apiClient);
 

@@ -1,53 +1,37 @@
 // src/utils/axiosSetup.ts
-import { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
-import { refreshToken } from "./tokenRefresh";
-import store from "../store/store";
+import { AxiosInstance } from "axios";
+
+let interceptorsRegistered = false;
 
 export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
+  if (interceptorsRegistered) return;
+  // Add detailed logging interceptors
   axiosInstance.interceptors.request.use(
-    async (config: InternalAxiosRequestConfig) => {
-      const { token } = store.getState().auth;
-
-      if (token) {
-        // Instead of checking token expiry, just add the token to all requests
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-
+    function (config) {
       return config;
     },
-    (error) => Promise.reject(error)
-  );
-
-  // Response interceptor to handle 401 errors
-  axiosInstance.interceptors.response.use(
-    (response) => response,
-    async (error: AxiosError) => {
-      const originalRequest = error.config as InternalAxiosRequestConfig & {
-        _retry?: boolean;
-      };
-
-      // If receiving a 401 error and we haven't retried yet
-      if (error.response?.status === 401 && !originalRequest._retry) {
-        originalRequest._retry = true;
-
-        try {
-          // Try to refresh the token
-          await refreshToken();
-
-          // Get the new token and retry the request
-          const newToken = store.getState().auth.token;
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return axiosInstance(originalRequest);
-        } catch (refreshError) {
-          // If refresh fails, redirect to login
-          console.error("Token refresh failed during 401 error", refreshError);
-          // Optionally handle logout or redirect here
-          return Promise.reject(refreshError);
-        }
-      }
-
+    function (error) {
+      console.error("Request error:", error);
       return Promise.reject(error);
     }
   );
+
+  axiosInstance.interceptors.response.use(
+    function (response) {
+      return response;
+    },
+    function (error) {
+      console.error(`Response error for ${error.config?.url}:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+      return Promise.reject(error);
+    }
+  );
+
+  interceptorsRegistered = true;
 };
 

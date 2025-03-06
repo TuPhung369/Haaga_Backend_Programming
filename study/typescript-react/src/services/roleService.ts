@@ -10,6 +10,7 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 export const createRole = async (
@@ -64,4 +65,5 @@ export const deleteRole = async (
     throw error as AxiosError<ApiError>;
   }
 };
+
 
