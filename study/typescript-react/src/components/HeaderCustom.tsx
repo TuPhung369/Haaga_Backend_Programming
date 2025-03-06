@@ -10,6 +10,7 @@ import { resetAllData } from "../store/resetActions";
 import CustomButton from "./CustomButton";
 import { logoutUserWithCookies } from "../services/authService";
 import { RootState } from "../store/RootState";
+import { clearTokenRefresh } from "../utils/tokenRefresh";
 
 const { Header } = Layout;
 
@@ -21,6 +22,8 @@ const HeaderCustom: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      // Clear the refresh timer
+      clearTokenRefresh();
       // Call cookie-based logout API
       await logoutUserWithCookies();
 
@@ -78,4 +81,6 @@ const HeaderCustom: React.FC = () => {
 };
 
 export default HeaderCustom;
+
+
 

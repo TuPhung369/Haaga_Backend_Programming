@@ -126,6 +126,12 @@ const store = configureStore({
   reducer: rootReducer,
   preloadedState: loadState(),
   devTools: isDevelopment,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      immutableCheck: {
+        warnAfter: 128, // Increase from default 32ms to 128ms
+      },
+    }),
 });
 
 // Subscribe to state changes with typed state

@@ -4,41 +4,38 @@ import { setAuthData } from "../store/authSlice";
 import store from "../store/store";
 import { ApiResponse, RefreshTokenResponse } from "../type/types";
 
-// Time window before token expiry when we should refresh (e.g., 5 minutes)
-const REFRESH_WINDOW_MS = 5 * 60 * 1000;
+// Fixed refresh interval - refresh every 25 minutes
+const REFRESH_INTERVAL = 25 * 60 * 1000;
+
+type NodeJSTimeout = ReturnType<typeof setTimeout>;
+
+// Then use it as before
+let refreshTimer: NodeJSTimeout | null = null;
 
 /**
- * Helper to extract expiry time from JWT token
- */
-const getTokenExpiry = (token: string): number => {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp * 1000; // Convert to milliseconds
-  } catch (e) {
-    console.error("Error parsing token:", e);
-    return 0;
-  }
-};
-
-/**
- * Sets up automatic token refresh based on expiry time
+ * Sets up automatic token refresh at fixed intervals
  * @param token Current access token
  */
 export const setupTokenRefresh = (token: string): void => {
-  if (!token) return;
-
-  const expiryTime = getTokenExpiry(token);
-  if (!expiryTime) return;
-
-  const timeUntilRefresh = expiryTime - Date.now() - REFRESH_WINDOW_MS;
-
-  if (timeUntilRefresh <= 0) {
-    // Token is already expired or about to expire, refresh immediately
-    refreshToken();
-  } else {
-    // Schedule refresh before token expires
-    setTimeout(refreshToken, timeUntilRefresh);
+  if (!token) {
+    console.log("No token provided to setupTokenRefresh");
+    return;
   }
+
+  // Clear any existing timer
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
+
+  // console.log(
+  //   `Setting up token refresh at fixed interval of ${
+  //     REFRESH_INTERVAL / (60 * 1000)
+  //   } minutes`
+  // );
+
+  // Schedule first refresh
+  refreshTimer = setTimeout(refreshToken, REFRESH_INTERVAL);
 };
 
 /**
@@ -46,11 +43,13 @@ export const setupTokenRefresh = (token: string): void => {
  */
 export const refreshToken = async (): Promise<void> => {
   try {
+    // console.log("Refreshing token...");
     const response: ApiResponse<RefreshTokenResponse> =
       await refreshTokenFromCookie();
 
     // Check if response contains token in the result property
     if (response && response.result && response.result.token) {
+      // console.log("Token refreshed successfully");
       store.dispatch(
         setAuthData({
           token: response.result.token,
@@ -60,11 +59,27 @@ export const refreshToken = async (): Promise<void> => {
       );
 
       // Setup the next refresh
-      setupTokenRefresh(response.result.token);
+      // console.log(
+      //   `Scheduling next token refresh in ${
+      //     REFRESH_INTERVAL / (60 * 1000)
+      //   } minutes`
+      // );
+      refreshTimer = setTimeout(refreshToken, REFRESH_INTERVAL);
     }
   } catch (error) {
     console.error("Error refreshing token:", error);
     // Handle refresh failure (e.g., redirect to login)
+  }
+};
+
+/**
+ * Clears the refresh timer when logging out
+ */
+export const clearTokenRefresh = (): void => {
+  if (refreshTimer) {
+    // console.log("Clearing token refresh timer");
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
   }
 };
 

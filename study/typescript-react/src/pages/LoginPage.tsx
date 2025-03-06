@@ -27,6 +27,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
 import { resetAllData } from "../store/resetActions";
 import { ValidationInput, AuthState, AuthError } from "../type/authType";
+import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
 
 const { Title } = Typography;
@@ -90,6 +91,7 @@ const LoginPage: React.FC = () => {
             loginSocial: false,
           })
         );
+        setupTokenRefresh(data.result.token);
         notification.success({
           message: "Success",
           description: "Logged in successfully!",
@@ -540,4 +542,6 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
+
+
 

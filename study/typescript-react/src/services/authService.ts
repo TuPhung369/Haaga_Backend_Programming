@@ -73,7 +73,8 @@ export const refreshTokenFromCookie = async (): Promise<
   ApiResponse<RefreshTokenResponse>
 > => {
   try {
-    const response = await apiClient.post<RefreshTokenResponse>(
+    // console.log("Refresh URL:", `${API_BASE_URI}/auth/refresh/cookie`);
+    const response = await apiClient.post<ApiResponse<RefreshTokenResponse>>(
       "/auth/refresh/cookie"
     );
 
@@ -258,3 +259,4 @@ export const validateGoogleToken = async (
 };
 
 export default apiClient;
+
