@@ -41,11 +41,9 @@ interface AuthWrapperProps {
   children: ReactNode;
 }
 
-// Initialize auth and setup axios interceptors
-// We must do this AFTER store has been initialized
-// This is now done in a useEffect in the App component
-
-const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
+// AuthWrapper component with the authentication check logic
+// This must be used INSIDE the Router context
+const AuthWrapper = ({ children }: AuthWrapperProps) => {
   const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -123,11 +121,9 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   return isAuthenticated ? <>{children}</> : null;
 };
 
-interface MainLayoutProps {
-  children: ReactNode;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+// MainLayout component to handle the layout with sidebar
+// This must also be used INSIDE the Router context
+const MainLayout = ({ children }: { children: ReactNode }) => {
   // Get current route to apply specific styling
   const location = useLocation();
   const isKanbanRoute = location.pathname === "/kanban";
@@ -161,6 +157,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   );
 };
 
+// All routing is now handled directly in the App component
+
 const App: React.FC = () => {
   // Initialize auth and setup axios interceptors
   useEffect(() => {
@@ -177,71 +175,19 @@ const App: React.FC = () => {
         <Route path="/oauths/redirect" element={<OAuth2RedirectHandler />} />
         <Route path="/verify-email" element={<EmailVerificationComponent />} />
         <Route
-          path="/"
+          path="*"
           element={
             <AuthWrapper>
               <MainLayout>
-                <HomePage />
-              </MainLayout>
-            </AuthWrapper>
-          }
-        />
-        <Route
-          path="/userList"
-          element={
-            <AuthWrapper>
-              <MainLayout>
-                <UserListPage />
-              </MainLayout>
-            </AuthWrapper>
-          }
-        />
-        <Route
-          path="/roles"
-          element={
-            <AuthWrapper>
-              <MainLayout>
-                <RolesPage />
-              </MainLayout>
-            </AuthWrapper>
-          }
-        />
-        <Route
-          path="/permissions"
-          element={
-            <AuthWrapper>
-              <MainLayout>
-                <PermissionsPage />
-              </MainLayout>
-            </AuthWrapper>
-          }
-        />
-        <Route
-          path="/statistics"
-          element={
-            <AuthWrapper>
-              <MainLayout>
-                <StatisticPage />
-              </MainLayout>
-            </AuthWrapper>
-          }
-        />
-        <Route
-          path="/calendar"
-          element={
-            <AuthWrapper>
-              <MainLayout>
-                <CalendarPage />
-              </MainLayout>
-            </AuthWrapper>
-          }
-        />
-        <Route
-          path="/kanban"
-          element={
-            <AuthWrapper>
-              <MainLayout>
-                <KanbanPage />
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/userList" element={<UserListPage />} />
+                  <Route path="/roles" element={<RolesPage />} />
+                  <Route path="/permissions" element={<PermissionsPage />} />
+                  <Route path="/statistics" element={<StatisticPage />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
+                  <Route path="/kanban" element={<KanbanPage />} />
+                </Routes>
               </MainLayout>
             </AuthWrapper>
           }
@@ -252,4 +198,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

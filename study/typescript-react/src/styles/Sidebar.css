@@ -1,0 +1,124 @@
+/* Remove default ant design tooltip */
+.ant-tooltip {
+  display: none !important;
+}
+
+/* Custom tooltip for menu items when collapsed */
+.ant-layout-sider-collapsed .ant-menu-item {
+  position: relative;
+}
+
+.ant-layout-sider-collapsed .ant-menu-item::after {
+  content: attr(data-menu-title);
+  position: absolute;
+  left: 100%;
+  top: 0;
+  opacity: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 1000;
+  transform: translateX(10px);
+  visibility: hidden;
+}
+
+.ant-layout-sider-collapsed .ant-menu-item:hover::after {
+  opacity: 1;
+  visibility: visible;
+}/* Responsive adjustments */
+@media (max-width: 1000px) {
+  .ant-layout-sider {
+    width: 64px !important;
+    min-width: 64px !important;
+    flex: 0 0 64px !important;
+  }
+  
+  .app-logo {
+    display: none !important;
+  }
+  
+  .ant-layout-sider-collapsed {
+    width: 64px !important;
+    min-width: 64px !important;
+    flex: 0 0 64px !important;
+  }
+}/* Sidebar transition */
+.ant-layout-sider {
+  transition: width 0.3s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+/* Menu styling */
+.ant-menu {
+  transition: width 0.3s ease !important;
+}
+
+/* Icon animation */
+.ant-menu-item .anticon {
+  transition: font-size 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* Make the menu items look better in collapsed state */
+.ant-layout-sider-collapsed .ant-menu-item {
+  padding: 0 24px !important;
+}
+
+/* Make the active menu item more distinct */
+.ant-menu-light.ant-menu-inline .ant-menu-item-selected {
+  background-color: rgba(24, 144, 255, 0.1) !important;
+  border-right: 3px solid var(--primary-color);
+}
+
+/* Add hover effect to menu items */
+.ant-menu-light.ant-menu-inline .ant-menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Toggle button styling */
+.ant-layout-sider .sidebar-toggle-button {
+  color: var(--white-color) !important;
+  transition: all 0.3s ease;
+  background-color: var(--white-color) !important;
+  width: 46px !important;
+  height: 46px !important;
+  padding: 0;
+  line-height: 32px;
+}
+
+.sidebar-toggle-button:hover {
+  color: var(--primary-color) !important;
+}
+
+/* Ensure icon is properly centered and sized */
+.sidebar-toggle-button .anticon {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* App logo transition */
+.app-logo {
+  transition: all 0.3s ease;
+  opacity: 1;
+}
+
+.app-logo.collapsed {
+  width: 0;
+  opacity: 0;
+}
+
+/* Ensure the app logo animation is smooth */
+.ant-layout-sider-collapsed .app-logo {
+  display: none;
+}
+
+/* Menu item transition for smooth animation */
+.ant-menu-inline .ant-menu-item, 
+.ant-menu-inline .ant-menu-submenu-title {
+  transition: all 0.3s ease !important;
+}
