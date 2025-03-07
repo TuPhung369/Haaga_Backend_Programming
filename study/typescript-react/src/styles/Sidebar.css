@@ -83,8 +83,6 @@
   color: var(--white-color) !important;
   transition: all 0.3s ease;
   background-color: var(--white-color) !important;
-  width: 46px !important;
-  height: 46px !important;
   padding: 0;
   line-height: 32px;
 }
