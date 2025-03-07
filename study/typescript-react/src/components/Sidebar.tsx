@@ -24,11 +24,11 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 
   const menuItems = [
     { key: "1", label: "Home", path: "/", icon: <HomeOutlined /> },
-    { key: "2", label: "User List", path: "/userList", icon: <UserOutlined /> },
-    { key: "3", label: "Role List", path: "/roles", icon: <TeamOutlined /> },
+    { key: "2", label: "Users", path: "/userList", icon: <UserOutlined /> },
+    { key: "3", label: "Roles", path: "/roles", icon: <TeamOutlined /> },
     {
       key: "4",
-      label: "Permission List",
+      label: "Permissions",
       path: "/permissions",
       icon: <LockOutlined />,
     },
@@ -53,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   ];
 
   return (
-    <Sider width={200} style={{ borderColor: "transparent" }}>
+    <Sider width={160} style={{ borderColor: "transparent" }}>
       <Menu
         mode="inline"
         selectedKeys={[
@@ -76,3 +76,4 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 };
 
 export default Sidebar;
+

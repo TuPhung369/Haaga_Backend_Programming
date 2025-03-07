@@ -347,7 +347,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
       {contextHolder}
       {userInfo ? (
         <Descriptions
-          className="custom-descriptions"
+          className="custom-descriptions mt-0"
           title={
             <div
               style={{

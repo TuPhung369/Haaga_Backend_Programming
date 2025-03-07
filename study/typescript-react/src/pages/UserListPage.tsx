@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import Highlighter from "react-highlight-words";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   getAllUsers,
   getMyInfo,
@@ -7,6 +6,8 @@ import {
   updateUser,
   createUser,
 } from "../services/userService";
+// Add custom styles for the search input clear button
+import { createGlobalStyle } from "styled-components";
 import { getAllRoles } from "../services/roleService";
 import {
   Descriptions,
@@ -16,9 +17,7 @@ import {
   Modal,
   Form,
   Input,
-  InputRef,
   Select,
-  Button,
   notification,
 } from "antd";
 import {
@@ -39,22 +38,16 @@ import {
   invalidateUsers,
 } from "../store/userSlice";
 import { AxiosError } from "axios";
-import {
-  User,
-  Role,
-  RootState,
-  FilterDropdownProps,
-  ExtendApiError,
-} from "../type/types";
+import { User, Role, RootState, ExtendApiError } from "../type/types";
 
 const { confirm } = Modal;
 const { Content } = Layout;
 const { Option } = Select;
 
-type ColumnType<T extends object> = Parameters<typeof Table.Column<T>>[0];
 interface UserListPageProps {
   style?: React.CSSProperties;
 }
+
 const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
@@ -63,16 +56,16 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   const [isDisabled, setIsDisabled] = useState(false);
   const [form] = Form.useForm();
 
+  // Real-time search states
+  const [searchText, setSearchText] = useState<Record<string, string>>({});
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+
   const [api, contextHolder] = notification.useNotification();
   const [notificationMessage, setNotificationMessage] = useState<{
     type: "success" | "error";
     message: string;
     description: string;
   } | null>(null);
-
-  const [searchText, setSearchText] = useState("");
-  const [searchedColumn, setSearchedColumn] = useState("");
-  const searchInput = useRef<InputRef | null>(null);
 
   const { token, isAuthenticated } = useSelector(
     (state: RootState) => state.auth
@@ -217,6 +210,26 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
       fetchRoles();
     }
   }, [token, isAuthenticated, fetchMyInfo, fetchAllUsers, fetchRoles]);
+
+  // Update filtered users whenever allUsers or searchText changes
+  useEffect(() => {
+    let result = [...allUsers];
+
+    // Apply all active filters
+    Object.entries(searchText).forEach(([key, value]) => {
+      if (value) {
+        const lowerCaseValue = value.toLowerCase();
+        result = result.filter((user) => {
+          const fieldValue = String(
+            user[key as keyof User] || ""
+          ).toLowerCase();
+          return fieldValue.includes(lowerCaseValue);
+        });
+      }
+    });
+
+    setFilteredUsers(result);
+  }, [allUsers, searchText]);
 
   const handleDeleteUser = async (userId: string) => {
     try {
@@ -376,91 +389,100 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
     return ["USER"];
   };
 
-  const getColumnSearchProps = (dataIndex: keyof User): ColumnType<User> => ({
-    filterDropdown: ({
-      setSelectedKeys,
-      selectedKeys,
-      confirm,
-      clearFilters,
-    }: FilterDropdownProps) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={searchInput}
-          placeholder={`Search ${dataIndex}`}
-          value={selectedKeys[0] as string}
-          onChange={(e) =>
-            setSelectedKeys(e.target.value ? [e.target.value] : [])
-          }
-          onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ marginBottom: 8, display: "block" }}
-        />
-        <Button
-          type="primary"
-          onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          icon={<SearchOutlined />}
-          size="small"
-          style={{ width: 90, marginRight: 8 }}
-        >
-          Search
-        </Button>
-        <Button
-          onClick={() => handleReset(clearFilters)}
-          size="small"
-          style={{ width: 90 }}
-        >
-          Clear
-        </Button>
-      </div>
+  // Handle search input change
+  const handleSearchInputChange = (dataIndex: keyof User, value: string) => {
+    setSearchText((prev) => ({
+      ...prev,
+      [dataIndex]: value,
+    }));
+  };
+
+  // Get column search component
+  const getColumnSearchProps = (dataIndex: keyof User) => ({
+    filterDropdown: () => (
+      <Input
+        placeholder={`Search ${dataIndex}`}
+        value={searchText[dataIndex] || ""}
+        onChange={(e) => handleSearchInputChange(dataIndex, e.target.value)}
+        style={{
+          width: 188,
+          marginBottom: 8,
+          display: "block",
+          paddingRight: "30px", // Add extra padding for the clear button
+        }}
+        allowClear
+        className="search-input-with-clear-right"
+      />
     ),
-    filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? COLORS[14] : undefined }} />
+    filterIcon: () => (
+      <SearchOutlined
+        style={{
+          color: searchText[dataIndex] ? COLORS[14] : undefined,
+        }}
+      />
     ),
-    onFilter: (value: React.Key | boolean, record: User) =>
-      String(record[dataIndex])
-        .toLowerCase()
-        .includes(String(value).toLowerCase()),
-    filterDropdownProps: {
-      onOpenChange: (visible: boolean) => {
-        if (visible) {
-          setTimeout(() => searchInput.current?.focus(), 100);
-        }
-      },
+    onFilterDropdownOpenChange: (visible: boolean) => {
+      if (visible) {
+        setTimeout(() => {
+          const input = document.querySelector(
+            `.ant-table-filter-dropdown input[placeholder="Search ${dataIndex}"]`
+          ) as HTMLInputElement;
+          if (input) input.focus();
+        }, 100);
+      }
     },
-    render: (text: string) =>
-      searchedColumn === dataIndex ? (
-        <Highlighter
-          highlightStyle={{ backgroundColor: COLORS[15], padding: 0 }}
-          searchWords={[searchText]}
-          autoEscape
-          textToHighlight={text || ""}
-        />
-      ) : (
-        text
-      ),
+    render: (text: string) => {
+      const searchValue = searchText[dataIndex] || "";
+      if (!searchValue) {
+        return text;
+      }
+
+      const index = text
+        ? text.toLowerCase().indexOf(searchValue.toLowerCase())
+        : -1;
+      if (index === -1) {
+        return text;
+      }
+
+      const beforeStr = text.substring(0, index);
+      const matchStr = text.substring(index, index + searchValue.length);
+      const afterStr = text.substring(index + searchValue.length);
+
+      return (
+        <span>
+          {beforeStr}
+          <span style={{ color: "#f50" }}>{matchStr}</span>
+          {afterStr}
+        </span>
+      );
+    },
   });
-
-  const handleSearch = (
-    selectedKeys: React.Key[],
-    confirm: () => void,
-    dataIndex: string
-  ) => {
-    confirm();
-    setSearchText(selectedKeys[0] as string);
-    setSearchedColumn(dataIndex);
-  };
-
-  const handleReset = (clearFilters?: () => void) => {
-    clearFilters?.();
-    setSearchText("");
-    setSearchedColumn("");
-  };
 
   const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
   const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
+  // Custom global styles for the search input
+  const GlobalStyle = createGlobalStyle`
+    /* Style the search input clear button to appear on the far right */
+    .search-input-with-clear-right .ant-input-clear-icon {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      margin: 0;
+      z-index: 10;
+    }
+    
+    /* Make sure the search input text doesn't overlap with the clear button */
+    .search-input-with-clear-right .ant-input {
+      padding-right: 24px;
+    }
+  `;
+
   return (
-    <Layout style={{ padding: "0 24px 0 24px", ...style }}>
+    <Layout style={{ padding: "0 10px 0 10px", ...style }}>
       <Content style={{ margin: "0", ...style }}>
+        <GlobalStyle />
         {contextHolder}
         <Modal
           title={isModeNew ? "Add New User" : "Edit User Information"}
@@ -529,7 +551,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
             </Form.Item>
             <Form.Item
               name="dob"
-              label="Date of Birth (YYYY-MM-DD)"
+              label="DoB (YYYY-MM-DD)"
               rules={[
                 {
                   required: true,
@@ -580,7 +602,11 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
             bordered
           ></Descriptions>
         </h2>
-        <Table dataSource={allUsers} rowKey="id" pagination={{ pageSize: 13 }}>
+        <Table
+          dataSource={filteredUsers}
+          rowKey="id"
+          pagination={{ pageSize: 13 }}
+        >
           <Table.Column
             title="Email"
             dataIndex="email"
@@ -612,7 +638,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
             {...getColumnSearchProps("username")}
           />
           <Table.Column
-            title="Date of Birth"
+            title="D.o.B"
             dataIndex="dob"
             key="dob"
             sorter={(a: User, b: User) => a.dob.localeCompare(b.dob)}

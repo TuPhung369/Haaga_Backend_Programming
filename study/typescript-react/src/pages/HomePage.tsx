@@ -9,8 +9,8 @@ const { Content } = Layout;
 
 const HomePage = () => {
   return (
-    <Layout style={{ padding: "0 24px 24px" }}>
-      <Content style={{ marginTop: "12px" }}>
+    <Layout style={{ padding: "0px 0px 0px 0px" }}>
+      <Content style={{ marginTop: "0px" }}>
         <MyInfo />
         <UserListPage style={{ padding: "0", margin: "0" }} />
       </Content>
