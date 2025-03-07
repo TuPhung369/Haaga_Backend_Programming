@@ -301,6 +301,15 @@ const CalendarPage: React.FC = () => {
     setEventDetails((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Get a color that is different from the original event color
+  const getDistinctColor = (originalColor: string): string => {
+    let newColor: string;
+    do {
+      newColor = getRandomColor();
+    } while (newColor === originalColor);
+    return newColor;
+  };
+
   const handleEventDrop = async (args: EventInteractionArgs<CalendarEvent>) => {
     const { event, start, end } = args;
     const seriesId = event.seriesId || event.id;
@@ -322,6 +331,9 @@ const CalendarPage: React.FC = () => {
           const instanceStart = moment(event.start);
           const originalStart = instanceStart.toISOString();
 
+          // Generate a different color for this exception event
+          const distinctColor = getDistinctColor(event.color || COLORS[0]);
+
           const newException: CalendarEvent = {
             ...event,
             id: "", // Để server tạo ID
@@ -330,6 +342,7 @@ const CalendarPage: React.FC = () => {
             end: new Date(end).toISOString(),
             date: new Date(start).toISOString(),
             repeat: "none",
+            color: distinctColor, // Assign a different color to visually distinguish from the series
           };
 
           await createEvent(newException, token);
@@ -378,6 +391,9 @@ const CalendarPage: React.FC = () => {
         okText: "This event only",
         cancelText: "All events",
         onOk: async () => {
+          // Generate a different color for this exception event
+          const distinctColor = getDistinctColor(event.color || COLORS[0]);
+
           const newException: CalendarEvent = {
             ...event,
             id: "", // Để server tạo ID
@@ -386,6 +402,7 @@ const CalendarPage: React.FC = () => {
             end: new Date(end).toISOString(),
             date: new Date(start).toISOString(),
             repeat: "none",
+            color: distinctColor, // Assign a different color to visually distinguish from the series
           };
           await createEvent(newException, token);
           await fetchAndUpdateEvents();
@@ -616,6 +633,34 @@ const CalendarPage: React.FC = () => {
                   <Option value="weekly">Weekly</Option>
                   <Option value="monthly">Monthly</Option>
                   <Option value="yearly">Yearly</Option>
+                </Select>
+              </Form.Item>
+              <Form.Item label="Color">
+                <Select
+                  value={eventDetails.color}
+                  onChange={(value) =>
+                    setEventDetails((prev) => ({ ...prev, color: value }))
+                  }
+                  style={{ width: "100%" }}
+                >
+                  {COLORS.map((color, index) => (
+                    <Option key={index} value={color}>
+                      <div
+                        style={{
+                          backgroundColor: color,
+                          width: "100%",
+                          height: "20px",
+                          borderRadius: "4px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: invertColorWithContrast(color),
+                        }}
+                      >
+                        {color}
+                      </div>
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Form>
