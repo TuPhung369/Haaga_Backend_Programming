@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, { useState, useEffect, ReactNode } from "react";
 import { initializeAuth } from "./utils/authSetup";
 import { setupAxiosInterceptors } from "./utils/axiosSetup";
@@ -12,7 +13,8 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { Layout } from "antd";
 
-import LoginPage from "./pages/LoginPage";
+// Import the new AuthPage component
+import AuthPage from "./pages/AuthPage";
 import ResetPasswordComponent from "./components/ResetPasswordComponent";
 import ForgotPasswordComponent from "./components/ForgotPasswordComponent";
 import EmailVerificationComponent from "./components/EmailVerificationComponent";
@@ -169,7 +171,8 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        {/* Use our new AuthPage component for login */}
+        <Route path="/login" element={<AuthPage />} />
         <Route path="/reset-password" element={<ResetPasswordComponent />} />
         <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
         <Route path="/oauths/redirect" element={<OAuth2RedirectHandler />} />

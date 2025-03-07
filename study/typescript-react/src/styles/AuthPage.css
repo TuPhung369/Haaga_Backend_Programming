@@ -1,0 +1,378 @@
+/* src/styles/AuthPage.css */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f2f5;
+  padding: 20px;
+  background-image: url("../assets/loginBG.png");
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.auth-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(5px);
+  background-color: rgba(255, 255, 255, 0.2);
+  z-index: 0;
+}
+
+.auth-card {
+  width: 1000px;
+  height: 700px;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  background-color: white;
+  transition: all 0.6s ease-in-out;
+}
+
+/* Panel Styles */
+.panel {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transition: all 0.6s ease-in-out;
+}
+
+.left-panel {
+  left: 0;
+  transition-delay: 0.1s;
+}
+
+.right-panel {
+  right: 0;
+  transition-delay: 0.1s;
+}
+
+/* Styling for the blue section */
+.panel-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s ease-in-out;
+}
+
+/* Welcome message and button in the blue section */
+.welcome-title {
+  color: white;
+  margin-bottom: 20px !important;
+  font-weight: 700 !important;
+}
+
+.panel-text {
+  color: white;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+/* Form styles */
+.auth-form {
+  width: 100%;
+  max-width: 320px;
+}
+
+.form-title {
+  text-align: center;
+  margin-bottom: 20px !important;
+}
+
+/* Button styles */
+.panel-button {
+  background-color: transparent;
+  color: white;
+  border: 1px solid white;
+  border-radius: 20px;
+  padding: 8px 30px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.panel-button:hover {
+  background-color: white;
+  color: #4285f4;
+}
+
+.auth-button {
+  width: 100%;
+  border-radius: 20px;
+  height: 50px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Mode switching animations */
+.auth-card.login-mode .left-panel {
+  background: linear-gradient(135deg, #4285f4, #6aa9ff);
+  border-radius: 0 100px 100px 0;
+}
+
+.auth-card.login-mode .right-panel {
+  background-color: white;
+}
+
+.auth-card.register-mode .left-panel {
+  background-color: white;
+}
+
+.auth-card.register-mode .right-panel {
+  background: linear-gradient(135deg, #4285f4, #6aa9ff);
+  border-radius: 100px 0 0 100px;
+}
+
+/* Error message styling */
+.error-message {
+  color: #ff4d4f;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+/* Enhanced Google Login Button */
+.google-login-button {
+  width: 100%;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  color: #444;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+  margin-top: 10px;
+  height: 50px !important; /* Increased height to match other inputs */
+  cursor: pointer;
+}
+
+/* Google's brand colored border */
+.google-login-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, #4285F4, #EA4335, #FBBC05, #34A853);
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+
+.google-login-button:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.google-login-button:hover::before {
+  transform: translateY(0);
+}
+
+.google-login-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.google-login-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.google-login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Google icon container */
+.google-icon-wrapper {
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 24px;
+  width: 24px;
+}
+
+/* Button text positioning */
+.google-button-text {
+  margin-left: 6px;
+  letter-spacing: 0.21px;
+}
+
+/* Animation for button entrance */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.google-login-button {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Make form inputs larger and more prominent */
+.auth-form .ant-input,
+.auth-form .ant-input-password,
+.auth-form .ant-picker {
+  height: 40px !important;
+  padding: 12px 15px 12px 40px !important;
+  font-size: 16px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s !important;
+}
+
+/* Style for input focus states */
+.auth-form .ant-input:focus,
+.auth-form .ant-input-focused,
+.auth-form .ant-input-password:focus,
+.auth-form .ant-input-affix-wrapper-focused,
+.auth-form .ant-picker-focused {
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2) !important;
+  border-color: #4285f4 !important;
+}
+
+/* Style for input hover states */
+.auth-form .ant-input:hover,
+.auth-form .ant-input-password:hover,
+.auth-form .ant-picker:hover {
+  border-color: #4285f4 !important;
+}
+
+/* Properly align icons */
+.auth-form .ant-input-prefix {
+  margin-right: 10px !important;
+  font-size: 18px !important;
+  color: #4f4e4e !important;
+}
+
+/* Make sure password input has the correct height */
+.auth-form .ant-input-affix-wrapper {
+  height: 50px !important;
+  padding: 0 15px 0 12px !important;
+}
+
+/* Adjust the input inside the password input */
+.auth-form .ant-input-affix-wrapper .ant-input {
+  height: 48px !important;
+  padding-left: 28px !important;
+}
+
+/* Style for DatePicker */
+.auth-form .ant-picker {
+  width: 100% !important;
+}
+
+/* Adjust form item spacing for better visual hierarchy */
+.auth-form .ant-form-item {
+  margin-bottom: 24px !important;
+}
+
+/* Style for form labels to make them more prominent */
+.auth-form .ant-form-item-label > label {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: #333 !important;
+}
+
+/* Adjust placeholder text */
+.auth-form .ant-input::placeholder,
+.auth-form .ant-picker-input > input::placeholder {
+  color: #4f4e4e !important;
+  font-size: 15px !important;
+}
+
+/* Ensure error messages are clearly visible */
+.auth-form .ant-form-item-explain-error {
+  font-size: 14px !important;
+  margin-top: 5px !important;
+}
+
+/* Ensure proper spacing between form elements */
+.auth-form .ant-form-item:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 900px) {
+  .auth-card {
+    width: 90%;
+    max-width: 500px;
+    height: auto;
+    min-height: 650px;
+    flex-direction: column;
+  }
+  
+  .panel {
+    position: relative;
+    width: 100%;
+    height: auto;
+  }
+  
+  .auth-card.login-mode .left-panel,
+  .auth-card.register-mode .right-panel {
+    border-radius: 0 0 20px 20px;
+    height: 200px;
+  }
+  
+  .auth-card.login-mode .right-panel,
+  .auth-card.register-mode .left-panel {
+    min-height: 450px;
+  }
+  
+  .auth-card.login-mode {
+    flex-direction: column;
+  }
+  
+  .auth-card.register-mode {
+    flex-direction: column-reverse;
+  }
+  
+  .google-login-button {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+  
+  /* Adjust input fields for mobile */
+  .auth-form .ant-input,
+  .auth-form .ant-input-password,
+  .auth-form .ant-picker,
+  .auth-form .ant-input-affix-wrapper,
+  .auth-button {
+    height: 45px !important;
+    font-size: 15px !important;
+  }
+}

@@ -28,19 +28,19 @@ const EmailVerificationComponent: React.FC = () => {
     new Array(6).fill("")
   );
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
   // Extract username from state (if coming from registration)
   React.useEffect(() => {
     if (location.state && location.state.username) {
       setUsername(location.state.username);
 
       // Show welcome notification when coming from registration
-      notification.info({
-        message: "Verification Required",
-        description:
-          "Please check your email for a 6-digit verification code",
-        duration: 6,
-      });
+        notification.info({
+          message: "Verification Required",
+          description:
+            "Please check your email for a 6-digit verification code",
+          duration: 6,
+          key: "verification-required",
+        });
 
       // Focus the first digit input after a short delay
       setTimeout(() => {
