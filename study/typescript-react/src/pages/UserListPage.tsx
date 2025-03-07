@@ -462,7 +462,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
   // Custom global styles for the search input
-  const GlobalStyle = createGlobalStyle`
+  const UserListStyle = createGlobalStyle`
     .user-list-header {
       margin-top: 10px;
       margin-bottom: 0px;
@@ -524,7 +524,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   return (
     <Layout style={{ padding: "0 10px 0 10px", ...style }}>
       <Content style={{ margin: "0", ...style }}>
-        <GlobalStyle />
+        <UserListStyle />
         {contextHolder}
         <Modal
           title={isModeNew ? "Add New User" : "Edit User Information"}
