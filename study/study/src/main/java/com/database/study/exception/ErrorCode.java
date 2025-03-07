@@ -68,7 +68,9 @@ public enum ErrorCode {
         INVALID_REFRESH_TOKEN(4013,ENUMS.ErrorMessages.INVALID_REFRESH_TOKEN.getMessage(),HttpStatus.UNAUTHORIZED,
                         "401", ENUMS.Severity.HIGH.name()), // Unauthorized
         REFRESH_TOKEN_EXPIRED(4014,ENUMS.ErrorMessages.REFRESH_TOKEN_EXPIRED.getMessage(),HttpStatus.UNAUTHORIZED,
-                        "401", ENUMS.Severity.HIGH.name()); // Unauthorized
+                        "401", ENUMS.Severity.HIGH.name()), // Unauthorized
+        EMAIL_ALREADY_EXISTS(5001, ENUMS.ErrorMessages.EMAIL_ALREADY_EXISTS.getMessage(),HttpStatus.CONFLICT,
+                        "409", ENUMS.Severity.MEDIUM.name());
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
                 this.code = code;

@@ -4,6 +4,8 @@ import com.database.study.entity.ActiveToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.Date;
+import java.util.List;
+
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -14,6 +16,8 @@ public interface ActiveTokenRepository extends JpaRepository<ActiveToken, String
 
   Optional<ActiveToken> findByUsername(String username);
 
+  List<ActiveToken> findAllByUsername(String username);
+  
   void deleteByUsername(String username);
 
   void deleteByToken(String token);

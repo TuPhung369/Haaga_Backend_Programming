@@ -89,6 +89,17 @@ public class AuthenticationController {
     return authenticationService.verifyEmail(request);
   }
 
+  @PostMapping("/request-email-change")
+  public ApiResponse<Void> requestEmailChange(@RequestBody EmailChangeRequest request) {
+    return authenticationService.requestEmailChange(request);
+  }
+
+  @PostMapping("/verify-email-change")
+  public ApiResponse<Void> verifyEmailChange(@RequestBody VerifyEmailChangeRequest request) {
+    return authenticationService.verifyEmailChange(request);
+  }
+
+
   @PostMapping("/resend-verification")
   public ApiResponse<Void> resendVerification(@RequestBody ResendVerificationRequest request) {
       return authenticationService.resendVerificationEmail(request);

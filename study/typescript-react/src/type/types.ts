@@ -199,4 +199,3 @@ export interface FilterDropdownProps {
   visible: boolean;
 }
 
-

@@ -40,8 +40,11 @@ public class SecurityConfig {
   private String oauth2RedirectUrl;
 
   private final String[] PUBLIC_ENDPOINTS = { "/users/**", "/auth/token", "/auth/introspect", "/auth/logout",
-      "/auth/refreshToken", "/auth/resetPassword", "/auth/forgot-password", "/auth/reset-password-with-token", "/auth/register", "/auth/verify-email", "/auth/google/token", "/oauth2/**",
-      "https://accounts.google.com/o/oauth2/**","/oauth2/**" , "/o/oauth2**", "/login/oauth2/**", "/protected/**", "/google/token" };
+      "/auth/refreshToken", "/auth/resetPassword", "/auth/forgot-password", "/auth/reset-password-with-token",
+      "/auth/register", "/auth/verify-email", "/auth/request-email-change", "/auth/verify-email-change", "/auth/resend-verification",
+      "/auth/google/token", "/oauth2/**", "https://accounts.google.com/o/oauth2/**","/oauth2/**" , "/o/oauth2**",
+      "/login/oauth2/**", "/protected/**", "/google/token" };
+
   private final String[] COOKIES_ENDPOINTS = { "/auth/token/cookie", "/auth/logout/cookie", "/auth/refresh/cookie" };
   // @Autowired
   // private CustomJwtDecoder customJwtDecoder;

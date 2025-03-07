@@ -3,15 +3,19 @@ package com.database.study.service;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.database.study.dto.request.AuthenticationRequest;
+import com.database.study.dto.request.EmailChangeRequest;
 import com.database.study.dto.request.ForgotPasswordRequest;
 import com.database.study.dto.request.VerifyResetTokenRequest;
 import com.database.study.dto.request.LogoutRequest;
 import com.database.study.dto.request.ResetPasswordRequest;
 import com.database.study.dto.request.TokenRefreshRequest;
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.request.VerifyEmailChangeRequest;
 import com.database.study.dto.request.VerifyEmailRequest;
 import com.database.study.dto.request.IntrospectRequest;
 import com.database.study.dto.request.RefreshTokenRequest;
@@ -23,6 +27,7 @@ import com.database.study.dto.response.RefreshTokenResponse;
 import com.database.study.dto.response.TokenRefreshResponse;
 import com.database.study.entity.EmailVerificationToken;
 import com.database.study.entity.ActiveToken;
+import com.database.study.entity.EmailChangeToken;
 import com.database.study.entity.PasswordResetToken;
 import com.database.study.entity.Role;
 import com.database.study.entity.User;
@@ -32,6 +37,7 @@ import com.database.study.exception.ErrorCode;
 import com.database.study.mapper.UserMapper;
 import com.database.study.repository.EmailVerificationTokenRepository;
 import com.database.study.repository.ActiveTokenRepository;
+import com.database.study.repository.EmailChangeTokenRepository;
 import com.database.study.repository.PasswordResetTokenRepository;
 import com.database.study.repository.RoleRepository;
 import com.database.study.repository.UserRepository;
@@ -88,6 +94,7 @@ public class AuthenticationService {
   EmailService emailService;
   PasswordResetTokenRepository passwordResetTokenRepository;
   EmailVerificationTokenRepository emailVerificationTokenRepository;
+  EmailChangeTokenRepository emailChangeTokenRepository;
   EncryptionService encryptionService;
   TokenSecurity tokenSecurity;
   CookieService cookieService;
@@ -354,7 +361,7 @@ public class AuthenticationService {
   }
 
   @Transactional
-public AuthenticationResponse authenticateWithCookies(AuthenticationRequest request, HttpServletResponse httpResponse) {
+  public AuthenticationResponse authenticateWithCookies(AuthenticationRequest request, HttpServletResponse httpResponse) {
     // 1. Authenticate the user - same as your current logic
     User user = userRepository.findByUsername(request.getUsername())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
@@ -456,11 +463,8 @@ public AuthenticationResponse authenticateWithCookies(AuthenticationRequest requ
         .build();
 }
 
-/**
- * Overloaded method for OAuth2 authentication that takes username directly
- */
-@Transactional
-public AuthenticationResponse authenticateWithCookies(String username, HttpServletResponse httpResponse) {
+  @Transactional
+  public AuthenticationResponse authenticateWithCookies(String username, HttpServletResponse httpResponse) {
     // 1. Get the user
     User user = userRepository.findByUsername(username)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
@@ -553,14 +557,8 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
         .build();
 }
 
-/**
- * Refreshes access token using the refresh token from cookies
- * @param httpRequest The HTTP request containing the refresh token cookie
- * @param httpResponse The HTTP response for setting updated cookies
- * @return New access token
- */
-@Transactional
-public RefreshTokenResponse refreshTokenFromCookie(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+  @Transactional
+  public RefreshTokenResponse refreshTokenFromCookie(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
     try {
         // 1. Get the encrypted refresh token from cookie
         String encryptedRefreshToken = cookieService.getRefreshTokenFromCookies(httpRequest);
@@ -631,43 +629,40 @@ public RefreshTokenResponse refreshTokenFromCookie(HttpServletRequest httpReques
     }
 }
 
-/**
- * Logs out a user by invalidating tokens and clearing cookies
- * @param httpResponse HTTP response for clearing cookies
- */
-@Transactional
-public ApiResponse<Void> logoutWithCookies(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-    try {
-        // Get the encrypted refresh token from cookie
-        String encryptedRefreshToken = cookieService.getRefreshTokenFromCookies(httpRequest);
-        
-        if (encryptedRefreshToken != null) {
-            // Decrypt to get username
-            String plainRefreshToken = encryptionService.decryptToken(encryptedRefreshToken);
-            String username = extractUsernameFromJwt(plainRefreshToken);
-            
-            if (username != null) {
-                // Delete token from database
-                activeTokenRepository.deleteByUsername(username);
-            }
-        }
-        
-        // Clear the cookie regardless of token validity
-        cookieService.deleteRefreshTokenCookie(httpResponse);
-        
-        return ApiResponse.<Void>builder()
-            .message("Logged out successfully")
-            .build();
-    } catch (Exception e) {
-        // Still clear cookie even if error occurs
-        cookieService.deleteRefreshTokenCookie(httpResponse);
-        
-        log.error("Error during logout: {}", e.getMessage());
-        return ApiResponse.<Void>builder()
-            .message("Logged out successfully")
-            .build();
+  @Transactional
+  public ApiResponse<Void> logoutWithCookies(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+  try {
+    // Get the encrypted refresh token from cookie
+    String encryptedRefreshToken = cookieService.getRefreshTokenFromCookies(httpRequest);
+
+    if (encryptedRefreshToken != null) {
+      // Decrypt to get username
+      String plainRefreshToken = encryptionService.decryptToken(encryptedRefreshToken);
+      String username = extractUsernameFromJwt(plainRefreshToken);
+
+      if (username != null) {
+        // Delete token from database
+        activeTokenRepository.deleteByUsername(username);
+      }
     }
+
+    // Clear the cookie regardless of token validity
+    cookieService.deleteRefreshTokenCookie(httpResponse);
+
+    return ApiResponse.<Void>builder()
+        .message("Logged out successfully")
+        .build();
+  } catch (Exception e) {
+    // Still clear cookie even if error occurs
+    cookieService.deleteRefreshTokenCookie(httpResponse);
+
+    log.error("Error during logout: {}", e.getMessage());
+    return ApiResponse.<Void>builder()
+        .message("Logged out successfully")
+        .build();
+  }
 }
+  
   @Transactional
   public ApiResponse<Void> resetPassword(ResetPasswordRequest request) {
     User user = userRepository.findByUsername(request.getUsername())
@@ -850,16 +845,153 @@ public ApiResponse<Void> logoutWithCookies(HttpServletRequest httpRequest, HttpS
   }
 
   @Transactional
-  public ApiResponse<Void> resendVerificationEmail(ResendVerificationRequest request) {
-    User user = userRepository.findByUsername(request.getUsername())
+  public ApiResponse<Void> requestEmailChange(EmailChangeRequest request) {
+    log.info("Starting email change request for userId: {}, from: {} to: {}", 
+        request.getUserId(), request.getCurrentEmail(), request.getNewEmail());
+    
+    // Find the user
+    User user = userRepository.findById(UUID.fromString(request.getUserId()))
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+    log.info("User found: {} (username: {})", user.getId(), user.getUsername());
+    
+    // Verify the current password
+    boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
+    log.info("Password authentication result: {}", authenticated);
+    if (!authenticated) {
+        log.warn("Password mismatch for user: {}", user.getUsername());
+        throw new AppException(ErrorCode.PASSWORD_MISMATCH);
+    }
+    
+    // Check if the new email already exists for another user
+    boolean emailExists = userRepository.existsByEmail(request.getNewEmail());
+    boolean isSameEmail = user.getEmail().equalsIgnoreCase(request.getNewEmail());
+    log.info("New email exists check: exists={}, isSameEmail={}", emailExists, isSameEmail);
+    
+    if (emailExists && !isSameEmail) {
+        log.warn("Email {} already exists for another user", request.getNewEmail());
+        throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+    }
+    
+    // Check if there's an existing token for this email change request
+    Optional<EmailChangeToken> existingToken = emailChangeTokenRepository
+        .findByUserIdAndNewEmailAndUsed(request.getUserId(), request.getNewEmail(), false);
+    log.info("Existing unused token found: {}", existingToken.isPresent());
+    
+    existingToken.ifPresent(token -> {
+        log.info("Deleting existing token: {}", token.getToken());
+        emailChangeTokenRepository.delete(token);
+    });
+    
+    // Generate verification code
+    String verificationCode = generateSixDigitCode();
+    log.info("Generated verification code: {}", verificationCode);
+    
+    // Create token record valid for 15 minutes
+    EmailChangeToken emailChangeToken = EmailChangeToken.builder()
+        .token(verificationCode)
+        .username(user.getUsername())
+        .userId(user.getId().toString())
+        .currentEmail(user.getEmail())
+        .newEmail(request.getNewEmail())
+        .expiryDate(LocalDateTime.now().plusMinutes(15))
+        .used(false)
+        .build();
+    
+    EmailChangeToken savedToken = emailChangeTokenRepository.save(emailChangeToken);
+    log.info("Email change token saved with ID: {}, expiry: {}", 
+        savedToken.getToken(), savedToken.getExpiryDate());
+    
+    // Send verification email to the NEW email address
+    try {
+        log.info("Attempting to send verification email to: {}", request.getNewEmail());
+        emailService.sendEmailChangeVerification(
+            request.getNewEmail(),
+            user.getFirstname(),
+            verificationCode
+        );
+        log.info("Email sent successfully to: {}", request.getNewEmail());
+    } catch (Exception e) {
+        log.error("Failed to send verification email: {}", e.getMessage(), e);
+        // You may want to decide whether to throw this exception or continue
+    }
+
+    log.info("Email change request completed successfully");
+    return ApiResponse.<Void>builder()
+        .message("Verification code has been sent to your new email address.")
+        .build();
+}
+    
+  @Transactional
+  public ApiResponse<Void> verifyEmailChange(VerifyEmailChangeRequest request) {
+    // Find the token
+    EmailChangeToken token = emailChangeTokenRepository.findByToken(request.getVerificationCode())
+        .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+    // Validate token belongs to the right user
+    if (!token.getUserId().equals(request.getUserId())) {
+      throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+    }
+
+    // Check new email matches
+    if (!token.getNewEmail().equals(request.getNewEmail())) {
+      throw new AppException(ErrorCode.INVALID_REQUEST);
+    }
+
+    // Check if token is expired
+    if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+      emailChangeTokenRepository.delete(token);
+      throw new AppException(ErrorCode.INVALID_TOKEN);
+    }
+
+    // Check if token has already been used
+    if (token.isUsed()) {
+      throw new AppException(ErrorCode.INVALID_TOKEN);
+    }
+
+    // Update the user's email
+    User user = userRepository.findById(UUID.fromString(request.getUserId()))
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-    // Check if user is already active
-    if (user.isActive()) {
-      return ApiResponse.<Void>builder()
-          .message("Your account is already verified. You can log in.")
-          .build();
+    // Get current email from token before updating
+    String currentEmail = token.getCurrentEmail();
+
+    user.setEmail(request.getNewEmail());
+    User savedUser = userRepository.save(user);
+    log.info("User email updated to: {}", savedUser.getEmail());
+
+    // Mark token as used
+    token.setUsed(true);
+    emailChangeTokenRepository.save(token);
+
+    // Get all active tokens for this user
+    List<ActiveToken> userTokens = activeTokenRepository.findAllByUsername(user.getUsername());
+
+    // Update token descriptions if needed
+    for (ActiveToken activeToken : userTokens) {
+      // Option: update token description if it contains the email
+      if (activeToken.getDescription() != null &&
+          activeToken.getDescription().contains(currentEmail)) {
+        activeToken.setDescription(
+            activeToken.getDescription().replace(
+                currentEmail, request.getNewEmail()));
+        activeTokenRepository.save(activeToken);
+      }
     }
+
+    log.info("Updated tokens for user {} after email change", user.getUsername());
+
+    return ApiResponse.<Void>builder()
+        .message("Your email has been successfully updated.")
+        .build();
+  }
+
+  @Transactional
+  public ApiResponse<Void> resendVerificationEmail(ResendVerificationRequest request) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String username = authentication.getName();
+    
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
     // Delete any existing verification tokens for this user
     emailVerificationTokenRepository.findByUsernameAndUsed(user.getUsername(), false)

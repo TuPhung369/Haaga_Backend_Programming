@@ -85,7 +85,7 @@ public class ApplicationInitConfig {
 
         if (!isAdminTomExists) {
           createUserIfNotExists("adminTom", "Thanhcong6(", "Tom", "Admin", LocalDate.parse("1999-09-09"),
-              "tuphungAdmin@gmail.com", ENUMS.Role.ADMIN.name(), true);
+              "tuphung010787@gmail.com", ENUMS.Role.ADMIN.name(), true);
           createUserIfNotExists("managerTom", "Thanhcong6(", "Tom", "Manager", LocalDate.parse("1999-03-03"),
               "tuphungManager@gmail.com", ENUMS.Role.MANAGER.name(), true);
           createUserIfNotExists("userTom", "Thanhcong6(", "Tom", "User", LocalDate.parse("1999-06-06"),

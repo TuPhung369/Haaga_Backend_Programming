@@ -61,7 +61,8 @@ public class ENUMS {
     KANBAN_TASK_NOT_FOUND("Kanban task not found"),
     ACCOUNT_NOT_VERIFIED("Account not verified. Please check your email for verification code."),
     INVALID_REFRESH_TOKEN("Invalid refresh token"),
-    REFRESH_TOKEN_EXPIRED("Refresh token expired");
+    REFRESH_TOKEN_EXPIRED("Refresh token expired"),
+    EMAIL_ALREADY_EXISTS("Email already exists with another account");
 
     private final String message;
   }

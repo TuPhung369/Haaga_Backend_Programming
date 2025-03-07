@@ -39,7 +39,7 @@ spring:
             required: true
   jpa:
     hibernate:
-      ddl-auto: validate # Set to 'none' to prevent Hibernate from modifying the schema; rely on schema.sql
+      ddl-auto: update # none, update, validate, create, create-drop
     show-sql: true
   security:
     oauth2:

@@ -1,4 +1,3 @@
-// src/components/MyInfo.tsx
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Descriptions,
@@ -8,14 +7,26 @@ import {
   Input,
   Select,
   notification,
+  Button,
+  Space,
+  Divider,
 } from "antd";
-import { EditOutlined } from "@ant-design/icons";
+import { EditOutlined, MailOutlined, KeyOutlined } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
-import { invalidateUserInfo, setAllUsers } from "../store/userSlice";
+import {
+  invalidateUserInfo,
+  setAllUsers,
+  setUserInfo,
+} from "../store/userSlice";
 import { updateMyInfo } from "../services/userService";
+import {
+  verifyEmailChange,
+  requestEmailChangeCode,
+} from "../services/authService";
 import validateInput from "../utils/validateInput";
 import { AxiosError } from "axios";
-import { RootState, ExtendApiError } from "../type/types";
+import { RootState, ExtendApiError, User } from "../type/types";
+import VerificationCodeInput from "./VerificationCodeInput";
 
 const { Option } = Select;
 
@@ -25,8 +36,16 @@ interface MyInfoProps {
 
 const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEmailChangeModalVisible, setIsEmailChangeModalVisible] =
+    useState(false);
   const [form] = Form.useForm();
+  const [emailChangeForm] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isRequestingCode, setIsRequestingCode] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [verificationError, setVerificationError] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<{
     type: "success" | "error";
     message: string;
@@ -75,6 +94,172 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
     }
   };
 
+  const showEmailChangeModal = () => {
+    setIsEmailChangeModalVisible(true);
+    emailChangeForm.resetFields();
+    setCodeSent(false);
+    setVerificationCode("");
+    setVerificationError(false);
+  };
+
+  const handleRequestVerificationCode = async () => {
+    try {
+      const values = await emailChangeForm.validateFields([
+        "newEmail",
+        "currentPassword",
+      ]);
+      setIsRequestingCode(true);
+      setVerificationError(false);
+
+      // Validate email format
+      const errors = validateInput({ email: values.newEmail });
+      if (errors.email) {
+        emailChangeForm.setFields([
+          {
+            name: "newEmail",
+            errors: [errors.email],
+          },
+        ]);
+        setIsRequestingCode(false);
+        return;
+      }
+
+      // Call API to request verification code
+      await requestEmailChangeCode({
+        userId: userInfo?.id || "",
+        currentEmail: userInfo?.email || "",
+        newEmail: values.newEmail,
+        password: values.currentPassword,
+        token,
+      });
+
+      setCodeSent(true);
+      setNotificationMessage({
+        type: "success",
+        message: "Verification Code Sent",
+        description: `A verification code has been sent to ${values.newEmail}`,
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<ExtendApiError>;
+      setNotificationMessage({
+        type: "error",
+        message: "Error",
+        description:
+          axiosError.response?.data?.message ||
+          "Failed to send verification code",
+      });
+    } finally {
+      setIsRequestingCode(false);
+    }
+  };
+
+  // Function to handle resending verification code
+  const handleResendVerificationCode = async () => {
+    try {
+      const values = await emailChangeForm.validateFields([
+        "newEmail",
+        "currentPassword",
+      ]);
+
+      await requestEmailChangeCode({
+        userId: userInfo?.id || "",
+        currentEmail: userInfo?.email || "",
+        newEmail: values.newEmail,
+        password: values.currentPassword,
+        token,
+      });
+
+      setNotificationMessage({
+        type: "success",
+        message: "Verification Code Resent",
+        description: `A new verification code has been sent to ${values.newEmail}`,
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<ExtendApiError>;
+      setNotificationMessage({
+        type: "error",
+        message: "Error",
+        description:
+          axiosError.response?.data?.message ||
+          "Failed to resend verification code",
+      });
+    }
+  };
+
+  const handleVerifyAndChangeEmail = async () => {
+    try {
+      if (!verificationCode || verificationCode.length !== 6) {
+        setNotificationMessage({
+          type: "error",
+          message: "Invalid Code",
+          description: "Please enter the 6-digit verification code",
+        });
+        return;
+      }
+
+      setIsVerifying(true);
+      setVerificationError(false);
+
+      const values = await emailChangeForm.validateFields();
+
+      // Call API to verify code and change email
+      await verifyEmailChange({
+        userId: userInfo?.id || "",
+        newEmail: values.newEmail,
+        verificationCode,
+        token,
+      });
+      if (userInfo && userInfo.id) {
+        // Create updated user info with new email (ensuring all required User properties)
+        const updatedUserInfo: User = {
+          ...userInfo,
+          email: values.newEmail,
+        };
+
+        // Directly update the user info in Redux store
+        dispatch(setUserInfo(updatedUserInfo));
+
+        // Also update in the allUsers array if needed
+        if (allUsers.length > 0) {
+          const updatedAllUsers = allUsers.map((user) => {
+            if (user.id === userInfo.id) {
+              return {
+                ...user,
+                email: values.newEmail,
+              };
+            }
+            return user;
+          });
+
+          dispatch(setAllUsers(updatedAllUsers));
+        }
+      }
+
+      // Mark for refetch on next navigation (optional if direct update works)
+      dispatch(invalidateUserInfo());
+
+      setNotificationMessage({
+        type: "success",
+        message: "Email Updated",
+        description: "Your email has been successfully updated.",
+      });
+
+      setIsEmailChangeModalVisible(false);
+      if (onUpdateSuccess) onUpdateSuccess();
+    } catch (error) {
+      const axiosError = error as AxiosError<ExtendApiError>;
+      setVerificationError(true);
+      setNotificationMessage({
+        type: "error",
+        message: "Verification Failed",
+        description:
+          axiosError.response?.data?.message || "Failed to verify code",
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
@@ -84,7 +269,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         firstname: values.firstname,
         lastname: values.lastname,
         dob: values.dob,
-        email: values.email,
+        // Skip email validation as it's handled separately
       });
 
       if (Object.keys(errors).length > 0) {
@@ -98,7 +283,11 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
       }
 
       if (userInfo) {
-        const response = await updateMyInfo(userInfo.id, values, token);
+        // Create a copy of values without email
+        const updateValues = { ...values };
+        delete updateValues.email;
+
+        const response = await updateMyInfo(userInfo.id, updateValues, token);
         dispatch(invalidateUserInfo());
         if (response && response.result) {
           const updatedUser = response.result;
@@ -116,7 +305,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           message: "Success",
           description: "User information updated successfully.",
         });
-        if (onUpdateSuccess) onUpdateSuccess(); // Gọi callback nếu có
+        if (onUpdateSuccess) onUpdateSuccess();
       }
       setIsModalVisible(false);
     } catch (error) {
@@ -134,6 +323,10 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
 
   const handleCancel = () => {
     setIsModalVisible(false);
+  };
+
+  const handleEmailChangeCancel = () => {
+    setIsEmailChangeModalVisible(false);
   };
 
   const getAvailableRoles = () => {
@@ -218,6 +411,8 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
       ) : (
         <p>Loading user information...</p>
       )}
+
+      {/* Main profile edit modal */}
       <Modal
         title="Edit My Information"
         open={isModalVisible}
@@ -244,7 +439,24 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
             label="Email"
             rules={[{ required: true, message: "Please input the email!" }]}
           >
-            <Input disabled={loginSocial ? true : false} />
+            <Input
+              disabled
+              suffix={
+                !loginSocial && (
+                  <Button
+                    type="link"
+                    icon={<MailOutlined />}
+                    onClick={() => {
+                      setIsModalVisible(false);
+                      showEmailChangeModal();
+                    }}
+                    style={{ padding: "0" }}
+                  >
+                    Change
+                  </Button>
+                )
+              }
+            />
           </Form.Item>
           <Form.Item
             name="firstname"
@@ -288,10 +500,103 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* Email change modal */}
+      <Modal
+        title="Change Email Address"
+        open={isEmailChangeModalVisible}
+        onCancel={handleEmailChangeCancel}
+        footer={null}
+      >
+        <Form form={emailChangeForm} layout="vertical">
+          <Form.Item
+            name="newEmail"
+            label="New Email Address"
+            rules={[
+              {
+                required: true,
+                message: "Please enter your new email address",
+              },
+              { type: "email", message: "Please enter a valid email address" },
+            ]}
+          >
+            <Input
+              placeholder="Enter your new email address"
+              disabled={codeSent}
+              prefix={<MailOutlined />}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="currentPassword"
+            label="Current Password"
+            rules={[
+              { required: true, message: "Please enter your current password" },
+            ]}
+          >
+            <Input.Password
+              placeholder="Enter your current password"
+              disabled={codeSent}
+              prefix={<KeyOutlined />}
+            />
+          </Form.Item>
+
+          {!codeSent ? (
+            <Form.Item>
+              <Button
+                type="primary"
+                onClick={handleRequestVerificationCode}
+                loading={isRequestingCode}
+                block
+              >
+                Request Verification Code
+              </Button>
+            </Form.Item>
+          ) : (
+            <>
+              <Divider />
+
+              {/* Replace the old verification code input with our new component */}
+              <VerificationCodeInput
+                value={verificationCode}
+                onChange={setVerificationCode}
+                onResendCode={handleResendVerificationCode}
+                isSubmitting={isVerifying}
+                isError={verificationError}
+                autoFocus={true}
+                resendCooldown={60}
+              />
+
+              <Form.Item>
+                <Space
+                  style={{ width: "100%", justifyContent: "space-between" }}
+                >
+                  <Button
+                    onClick={() => {
+                      setCodeSent(false);
+                      setVerificationCode("");
+                      setVerificationError(false);
+                    }}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="primary"
+                    onClick={handleVerifyAndChangeEmail}
+                    disabled={verificationCode.length !== 6 || isVerifying}
+                    loading={isVerifying}
+                  >
+                    Verify & Change Email
+                  </Button>
+                </Space>
+              </Form.Item>
+            </>
+          )}
+        </Form>
+      </Modal>
     </>
   );
 };
 
 export default MyInfo;
-
 

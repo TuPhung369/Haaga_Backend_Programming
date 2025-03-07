@@ -1,0 +1,245 @@
+.verification-code-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 10px 0;
+  position: relative;
+}
+
+.code-input-wrapper {
+  position: relative;
+  width: 56px;
+  height: 64px;
+}
+
+.code-input {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 24px;
+  font-weight: 500;
+  text-align: center;
+  background-color: white;
+  color: #1f1f1f;
+  caret-color: #1890ff;
+  transition: all 0.2s;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.code-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  animation: pulse 1.5s infinite;
+}
+
+.code-input:hover {
+  border-color: #40a9ff;
+}
+
+.input-border {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: transparent;
+  transition: all 0.3s;
+}
+
+.code-input:focus + .input-border {
+  background-color: #1890ff;
+  transform: scaleX(1);
+}
+
+/* When a digit is entered */
+.code-input:not(:placeholder-shown) {
+  background-color: rgba(24, 144, 255, 0.05);
+  border-color: #1890ff;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(24, 144, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+  }
+}
+
+/* Make it responsive */
+@media (max-width: 480px) {
+  .verification-code-container {
+    gap: 8px;
+  }
+  
+  .code-input-wrapper {
+    width: 40px;
+    height: 48px;
+  }
+  
+  .code-input {
+    font-size: 18px;
+  }
+}
+
+/* Add a subtle shake animation for error state */
+@keyframes shake {
+  0%, 100% {transform: translateX(0);}
+  10%, 30%, 50%, 70%, 90% {transform: translateX(-4px);}
+  20%, 40%, 60%, 80% {transform: translateX(4px);}
+}
+
+.verification-code-container.error .code-input {
+  border-color: #ff4d4f;
+  animation: shake 0.5s;
+}
+
+/* Success indicator */
+.success-indicator {
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%) scale(0);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #52c41a;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.verification-code-container.all-filled .success-indicator {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  animation: fadeInScale 0.5s ease;
+}
+
+.verification-code-container.all-filled .code-input {
+  border-color: #52c41a;
+  background-color: rgba(82, 196, 26, 0.05);
+  transition: all 0.3s ease;
+}
+
+.verification-code-container.complete .code-input-wrapper {
+  animation: successBounce 0.5s ease;
+  animation-fill-mode: both;
+}
+
+/* Add staggered animation for each digit */
+.verification-code-container.complete .code-input-wrapper:nth-child(1) { animation-delay: 0s; }
+.verification-code-container.complete .code-input-wrapper:nth-child(2) { animation-delay: 0.1s; }
+.verification-code-container.complete .code-input-wrapper:nth-child(3) { animation-delay: 0.2s; }
+.verification-code-container.complete .code-input-wrapper:nth-child(4) { animation-delay: 0.3s; }
+.verification-code-container.complete .code-input-wrapper:nth-child(5) { animation-delay: 0.4s; }
+.verification-code-container.complete .code-input-wrapper:nth-child(6) { animation-delay: 0.5s; }
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@keyframes successBounce {
+  0%, 20% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+  80% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Additional styles for enhanced component */
+.verification-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resend-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.countdown {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+}
+
+.resend-button {
+  padding: 0;
+  height: auto;
+}
+
+.completion-icon {
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #52c41a;
+  font-size: 24px;
+  opacity: 0;
+  animation: fadeIn 0.5s ease 0.6s forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Submitting state */
+.verification-code-container.submitting .code-input {
+  background-color: #f5f5f5;
+  color: #888;
+  cursor: not-allowed;
+}
+
+/* Make digits appear one after another on load */
+.code-input-wrapper {
+  opacity: 0;
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+.code-input-wrapper:nth-child(1) { animation-delay: 0s; }
+.code-input-wrapper:nth-child(2) { animation-delay: 0.1s; }
+.code-input-wrapper:nth-child(3) { animation-delay: 0.2s; }
+.code-input-wrapper:nth-child(4) { animation-delay: 0.3s; }
+.code-input-wrapper:nth-child(5) { animation-delay: 0.4s; }
+.code-input-wrapper:nth-child(6) { animation-delay: 0.5s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

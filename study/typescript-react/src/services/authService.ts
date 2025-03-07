@@ -19,8 +19,61 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true,
-  timeout: 10000,
 });
+export interface EmailChangeRequest {
+  userId: string;
+  currentEmail: string;
+  newEmail: string;
+  password: string;
+  token: string;
+}
+
+export interface EmailVerificationRequest {
+  userId: string;
+  newEmail: string;
+  verificationCode: string;
+  token: string;
+}
+
+export const requestEmailChangeCode = async (
+  request: EmailChangeRequest
+): Promise<GenericResponse> => {
+  try {
+    const response = await apiClient.post<GenericResponse>(
+      "/auth/request-email-change",
+      request,
+      {
+        headers: {
+          Authorization: `Bearer ${request.token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error requesting email change code:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
+
+export const verifyEmailChange = async (
+  request: EmailVerificationRequest
+): Promise<GenericResponse> => {
+  try {
+    const response = await apiClient.post<GenericResponse>(
+      "/auth/verify-email-change",
+      request,
+      {
+        headers: {
+          Authorization: `Bearer ${request.token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error verifying email change:", error);
+    throw error as AxiosError<ApiError>;
+  }
+};
 
 apiClient.interceptors.request.use(
   function (config) {
