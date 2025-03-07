@@ -496,7 +496,9 @@ const CalendarPage: React.FC = () => {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Content
-        style={{ padding: "0 50px", marginTop: "16px", minHeight: "85vh" }}
+        style={{
+          minHeight: "85vh",
+        }}
       >
         <div
           style={{

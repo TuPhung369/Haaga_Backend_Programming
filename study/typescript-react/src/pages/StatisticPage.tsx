@@ -421,7 +421,7 @@ const StatisticPage = () => {
   };
 
   const getRoleIcon = (role: string) => {
-    let pathData;
+    let pathData: string;
 
     switch (role) {
       case "USER":
@@ -784,7 +784,7 @@ const StatisticPage = () => {
     <Layout
       style={{
         width: "100%",
-        padding: "0 24px 24px",
+        padding: "0 0px 0px",
         display: "flex",
         flexDirection: "column",
       }}
@@ -792,7 +792,7 @@ const StatisticPage = () => {
       <Content
         style={{
           width: "100%",
-          margin: "24px 0",
+          margin: "0px 0",
           display: "flex",
           flexDirection: "column",
           alignItems: "space-between",
