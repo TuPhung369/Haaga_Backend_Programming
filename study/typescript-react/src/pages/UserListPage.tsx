@@ -463,7 +463,37 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
 
   // Custom global styles for the search input
   const GlobalStyle = createGlobalStyle`
-    /* Style the search input clear button to appear on the far right */
+    .user-list-header {
+      margin-top: 10px;
+      margin-bottom: 0px;
+    }
+
+    .title-container {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: center;
+    }
+
+    .section-title {
+      font-size: 20px;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    .add-user-icon {
+      cursor: pointer;
+      margin-left: 10px;
+      font-size: 18px;
+      color: #1890ff;
+      transition: color 0.3s;
+    }
+
+    .add-user-icon:hover {
+      color: #40a9ff;
+    }
+  
+  /* Style the search input clear button to appear on the far right */
     .search-input-with-clear-right .ant-input-clear-icon {
       position: absolute;
       right: 8px;
@@ -476,6 +506,18 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
     /* Make sure the search input text doesn't overlap with the clear button */
     .search-input-with-clear-right .ant-input {
       padding-right: 24px;
+    }
+
+    .compact-table .ant-table-thead > tr > th,
+    .compact-table .ant-table-tbody > tr > td {
+      padding: 6px 8px; /* Adjust the padding values as needed */
+    }
+
+    /* Make the tag spacing more compact in the table */
+    .compact-table .ant-tag {
+      margin-right: 4px;
+      margin-bottom: 0px;
+      padding: 0 6px;
     }
   `;
 
@@ -578,34 +620,31 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
             </Form.Item>
           </Form>
         </Modal>
-        <h2 style={{ marginTop: 10, fontSize: 25 }}>
+        <div className="user-list-header">
           <Descriptions
             className="custom-descriptions"
             title={
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "start",
-                  alignItems: "center",
-                }}
-              >
-                User List
+              <div className="title-container">
+                <h2 className="section-title">User List</h2>
                 {userInfo && (isAdmin || isManager) ? (
                   <UserAddOutlined
                     onClick={showModalNew}
-                    style={{ cursor: "pointer", marginLeft: "10px" }}
+                    className="add-user-icon"
                   />
                 ) : null}
               </div>
             }
             bordered
           ></Descriptions>
-        </h2>
+        </div>
         <Table
           dataSource={filteredUsers}
           rowKey="id"
           pagination={{ pageSize: 13 }}
+          scroll={{ x: 1300 }} // Enable horizontal scrolling if needed
+          bordered
+          size="small" // Set to "small" to reduce cell padding
+          className="compact-table" // Add custom class for additional styling
         >
           <Table.Column
             title="Email"
@@ -663,7 +702,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
             }
           />
           <Table.Column
-            title="Permissions"
+            title="Permission"
             key="permissions"
             sorter={(a: User, b: User) => {
               const aPermissions = a.roles.flatMap(
@@ -721,6 +760,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
           )}
           {isAdmin && (
             <Table.Column
+              width={90}
               title={
                 <span>
                   Delete
