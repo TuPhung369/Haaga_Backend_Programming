@@ -27,8 +27,61 @@ import validateInput from "../utils/validateInput";
 import { AxiosError } from "axios";
 import { RootState, ExtendApiError, User } from "../type/types";
 import VerificationCodeInput from "./VerificationCodeInput";
+import styled from "styled-components";
+import { COLORS } from "../utils/constant";
 
 const { Option } = Select;
+
+// Define styled component outside of component function
+const MyInfoStyle = styled.div`
+  .custom-descriptions.mt-0 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .descriptions-title-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+  }
+
+  .section-title {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .edit-icon {
+    cursor: pointer;
+    margin-left: 10px;
+    font-size: 18px;
+    color: ${COLORS[14]};
+    transition: color 0.3s;
+  }
+
+  .edit-icon:hover {
+    opacity: 0.8;
+  }
+
+  /* Make tags more compact */
+  .ant-tag {
+    margin-right: 4px;
+    margin-bottom: 4px;
+    padding: 0 6px;
+  }
+
+  /* Reduce overall padding */
+  .ant-descriptions-item-label,
+  .ant-descriptions-item-content {
+    padding: 8px 12px !important;
+  }
+
+  /* Adjust spacing for modals */
+  .ant-modal-body .ant-form-item {
+    margin-bottom: 12px;
+  }
+`;
 
 interface MyInfoProps {
   onUpdateSuccess?: () => void;
@@ -343,25 +396,15 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
   };
 
   return (
-    <>
+    <MyInfoStyle>
       {contextHolder}
       {userInfo ? (
         <Descriptions
           className="custom-descriptions mt-0"
           title={
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "start",
-                alignItems: "center",
-              }}
-            >
-              User Information
-              <EditOutlined
-                onClick={showModalUpdate}
-                style={{ cursor: "pointer", marginLeft: "10px" }}
-              />
+            <div className="descriptions-title-container">
+              <h2 className="section-title">User Information</h2>
+              <EditOutlined onClick={showModalUpdate} className="edit-icon" />
             </div>
           }
           bordered
@@ -594,9 +637,8 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           )}
         </Form>
       </Modal>
-    </>
+    </MyInfoStyle>
   );
 };
 
 export default MyInfo;
-

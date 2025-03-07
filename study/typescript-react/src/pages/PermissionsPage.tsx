@@ -17,7 +17,7 @@ import {
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
-import { PermissionColor, PermissionOption } from "../utils/constant";
+import { PermissionColor, PermissionOption, COLORS } from "../utils/constant";
 import {
   setUserInfo,
   setPermissions,
@@ -31,9 +31,75 @@ import {
   RootState,
   ExtendApiError,
 } from "../type/types";
+import styled from "styled-components";
 
 const { Content } = Layout;
 const { Option } = Select;
+
+// Define styled component outside of component function
+const PermissionPageStyle = styled.div`
+  .section-header {
+    margin-top: 10px;
+    margin-bottom: 0px;
+  }
+
+  .title-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .section-title {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .add-permission-icon {
+    cursor: pointer;
+    margin-left: 10px;
+    font-size: 24px;
+    color: ${COLORS[14]};
+    transition: color 0.3s;
+  }
+
+  .add-permission-icon:hover {
+    color: #40a9ff;
+  }
+
+  /* Make the table more compact */
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 8px 16px;
+  }
+
+  /* Make tags more compact in the table */
+  .ant-tag {
+    margin-right: 4px;
+    margin-bottom: 4px;
+    padding: 0 6px;
+  }
+
+  /* Add custom style for delete column */
+  .delete-column-title {
+    display: flex;
+    align-items: center;
+  }
+
+  .delete-icon {
+    margin-left: 8px;
+  }
+
+  .delete-tag {
+    cursor: pointer;
+  }
+
+  /* Reduce overall padding */
+  .ant-descriptions-view {
+    padding: 0;
+  }
+`;
 
 const PermissionPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -162,122 +228,116 @@ const PermissionPage = () => {
   };
 
   return (
-    <Layout style={{ padding: "0 24px 24px" }}>
-      <Content style={{ margin: "24px 0" }}>
-        <h2 style={{ marginTop: 25, fontSize: 25 }}>
-          <Descriptions
-            className="custom-descriptions"
-            title={
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "start",
-                  alignItems: "center",
-                }}
-              >
-                Permission List
-                {userInfo && (isAdmin || isManager) ? (
-                  <PlusCircleOutlined
-                    onClick={showModal}
-                    style={{ cursor: "pointer", marginLeft: "10px" }}
-                  />
-                ) : null}
-              </div>
-            }
-            bordered
-          ></Descriptions>
-        </h2>
-        <Table dataSource={permissions} rowKey="name">
-          <Table.Column title="Permission Name" dataIndex="name" key="name" />
-          <Table.Column
-            title="Description"
-            dataIndex="description"
-            key="description"
-          />
-          <Table.Column
-            title="Color"
-            dataIndex="color"
-            key="color"
-            render={(text: string) => (
-              <Tag color={text} style={{ cursor: "pointer" }}>
-                {text}
-              </Tag>
-            )}
-          />
-          {(isAdmin || isManager) && (
-            <Table.Column
+    <PermissionPageStyle>
+      <Layout style={{ padding: "0 0px" }}>
+        <Content style={{ margin: "0px 0" }}>
+          <div className="section-header">
+            <Descriptions
+              className="custom-descriptions"
               title={
-                <span>
-                  Delete
-                  <DeleteOutlined style={{ marginLeft: 8 }} />
-                </span>
+                <div className="title-container">
+                  <h2 className="section-title">Permission List</h2>
+                  {userInfo && (isAdmin || isManager) ? (
+                    <PlusCircleOutlined
+                      onClick={showModal}
+                      className="add-permission-icon"
+                    />
+                  ) : null}
+                </div>
               }
-              key="delete"
-              render={(_, record: Permission) => (
-                <Tag
-                  color="red"
-                  onClick={() => handleDeletePermission(record.name)}
-                  style={{ cursor: "pointer" }}
-                >
-                  Delete
-                </Tag>
-              )}
+              bordered
+            ></Descriptions>
+          </div>
+          <Table dataSource={permissions} rowKey="name" size="small">
+            <Table.Column title="Permission Name" dataIndex="name" key="name" />
+            <Table.Column
+              title="Description"
+              dataIndex="description"
+              key="description"
             />
-          )}
-        </Table>
-      </Content>
+            <Table.Column
+              title="Color"
+              dataIndex="color"
+              key="color"
+              render={(text: string) => <Tag color={text}>{text}</Tag>}
+            />
+            {(isAdmin || isManager) && (
+              <Table.Column
+                title={
+                  <span className="delete-column-title">
+                    Delete
+                    <DeleteOutlined className="delete-icon" />
+                  </span>
+                }
+                key="delete"
+                render={(_, record: Permission) => (
+                  <Tag
+                    color="red"
+                    onClick={() => handleDeletePermission(record.name)}
+                    className="delete-tag"
+                  >
+                    Delete
+                  </Tag>
+                )}
+              />
+            )}
+          </Table>
+        </Content>
 
-      <Modal
-        title="Add Permission"
-        open={isModalVisible}
-        onOk={handleAddPermission}
-        onCancel={handleCancel}
-      >
-        <Form form={form} layout="vertical" name="permissionForm">
-          <Form.Item
-            name="name"
-            label="Permission Name"
-            rules={[
-              { required: true, message: "Please input the permission name!" },
-            ]}
-          >
-            <Select
-              placeholder="Select a permission"
-              onChange={handlePermissionChange}
+        <Modal
+          title="Add Permission"
+          open={isModalVisible}
+          onOk={handleAddPermission}
+          onCancel={handleCancel}
+        >
+          <Form form={form} layout="vertical" name="permissionForm">
+            <Form.Item
+              name="name"
+              label="Permission Name"
+              rules={[
+                {
+                  required: true,
+                  message: "Please input the permission name!",
+                },
+              ]}
             >
-              {PermissionOption.map((permission) => (
-                <Option key={permission.name} value={permission.name}>
-                  {permission.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item
-            name="description"
-            label="Description"
-            rules={[
-              { required: true, message: "Please input the description!" },
-            ]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="color"
-            label="Color"
-            rules={[{ required: true, message: "Please select the color!" }]}
-          >
-            <Select placeholder="Select a color">
-              {PermissionColor.map((color) => (
-                <Option key={color} value={color}>
-                  <Tag color={color}>{color}</Tag>
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </Layout>
+              <Select
+                placeholder="Select a permission"
+                onChange={handlePermissionChange}
+              >
+                {PermissionOption.map((permission) => (
+                  <Option key={permission.name} value={permission.name}>
+                    {permission.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="description"
+              label="Description"
+              rules={[
+                { required: true, message: "Please input the description!" },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              name="color"
+              label="Color"
+              rules={[{ required: true, message: "Please select the color!" }]}
+            >
+              <Select placeholder="Select a color">
+                {PermissionColor.map((color) => (
+                  <Option key={color} value={color}>
+                    <Tag color={color}>{color}</Tag>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </Layout>
+    </PermissionPageStyle>
   );
 };
 
