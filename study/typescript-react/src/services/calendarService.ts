@@ -1,5 +1,5 @@
-import apiClient from "./authService"; // Import the shared Axios instance from authService
-import { handleServiceError } from "./baseService"; // Import centralized error handling
+import apiClient from "./authService";
+import { handleServiceError } from "./baseService";
 import { CalendarEvent } from "../type/types";
 
 // Define interface for response from API (based on ApiResponse structure from backend)

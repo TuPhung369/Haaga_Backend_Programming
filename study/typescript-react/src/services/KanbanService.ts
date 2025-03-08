@@ -1,8 +1,6 @@
-import axios from "axios";
-import { AxiosError } from "axios";
+import apiClient from "./authService";
+import { handleServiceError } from "./baseService";
 import { ColumnKanban, Board } from "../type/types";
-
-const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 
 // Define interfaces for board data based on actual backend response
 interface BoardData {
@@ -31,8 +29,8 @@ const KanbanService = {
     token: string
   ): Promise<BoardData[]> => {
     try {
-      const response = await axios.get<BoardsResponse>(
-        `${API_BASE_URI}/kanban/boards?userId=${userId}`,
+      const response = await apiClient.get<BoardsResponse>(
+        `/kanban/boards?userId=${userId}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -43,14 +41,14 @@ const KanbanService = {
       return response.data.result || [];
     } catch (error) {
       console.error("Error getting user boards:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
   getBoardById: async (boardId: string, token: string): Promise<BoardData> => {
     try {
-      const response = await axios.get<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/boards/${boardId}`,
+      const response = await apiClient.get<SingleBoardResponse>(
+        `/kanban/boards/${boardId}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -61,7 +59,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error getting board:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -71,8 +69,8 @@ const KanbanService = {
     title: string = "Kanban Board"
   ): Promise<BoardData> => {
     try {
-      const response = await axios.post<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/boards`,
+      const response = await apiClient.post<SingleBoardResponse>(
+        `/kanban/boards`,
         { userId, title },
         {
           headers: {
@@ -84,7 +82,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error creating board:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -94,8 +92,8 @@ const KanbanService = {
     data: Partial<Board>
   ): Promise<BoardData> => {
     try {
-      const response = await axios.put<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/boards/${boardId}`,
+      const response = await apiClient.put<SingleBoardResponse>(
+        `/kanban/boards/${boardId}`,
         data,
         {
           headers: {
@@ -107,13 +105,13 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error updating board:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
   deleteBoard: async (boardId: string, token: string): Promise<boolean> => {
     try {
-      await axios.delete(`${API_BASE_URI}/kanban/boards/${boardId}`, {
+      await apiClient.delete(`/kanban/boards/${boardId}`, {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
@@ -122,7 +120,7 @@ const KanbanService = {
       return true;
     } catch (error) {
       console.error("Error deleting board:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -131,8 +129,8 @@ const KanbanService = {
     token: string
   ): Promise<BoardData | null> => {
     try {
-      const response = await axios.post<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/boards/${boardId}/clear-tasks`,
+      const response = await apiClient.post<SingleBoardResponse>(
+        `/kanban/boards/${boardId}/clear-tasks`,
         {}, // Empty body since we're using path variable
         {
           headers: {
@@ -144,7 +142,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error clearing tasks:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -153,8 +151,8 @@ const KanbanService = {
     token: string
   ): Promise<BoardData | null> => {
     try {
-      const response = await axios.post<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/boards/${boardId}/reset`,
+      const response = await apiClient.post<SingleBoardResponse>(
+        `/kanban/boards/${boardId}/reset`,
         {}, // Empty body as we're not sending any data
         {
           headers: {
@@ -166,39 +164,8 @@ const KanbanService = {
       );
       return response.data.result;
     } catch (error) {
-      const axiosError = error as AxiosError<unknown>;
-      const errorData = axiosError.response?.data || {};
-
-      console.error("Error resetting board details:", {
-        status: axiosError.response?.status,
-        statusText: axiosError.response?.statusText,
-        data: errorData,
-        message: axiosError.message,
-      });
-
-      // Check for specific error codes from the API
-      if ((errorData as { code: number }).code === 5000) {
-        console.error("Server error details:", errorData);
-
-        // If it's the generic server error, provide more helpful message
-        throw new Error(
-          "The server encountered an error while resetting the board. " +
-            "This might be due to server maintenance or high load. " +
-            "Please try again in a few minutes or contact support if the issue persists."
-        );
-      } else if (axiosError.code === "ERR_NETWORK") {
-        throw new Error(
-          "Network connection error. Please check your internet connection and try again."
-        );
-      } else if (axiosError.response?.status === 401) {
-        throw new Error("Authentication error. Please log in again.");
-      } else if (axiosError.response?.status === 403) {
-        throw new Error("You do not have permission to reset this board.");
-      } else if (axiosError.response?.status === 404) {
-        throw new Error("Board not found. It may have been deleted.");
-      } else {
-        throw new Error(axiosError.message || "Failed to reset board");
-      }
+      console.error("Error resetting board:", error);
+      throw handleServiceError(error); // Centralized error handling
     }
   },
 
@@ -209,8 +176,8 @@ const KanbanService = {
     position: number
   ): Promise<BoardData> => {
     try {
-      const response = await axios.post<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/columns`,
+      const response = await apiClient.post<SingleBoardResponse>(
+        `/kanban/columns`,
         { boardId, title, position },
         {
           headers: {
@@ -222,7 +189,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error creating column:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -247,8 +214,8 @@ const KanbanService = {
         data.position = position;
       }
 
-      const response = await axios.put<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/columns/${columnId}`,
+      const response = await apiClient.put<SingleBoardResponse>(
+        `/kanban/columns/${columnId}`,
         data,
         {
           headers: {
@@ -261,14 +228,14 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error updating column:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
   deleteColumn: async (columnId: string, token: string): Promise<BoardData> => {
     try {
-      const response = await axios.delete<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/columns/${columnId}`,
+      const response = await apiClient.delete<SingleBoardResponse>(
+        `/kanban/columns/${columnId}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -279,7 +246,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error deleting column:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -291,8 +258,8 @@ const KanbanService = {
     priority?: "High" | "Medium" | "Low"
   ): Promise<BoardData | null> => {
     try {
-      const response = await axios.post<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/tasks`,
+      const response = await apiClient.post<SingleBoardResponse>(
+        `/kanban/tasks`,
         {
           columnId, // Make sure this is a valid UUID
           title,
@@ -309,7 +276,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error creating task:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -332,8 +299,8 @@ const KanbanService = {
       if (columnId) data.columnId = columnId;
       if (position !== undefined) data.position = position;
 
-      const response = await axios.put<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/tasks/${taskId}`,
+      const response = await apiClient.put<SingleBoardResponse>(
+        `/kanban/tasks/${taskId}`,
         data,
         {
           headers: {
@@ -345,14 +312,14 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error updating task:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
   deleteTask: async (taskId: string, token: string): Promise<BoardData> => {
     try {
-      const response = await axios.delete<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/tasks/${taskId}`,
+      const response = await apiClient.delete<SingleBoardResponse>(
+        `/kanban/tasks/${taskId}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -363,7 +330,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error deleting task:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -379,8 +346,8 @@ const KanbanService = {
     newPosition: number;
   }): Promise<BoardData> => {
     try {
-      const response = await axios.post<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/tasks/move`,
+      const response = await apiClient.post<SingleBoardResponse>(
+        `/kanban/tasks/move`,
         { taskId, targetColumnId, newPosition },
         {
           headers: {
@@ -392,7 +359,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error moving task:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 
@@ -406,8 +373,8 @@ const KanbanService = {
     newPosition: number;
   }): Promise<BoardData> => {
     try {
-      const response = await axios.post<SingleBoardResponse>(
-        `${API_BASE_URI}/kanban/columns/move`,
+      const response = await apiClient.post<SingleBoardResponse>(
+        `/kanban/columns/move`,
         { columnId, newPosition },
         {
           headers: {
@@ -419,7 +386,7 @@ const KanbanService = {
       return response.data.result;
     } catch (error) {
       console.error("Error moving column:", error);
-      throw error;
+      throw handleServiceError(error);
     }
   },
 };

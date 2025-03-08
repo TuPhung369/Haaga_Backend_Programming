@@ -11,7 +11,15 @@ import {
   ReloadOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
-import { Modal, Input, InputRef, Select, Button, message } from "antd";
+import {
+  Modal,
+  Input,
+  InputRef,
+  Select,
+  Button,
+  message,
+  notification,
+} from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setEditingTask,
@@ -35,6 +43,7 @@ import {
 } from "../store/kanbanSlice";
 import { RootState, TaskKanban } from "../type/types";
 import { AppDispatch } from "../store/store";
+import { handleServiceError } from "../services/baseService";
 import { PriorityOptions, COLORS } from "../utils/constant";
 import LoadingState from "../components/LoadingState";
 
@@ -83,19 +92,34 @@ const KanbanPage: React.FC = () => {
                 createUserBoard({ userId, token, title: "Kanban Board" })
               )
                 .unwrap()
-                .then(() => console.log("Board created successfully"))
+                .then(() => {
+                  console.log("Board created successfully");
+                  notification.success({
+                    message: "Board Created",
+                    description:
+                      "A new Kanban board has been created successfully.",
+                  });
+                })
                 .catch((err) => {
+                  handleServiceError(err);
                   console.error("Failed to create board:", err);
-                  message.warning(
-                    "Offline mode: Changes will be saved locally"
-                  );
+                  notification.warning({
+                    message: "Offline Mode",
+                    description:
+                      "Changes will be saved locally due to server issues.",
+                  });
                   dispatch(resetToDefaultColumns());
                 });
             }
           })
           .catch((err) => {
+            handleServiceError(err);
             console.error("Error fetching boards:", err);
-            message.warning("Offline mode: Starting with default columns");
+            notification.warning({
+              message: "Offline Mode",
+              description:
+                "Starting with default columns due to server issues.",
+            });
             dispatch(resetToDefaultColumns());
           });
 
@@ -110,17 +134,33 @@ const KanbanPage: React.FC = () => {
           if (!boards || boards.length === 0) {
             dispatch(createUserBoard({ userId, token, title: "Kanban Board" }))
               .unwrap()
-              .then(() => console.log("Board created successfully"))
+              .then(() => {
+                console.log("Board created successfully");
+                notification.success({
+                  message: "Board Created",
+                  description:
+                    "A new Kanban board has been created successfully.",
+                });
+              })
               .catch((err) => {
+                handleServiceError(err);
                 console.error("Failed to create board:", err);
-                message.warning("Offline mode: Changes will be saved locally");
+                notification.warning({
+                  message: "Offline Mode",
+                  description:
+                    "Changes will be saved locally due to server issues.",
+                });
                 dispatch(resetToDefaultColumns());
               });
           }
         })
         .catch((err) => {
+          handleServiceError(err);
           console.error("Error fetching boards:", err);
-          message.warning("Offline mode: Starting with default columns");
+          notification.warning({
+            message: "Offline Mode",
+            description: "Starting with default columns due to server issues.",
+          });
           dispatch(resetToDefaultColumns());
         });
     }
@@ -166,17 +206,29 @@ const KanbanPage: React.FC = () => {
 
   const handleSaveBoard = () => {
     if (!userId) {
-      message.error("Unable to save: missing user ID");
+      notification.error({
+        message: "Save Failed",
+        description: "Unable to save: missing user ID.",
+      });
       return;
     }
     if (!token) {
-      message.error("Unable to save: missing authentication token");
+      notification.error({
+        message: "Save Failed",
+        description: "Unable to save: missing authentication token.",
+      });
       return;
     }
     if (!boardId) {
-      message.warning("No board ID available, saving locally only");
+      notification.warning({
+        message: "Local Save",
+        description: "No board ID available, saving locally only.",
+      });
       localStorage.setItem(`kanban_board_${userId}`, JSON.stringify(columns));
-      message.success("Board saved locally");
+      notification.success({
+        message: "Local Save Successful",
+        description: "Board saved locally.",
+      });
       setHasChanges(false);
       return;
     }
@@ -194,15 +246,25 @@ const KanbanPage: React.FC = () => {
     )
       .unwrap()
       .then(() => {
-        message.success("Board saved successfully");
+        notification.success({
+          message: "Board Saved",
+          description: "Board saved successfully to the server.",
+        });
         setHasChanges(false);
         localStorage.setItem(`kanban_board_${userId}`, JSON.stringify(columns));
       })
-      .catch((error) => {
-        console.error("Error saving board:", error);
-        message.warning("Failed to save to server - saving locally");
+      .catch((err) => {
+        handleServiceError(err);
+        console.error("Error saving board:", err);
+        notification.warning({
+          message: "Server Save Failed",
+          description: "Failed to save to server - saving locally instead.",
+        });
         localStorage.setItem(`kanban_board_${userId}`, JSON.stringify(columns));
-        message.success("Board saved locally");
+        notification.success({
+          message: "Local Save Successful",
+          description: "Board saved locally.",
+        });
         setHasChanges(false);
       });
   };
@@ -212,9 +274,11 @@ const KanbanPage: React.FC = () => {
     if (!over || active.id === over.id) return;
 
     if (!token) {
-      message.error(
-        "Cannot perform drag operation: missing authentication token"
-      );
+      notification.error({
+        message: "Drag Failed",
+        description:
+          "Cannot perform drag operation: missing authentication token.",
+      });
       return;
     }
 
@@ -228,8 +292,12 @@ const KanbanPage: React.FC = () => {
       )
         .unwrap()
         .catch((err) => {
+          handleServiceError(err);
           console.error("Failed to move task:", err);
-          message.error("Failed to move task on server");
+          notification.error({
+            message: "Move Failed",
+            description: "Failed to move task on server.",
+          });
         });
     } else if (active.data.current?.type === "column") {
       dispatch(
@@ -241,15 +309,22 @@ const KanbanPage: React.FC = () => {
       )
         .unwrap()
         .catch((err) => {
+          handleServiceError(err);
           console.error("Failed to move column:", err);
-          message.error("Failed to move column on server");
+          notification.error({
+            message: "Move Failed",
+            description: "Failed to move column on server.",
+          });
         });
     }
   };
 
   const handleAddTask = (columnId: string, title: string) => {
     if (!boardId || !token) {
-      message.error("Cannot add task: missing board ID or token");
+      notification.error({
+        message: "Add Task Failed",
+        description: "Cannot add task: missing board ID or token.",
+      });
       return;
     }
     dispatch(
@@ -261,9 +336,11 @@ const KanbanPage: React.FC = () => {
 
         // Kiểm tra lỗi quyền truy cập
         if (typeof err === "string" && err.includes("permission")) {
-          message.error(
-            "You don't have permission. Switching to your board..."
-          );
+          notification.error({
+            message: "Permission Denied",
+            description:
+              "You don't have permission. Switching to your board...",
+          });
 
           // Tìm board thuộc về người dùng hiện tại
           const currentUserBoard = userBoards?.find(
@@ -273,14 +350,20 @@ const KanbanPage: React.FC = () => {
             dispatch(setActiveBoard(currentUserBoard));
           }
         } else {
-          message.error("Failed to add task to server");
+          notification.error({
+            message: "Add Task Failed",
+            description: "Failed to add task to server.",
+          });
         }
       });
   };
 
   const handleDeleteTask = (columnId: string, taskId: string) => {
     if (!token) {
-      message.error("Cannot delete task: missing token");
+      notification.error({
+        message: "Delete Failed",
+        description: "Cannot delete task: missing token.",
+      });
       return;
     }
     Modal.confirm({
@@ -289,8 +372,12 @@ const KanbanPage: React.FC = () => {
         dispatch(deleteTask({ taskId, token }))
           .unwrap()
           .catch((err) => {
+            handleServiceError(err);
             console.error("Failed to delete task:", err);
-            message.error("Failed to delete task from server");
+            notification.error({
+              message: "Delete Failed",
+              description: "Failed to delete task from server.",
+            });
           });
       },
       okText: "Yes",
@@ -300,37 +387,57 @@ const KanbanPage: React.FC = () => {
 
   const handleAddColumn = (columnTitle: string) => {
     if (!boardId || !token) {
-      message.error("Cannot add column: missing board ID or token");
+      notification.error({
+        message: "Add Column Failed",
+        description: "Cannot add column: missing board ID or token.",
+      });
       return;
     }
     dispatch(addColumn({ boardId, token, title: columnTitle }))
       .unwrap()
       .catch((err) => {
+        handleServiceError(err);
         console.error("Failed to add column:", err);
-        message.error("Failed to add column to server");
+        notification.error({
+          message: "Add Column Failed",
+          description: "Failed to add column to server.",
+        });
       });
   };
 
   const handleEditColumn = (columnId: string, newTitle: string) => {
     if (!token) {
-      message.error("Cannot edit column: missing token");
+      notification.error({
+        message: "Edit Failed",
+        description: "Cannot edit column: missing token.",
+      });
       return;
     }
     if (!boardId) {
-      message.error("Cannot edit column: missing board ID");
+      notification.error({
+        message: "Edit Failed",
+        description: "Cannot edit column: missing board ID.",
+      });
       return;
     }
     dispatch(editColumn({ columnId, token, newTitle }))
       .unwrap()
       .catch((err) => {
+        handleServiceError(err);
         console.error("Failed to edit column:", err);
-        message.error("Failed to edit column on server");
+        notification.error({
+          message: "Edit Failed",
+          description: "Failed to edit column on server.",
+        });
       });
   };
 
   const handleDeleteColumn = (columnId: string) => {
     if (!token) {
-      message.error("Cannot delete column: missing token");
+      notification.error({
+        message: "Delete Failed",
+        description: "Cannot delete column: missing token.",
+      });
       return;
     }
     Modal.confirm({
@@ -339,8 +446,12 @@ const KanbanPage: React.FC = () => {
         dispatch(deleteColumn({ columnId, token }))
           .unwrap()
           .catch((err) => {
+            handleServiceError(err);
             console.error("Failed to delete column:", err);
-            message.error("Failed to delete column from server");
+            notification.error({
+              message: "Delete Failed",
+              description: "Failed to delete column from server.",
+            });
           });
       },
       okText: "Yes",
@@ -358,20 +469,30 @@ const KanbanPage: React.FC = () => {
     priority: "High" | "Medium" | "Low"
   ) => {
     if (!token) {
-      message.error("Cannot save task edit: missing token");
+      notification.error({
+        message: "Save Failed",
+        description: "Cannot save task edit: missing token.",
+      });
       return;
     }
     dispatch(saveTaskEdit({ taskId, token, newTitle, priority }))
       .unwrap()
       .catch((err) => {
+        handleServiceError(err);
         console.error("Failed to save task edit:", err);
-        message.error("Failed to save task edit on server");
+        notification.error({
+          message: "Save Failed",
+          description: "Failed to save task edit on server.",
+        });
       });
   };
 
   const handleClearBoard = () => {
     if (!boardId || !token) {
-      message.error("Cannot clear tasks: missing board ID or token");
+      notification.error({
+        message: "Clear Failed",
+        description: "Cannot clear tasks: missing board ID or token.",
+      });
       return;
     }
 
@@ -390,17 +511,21 @@ const KanbanPage: React.FC = () => {
         dispatch(clearKanbanData({ boardId, token }))
           .unwrap()
           .then(() => {
-            message.success("All tasks have been cleared");
+            notification.success({
+              message: "Clear Successful",
+              description: "All tasks have been cleared.",
+            });
             // Close modal on success
             modal.destroy();
           })
           .catch((err) => {
+            handleServiceError(err);
             console.error("Failed to clear tasks:", err);
-            message.error("Failed to clear tasks on server");
-            // Keep modal open on error, but stop loading
+            notification.error({
+              message: "Clear Failed",
+              description: "Failed to clear tasks on server.",
+            });
             modal.update({ okButtonProps: { loading: false } });
-
-            // *Important*: Return a resolved promise to prevent the uncaught rejection
             return Promise.resolve();
           });
 
@@ -412,7 +537,10 @@ const KanbanPage: React.FC = () => {
 
   const handleResetBoard = async () => {
     if (!boardId) {
-      message.error("Board ID is required");
+      notification.error({
+        message: "Reset Failed",
+        description: "Board ID is required.",
+      });
       return;
     }
 
@@ -435,7 +563,10 @@ const KanbanPage: React.FC = () => {
         // If needed, also explicitly fetch the board again to ensure everything is in sync
         dispatch(fetchBoardById({ boardId, token }));
 
-        message.success("Board has been reset to default settings");
+        notification.success({
+          message: "Reset Successful",
+          description: "Board has been reset to default settings.",
+        });
         return true;
       } catch (error) {
         const errorMessage =
@@ -448,15 +579,19 @@ const KanbanPage: React.FC = () => {
             `Retry attempt ${retryCount} of ${maxRetries} after ${delay}ms...`
           );
 
-          message.info(
-            `Retrying reset operation (${retryCount}/${maxRetries})...`
-          );
+          notification.info({
+            message: "Retry Attempt",
+            description: `Retrying reset operation (${retryCount}/${maxRetries})...`,
+          });
           await new Promise((resolve) => setTimeout(resolve, delay));
           return attemptReset();
         }
 
         // If all retries fail, offer manual reset option
-        message.error(errorMessage);
+        notification.error({
+          message: "Reset Failed",
+          description: errorMessage,
+        });
         console.error("Failed to reset board after retries:", errorMessage);
 
         // Show a modal with alternative options
