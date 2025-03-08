@@ -1,17 +1,6 @@
-import axios from "axios";
-import type { AxiosError } from "axios";
-import { Role, RoleResponse, RolesResponse, ApiError } from "../type/types";
-
-const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
-
-// Axios instance
-const apiClient = axios.create({
-  baseURL: API_BASE_URI,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true,
-});
+import apiClient from "./authService";
+import { handleServiceError } from "./baseService";
+import { Role, RoleResponse, RolesResponse } from "../type/types";
 
 export const createRole = async (
   roleData: Omit<Role, "id">, // ID is likely server-generated
@@ -26,7 +15,7 @@ export const createRole = async (
     return response.data;
   } catch (error) {
     console.error("Error creating role:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -39,13 +28,8 @@ export const getAllRoles = async (token: string): Promise<RolesResponse> => {
     });
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("Axios error creating role:", error.response?.data);
-      throw error;
-    } else {
-      console.error("Unexpected error:", error);
-      throw new Error("An unexpected error occurred");
-    }
+    console.error("Unexpected error:", error);
+    throw handleServiceError(error);
   }
 };
 
@@ -62,8 +46,7 @@ export const deleteRole = async (
     return response.data;
   } catch (error) {
     console.error("Error deleting role:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
-
 

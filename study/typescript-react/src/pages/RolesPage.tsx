@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { getAllRoles, deleteRole, createRole } from "../services/roleService";
 import { getAllPermissions } from "../services/permissionService";
 import { getMyInfo } from "../services/userService";
+import { handleServiceError } from "../services/baseService"; // Ensure this is imported
 import {
   Layout,
   Table,
@@ -11,6 +12,7 @@ import {
   Input,
   Select,
   Descriptions,
+  notification, // Add this import
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
@@ -109,6 +111,7 @@ const RolesPage = () => {
   const fetchRoles = useCallback(async () => {
     if (!isRolesInvalidated && roles.length > 0) return;
     try {
+      if (!token) throw new Error("Token is null");
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
         const rolesData = response.result.map((role: Role) => ({
@@ -127,18 +130,24 @@ const RolesPage = () => {
         dispatch(setRoles([]));
       }
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching roles:",
         axiosError.response?.data?.message
       );
       dispatch(setRoles([]));
+      notification.error({
+        message: "Fetch Failed",
+        description: "Error fetching roles. Please try again later.",
+      });
     }
   }, [token, dispatch, isRolesInvalidated, roles]);
 
   const fetchPermissions = useCallback(async () => {
     if (!isPermissionsInvalidated && permissions.length > 0) return;
     try {
+      if (!token) throw new Error("Token is null");
       const response = await getAllPermissions(token);
       if (response && Array.isArray(response.result)) {
         dispatch(setPermissions(response.result));
@@ -147,28 +156,39 @@ const RolesPage = () => {
         dispatch(setPermissions([]));
       }
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching permissions:",
         axiosError.response?.data?.message
       );
       dispatch(setPermissions([]));
+      notification.error({
+        message: "Fetch Failed",
+        description: "Error fetching permissions. Please try again later.",
+      });
     }
   }, [token, dispatch, isPermissionsInvalidated, permissions]);
 
   const fetchUserInformation = useCallback(async () => {
     if (!isUserInfoInvalidated && userInfo) return;
     try {
+      if (!token) throw new Error("Token is null");
       const response = await getMyInfo(token);
       if (response && response.result) {
         dispatch(setUserInfo(response.result));
       }
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching user information:",
         axiosError.response?.data?.message
       );
+      notification.error({
+        message: "Fetch Failed",
+        description: "Error fetching user information. Please try again later.",
+      });
     }
   }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
@@ -188,15 +208,21 @@ const RolesPage = () => {
 
   const handleDeleteRole = async (roleName: string) => {
     try {
-      await deleteRole(roleName, token);
+      if (token) {
+        await deleteRole(roleName, token);
+      } else {
+        throw new Error("Token is null");
+      }
       dispatch(setRoles(roles.filter((role: Role) => role.name !== roleName)));
       dispatch(invalidatePermissions());
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error("Error deleting role:", axiosError.response?.data?.message);
-      Modal.error({
-        title: "Delete Failed",
-        content: axiosError.response?.data?.message || "Unknown error occurred",
+      notification.error({
+        message: "Delete Failed",
+        description:
+          axiosError.response?.data?.message || "Unknown error occurred",
       });
     }
   };
@@ -204,16 +230,21 @@ const RolesPage = () => {
   const handleAddRole = async () => {
     try {
       const values = await form.validateFields();
-      await createRole(values, token);
+      if (token) {
+        await createRole(values, token);
+      } else {
+        throw new Error("Token is null");
+      }
       dispatch(invalidateRoles());
       fetchRoles();
       setIsModalVisible(false);
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error("Error adding role:", axiosError.response?.data?.message);
-      Modal.error({
-        title: "Create Failed",
-        content:
+      notification.error({
+        message: "Create Failed",
+        description:
           axiosError.response?.data?.message ||
           "An error occurred while creating role.",
       });
@@ -379,4 +410,3 @@ const RolesPage = () => {
 };
 
 export default RolesPage;
-

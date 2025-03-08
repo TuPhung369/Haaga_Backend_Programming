@@ -5,6 +5,7 @@ import {
   createPermission,
 } from "../services/permissionService";
 import { getMyInfo } from "../services/userService";
+import { handleServiceError } from "../services/baseService";
 import {
   Layout,
   Table,
@@ -14,6 +15,7 @@ import {
   Input,
   Select,
   Descriptions,
+  notification,
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
@@ -119,6 +121,7 @@ const PermissionPage = () => {
   const fetchPermissions = useCallback(async () => {
     if (!isPermissionsInvalidated && permissions.length > 0) return;
     try {
+      if (!token) throw new Error("Token is null");
       const response = (await getAllPermissions(token)) as PermissionsResponse;
       if (response && Array.isArray(response.result)) {
         const permissionsData = response.result.map(
@@ -134,20 +137,31 @@ const PermissionPage = () => {
         dispatch(setPermissions([]));
       }
     } catch (error) {
+      handleServiceError(error);
       console.error("Error fetching permissions:", error);
       dispatch(setPermissions([]));
+      notification.error({
+        message: "Fetch Failed",
+        description: "Error fetching permissions. Please try again later.",
+      });
     }
   }, [token, dispatch, isPermissionsInvalidated, permissions]);
 
   const fetchUserInformation = useCallback(async () => {
     if (!isUserInfoInvalidated && userInfo) return;
     try {
+      if (!token) throw new Error("Token is null");
       const response = (await getMyInfo(token)) as UserResponse;
       if (response && response.result) {
         dispatch(setUserInfo(response.result));
       }
     } catch (error) {
+      handleServiceError(error);
       console.error("Error fetching user information:", error);
+      notification.error({
+        message: "Fetch Failed",
+        description: "Error fetching user information. Please try again later.",
+      });
     }
   }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
@@ -160,21 +174,27 @@ const PermissionPage = () => {
 
   const handleDeletePermission = async (permissionName: string) => {
     try {
-      await deletePermission(permissionName, token);
+      if (token) {
+        await deletePermission(permissionName, token);
+      } else {
+        throw new Error("Token is null");
+      }
       dispatch(
         setPermissions(
           permissions.filter((p: Permission) => p.name !== permissionName)
         )
       );
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error deleting permission:",
         axiosError.response?.data?.message
       );
-      Modal.error({
-        title: "Delete Failed",
-        content: axiosError.response?.data?.message || "Unknown error occurred",
+      notification.error({
+        message: "Delete Failed",
+        description:
+          axiosError.response?.data?.message || "Unknown error occurred",
       });
     }
   };
@@ -182,19 +202,24 @@ const PermissionPage = () => {
   const handleAddPermission = async () => {
     try {
       const values = await form.validateFields();
-      await createPermission(values, token);
+      if (token) {
+        await createPermission(values, token);
+      } else {
+        throw new Error("Token is null");
+      }
       dispatch(invalidatePermissions());
       fetchPermissions();
       setIsModalVisible(false);
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error adding permission:",
         axiosError.response?.data?.message
       );
-      Modal.error({
+      notification.error({
         title: "Create Failed",
-        content:
+        description:
           axiosError.response?.data?.message ||
           "An error occurred while creating permission.",
       });
@@ -342,4 +367,3 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
-
