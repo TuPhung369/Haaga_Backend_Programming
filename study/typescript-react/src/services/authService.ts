@@ -205,8 +205,9 @@ export const registerUser = async (
     );
     return response.data;
   } catch (error) {
+    // Don't transform the error, just log and rethrow to preserve structure
     console.error("Error during registration:", error);
-    throw error as AxiosError<ApiError>;
+    throw error; // Keep the original error with its response data intact
   }
 };
 

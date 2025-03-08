@@ -47,9 +47,17 @@ public class GlobalExceptionHandler {
  
   // Handle custom AppException and return a structured error response
   @ExceptionHandler(AppException.class)
-  public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception, String customMessage) {
+  public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception) {
     log.error("Handling AppException: {}", exception.getErrorCode().getMessage(), exception);
     ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode());
+    return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
+  }
+  
+  // Method 2: This one is for backward compatibility with direct calls from your code
+  // Remove the @ExceptionHandler annotation so Spring doesn't get confused
+  public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception, String customMessage) {
+    log.error("Handling AppException with custom message: {}", customMessage, exception);
+    ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode(), customMessage);
     return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
   }
 

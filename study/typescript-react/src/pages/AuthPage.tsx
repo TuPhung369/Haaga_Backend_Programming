@@ -29,6 +29,7 @@ import {
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import "../styles/AuthPage.css";
 import { FcGoogle } from "react-icons/fc";
+import axios from "axios";
 
 const { Title, Text } = Typography;
 
@@ -127,70 +128,116 @@ const AuthPage: React.FC = () => {
   };
 
   // Handle registration
-  const handleRegister = async () => {
-    setIsLoading(true);
-    // Validate form data
-    const userData: ValidationInput = {
-      username: registerValues.username,
-      password: registerValues.password,
-      firstname: registerValues.firstname,
-      lastname: registerValues.lastname,
-      dob: registerValues.dob
-        ? registerValues.dob.format("YYYY-MM-DD")
-        : undefined,
-      email: registerValues.email,
-      roles: ["USER"],
-    };
-
-    // Check password confirmation
-    if (registerValues.password !== registerValues.confirmPassword) {
-      setErrors({ ...errors, confirmPassword: "Passwords do not match" });
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate all fields
-    const validationErrors = validateInput(userData);
-    if (Object.keys(validationErrors).length > 0) {
-      // Convert ValidationErrors to Record<string, string>
-      const errorRecord: Record<string, string> = {};
-      (Object.keys(validationErrors) as Array<keyof ValidationErrors>).forEach(
-        (key) => {
-          if (validationErrors[key]) {
-            errorRecord[key] = validationErrors[key] as string;
-          }
-        }
-      );
-      setErrors(errorRecord);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      await registerUser(userData);
-      notification.success({
-        message: "Registration Successful",
-        description: "Please check your email to verify your account.",
-        key: "register-success",
-      });
-      navigate("/verify-email", {
-        state: {
-          username: registerValues.username,
-        },
-      });
-    } catch (error: unknown) {
-      const authError = error as AuthError;
-      const serverError = authError.response?.data;
-      const message =
-        serverError?.message || "An error occurred during registration";
-      notification.error({
-        message: `Error ${serverError?.httpCode || ""}`,
-        description: message,
-      });
-    } finally {
-      setIsLoading(false);
-    }
+const handleRegister = async () => {
+  setIsLoading(true);
+  // Validate form data
+  const userData: ValidationInput = {
+    username: registerValues.username,
+    password: registerValues.password,
+    firstname: registerValues.firstname,
+    lastname: registerValues.lastname,
+    dob: registerValues.dob
+      ? registerValues.dob.format("YYYY-MM-DD")
+      : undefined,
+    email: registerValues.email,
+    roles: ["USER"],
   };
+
+  // Check password confirmation
+  if (registerValues.password !== registerValues.confirmPassword) {
+    setErrors({ ...errors, confirmPassword: "Passwords do not match" });
+    setIsLoading(false);
+    return;
+  }
+
+  // Validate all fields
+  const validationErrors = validateInput(userData);
+  if (Object.keys(validationErrors).length > 0) {
+    // Convert ValidationErrors to Record<string, string>
+    const errorRecord: Record<string, string> = {};
+    (Object.keys(validationErrors) as Array<keyof ValidationErrors>).forEach(
+      (key) => {
+        if (validationErrors[key]) {
+          errorRecord[key] = validationErrors[key] as string;
+        }
+      }
+    );
+    setErrors(errorRecord);
+    setIsLoading(false);
+    return;
+  }
+
+  try {
+    await registerUser(userData);
+    notification.success({
+      message: "Registration Successful",
+      description: "Please check your email to verify your account.",
+      key: "register-success",
+    });
+    navigate("/verify-email", {
+      state: {
+        username: registerValues.username,
+      },
+    });
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response) {
+      const { data } = error.response;
+
+      // Check for specific error codes or messages
+      if (
+        data.message?.includes("already exists") ||
+        data.code === 4090 || // USER_EXISTS
+        data.code === 5001
+      ) {
+        // EMAIL_ALREADY_EXISTS
+
+        // Determine if it's a username or email error
+        if (data.message?.toLowerCase().includes("email")) {
+          notification.error({
+            message: "Registration Failed",
+            description:
+              "This email is already registered. Please use a different email address or reset your password.",
+            key: "register-error",
+          });
+          setErrors({
+            ...errors,
+            email: "This email is already registered",
+          });
+        } else {
+          notification.error({
+            message: "Registration Failed",
+            description:
+              "This username is already taken. Please choose a different username.",
+            key: "register-error",
+          });
+          setErrors({
+            ...errors,
+            username: "This username is already taken",
+          });
+        }
+      } else {
+        // Handle other errors
+        notification.error({
+          message: "Registration Failed",
+          description:
+            data.message ||
+            "An error occurred during registration. Please try again.",
+          key: "register-error",
+        });
+      }
+    } else {
+      // Handle non-axios errors
+      notification.error({
+        message: "Registration Failed",
+        description:
+          "Network error or server unavailable. Please try again later.",
+        key: "register-error",
+      });
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Handle Google OAuth
   const handleGoogleLogin = () => {
@@ -601,4 +648,6 @@ const AuthPage: React.FC = () => {
 };
 
 export default AuthPage;
+
+
 

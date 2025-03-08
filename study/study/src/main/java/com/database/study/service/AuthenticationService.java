@@ -749,62 +749,161 @@ public class AuthenticationService {
         .build();
   }
 
-  @Transactional
+  @Transactional(rollbackFor = Exception.class)
   public ApiResponse<Void> register(UserCreationRequest request) {
-    if (userRepository.existsByUsername(request.getUsername())) {
-      throw new AppException(ErrorCode.USER_EXISTS);
-    }
-
-    User user = userMapper.toUser(request);
-    user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-    // If not provided, set it to false by default (requiring email verification)
-    user.setActive(request.getActive() != null ? request.getActive() : false);
-
-    // Set default role as USER if roles are not provided or empty
-    List<String> roles = request.getRoles();
-    if (roles == null || roles.isEmpty()) {
-      roles = new ArrayList<>();
-      roles.add(ENUMS.Role.USER.name());
-    }
-
-    // Fetch Role entities based on role names
-    Set<Role> roleEntities = roles.stream()
-        .map(roleName -> roleRepository.findByName(roleName)
-            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
-        .collect(Collectors.toSet());
-    user.setRoles(roleEntities);
-
-    userRepository.save(user);
-    if (!user.isActive()) {
-      // Generate verification code and send email
-      String verificationCode = generateSixDigitCode();
-
-      // Check for existing token and delete it
-      emailVerificationTokenRepository.findByUsernameAndUsed(user.getUsername(), false)
-          .ifPresent(token -> emailVerificationTokenRepository.delete(token));
-
-      // Create new token valid for 15 minutes
-      EmailVerificationToken verificationToken = EmailVerificationToken.builder()
-          .token(verificationCode)
-          .username(user.getUsername())
-          .email(user.getEmail())
-          .expiryDate(LocalDateTime.now().plusMinutes(15))
-          .used(false)
+    log.info("Processing registration request for username: {}, email: {}", request.getUsername(), request.getEmail());
+    
+    try {
+      // Check if username exists
+      log.info("Checking if username exists: {}", request.getUsername());
+      if (userRepository.existsByUsername(request.getUsername())) {
+        log.warn("Username already exists: {}", request.getUsername());
+        throw new AppException(ErrorCode.USER_EXISTS);
+      }
+      
+      // Check if email exists - ENSURE THIS CHECK HAPPENS FOR ALL ACCOUNTS
+      String email = request.getEmail();
+      log.info("Checking if email exists: {}", email);
+      boolean emailExists = userRepository.existsByEmail(email);
+      
+      if (emailExists) {
+        // Get the user with this email to check if it's verified
+        log.info("Email exists, checking if account is verified: {}", email);
+        Optional<User> existingUserWithEmail = userRepository.findByEmail(email);
+        
+        if (existingUserWithEmail.isPresent()) {
+          User existingUser = existingUserWithEmail.get();
+          
+          // If account is already verified, ALWAYS return error
+          if (existingUser.isActive()) {
+            log.warn("Registration attempt with already verified email: {}", email);
+            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+          }
+          
+          // If not verified, delete the old account
+          log.info("Found unverified account with email {}, preparing to delete", email);
+          try {
+            // Get user ID for logging
+            UUID userId = existingUser.getId();
+            String username = existingUser.getUsername();
+            log.info("Deleting unverified account - ID: {}, username: {}", userId, username);
+            
+            // Check for verification tokens
+            log.info("Checking for verification tokens for username: {}", username);
+            Optional<EmailVerificationToken> token = emailVerificationTokenRepository.findByUsernameAndUsed(username, false);
+            
+            // Delete token if exists
+            if (token.isPresent()) {
+              log.info("Deleting verification token for username: {}", username);
+              emailVerificationTokenRepository.delete(token.get());
+              emailVerificationTokenRepository.flush(); // Ensure deletion is committed
+            } else {
+              log.info("No verification token found for username: {}", username);
+            }
+            
+            // Delete the user
+            log.info("Deleting user with ID: {}", userId);
+            userRepository.delete(existingUser);
+            userRepository.flush(); // Ensure deletion is committed
+            log.info("Successfully deleted unverified user with email: {}", email);
+          } catch (Exception e) {
+            log.error("Error while cleaning up unverified account: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.GENERAL_EXCEPTION);
+          }
+        } else {
+          // This is an edge case - email exists but user not found
+          log.error("Email exists in database but user not found: {}", email);
+          throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+      } else {
+        log.info("Email does not exist yet: {}", email);
+      }
+      
+      // Continue with normal registration process
+      log.info("Creating new user entity for: {}", request.getUsername());
+      User user = userMapper.toUser(request);
+      user.setPassword(passwordEncoder.encode(request.getPassword()));
+      
+      // Set active status
+      user.setActive(request.getActive() != null ? request.getActive() : false);
+      log.info("Setting active status: {}", user.isActive());
+      
+      // Set default role as USER if roles are not provided or empty
+      List<String> roles = request.getRoles();
+      if (roles == null || roles.isEmpty()) {
+        log.info("No roles provided, setting default USER role");
+        roles = new ArrayList<>();
+        roles.add(ENUMS.Role.USER.name());
+      } else {
+        log.info("Using provided roles: {}", roles);
+      }
+      
+      // Fetch Role entities based on role names
+      log.info("Fetching role entities from database");
+      Set<Role> roleEntities = roles.stream()
+          .map(roleName -> {
+            log.info("Finding role: {}", roleName);
+            return roleRepository.findByName(roleName)
+                .orElseThrow(() -> {
+                  log.error("Role not found: {}", roleName);
+                  return new AppException(ErrorCode.ROLE_NOT_FOUND);
+                });
+          })
+          .collect(Collectors.toSet());
+      user.setRoles(roleEntities);
+      
+      log.info("Saving new user to database: {}", user.getUsername());
+      user = userRepository.save(user);
+      userRepository.flush();
+      log.info("User saved successfully with ID: {}", user.getId());
+      
+      if (!user.isActive()) {
+        log.info("User not active, sending verification email to: {}", user.getEmail());
+        // Generate verification code and send email
+        String verificationCode = generateSixDigitCode();
+        log.info("Generated verification code for user: {}", user.getUsername());
+        
+        log.info("Creating verification token for user: {}", user.getUsername());
+        // Create new token valid for 15 minutes
+        EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+            .token(verificationCode)
+            .username(user.getUsername())
+            .email(user.getEmail())
+            .expiryDate(LocalDateTime.now().plusMinutes(15))
+            .used(false)
+            .build();
+        
+        log.info("Saving verification token to database");
+        emailVerificationTokenRepository.save(verificationToken);
+        emailVerificationTokenRepository.flush();
+        
+        // Send verification email
+        log.info("Sending verification email to: {}", user.getEmail());
+        try {
+          emailService.sendEmailVerificationCode(
+              user.getEmail(),
+              user.getFirstname(),
+              verificationCode);
+          log.info("Verification email sent successfully");
+        } catch (Exception e) {
+          log.error("Failed to send verification email: {}", e.getMessage(), e);
+          // Continue without throwing exception, user was created but email failed
+        }
+      }
+      
+      log.info("Registration completed successfully for: {}", user.getUsername());
+      return ApiResponse.<Void>builder()
+          .message("User registered successfully! Please check your email to verify your account.")
           .build();
-
-      emailVerificationTokenRepository.save(verificationToken);
-
-      // Send verification email
-      emailService.sendEmailVerificationCode(
-          user.getEmail(),
-          user.getFirstname(),
-          verificationCode);
+    } catch (AppException e) {
+      // Let AppExceptions propagate with their specific error code
+      log.warn("Registration failed with AppException: {}", e.getMessage());
+      throw e;
+    } catch (Exception e) {
+      // Log and wrap any other exceptions
+      log.error("Unexpected error during registration: {}", e.getMessage(), e);
+      throw new AppException(ErrorCode.GENERAL_EXCEPTION);
     }
-
-    return ApiResponse.<Void>builder()
-        .message("User registered successfully! Please check your email to verify your account.")
-        .build();
   }
 
   @Transactional
