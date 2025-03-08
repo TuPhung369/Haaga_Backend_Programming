@@ -40,7 +40,27 @@ export interface GenericResponse {
   code: number;
   message?: string;
 }
+export interface ApiErrorResponse {
+  code: number;
+  message: string;
+  httpStatus: string;
+  httpCode: string;
+  severity: string;
+}
 
+// Define a type for handled errors from the interceptor
+export interface HandledError {
+  isHandled: boolean;
+  field?: string;
+  originalError?: {
+    response?: {
+      data?: ApiErrorResponse;
+      status?: number;
+    };
+    message?: string;
+  };
+  message?: string;
+}
 export interface CalendarEvent {
   id: string;
   seriesId?: string;

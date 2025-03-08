@@ -14,9 +14,10 @@ import {
   authenticateUserWithCookies,
   registerUser,
 } from "../services/authService";
+import { useApi } from "../hooks/useApi";
 import { LockOutlined, UserOutlined, MailOutlined } from "@ant-design/icons";
 import validateInput from "../utils/validateInput";
-import moment from "moment";
+import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
 import { resetAllData } from "../store/resetActions";
@@ -26,10 +27,10 @@ import {
   AuthError,
   ValidationErrors,
 } from "../type/authType";
+import { HandledError } from "../type/types";
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import "../styles/AuthPage.css";
 import { FcGoogle } from "react-icons/fc";
-import axios from "axios";
 
 const { Title, Text } = Typography;
 
@@ -38,6 +39,8 @@ const AuthPage: React.FC = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Form data for registration
   const [registerValues, setRegisterValues] = useState({
@@ -47,12 +50,11 @@ const AuthPage: React.FC = () => {
     confirmPassword: "",
     firstname: "",
     lastname: "",
-    dob: moment("1999-09-09", "YYYY-MM-DD"),
+    dob: dayjs("1999-09-09", "YYYY-MM-DD"),
   });
-
-  // Error states
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loginError, setLoginError] = useState<string | null>(null);
+  // Instead of isLoading for registration, use useApi
+  const { execute: executeRegister, loading: registerLoading } =
+    useApi(registerUser);
 
   // Redux hooks
   const navigate = useNavigate();
@@ -128,116 +130,86 @@ const AuthPage: React.FC = () => {
   };
 
   // Handle registration
-const handleRegister = async () => {
-  setIsLoading(true);
-  // Validate form data
-  const userData: ValidationInput = {
-    username: registerValues.username,
-    password: registerValues.password,
-    firstname: registerValues.firstname,
-    lastname: registerValues.lastname,
-    dob: registerValues.dob
-      ? registerValues.dob.format("YYYY-MM-DD")
-      : undefined,
-    email: registerValues.email,
-    roles: ["USER"],
-  };
+  const handleRegister = async () => {
+    // Clear previous errors
+    setErrors({});
 
-  // Check password confirmation
-  if (registerValues.password !== registerValues.confirmPassword) {
-    setErrors({ ...errors, confirmPassword: "Passwords do not match" });
-    setIsLoading(false);
-    return;
-  }
+    // Validate form data
+    const userData: ValidationInput = {
+      username: registerValues.username,
+      password: registerValues.password,
+      firstname: registerValues.firstname,
+      lastname: registerValues.lastname,
+      dob: registerValues.dob
+        ? registerValues.dob.format("YYYY-MM-DD")
+        : undefined,
+      email: registerValues.email,
+      roles: ["USER"],
+    };
 
-  // Validate all fields
-  const validationErrors = validateInput(userData);
-  if (Object.keys(validationErrors).length > 0) {
-    // Convert ValidationErrors to Record<string, string>
-    const errorRecord: Record<string, string> = {};
-    (Object.keys(validationErrors) as Array<keyof ValidationErrors>).forEach(
-      (key) => {
-        if (validationErrors[key]) {
-          errorRecord[key] = validationErrors[key] as string;
-        }
-      }
-    );
-    setErrors(errorRecord);
-    setIsLoading(false);
-    return;
-  }
-
-  try {
-    await registerUser(userData);
-    notification.success({
-      message: "Registration Successful",
-      description: "Please check your email to verify your account.",
-      key: "register-success",
-    });
-    navigate("/verify-email", {
-      state: {
-        username: registerValues.username,
-      },
-    });
-  } catch (error: unknown) {
-    if (axios.isAxiosError(error) && error.response) {
-      const { data } = error.response;
-
-      // Check for specific error codes or messages
-      if (
-        data.message?.includes("already exists") ||
-        data.code === 4090 || // USER_EXISTS
-        data.code === 5001
-      ) {
-        // EMAIL_ALREADY_EXISTS
-
-        // Determine if it's a username or email error
-        if (data.message?.toLowerCase().includes("email")) {
-          notification.error({
-            message: "Registration Failed",
-            description:
-              "This email is already registered. Please use a different email address or reset your password.",
-            key: "register-error",
-          });
-          setErrors({
-            ...errors,
-            email: "This email is already registered",
-          });
-        } else {
-          notification.error({
-            message: "Registration Failed",
-            description:
-              "This username is already taken. Please choose a different username.",
-            key: "register-error",
-          });
-          setErrors({
-            ...errors,
-            username: "This username is already taken",
-          });
-        }
-      } else {
-        // Handle other errors
-        notification.error({
-          message: "Registration Failed",
-          description:
-            data.message ||
-            "An error occurred during registration. Please try again.",
-          key: "register-error",
-        });
-      }
-    } else {
-      // Handle non-axios errors
-      notification.error({
-        message: "Registration Failed",
-        description:
-          "Network error or server unavailable. Please try again later.",
-        key: "register-error",
-      });
+    // Check password confirmation
+    if (registerValues.password !== registerValues.confirmPassword) {
+      setErrors({ confirmPassword: "Passwords do not match" });
+      return;
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
+
+    // Validate all fields
+    const validationErrors = validateInput(userData);
+    if (Object.keys(validationErrors).length > 0) {
+      // Convert ValidationErrors to Record<string, string>
+      const errorRecord: Record<string, string> = {};
+      (Object.keys(validationErrors) as Array<keyof ValidationErrors>).forEach(
+        (key) => {
+          if (validationErrors[key]) {
+            errorRecord[key] = validationErrors[key] as string;
+          }
+        }
+      );
+      setErrors(errorRecord);
+      return;
+    }
+
+    // Execute the API call using the hook
+    const { success, error } = await executeRegister(userData);
+
+    if (success) {
+      // Navigation after success
+      navigate("/verify-email", {
+        state: {
+          username: registerValues.username,
+        },
+      });
+    } else if (error && typeof error === "object") {
+      // Try to cast to our HandledError type
+      const handledError = error as Partial<HandledError>;
+
+      // Check if we have field information
+      if (handledError.field) {
+        // Determine the error message to display
+        let errorMessage = "Invalid input";
+
+        // Try to extract the actual message from the response
+        if (handledError.message) {
+          errorMessage = handledError.message;
+        } else if (handledError.originalError?.response?.data?.message) {
+          errorMessage = handledError.originalError.response.data.message;
+        }
+
+        // Set field-specific error with the message from the backend
+        if (handledError.field === "username") {
+          setErrors((prev) => ({
+            ...prev,
+            username: errorMessage,
+          }));
+        } else if (handledError.field === "email") {
+          setErrors((prev) => ({
+            ...prev,
+            email: errorMessage,
+          }));
+        }
+      }
+    }
+  };
 
   // Handle Google OAuth
   const handleGoogleLogin = () => {
@@ -291,7 +263,7 @@ const handleRegister = async () => {
     const fieldToValidate: Partial<ValidationInput> = { [name]: value };
 
     // Special handling for date of birth
-    if (name === "dob" && value instanceof moment) {
+    if (name === "dob" && dayjs.isDayjs(value)) {
       fieldToValidate[name] = value.format("YYYY-MM-DD");
     }
 
@@ -516,9 +488,15 @@ const handleRegister = async () => {
                     style={{ width: "100%" }}
                     placeholder="Date of Birth"
                     value={registerValues.dob}
-                    onChange={(date) =>
-                      handleInputChange("dob", date || moment())
-                    }
+                    onChange={(date) => {
+                      if (date) {
+                        setRegisterValues((prev) => ({
+                          ...prev,
+                          dob: date,
+                        }));
+                        validateField("dob", date);
+                      }
+                    }}
                     format="YYYY-MM-DD"
                     allowClear={false}
                   />
@@ -528,7 +506,7 @@ const handleRegister = async () => {
                     type="primary"
                     htmlType="submit"
                     className="auth-button"
-                    loading={isLoading}
+                    loading={registerLoading}
                   >
                     Register
                   </Button>
@@ -648,6 +626,4 @@ const handleRegister = async () => {
 };
 
 export default AuthPage;
-
-
 
