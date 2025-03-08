@@ -14,6 +14,7 @@ import {
   Tooltip,
   Select,
   InputRef,
+  notification,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import {
@@ -40,6 +41,7 @@ import {
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import { invertColorWithContrast, getRandomColor } from "../utils/function";
+import { handleServiceError } from "../services/baseService";
 
 const TypedCalendar: React.FC<CalendarProps<CalendarEvent, object>> = (
   props
@@ -83,7 +85,12 @@ const CalendarPage: React.FC = () => {
       const data = await fetchEventsByUserId(userId, token);
       dispatch(setEvents(data.result));
     } catch (error) {
-      console.error("Error fetching events:", error);
+      handleServiceError(error);
+      notification.error({
+        message: "Failed to Fetch Events",
+        description:
+          "An error occurred while loading your events. Please try again later.",
+      });
       dispatch(setEvents([]));
     }
   }, [dispatch, userId, token]);
@@ -212,8 +219,17 @@ const CalendarPage: React.FC = () => {
       await deleteEvent(eventDetails.id, token);
       await fetchAndUpdateEvents();
       setIsModalVisible(false);
+      notification.success({
+        message: "Event Deleted",
+        description: "The event has been successfully deleted.",
+      });
     } catch (error) {
-      console.error("Error deleting event:", error);
+      handleServiceError(error);
+      notification.error({
+        message: "Failed to Fetch Events",
+        description:
+          "An error occurred while loading your events. Please try again later.",
+      });
     }
   };
 
@@ -261,25 +277,46 @@ const CalendarPage: React.FC = () => {
               );
               await fetchAndUpdateEvents();
               setIsModalVisible(false);
+              notification.success({
+                message: "Series Updated",
+                description: "All events in the series have been updated.",
+              });
             },
             onCancel: async () => {
               await updateEvent(eventId, newEvent, token);
               await fetchAndUpdateEvents();
               setIsModalVisible(false);
+              notification.success({
+                message: "Event Updated",
+                description: "The event has been successfully updated.",
+              });
             },
           });
         } else {
           await updateEvent(eventId, newEvent, token);
           await fetchAndUpdateEvents();
           setIsModalVisible(false);
+          notification.success({
+            message: "Event Updated",
+            description: "The event has been successfully updated.",
+          });
         }
       } else {
         await createEvent(newEvent, token);
         await fetchAndUpdateEvents();
         setIsModalVisible(false);
+        notification.success({
+          message: "Event Created",
+          description: "The event has been successfully created.",
+        });
       }
     } catch (error) {
-      console.error("Error updating event:", error);
+      handleServiceError(error); // Centralized error handling
+      notification.error({
+        message: "Failed to Save Event",
+        description:
+          "An error occurred while saving the event. Please try again.",
+      });
     }
 
     setEventDetails({
@@ -315,64 +352,87 @@ const CalendarPage: React.FC = () => {
     const seriesId = event.seriesId || event.id;
     const isRecurring = event.repeat !== "none";
 
-    if (isRecurring) {
-      Modal.confirm({
-        title: "Update recurring event",
-        content:
-          "Do you want to update this event only or all events in the series?",
-        okText: "This event only",
-        cancelText: "All events",
-        onOk: async () => {
-          const masterEvent = events.find(
-            (evt) => evt.seriesId === seriesId && evt.repeat !== "none"
-          );
-          if (!masterEvent) return;
+    try {
+      if (isRecurring) {
+        Modal.confirm({
+          title: "Update recurring event",
+          content:
+            "Do you want to update this event only or all events in the series?",
+          okText: "This event only",
+          cancelText: "All events",
+          onOk: async () => {
+            const masterEvent = events.find(
+              (evt) => evt.seriesId === seriesId && evt.repeat !== "none"
+            );
+            if (!masterEvent) return;
 
-          const instanceStart = moment(event.start);
-          const originalStart = instanceStart.toISOString();
+            const instanceStart = moment(event.start);
+            const originalStart = instanceStart.toISOString();
 
-          // Generate a different color for this exception event
-          const distinctColor = getDistinctColor(event.color || COLORS[0]);
+            const distinctColor = getDistinctColor(event.color || COLORS[0]);
 
-          const newException: CalendarEvent = {
-            ...event,
-            id: "", // Để server tạo ID
-            seriesId: undefined,
-            start: new Date(start).toISOString(),
-            end: new Date(end).toISOString(),
-            date: new Date(start).toISOString(),
-            repeat: "none",
-            color: distinctColor, // Assign a different color to visually distinguish from the series
-          };
+            const newException: CalendarEvent = {
+              ...event,
+              id: "", // Let server generate ID
+              seriesId: undefined,
+              start: new Date(start).toISOString(),
+              end: new Date(end).toISOString(),
+              date: new Date(start).toISOString(),
+              repeat: "none",
+              color: distinctColor,
+            };
 
-          await createEvent(newException, token);
-          const updatedMasterEvent = {
-            ...masterEvent,
-            exceptions: [...(masterEvent.exceptions || []), { originalStart }],
-          };
-          await updateEvent(masterEvent.id, updatedMasterEvent, token);
-          await fetchAndUpdateEvents();
-        },
-        onCancel: async () => {
-          const updatedEvent = {
-            ...event,
-            start: new Date(start).toISOString(),
-            end: new Date(end).toISOString(),
-            date: new Date(start).toISOString(),
-          };
-          await updateEventSeries(seriesId, updatedEvent, token);
-          await fetchAndUpdateEvents();
-        },
+            await createEvent(newException, token);
+            const updatedMasterEvent = {
+              ...masterEvent,
+              exceptions: [
+                ...(masterEvent.exceptions || []),
+                { originalStart },
+              ],
+            };
+            await updateEvent(masterEvent.id, updatedMasterEvent, token);
+            await fetchAndUpdateEvents();
+            notification.success({
+              message: "Event Updated",
+              description: "The event instance has been updated.",
+            });
+          },
+          onCancel: async () => {
+            const updatedEvent = {
+              ...event,
+              start: new Date(start).toISOString(),
+              end: new Date(end).toISOString(),
+              date: new Date(start).toISOString(),
+            };
+            await updateEventSeries(seriesId, updatedEvent, token);
+            await fetchAndUpdateEvents();
+            notification.success({
+              message: "Series Updated",
+              description: "All events in the series have been updated.",
+            });
+          },
+        });
+      } else {
+        const updatedEvent = {
+          ...event,
+          start: new Date(start).toISOString(),
+          end: new Date(end).toISOString(),
+          date: new Date(start).toISOString(),
+        };
+        await updateEvent(event.id, updatedEvent, token);
+        await fetchAndUpdateEvents();
+        notification.success({
+          message: "Event Moved",
+          description: "The event has been successfully moved.",
+        });
+      }
+    } catch (error) {
+      handleServiceError(error); // Centralized error handling
+      notification.error({
+        message: "Failed to Move Event",
+        description:
+          "An error occurred while moving the event. Please try again.",
       });
-    } else {
-      const updatedEvent = {
-        ...event,
-        start: new Date(start).toISOString(),
-        end: new Date(end).toISOString(),
-        date: new Date(start).toISOString(),
-      };
-      await updateEvent(event.id, updatedEvent, token);
-      await fetchAndUpdateEvents();
     }
   };
 
@@ -383,50 +443,70 @@ const CalendarPage: React.FC = () => {
     const seriesId = event.seriesId || event.id;
     const isRecurring = event.repeat !== "none";
 
-    if (isRecurring) {
-      Modal.confirm({
-        title: "Resize recurring event",
-        content:
-          "Do you want to resize this event only or all events in the series?",
-        okText: "This event only",
-        cancelText: "All events",
-        onOk: async () => {
-          // Generate a different color for this exception event
-          const distinctColor = getDistinctColor(event.color || COLORS[0]);
+    try {
+      if (isRecurring) {
+        Modal.confirm({
+          title: "Resize recurring event",
+          content:
+            "Do you want to resize this event only or all events in the series?",
+          okText: "This event only",
+          cancelText: "All events",
+          onOk: async () => {
+            const distinctColor = getDistinctColor(event.color || COLORS[0]);
 
-          const newException: CalendarEvent = {
-            ...event,
-            id: "", // Để server tạo ID
-            seriesId: undefined,
-            start: new Date(start).toISOString(),
-            end: new Date(end).toISOString(),
-            date: new Date(start).toISOString(),
-            repeat: "none",
-            color: distinctColor, // Assign a different color to visually distinguish from the series
-          };
-          await createEvent(newException, token);
-          await fetchAndUpdateEvents();
-        },
-        onCancel: async () => {
-          const updatedEvent = {
-            ...event,
-            start: new Date(start).toISOString(),
-            end: new Date(end).toISOString(),
-            date: new Date(start).toISOString(),
-          };
-          await updateEventSeries(seriesId, updatedEvent, token);
-          await fetchAndUpdateEvents();
-        },
+            const newException: CalendarEvent = {
+              ...event,
+              id: "", // Let server generate ID
+              seriesId: undefined,
+              start: new Date(start).toISOString(),
+              end: new Date(end).toISOString(),
+              date: new Date(start).toISOString(),
+              repeat: "none",
+              color: distinctColor,
+            };
+            await createEvent(newException, token);
+            await fetchAndUpdateEvents();
+            notification.success({
+              message: "Event Resized",
+              description: "The event instance has been resized.",
+            });
+          },
+          onCancel: async () => {
+            const updatedEvent = {
+              ...event,
+              start: new Date(start).toISOString(),
+              end: new Date(end).toISOString(),
+              date: new Date(start).toISOString(),
+            };
+            await updateEventSeries(seriesId, updatedEvent, token);
+            await fetchAndUpdateEvents();
+            notification.success({
+              message: "Series Resized",
+              description: "All events in the series have been resized.",
+            });
+          },
+        });
+      } else {
+        const updatedEvent = {
+          ...event,
+          start: new Date(start).toISOString(),
+          end: new Date(end).toISOString(),
+          date: new Date(start).toISOString(),
+        };
+        await updateEvent(event.id, updatedEvent, token);
+        await fetchAndUpdateEvents();
+        notification.success({
+          message: "Event Resized",
+          description: "The event has been successfully resized.",
+        });
+      }
+    } catch (error) {
+      handleServiceError(error); // Centralized error handling
+      notification.error({
+        message: "Failed to Resize Event",
+        description:
+          "An error occurred while resizing the event. Please try again.",
       });
-    } else {
-      const updatedEvent = {
-        ...event,
-        start: new Date(start).toISOString(),
-        end: new Date(end).toISOString(),
-        date: new Date(start).toISOString(),
-      };
-      await updateEvent(event.id, updatedEvent, token);
-      await fetchAndUpdateEvents();
     }
   };
 

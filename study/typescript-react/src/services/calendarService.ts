@@ -1,18 +1,8 @@
-import axios from "axios";
-import type { AxiosError } from "axios";
-import { CalendarEvent, ApiError } from "../type/types";
+import apiClient from "./authService"; // Import the shared Axios instance from authService
+import { handleServiceError } from "./baseService"; // Import centralized error handling
+import { CalendarEvent } from "../type/types";
 
-const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
-
-// Axios instance with default headers
-const apiClient = axios.create({
-  baseURL: API_BASE_URI,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Định nghĩa interface cho response từ API (dựa trên cấu trúc ApiResponse từ backend)
+// Define interface for response from API (based on ApiResponse structure from backend)
 interface CalendarEventResponse {
   code: number;
   result: CalendarEvent;
@@ -39,12 +29,12 @@ export const fetchEventsByUserId = async (
     return response.data;
   } catch (error) {
     console.error("Error fetching events:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error); // Use centralized error handling
   }
 };
 
 export const createEvent = async (
-  eventData: Omit<CalendarEvent, "id" | "createdAt">, // ID và createdAt do server tạo
+  eventData: Omit<CalendarEvent, "id" | "createdAt">, // ID and createdAt are server-generated
   token: string
 ): Promise<CalendarEventResponse> => {
   try {
@@ -60,7 +50,7 @@ export const createEvent = async (
     return response.data;
   } catch (error) {
     console.error("Error creating event:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error); // Use centralized error handling
   }
 };
 
@@ -83,7 +73,7 @@ export const updateEvent = async (
     return response.data;
   } catch (error) {
     console.error("Error updating event:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error); // Use centralized error handling
   }
 };
 
@@ -105,7 +95,7 @@ export const updateEventSeries = async (
     return response.data;
   } catch (error) {
     console.error("Error updating event series:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error); // Use centralized error handling
   }
 };
 
@@ -121,8 +111,7 @@ export const deleteEvent = async (
     });
   } catch (error) {
     console.error("Error deleting event:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error); // Use centralized error handling
   }
 };
-
 
