@@ -1,13 +1,15 @@
 import axios from "axios";
-import type { AxiosError } from "axios";
-import { ValidationInput } from "../type/authType";
+import { setupAxiosInterceptors } from "../utils/axiosSetup";
+import { handleServiceError } from "./baseService";
 import {
-  ApiError,
   AuthResponse,
   IntrospectResponse,
   GenericResponse,
   RefreshTokenResponse,
   ApiResponse,
+  ValidationInput,
+  EmailChangeRequest,
+  EmailVerificationRequest,
 } from "../type/types";
 import store from "../store/store";
 
@@ -20,20 +22,8 @@ const apiClient = axios.create({
   },
   withCredentials: true,
 });
-export interface EmailChangeRequest {
-  userId: string;
-  currentEmail: string;
-  newEmail: string;
-  password: string;
-  token: string;
-}
 
-export interface EmailVerificationRequest {
-  userId: string;
-  newEmail: string;
-  verificationCode: string;
-  token: string;
-}
+setupAxiosInterceptors(apiClient);
 
 export const requestEmailChangeCode = async (
   request: EmailChangeRequest
@@ -51,7 +41,7 @@ export const requestEmailChangeCode = async (
     return response.data;
   } catch (error) {
     console.error("Error requesting email change code:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -71,7 +61,7 @@ export const verifyEmailChange = async (
     return response.data;
   } catch (error) {
     console.error("Error verifying email change:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -103,7 +93,7 @@ export const authenticateUser = async (
     return response.data;
   } catch (error) {
     console.error("Error authenticating user:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -121,7 +111,7 @@ export const authenticateUserWithCookies = async (
     return response.data;
   } catch (error) {
     console.error("Error authenticating user with cookies:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -164,7 +154,7 @@ export const introspectToken = async (
     return response.data;
   } catch (error) {
     console.error("Error introspecting token:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   } finally {
     introspectionInProgress = false;
   }
@@ -191,7 +181,7 @@ export const refreshTokenFromCookie = async (): Promise<
     return response.data as ApiResponse<RefreshTokenResponse>;
   } catch (error) {
     console.error("Error refreshing token from cookie:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -207,7 +197,7 @@ export const registerUser = async (
   } catch (error) {
     // Don't transform the error, just log and rethrow to preserve structure
     console.error("Error during registration:", error);
-    throw error; // Keep the original error with its response data intact
+    throw handleServiceError(error);
   }
 };
 
@@ -226,7 +216,7 @@ export const verifyEmail = async (
     return response.data;
   } catch (error) {
     console.error("Error during email verification:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -241,7 +231,7 @@ export const resendVerificationEmail = async (
     return response.data;
   } catch (error) {
     console.error("Error resending verification email:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -260,7 +250,7 @@ export const resetPassword = async (
     return response.data;
   } catch (error) {
     console.error("Error during reset password:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -279,7 +269,7 @@ export const forgotPassword = async (
     return response.data;
   } catch (error) {
     console.error("Error during forgot password request:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -298,7 +288,7 @@ export const resetPasswordWithToken = async (
     return response.data;
   } catch (error) {
     console.error("Error during password reset with token:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -316,7 +306,7 @@ export const logoutUser = async (token: string): Promise<GenericResponse> => {
     return response.data;
   } catch (error) {
     console.error("Error during logout:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -329,7 +319,7 @@ export const logoutUserWithCookies = async (): Promise<GenericResponse> => {
     return response.data;
   } catch (error) {
     console.error("Error during cookie-based logout:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -343,7 +333,7 @@ export const exchangeAuthorizationCode = async (
     return response.data;
   } catch (error) {
     console.error("Error exchanging authorization code:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -357,13 +347,9 @@ export const validateGoogleToken = async (
     return response.data;
   } catch (error) {
     console.error("Error validating Google ID token:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
 export default apiClient;
-
-import { setupAxiosInterceptors } from "../utils/axiosSetup";
-
-setupAxiosInterceptors(apiClient);
 

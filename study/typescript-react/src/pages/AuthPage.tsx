@@ -15,19 +15,15 @@ import {
   registerUser,
 } from "../services/authService";
 import { useApi } from "../hooks/useApi";
+import { useFieldErrors } from "../hooks/useFieldErrors";
+import { ServiceError } from "../services/baseService";
 import { LockOutlined, UserOutlined, MailOutlined } from "@ant-design/icons";
 import validateInput from "../utils/validateInput";
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
 import { resetAllData } from "../store/resetActions";
-import {
-  ValidationInput,
-  AuthState,
-  AuthError,
-  ValidationErrors,
-} from "../type/authType";
-import { HandledError } from "../type/types";
+import { ValidationInput, AuthState, ValidationErrors } from "../type/types";
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import "../styles/AuthPage.css";
 import { FcGoogle } from "react-icons/fc";
@@ -39,8 +35,11 @@ const AuthPage: React.FC = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Use our new field errors hook instead of manual error handling
+  const { fieldErrors, setFieldError, clearFieldError, clearAllFieldErrors } =
+    useFieldErrors();
 
   // Form data for registration
   const [registerValues, setRegisterValues] = useState({
@@ -52,7 +51,8 @@ const AuthPage: React.FC = () => {
     lastname: "",
     dob: dayjs("1999-09-09", "YYYY-MM-DD"),
   });
-  // Instead of isLoading for registration, use useApi
+
+  // Use the API hook for registration
   const { execute: executeRegister, loading: registerLoading } =
     useApi(registerUser);
 
@@ -78,7 +78,7 @@ const AuthPage: React.FC = () => {
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
     setLoginError(null);
-    setErrors({});
+    clearAllFieldErrors(); // Clear all field errors when toggling mode
   };
 
   // Handle login form submission
@@ -87,6 +87,7 @@ const AuthPage: React.FC = () => {
     password: string;
   }) => {
     setLoginError(null);
+    clearAllFieldErrors();
     setIsLoading(true);
 
     try {
@@ -111,6 +112,8 @@ const AuthPage: React.FC = () => {
         // Set up token refresh
         setupTokenRefresh(data.result.token);
 
+        // Success notification is now likely handled by interceptors,
+        // but we can keep it here for certainty
         notification.success({
           message: "Success",
           description: "Logged in successfully!",
@@ -122,19 +125,20 @@ const AuthPage: React.FC = () => {
         throw new Error("Invalid response format from server");
       }
     } catch (error: unknown) {
-      const authError = error as AuthError;
-      setLoginError(authError.message || "Invalid username or password");
+      // Hiển thị thông báo lỗi chung chung trong form
+      setLoginError("Invalid username or password. Please try again.");
+
+      // Ghi log lỗi chi tiết cho dev
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle registration
+  // Handle registration - Updated to only show one notification
   const handleRegister = async () => {
-    // Clear previous errors
-    setErrors({});
+    clearAllFieldErrors();
 
-    // Validate form data
     const userData: ValidationInput = {
       username: registerValues.username,
       password: registerValues.password,
@@ -147,66 +151,52 @@ const AuthPage: React.FC = () => {
       roles: ["USER"],
     };
 
-    // Check password confirmation
     if (registerValues.password !== registerValues.confirmPassword) {
-      setErrors({ confirmPassword: "Passwords do not match" });
+      setFieldError("confirmPassword", "Passwords do not match");
       return;
     }
 
-    // Validate all fields
     const validationErrors = validateInput(userData);
     if (Object.keys(validationErrors).length > 0) {
-      // Convert ValidationErrors to Record<string, string>
-      const errorRecord: Record<string, string> = {};
       (Object.keys(validationErrors) as Array<keyof ValidationErrors>).forEach(
         (key) => {
           if (validationErrors[key]) {
-            errorRecord[key] = validationErrors[key] as string;
+            setFieldError(key, validationErrors[key] as string);
           }
         }
       );
-      setErrors(errorRecord);
       return;
     }
 
-    // Execute the API call using the hook
     const { success, error } = await executeRegister(userData);
 
     if (success) {
-      // Navigation after success
-      navigate("/verify-email", {
-        state: {
-          username: registerValues.username,
-        },
+      notification.success({
+        message: "Registration Successful",
+        description: "Please check your email to verify your account.",
       });
-    } else if (error && typeof error === "object") {
-      // Try to cast to our HandledError type
-      const handledError = error as Partial<HandledError>;
-
-      // Check if we have field information
-      if (handledError.field) {
-        // Determine the error message to display
-        let errorMessage = "Invalid input";
-
-        // Try to extract the actual message from the response
-        if (handledError.message) {
-          errorMessage = handledError.message;
-        } else if (handledError.originalError?.response?.data?.message) {
-          errorMessage = handledError.originalError.response.data.message;
+      navigate("/verify-email", {
+        state: { username: registerValues.username },
+      });
+    } else if (error) {
+      console.log("Register error:", error); // Debugging
+      if (error instanceof ServiceError) {
+        if (error.field) {
+          setFieldError(error.field, error.message || "Invalid input");
         }
-
-        // Set field-specific error with the message from the backend
-        if (handledError.field === "username") {
-          setErrors((prev) => ({
-            ...prev,
-            username: errorMessage,
-          }));
-        } else if (handledError.field === "email") {
-          setErrors((prev) => ({
-            ...prev,
-            email: errorMessage,
-          }));
+        if (!error.isHandled) {
+          notification.error({
+            message: "Registration Failed",
+            description:
+              error.message || "Please check your information and try again.",
+          });
         }
+      } else if (!(error as { isHandled?: boolean })?.isHandled) {
+        notification.error({
+          message: "Registration Failed",
+          description: "An unexpected error occurred. Please try again.",
+        });
+        console.error("Unknown registration error:", error);
       }
     }
   };
@@ -220,41 +210,37 @@ const AuthPage: React.FC = () => {
     window.location.href = authorizationUri;
   };
 
-  // Handle input changes for registration form
+  // Handle input changes for registration form - Updated to use field errors hook
   const handleInputChange = (
     name: string,
     value: string | moment.Moment | null
   ) => {
     setRegisterValues((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
-    // Clear error for this field if any
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
+    // Clear error for this field
+    clearFieldError(name);
   };
 
   // Handle forgot password
   const handleForgotPassword = () => {
     navigate("/forgot-password");
   };
+
+  // Validate password confirmation - Updated to use field errors hook
   const validatePasswordConfirmation = useCallback(() => {
     if (registerValues.password !== registerValues.confirmPassword) {
-      setErrors((prev) => ({
-        ...prev,
-        confirmPassword: "Passwords do not match",
-      }));
+      setFieldError("confirmPassword", "Passwords do not match");
     } else {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.confirmPassword;
-        return newErrors;
-      });
+      clearFieldError("confirmPassword");
     }
-  }, [registerValues.password, registerValues.confirmPassword]);
+  }, [
+    registerValues.password,
+    registerValues.confirmPassword,
+    setFieldError,
+    clearFieldError,
+  ]);
+
+  // Validate a single field - Updated to use field errors hook
   const validateField = (
     name: string,
     value: string | moment.Moment | null
@@ -272,13 +258,9 @@ const AuthPage: React.FC = () => {
 
     // Update errors state
     if (fieldErrors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: fieldErrors[name] }));
+      setFieldError(name, fieldErrors[name] as string);
     } else {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+      clearFieldError(name);
     }
   };
 
@@ -287,6 +269,7 @@ const AuthPage: React.FC = () => {
       validatePasswordConfirmation();
     }
   }, [registerValues.confirmPassword, validatePasswordConfirmation]);
+
   return (
     <div className="auth-container">
       <div
@@ -315,8 +298,8 @@ const AuthPage: React.FC = () => {
                   Registration
                 </Title>
                 <Form.Item
-                  validateStatus={errors.username ? "error" : ""}
-                  help={errors.username}
+                  validateStatus={fieldErrors.username ? "error" : ""}
+                  help={fieldErrors.username}
                   rules={[
                     { required: true, message: "Please input your username!" },
                     {
@@ -339,8 +322,8 @@ const AuthPage: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item
-                  validateStatus={errors.email ? "error" : ""}
-                  help={errors.email}
+                  validateStatus={fieldErrors.email ? "error" : ""}
+                  help={fieldErrors.email}
                   rules={[
                     { required: true, message: "Please input your email!" },
                     {
@@ -361,8 +344,8 @@ const AuthPage: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item
-                  validateStatus={errors.password ? "error" : ""}
-                  help={errors.password}
+                  validateStatus={fieldErrors.password ? "error" : ""}
+                  help={fieldErrors.password}
                   rules={[
                     { required: true, message: "Please input your password!" },
                     {
@@ -386,8 +369,8 @@ const AuthPage: React.FC = () => {
                 </Form.Item>
 
                 <Form.Item
-                  validateStatus={errors.confirmPassword ? "error" : ""}
-                  help={errors.confirmPassword}
+                  validateStatus={fieldErrors.confirmPassword ? "error" : ""}
+                  help={fieldErrors.confirmPassword}
                   rules={[
                     {
                       required: true,
@@ -414,8 +397,8 @@ const AuthPage: React.FC = () => {
                 </Form.Item>
 
                 <Form.Item
-                  validateStatus={errors.firstname ? "error" : ""}
-                  help={errors.firstname}
+                  validateStatus={fieldErrors.firstname ? "error" : ""}
+                  help={fieldErrors.firstname}
                   rules={[
                     {
                       required: true,
@@ -441,8 +424,8 @@ const AuthPage: React.FC = () => {
                 </Form.Item>
 
                 <Form.Item
-                  validateStatus={errors.lastname ? "error" : ""}
-                  help={errors.lastname}
+                  validateStatus={fieldErrors.lastname ? "error" : ""}
+                  help={fieldErrors.lastname}
                   rules={[
                     { required: true, message: "Please input your last name!" },
                     {
@@ -465,8 +448,8 @@ const AuthPage: React.FC = () => {
                 </Form.Item>
 
                 <Form.Item
-                  validateStatus={errors.dob ? "error" : ""}
-                  help={errors.dob}
+                  validateStatus={fieldErrors.dob ? "error" : ""}
+                  help={fieldErrors.dob}
                   rules={[
                     {
                       required: true,

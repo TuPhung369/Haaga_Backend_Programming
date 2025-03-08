@@ -1,13 +1,24 @@
 // src/utils/axiosSetup.ts
 import axios, { AxiosInstance } from "axios";
-import { notification } from "antd"; // Import your notification library
+import { notification } from "antd";
+import { ErrorType } from "../services/baseService";
+
+// Define the type for our custom error rejection data
+interface CustomErrorData {
+  isHandled?: boolean;
+  field?: string;
+  message?: string;
+  originalError?: unknown;
+  errorCode?: number;
+  errorType?: ErrorType;
+}
 
 let interceptorsRegistered = false;
 
 export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
   if (interceptorsRegistered) return;
 
-  // Request interceptor remains the same
+  // Request interceptor
   axiosInstance.interceptors.request.use(
     function (config) {
       return config;
@@ -18,7 +29,7 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
     }
   );
 
-  // Enhanced response interceptor with centralized error handling
+  // Response interceptor
   axiosInstance.interceptors.response.use(
     function (response) {
       return response;
@@ -36,48 +47,135 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
 
         console.error(`Response error for ${error.config?.url}:`, errorDetails);
 
-        // Check for specific error types and handle them centrally
         if (error.response) {
           const { status, data } = error.response;
-          //const errorCode = data?.code;
           const errorMessage = data?.message || "An unexpected error occurred";
+          const errorCode = data?.code;
 
-          // Handle authentication errors
+          // Check if it's a login-related request
+          const isLoginRequest =
+            error.config?.url?.includes("/auth/token") ||
+            error.config?.url?.includes("/login");
+
+          // Authentication errors (401)
           if (status === 401) {
-            notification.error({
-              message: "Authentication Error",
-              description: "Your session has expired. Please log in again.",
-              key: "auth-error",
-            });
-            // You might want to redirect to login here or dispatch a logout action
-            // Example: store.dispatch(logoutUser());
+            // For login attempts, don't show notification
+            if (!isLoginRequest) {
+              notification.error({
+                message: "Authentication Error",
+                description: "Your session has expired. Please log in again.",
+                key: "auth-error",
+              });
+            }
 
-            // Return a special rejection that components can check for auth errors
-            return Promise.reject({ isHandled: true, originalError: error });
+            const customError: CustomErrorData = {
+              isHandled: !isLoginRequest, // Mark as not handled for login forms
+              originalError: error,
+              message: isLoginRequest
+                ? "Invalid username or password"
+                : "Authentication error",
+              errorCode,
+              errorType: ErrorType.AUTHENTICATION,
+            };
+
+            return Promise.reject(customError);
           }
 
-          // Handle common validation errors
+          // Validation errors (400)
           if (status === 400) {
-            notification.error({
-              message: "Validation Error",
-              description: errorMessage,
-              key: "validation-error",
+            // Special handling for password mismatch
+            if (errorCode === 4009) {
+              const customError: CustomErrorData = {
+                isHandled: false,
+                field: "confirmPassword",
+                message: errorMessage,
+                originalError: error,
+                errorCode,
+                errorType: ErrorType.VALIDATION,
+              };
+              return Promise.reject(customError);
+            }
+
+            // For login forms, don't show notifications
+            if (!isLoginRequest) {
+              notification.error({
+                message: "Validation Error",
+                description: errorMessage,
+                key: "validation-error",
+              });
+            }
+
+            // Map error codes to fields
+            let field: string | undefined = undefined;
+
+            switch (errorCode) {
+              case 4001:
+                field = "email";
+                break;
+              case 4002:
+                field = errorMessage.toLowerCase().includes("email")
+                  ? "email"
+                  : "password";
+                break;
+              case 4003:
+                field = "password";
+                break;
+              case 4004:
+                field = "firstname";
+                break;
+              case 4005:
+                field = "lastname";
+                break;
+              case 4006:
+              case 4007:
+                field = "dob";
+                break;
+              case 4008:
+                field = "roles";
+                break;
+              default:
+                field = undefined;
+            }
+
+            // For login attempts, return generic error
+            if (isLoginRequest) {
+              const customError: CustomErrorData = {
+                isHandled: false,
+                message: "Invalid username or password",
+                originalError: error,
+                errorType: ErrorType.VALIDATION,
+              };
+              return Promise.reject(customError);
+            }
+
+            // Don't mark as handled so components can process field errors
+            return Promise.reject({
+              field,
+              message: errorMessage,
+              errorCode,
+              originalError: error,
+              errorType: ErrorType.VALIDATION,
             });
-            // Let the component handle specific field errors
-            return Promise.reject(error);
           }
 
-          // Handle resource conflict errors (like duplicates)
+          // Conflict errors (409)
           if (status === 409) {
-            // Check if it's a username or email conflict
-            if (errorMessage.toLowerCase().includes("email")) {
+            let field: string | undefined = undefined;
+
+            // Check for specific conflicts
+            if (
+              errorCode === 5001 ||
+              errorMessage.toLowerCase().includes("email")
+            ) {
               notification.error({
                 message: "Registration Error",
                 description:
                   "This email is already registered. Please use a different email address.",
                 key: "email-conflict-error",
               });
+              field = "email";
             } else if (
+              errorCode === 4090 ||
               errorMessage.toLowerCase().includes("user") ||
               errorMessage.toLowerCase().includes("username")
             ) {
@@ -87,8 +185,8 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
                   "This username is already taken. Please choose a different username.",
                 key: "username-conflict-error",
               });
+              field = "username";
             } else {
-              // Generic conflict error
               notification.error({
                 message: "Conflict Error",
                 description: errorMessage,
@@ -96,27 +194,50 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
               });
             }
 
-            // Return a rejection with a flag indicating it was handled
-            return Promise.reject({
-              isHandled: true,
+            // ĐẶT isHandled = true để component không hiển thị thêm notification
+            const customError: CustomErrorData = {
+              field,
+              message: errorMessage,
               originalError: error,
-              field: errorMessage.toLowerCase().includes("email")
-                ? "email"
-                : "username",
-            });
+              errorCode,
+              errorType: ErrorType.CONFLICT,
+              isHandled: true, // QUAN TRỌNG: Đánh dấu đã xử lý notification
+            };
+
+            return Promise.reject(customError);
           }
 
-          // Handle not found errors
+          // Not found errors (404)
           if (status === 404) {
-            notification.error({
-              message: "Not Found",
-              description: errorMessage,
-              key: "not-found-error",
-            });
-            return Promise.reject({ isHandled: true, originalError: error });
+            // For login attempts, don't show notifications
+            if (isLoginRequest || error.config?.url?.includes("/auth/")) {
+              const customError: CustomErrorData = {
+                isHandled: false,
+                message: "Invalid username or password", // Generic message for security
+                originalError: error,
+                errorCode,
+                errorType: ErrorType.NOT_FOUND,
+              };
+              return Promise.reject(customError);
+            } else {
+              // Other not found errors
+              notification.error({
+                message: "Not Found",
+                description: errorMessage,
+                key: "not-found-error",
+              });
+
+              const customError: CustomErrorData = {
+                isHandled: true,
+                originalError: error,
+                errorCode,
+                errorType: ErrorType.NOT_FOUND,
+              };
+              return Promise.reject(customError);
+            }
           }
 
-          // Handle server errors
+          // Server errors (500+)
           if (status >= 500) {
             notification.error({
               message: "Server Error",
@@ -124,11 +245,18 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
                 "The server encountered an error. Please try again later.",
               key: "server-error",
             });
-            return Promise.reject({ isHandled: true, originalError: error });
+
+            const customError: CustomErrorData = {
+              isHandled: true,
+              originalError: error,
+              errorCode,
+              errorType: ErrorType.SERVER_ERROR,
+            };
+            return Promise.reject(customError);
           }
         }
 
-        // For network errors
+        // Network errors
         if (error.code === "ERR_NETWORK") {
           notification.error({
             message: "Network Error",
@@ -136,19 +264,31 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
               "Unable to connect to the server. Please check your internet connection.",
             key: "network-error",
           });
-          return Promise.reject({ isHandled: true, originalError: error });
+
+          const customError: CustomErrorData = {
+            isHandled: true,
+            originalError: error,
+            errorType: ErrorType.NETWORK_ERROR,
+          };
+          return Promise.reject(customError);
         }
 
-        // For other axios errors that aren't handled above
+        // Other axios errors
         notification.error({
           message: "Error",
           description: error.message || "An unexpected error occurred",
           key: "general-error",
         });
-        return Promise.reject({ isHandled: true, originalError: error });
+
+        const customError: CustomErrorData = {
+          isHandled: true,
+          originalError: error,
+          errorType: ErrorType.UNKNOWN,
+        };
+        return Promise.reject(customError);
       }
 
-      // For non-Axios errors
+      // Non-Axios errors
       console.error("Non-Axios error:", error);
       notification.error({
         message: "Error",

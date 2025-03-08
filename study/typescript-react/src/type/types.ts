@@ -1,9 +1,41 @@
-export interface ApiError {
-  code?: number;
+import { ErrorType } from "../services/baseService";
+export interface ApiResponse<T> {
+  code: number;
   message?: string;
+  result: T;
   httpStatus?: string;
   httpCode?: string;
   severity?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ApiError {
+  isHandled?: boolean;
+  field?: string;
+  message?: string;
+  status?: number;
+  code?: number;
+  metadata?: Record<string, unknown>;
+  originalError?: unknown;
+}
+
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export interface ApiErrorResponse {
+  field?: string;
+  message?: string;
+  originalError?: {
+    response?: {
+      data?: {
+        message?: string;
+        errors?: FieldError[];
+      };
+    };
+  };
+  metadata?: Record<string, unknown>;
 }
 export interface ExtendApiError extends ApiError {
   errorType?: "CREATE" | "FETCH" | "DELETE" | "UPDATE";
@@ -17,17 +49,41 @@ export interface AuthResponse {
   };
 }
 
+export interface AuthError {
+  message?: string;
+  response?: { data?: { httpCode?: number; message?: string } };
+}
+// Input type for validation
+export interface ValidationInput {
+  username?: string;
+  password?: string;
+  firstname?: string;
+  lastname?: string;
+  dob?: string | Date; // Can be string or Date
+  roles?: string[]; // Array of strings for roles
+  email?: string;
+}
+
+// Error type for validation results
+export interface ValidationErrors {
+  username?: string;
+  password?: string;
+  firstname?: string;
+  lastname?: string;
+  dob?: string;
+  roles?: string; // Single string for error message
+  email?: string;
+}
+
+export interface ResetPasswordFormValues {
+  newPassword: string;
+  confirmPassword: string;
+}
 export interface IntrospectResponse {
   code: number;
   result: {
     valid: boolean;
   };
-}
-
-export interface ApiResponse<T> {
-  code?: number;
-  message?: string;
-  result: T;
 }
 
 export interface RefreshTokenResponse {
@@ -40,27 +96,7 @@ export interface GenericResponse {
   code: number;
   message?: string;
 }
-export interface ApiErrorResponse {
-  code: number;
-  message: string;
-  httpStatus: string;
-  httpCode: string;
-  severity: string;
-}
 
-// Define a type for handled errors from the interceptor
-export interface HandledError {
-  isHandled: boolean;
-  field?: string;
-  originalError?: {
-    response?: {
-      data?: ApiErrorResponse;
-      status?: number;
-    };
-    message?: string;
-  };
-  message?: string;
-}
 export interface CalendarEvent {
   id: string;
   seriesId?: string;
@@ -101,9 +137,9 @@ export interface Board {
   updatedAt?: string;
 }
 export interface AuthState {
-  token: string;
-  isAuthenticated: boolean;
-  loginSocial: boolean;
+  token: string | null;
+  isAuthenticated?: boolean;
+  loginSocial?: boolean;
 }
 export interface KanbanState {
   columns: ColumnKanban[];
@@ -127,7 +163,20 @@ export interface KanbanBoardResponse {
   columns: ColumnKanban[];
   createdAt?: string;
 }
+export interface EmailChangeRequest {
+  userId: string;
+  currentEmail: string;
+  newEmail: string;
+  password: string;
+  token: string;
+}
 
+export interface EmailVerificationRequest {
+  userId: string;
+  newEmail: string;
+  verificationCode: string;
+  token: string;
+}
 export interface UserState {
   userInfo: User | null;
   roles: Role[];
@@ -139,6 +188,14 @@ export interface UserState {
   isUsersInvalidated: boolean;
   isPermissionsInvalidated: boolean;
   isEventsInvalidated: boolean;
+}
+export interface CustomErrorData {
+  isHandled?: boolean;
+  field?: string;
+  message?: string;
+  originalError?: unknown;
+  errorCode?: number;
+  errorType?: ErrorType;
 }
 
 export interface RootState {
