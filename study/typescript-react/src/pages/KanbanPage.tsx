@@ -75,57 +75,30 @@ const KanbanPage: React.FC = () => {
   const [isHoveringResetButton, setIsHoveringResetButton] = useState(false);
 
   const prevUserIdRef = useRef(userId);
+  const prevTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (prevUserIdRef.current !== userId) {
-      console.log("User ID changed, updating kanban store");
-      hasFetchedBoardsRef.current = false;
-      prevUserIdRef.current = userId;
+    const userIdChanged = userId !== prevUserIdRef.current;
+    const tokenChanged = token !== prevTokenRef.current;
 
-      if (userId && token) {
-        dispatch(setUserId(userId));
-        dispatch(fetchUserBoards({ userId, token }))
-          .unwrap()
-          .then((boards) => {
-            if (!boards || boards.length === 0) {
-              dispatch(
-                createUserBoard({ userId, token, title: "Kanban Board" })
-              )
-                .unwrap()
-                .then(() => {
-                  console.log("Board created successfully");
-                  notification.success({
-                    message: "Board Created",
-                    description:
-                      "A new Kanban board has been created successfully.",
-                  });
-                })
-                .catch((err) => {
-                  handleServiceError(err);
-                  console.error("Failed to create board:", err);
-                  notification.warning({
-                    message: "Offline Mode",
-                    description:
-                      "Changes will be saved locally due to server issues.",
-                  });
-                  dispatch(resetToDefaultColumns());
-                });
-            }
-          })
-          .catch((err) => {
-            handleServiceError(err);
-            console.error("Error fetching boards:", err);
-            notification.warning({
-              message: "Offline Mode",
-              description:
-                "Starting with default columns due to server issues.",
-            });
-            dispatch(resetToDefaultColumns());
-          });
+    prevUserIdRef.current = userId;
+    prevTokenRef.current = token;
 
-        hasFetchedBoardsRef.current = true;
-      }
-    } else if (userId && token && !hasFetchedBoardsRef.current) {
+    if (!userId || !token) {
+      return;
+    }
+
+    const hasUserBoards =
+      userBoards && userBoards.some((board) => board.userId === userId);
+
+    // fetch with:
+    // - userId or token changed
+    // - userBoards doesn't has data for userId
+    // - hasFetchedBoardsRef.current not yet set.
+    if (
+      (userIdChanged || tokenChanged || !hasFetchedBoardsRef.current) &&
+      !hasUserBoards
+    ) {
       hasFetchedBoardsRef.current = true;
       dispatch(setUserId(userId));
       dispatch(fetchUserBoards({ userId, token }))
@@ -164,7 +137,7 @@ const KanbanPage: React.FC = () => {
           dispatch(resetToDefaultColumns());
         });
     }
-  }, [userId, token, dispatch]);
+  }, [userId, token, dispatch, userBoards]);
 
   useEffect(() => {
     if (boardId && columns.length > 0) {
@@ -173,19 +146,15 @@ const KanbanPage: React.FC = () => {
   }, [columns, boardId]);
 
   useEffect(() => {
-    // Chỉ thực hiện khi có userBoards và userId
     if (userBoards && userBoards.length > 0 && userId) {
-      // Tìm board của người dùng hiện tại
       const currentUserBoards = userBoards.filter(
         (board) => board.userId === userId
       );
 
-      // Nếu không có activeBoard hoặc activeBoard không thuộc về người dùng hiện tại
       if (
         !activeBoard ||
         (activeBoard.userId !== userId && currentUserBoards.length > 0)
       ) {
-        // Lấy board đầu tiên của người dùng hiện tại
         if (currentUserBoards.length > 0) {
           dispatch(setActiveBoard(currentUserBoards[0]));
         }

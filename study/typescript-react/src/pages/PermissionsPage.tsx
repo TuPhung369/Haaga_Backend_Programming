@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   getAllPermissions,
   deletePermission,
@@ -117,6 +117,7 @@ const PermissionPage = () => {
     isPermissionsInvalidated,
   } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
+  const hasFetchedPermissionsRef = useRef(false);
 
   const fetchPermissions = useCallback(async () => {
     if (!isPermissionsInvalidated && permissions.length > 0) return;
@@ -144,6 +145,10 @@ const PermissionPage = () => {
         message: "Fetch Failed",
         description: "Error fetching permissions. Please try again later.",
       });
+    } finally {
+      if (isPermissionsInvalidated) {
+        hasFetchedPermissionsRef.current = false;
+      }
     }
   }, [token, dispatch, isPermissionsInvalidated, permissions]);
 
@@ -167,10 +172,19 @@ const PermissionPage = () => {
 
   useEffect(() => {
     if (token && isAuthenticated) {
-      fetchPermissions();
+      if (!hasFetchedPermissionsRef.current || isPermissionsInvalidated) {
+        fetchPermissions();
+        hasFetchedPermissionsRef.current = true;
+      }
       fetchUserInformation();
     }
-  }, [token, isAuthenticated, fetchPermissions, fetchUserInformation]);
+  }, [
+    token,
+    isAuthenticated,
+    fetchPermissions,
+    fetchUserInformation,
+    isPermissionsInvalidated,
+  ]);
 
   const handleDeletePermission = async (permissionName: string) => {
     try {
@@ -367,3 +381,4 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
+
