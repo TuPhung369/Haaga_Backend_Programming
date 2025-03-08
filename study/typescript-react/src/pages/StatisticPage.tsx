@@ -33,7 +33,8 @@ import { Layout, notification } from "antd";
 import { COLORS } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
 import { setUserInfo, setAllUsers, setRoles } from "../store/userSlice";
-import { QuantityChart, PercentChart, RootState } from "../type/types"; // Import RootState
+import { QuantityChart, PercentChart, RootState } from "../type/types";
+import { handleServiceError } from "../services/baseService";
 
 const { Content } = Layout;
 
@@ -84,6 +85,9 @@ const StatisticPage = () => {
   const fetchAllUsers = useCallback(async () => {
     if (!isUsersInvalidated && allUsers.length > 0) return;
     try {
+      if (!token) {
+        throw new Error("Token is null");
+      }
       const response = await getAllUsers(token);
       if (Array.isArray(response)) {
         const allUsersData = response.map((user) => ({
@@ -110,14 +114,23 @@ const StatisticPage = () => {
         dispatch(setAllUsers([]));
       }
     } catch (error) {
+      handleServiceError(error);
       console.error("Error fetching All Users:", error);
       dispatch(setAllUsers([]));
+      setNotificationMessage({
+        type: "error",
+        message: "Fetch Failed",
+        description: "Error fetching all users. Please try again later.",
+      });
     }
   }, [token, dispatch, isUsersInvalidated, allUsers]);
 
   const fetchMyInfo = useCallback(async () => {
     if (!isUserInfoInvalidated && userInfo) return;
     try {
+      if (!token) {
+        throw new Error("Token is null");
+      }
       const response = await getMyInfo(token);
       if (response && response.result) {
         const userData = {
@@ -141,13 +154,22 @@ const StatisticPage = () => {
         dispatch(setUserInfo(userData));
       }
     } catch (error) {
+      handleServiceError(error);
       console.error("Error fetching user info:", error);
+      setNotificationMessage({
+        type: "error",
+        message: "Fetch Failed",
+        description: "Error fetching user info. Please try again later.",
+      });
     }
   }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   const fetchRoles = useCallback(async () => {
     if (!isRolesInvalidated && roles.length > 0) return;
     try {
+      if (!token) {
+        throw new Error("Token is null");
+      }
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
         const allRolesData = response.result.map((role) => ({
@@ -166,8 +188,14 @@ const StatisticPage = () => {
         dispatch(setRoles([]));
       }
     } catch (error) {
+      handleServiceError(error); // Xử lý lỗi tập trung
       console.error("Error fetching All Roles:", error);
       dispatch(setRoles([]));
+      setNotificationMessage({
+        type: "error",
+        message: "Fetch Failed",
+        description: "Error fetching all roles. Please try again later.",
+      });
     }
   }, [token, dispatch, isRolesInvalidated, roles]);
 

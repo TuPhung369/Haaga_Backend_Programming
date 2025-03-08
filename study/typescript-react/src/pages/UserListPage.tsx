@@ -6,6 +6,7 @@ import {
   updateUser,
   createUser,
 } from "../services/userService";
+import { handleServiceError } from "../services/baseService"; // Add this import
 // Move styled-components creation outside of component
 import styled from "styled-components";
 import { getAllRoles } from "../services/roleService";
@@ -76,22 +77,6 @@ const UserListStyle = styled.div`
     color: #40a9ff;
   }
 
-  /* Style the search input clear button to appear on the far right */
-  .search-input-with-clear-right .ant-input-clear-icon {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    margin: 0;
-    z-index: 10;
-  }
-
-  /* Make sure the search input text doesn't overlap with the clear button */
-  .search-input-with-clear-right .ant-input {
-    padding-right: 24px;
-  }
-
-  .compact-table .ant-table-thead > tr > th,
   .compact-table .ant-table-tbody > tr > td {
     padding: 6px 8px; /* Adjust the padding values as needed */
   }
@@ -164,6 +149,9 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   const fetchAllUsers = useCallback(async () => {
     if (!isUsersInvalidated && allUsers.length > 0) return;
     try {
+      if (!token) {
+        throw new Error("Token is null");
+      }
       const response = await getAllUsers(token);
       if (Array.isArray(response)) {
         const allUsersData = response.map((user: User) => ({
@@ -190,18 +178,27 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         dispatch(setAllUsers([]));
       }
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching all users:",
         axiosError.response?.data?.message
       );
       dispatch(setAllUsers([]));
+      setNotificationMessage({
+        type: "error",
+        message: "Fetch Failed",
+        description: "Error fetching all users. Please try again later.",
+      });
     }
   }, [token, dispatch, isUsersInvalidated, allUsers]);
 
   const fetchMyInfo = useCallback(async () => {
     if (!isUserInfoInvalidated && userInfo) return;
     try {
+      if (!token) {
+        throw new Error("Token is null");
+      }
       const response = await getMyInfo(token);
       if (response && response.result) {
         const userData: User = {
@@ -225,17 +222,26 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         dispatch(setUserInfo(userData));
       }
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching user info:",
         axiosError.response?.data?.message
       );
+      setNotificationMessage({
+        type: "error",
+        message: "Fetch Failed",
+        description: "Error fetching user info. Please try again later.",
+      });
     }
   }, [token, dispatch, isUserInfoInvalidated, userInfo]);
 
   const fetchRoles = useCallback(async () => {
     if (!isRolesInvalidated && roles.length > 0) return;
     try {
+      if (!token) {
+        throw new Error("Token is null");
+      }
       const response = await getAllRoles(token);
       if (response && Array.isArray(response.result)) {
         const allRolesData = response.result.map((role: Role) => ({
@@ -254,12 +260,18 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         dispatch(setRoles([]));
       }
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error(
         "Error fetching all roles:",
         axiosError.response?.data?.message
       );
       dispatch(setRoles([]));
+      setNotificationMessage({
+        type: "error",
+        message: "Fetch Failed",
+        description: "Error fetching all roles. Please try again later.",
+      });
     }
   }, [token, dispatch, isRolesInvalidated, roles]);
 
@@ -293,7 +305,11 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      await deleteUser(userId, token);
+      if (token) {
+        await deleteUser(userId, token);
+      } else {
+        throw new Error("Token is null");
+      }
       dispatch(setAllUsers(allUsers.filter((user) => user.id !== userId)));
       dispatch(invalidateRoles());
       dispatch(invalidateUserInfo());
@@ -303,11 +319,12 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         description: "User has been successfully deleted.",
       });
     } catch (error) {
+      handleServiceError(error);
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error("Error deleting user:", axiosError.response?.data?.message);
       setNotificationMessage({
         type: "error",
-        message: "Error",
+        message: "Delete Failed",
         description:
           axiosError.response?.data?.message ||
           "There was an error deleting the user.",
@@ -389,14 +406,26 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
 
       try {
         if (isModeNew) {
-          await createUser(values, token);
+          if (token) {
+            await createUser(values, token);
+          } else {
+            throw new Error("Token is null");
+          }
           setNotificationMessage({
             type: "success",
             message: "Success",
             description: "User has been successfully created.",
           });
         } else if (isModeIdUpdate && selectedUserId) {
-          await updateUser(selectedUserId, values, token);
+          if (selectedUserId) {
+            if (!token) {
+              throw new Error("Token is null");
+            } else {
+              await updateUser(selectedUserId, values, token);
+            }
+          } else {
+            throw new Error("Selected user ID is null");
+          }
           setNotificationMessage({
             type: "success",
             message: "Success",
@@ -412,6 +441,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         setIsModeNew(false);
         setIsModeIdUpdate(false);
       } catch (updateError) {
+        handleServiceError(updateError);
         const axiosError = updateError as AxiosError<ExtendApiError>;
         console.error(
           "Error updating user:",
@@ -419,7 +449,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         );
         setNotificationMessage({
           type: "error",
-          message: "Error",
+          message: "Update Failed",
           description:
             axiosError.response?.data?.message ||
             "An error occurred while updating the user.",
@@ -460,19 +490,18 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   // Get column search component
   const getColumnSearchProps = (dataIndex: keyof User) => ({
     filterDropdown: () => (
-      <Input
-        placeholder={`Search ${dataIndex}`}
-        value={searchText[dataIndex] || ""}
-        onChange={(e) => handleSearchInputChange(dataIndex, e.target.value)}
-        style={{
-          width: 188,
-          marginBottom: 8,
-          display: "block",
-          paddingRight: "30px", // Add extra padding for the clear button
-        }}
-        allowClear
-        className="search-input-with-clear-right"
-      />
+      <div style={{ padding: 8 }}>
+        <Input
+          placeholder={`Search ${dataIndex}`}
+          value={searchText[dataIndex] || ""}
+          onChange={(e) => handleSearchInputChange(dataIndex, e.target.value)}
+          style={{
+            width: 200,
+            margin: 4,
+          }}
+          allowClear={true}
+        />
+      </div>
     ),
     filterIcon: () => (
       <SearchOutlined
@@ -794,3 +823,4 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
 };
 
 export default UserListPage;
+

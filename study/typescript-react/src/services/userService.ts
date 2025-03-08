@@ -1,18 +1,10 @@
-import axios from "axios";
-import type { AxiosError } from "axios";
-import { ValidationInput } from "../type/authType";
-import { UserResponse, UsersResponse, ApiError } from "../type/types";
-
-const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
-
-// Axios instance
-const apiClient = axios.create({
-  baseURL: API_BASE_URI,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true,
-});
+import apiClient from "./authService";
+import { handleServiceError } from "./baseService";
+import {
+  UserResponse,
+  UsersResponse,
+  ValidationInput,
+} from "../type/types";
 
 export const createUser = async (
   userData: ValidationInput,
@@ -27,7 +19,7 @@ export const createUser = async (
     return response.data;
   } catch (error) {
     console.error("Error creating user:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -41,7 +33,7 @@ export const getAllUsers = async (token: string): Promise<UsersResponse> => {
     return response.data;
   } catch (error) {
     console.error("Error fetching users:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -55,7 +47,7 @@ export const getMyInfo = async (token: string): Promise<UserResponse> => {
     return response.data;
   } catch (error) {
     console.error("Error fetching my user:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -72,7 +64,7 @@ export const getUserById = async (
     return response.data;
   } catch (error) {
     console.error("Error fetching user by ID:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -94,7 +86,7 @@ export const updateUser = async (
     return response.data;
   } catch (error) {
     console.error("Error updating user:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -116,7 +108,7 @@ export const updateMyInfo = async (
     return response.data;
   } catch (error) {
     console.error("Error updating user:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
 
@@ -133,8 +125,7 @@ export const deleteUser = async (
     return response.data;
   } catch (error) {
     console.error("Error deleting user:", error);
-    throw error as AxiosError<ApiError>;
+    throw handleServiceError(error);
   }
 };
-
 
