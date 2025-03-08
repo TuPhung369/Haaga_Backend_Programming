@@ -157,6 +157,14 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
 
   const handleRequestVerificationCode = async () => {
     try {
+      if (!token) {
+        setNotificationMessage({
+          type: "error",
+          message: "Authentication Error",
+          description: "You are not authenticated. Please log in again.",
+        });
+        return;
+      }
       const values = await emailChangeForm.validateFields([
         "newEmail",
         "currentPassword",
@@ -219,7 +227,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         currentEmail: userInfo?.email || "",
         newEmail: values.newEmail,
         password: values.currentPassword,
-        token,
+        token: token!,
       });
 
       setNotificationMessage({
@@ -260,7 +268,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         userId: userInfo?.id || "",
         newEmail: values.newEmail,
         verificationCode,
-        token,
+        token: token!,
       });
       if (userInfo && userInfo.id) {
         // Create updated user info with new email (ensuring all required User properties)
@@ -338,8 +346,10 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
       if (userInfo) {
         // Create a copy of values without email
         const updateValues = { ...values };
-        delete updateValues.email;
 
+        if (!token) {
+          throw new Error("Token is invalid");
+        }
         const response = await updateMyInfo(userInfo.id, updateValues, token);
         dispatch(invalidateUserInfo());
         if (response && response.result) {
@@ -642,3 +652,4 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
 };
 
 export default MyInfo;
+
