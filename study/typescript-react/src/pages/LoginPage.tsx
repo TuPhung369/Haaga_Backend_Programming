@@ -35,7 +35,7 @@ const { Content } = Layout;
 const LoginPage: React.FC = () => {
   const oauth2ClientId = import.meta.env.VITE_OAUTH2_CLIENT_ID;
   const oauth2RedirectUri = import.meta.env.VITE_OAUTH2_REDIRECT_URI;
-  const appBaseUri = import.meta.env.VITE_BASE_URI;
+  //const appBaseUri = import.meta.env.VITE_BASE_URI;
 
   useState<boolean>(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] =
@@ -548,7 +548,4 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-
-
-
 

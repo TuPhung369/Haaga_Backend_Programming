@@ -58,8 +58,12 @@ public class UserService {
   }
 
   public UserResponse createUser(UserCreationRequest request) {
-    if (userRepository.existsByUsername(request.getUsername())) {
-      throw new AppException(ErrorCode.USER_EXISTS);
+    String username = request.getUsername().trim();
+    request.setUsername(username);
+    if (userRepository.existsByUsernameIgnoreCase(username)) {
+        log.warn("Attempted to create account with existing username: {}", username);
+        throw new AppException(ErrorCode.USER_EXISTS)
+            .addMetadata("field", "username");
     }
 
     User user = userMapper.toUser(request);

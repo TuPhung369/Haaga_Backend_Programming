@@ -1,22 +1,51 @@
 package com.database.study.exception;
 
+import java.util.Map;
+import java.util.HashMap;
+
 public class AppException extends RuntimeException {
-  private ErrorCode errorCode;
+    private ErrorCode errorCode;
+    private Map<String, Object> metadata;
 
-  public AppException(ErrorCode errorCode) {
-    super(errorCode.getMessage());
-    this.errorCode = errorCode;
-  }
+    // Constructor with just ErrorCode
+    public AppException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+        this.metadata = new HashMap<>();
+    }
 
-  public AppException(String message) {
-    super(message);
-  }
+    // Constructor with ErrorCode and custom message
+    public AppException(ErrorCode errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
+        this.metadata = new HashMap<>();
+    }
 
-  public ErrorCode getErrorCode() {
-    return errorCode;
-  }
+    // Constructor with ErrorCode and cause
+    public AppException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode.getMessage(), cause);
+        this.errorCode = errorCode;
+        this.metadata = new HashMap<>();
+    }
 
-  public void setErrorCode(ErrorCode errorCode) {
-    this.errorCode = errorCode;
-  }
+    // Constructor with ErrorCode, message, and cause
+    public AppException(ErrorCode errorCode, String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = errorCode;
+        this.metadata = new HashMap<>();
+    }
+
+    // Add metadata for more context
+    public AppException addMetadata(String key, Object value) {
+        this.metadata.put(key, value);
+        return this;
+    }
+
+    public ErrorCode getErrorCode() {
+        return errorCode;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
 }

@@ -3,6 +3,9 @@ package com.database.study.dto.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 
 @Data
@@ -12,11 +15,12 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
-  @Builder.Default
-  int code = 2000;
-  String message;
-  T result;
-  HttpStatus httpStatus;
-  String httpCode;
-  String severity;
+    @Builder.Default
+    int code = 2000;
+    String message;
+    T result;
+    HttpStatus httpStatus;
+    String httpCode;
+    String severity;
+    Map<String, Object> metadata;
 }

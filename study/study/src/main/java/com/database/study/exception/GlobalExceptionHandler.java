@@ -44,7 +44,19 @@ public class GlobalExceptionHandler {
     return buildErrorResponse(errorCode, null);
   }
 
- 
+ @ExceptionHandler(ResourceNotFoundException.class)
+ public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException exception) {
+   log.error("Resource not found: {}", exception.getMessage(), exception);
+   ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode(), exception.getMessage());
+
+   // Add metadata to response if needed
+   if (!exception.getMetadata().isEmpty()) {
+     apiResponse.setMetadata(exception.getMetadata());
+   }
+
+   return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
+ }
+
   // Handle custom AppException and return a structured error response
   @ExceptionHandler(AppException.class)
   public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception) {

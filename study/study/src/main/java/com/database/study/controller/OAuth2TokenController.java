@@ -5,6 +5,7 @@ import com.database.study.service.UserService;
 import com.database.study.entity.User;
 import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
+import com.database.study.exception.ErrorCode;
 import com.database.study.dto.response.AuthenticationResponse;
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.response.UserResponse;
@@ -135,7 +136,7 @@ public class OAuth2TokenController {
 
         if (responseBody == null || !responseBody.containsKey("id_token")) {
           log.error("STEP 4: Token exchange failed, no ID token found in response");
-          throw new AppException("Token exchange failed: No ID token in response.");
+          throw new AppException(ErrorCode.INVALID_TOKEN, "Token exchange failed: No ID token in response.");
         }
         String idToken = responseBody.get("id_token");
         log.info("STEP 4: Received ID token: {}", idToken);
@@ -200,7 +201,7 @@ public class OAuth2TokenController {
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       } else {
         log.error("STEP 3: Token exchange failed with response: {}", tokenResponse.getStatusCode());
-        throw new AppException("Token exchange failed with response: " + tokenResponse.getStatusCode());
+        throw new AppException(ErrorCode.INVALID_OPERATION, "Token exchange failed with response: " + tokenResponse.getStatusCode());
       }
     } catch (HttpClientErrorException | HttpServerErrorException e) {
       log.error("STEP 3: Error exchanging token: {}", e.getResponseBodyAsString(), e);
