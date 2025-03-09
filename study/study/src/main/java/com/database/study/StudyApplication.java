@@ -87,7 +87,8 @@ public class StudyApplication {
         String emailServerPassword = dotenv.get("EMAIL_SERVER_PASSWORD");
         String emailServerHost = dotenv.get("EMAIL_SERVER_HOST");
         String emailServerPort = dotenv.get("EMAIL_SERVER_PORT");
-        String encryptionKey = dotenv.get("ENCRYPTION_KEY", "Z3x4y5z6A7b8c9d0E1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6u7v8w9x0y1z2");
+        String encryptionKey = dotenv.get("ENCRYPTION_KEY");
+        String jwtKey = dotenv.get("JWT_KEY");
 
         // Validate required variables for dev profile
         if (dbUrlDev == null || dbUsernameDev == null || dbPasswordDev == null ||
@@ -109,6 +110,7 @@ public class StudyApplication {
         setSystemProperty("EMAIL_SERVER_HOST", emailServerHost);
         setSystemProperty("EMAIL_SERVER_PORT", emailServerPort);
         setSystemProperty("ENCRYPTION_KEY", encryptionKey);
+        setSystemProperty("JWT_KEY", jwtKey);
 
         // Optional variables
         setSystemProperty("BASE_URL", dotenv.get("BASE_URL"));

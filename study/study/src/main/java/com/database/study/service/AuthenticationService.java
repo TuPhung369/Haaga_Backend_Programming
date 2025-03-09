@@ -41,6 +41,7 @@ import com.database.study.repository.EmailChangeTokenRepository;
 import com.database.study.repository.PasswordResetTokenRepository;
 import com.database.study.repository.RoleRepository;
 import com.database.study.repository.UserRepository;
+import com.database.study.security.JwtUtils;
 import com.database.study.security.TokenSecurity;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -69,7 +70,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import org.springframework.transaction.annotation.Transactional;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -98,16 +98,14 @@ public class AuthenticationService {
   EncryptionService encryptionService;
   TokenSecurity tokenSecurity;
   CookieService cookieService;
+  JwtUtils jwtUtils;
 
-  // Protected static final byte[] SECRET_KEY_BYTES = generateSecretKey();
-  protected static final byte[] SECRET_KEY_BYTES = Base64.getDecoder()
-      .decode("2fl9V3Xl0ks5yX9dGuVHRV1H6ld9F0OjhrYhP7QvxqJrB/1OLKJHpPoMxSBcUe3EEC6Hq0kseMfUQlhK2w2yQA==");
   static final int SURPLUS_EXPIRE_TIME = 7;
   static final long TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 1 minutes
   static final long REFRESH_TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-  public static byte[] getSecretKeyBytes() {
-    return SECRET_KEY_BYTES;
+  public byte[] getSecretKeyBytes() {
+    return jwtUtils.getSecretKeyBytes();
   }
 
   @Transactional
@@ -282,7 +280,7 @@ public class AuthenticationService {
 
       // Add debug log to verify the token content
       log.debug("OAuth plain token generated for user {}: {} (first 20 chars)", 
-                user.getUsername(), 
+                user.getUsername(),
                 plainAccessToken.substring(0, Math.min(20, plainAccessToken.length())));
 
       // Get expiry dates from plain JWT tokens
@@ -361,86 +359,50 @@ public class AuthenticationService {
   }
 
   @Transactional
-  public AuthenticationResponse authenticateWithCookies(AuthenticationRequest request, HttpServletResponse httpResponse) {
-    // 1. Authenticate the user - same as your current logic
+  public AuthenticationResponse authenticateWithCookies(AuthenticationRequest request,
+      HttpServletResponse httpResponse) {
     User user = userRepository.findByUsername(request.getUsername())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
     boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
     if (!authenticated) {
-        throw new AppException(ErrorCode.PASSWORD_MISMATCH);
+      throw new AppException(ErrorCode.PASSWORD_MISMATCH);
     }
 
     if (!user.isActive()) {
-        throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
+      throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
     }
 
-    // 2. Clean up expired tokens
+    // Clean up expired tokens
     activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
     activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
 
-    // 3. Check for existing tokens
-    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
-
-    if (existingTokenOpt.isPresent()) {
-        ActiveToken existingToken = existingTokenOpt.get();
-        Date currentTime = new Date();
-
-        // If access token is still valid, reuse it
-        if (existingToken.getExpiryTime().after(currentTime)) {
-            // Set refresh token in cookie
-            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
-            
-            // Return only the access token in the response body
-            return AuthenticationResponse.builder()
-                .token(existingToken.getToken())
-                .authenticated(true)
-                .build();
-        }
-        // If access token expired but refresh token is valid, create new access token
-        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
-            // Generate new plain JWT token
-            String plainNewAccessToken = generateToken(user, existingToken.getId());
-            Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
-
-            // Encrypt new token
-            String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
-
-            // Update only access token, keep refresh token
-            existingToken.setToken(encryptedNewAccessToken);
-            existingToken.setExpiryTime(newExpiryTime);
-            existingToken.setDescription("Refreshed at " + new Date());
-
-            activeTokenRepository.save(existingToken);
-
-            // Set refresh token in cookie
-            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
-            
-            // Return only the access token in the response body
-            return AuthenticationResponse.builder()
-                .token(encryptedNewAccessToken)
-                .authenticated(true)
-                .build();
-        }
-        // Both tokens expired, delete and create new ones
-        else {
-            activeTokenRepository.delete(existingToken);
-        }
-    }
-
-    // 4. Create new tokens
+    // Tạo mới tokens
     String jwtId = UUID.randomUUID().toString();
+
+    // Tạo plain JWT tokens sử dụng dynamic key
     String plainAccessToken = generateToken(user, jwtId);
     String plainRefreshToken = generateRefreshToken(user, jwtId);
 
-    Date expiryTime = extractTokenExpiry(plainAccessToken);
-    Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+    // Lấy expiry time từ token mà không verify signature
+    Date expiryTime;
+    Date expireRefreshTime;
+
+    try {
+      expiryTime = extractTokenExpiry(plainAccessToken);
+      expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+    } catch (Exception e) {
+      log.error("Error extracting token expiry: {}", e.getMessage());
+      // Fallback nếu có lỗi
+      expiryTime = new Date(new Date().getTime() + TOKEN_EXPIRY_TIME);
+      expireRefreshTime = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
+    }
 
     // Encrypt tokens
     String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
     String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
 
-    // 5. Save encrypted tokens in database
+    // Lưu token đã mã hóa vào database
     ActiveToken newToken = ActiveToken.builder()
         .id(jwtId)
         .token(encryptedAccessToken)
@@ -451,110 +413,137 @@ public class AuthenticationService {
         .description("Login at " + new Date())
         .build();
 
-    activeTokenRepository.save(newToken);
-
-    // 6. Set refresh token in cookie
-    cookieService.createRefreshTokenCookie(httpResponse, encryptedRefreshToken);
-    
-    // 7. Return only the access token in the response body
-    return AuthenticationResponse.builder()
-        .token(encryptedAccessToken)
-        .authenticated(true)
-        .build();
-}
-
-  @Transactional
-  public AuthenticationResponse authenticateWithCookies(String username, HttpServletResponse httpResponse) {
-    // 1. Get the user
-    User user = userRepository.findByUsername(username)
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-
-    // 2. Clean up expired tokens
-    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
-
-    // 3. Check for existing tokens
+    // Xóa token cũ nếu có
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+    existingTokenOpt.ifPresent(activeTokenRepository::delete);
 
-    if (existingTokenOpt.isPresent()) {
-        ActiveToken existingToken = existingTokenOpt.get();
-        Date currentTime = new Date();
-
-        // If access token is still valid, reuse it
-        if (existingToken.getExpiryTime().after(currentTime)) {
-            // Set refresh token in cookie
-            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
-            
-            // Return only the access token in the response body
-            return AuthenticationResponse.builder()
-                .token(existingToken.getToken())
-                .authenticated(true)
-                .build();
-        } 
-        // If access token expired but refresh token is valid, create new access token
-        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
-            // Generate new plain JWT token
-            String plainNewAccessToken = generateToken(user, existingToken.getId());
-            Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
-
-            // Encrypt new token
-            String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
-
-            // Update only access token, keep refresh token
-            existingToken.setToken(encryptedNewAccessToken);
-            existingToken.setExpiryTime(newExpiryTime);
-            existingToken.setDescription("Refreshed at " + new Date());
-
-            activeTokenRepository.save(existingToken);
-
-            // Set refresh token in cookie
-            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
-            
-            // Return only the access token in the response body
-            return AuthenticationResponse.builder()
-                .token(encryptedNewAccessToken)
-                .authenticated(true)
-                .build();
-        }
-        // Both tokens expired, delete and create new ones
-        else {
-            activeTokenRepository.delete(existingToken);
-        }
-    }
-
-    // 4. Create new tokens
-    String jwtId = UUID.randomUUID().toString();
-    String plainAccessToken = generateToken(user, jwtId);
-    String plainRefreshToken = generateRefreshToken(user, jwtId);
-
-    Date expiryTime = extractTokenExpiry(plainAccessToken);
-    Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
-
-    // Encrypt tokens
-    String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
-    String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
-
-    // 5. Save encrypted tokens in database
-    ActiveToken newToken = ActiveToken.builder()
-        .id(jwtId)
-        .token(encryptedAccessToken)
-        .refreshToken(encryptedRefreshToken)
-        .expiryTime(expiryTime)
-        .expiryRefreshTime(expireRefreshTime)
-        .username(user.getUsername())
-        .description("OAuth Login at " + new Date())
-        .build();
-
+    // Lưu token mới
     activeTokenRepository.save(newToken);
 
-    // 6. Set refresh token in cookie
+    // Đặt refresh token trong cookie
     cookieService.createRefreshTokenCookie(httpResponse, encryptedRefreshToken);
-    
-    // 7. Return only the access token in the response body
+
+    // Trả về access token
     return AuthenticationResponse.builder()
         .token(encryptedAccessToken)
         .authenticated(true)
         .build();
+  }
+  
+@Transactional
+public AuthenticationResponse authenticateWithCookies(String username, HttpServletResponse httpResponse) {
+  // 1. Get the user
+  User user = userRepository.findByUsername(username)
+      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+  // 2. Clean up expired tokens
+  activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+  activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+
+  // 3. Check for existing tokens
+  Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+
+  if (existingTokenOpt.isPresent()) {
+    ActiveToken existingToken = existingTokenOpt.get();
+    Date currentTime = new Date();
+
+    // If access token is still valid, reuse it
+    if (existingToken.getExpiryTime().after(currentTime)) {
+      // Set refresh token in cookie
+      cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
+
+      // Return only the access token in the response body
+      return AuthenticationResponse.builder()
+          .token(existingToken.getToken())
+          .authenticated(true)
+          .build();
+    }
+    // If access token expired but refresh token is valid, create new access token
+    else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+      try {
+        // Generate new plain JWT token
+        String plainNewAccessToken = generateToken(user, existingToken.getId());
+        Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+
+        // Encrypt new token
+        String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+
+        // Update only access token, keep refresh token
+        existingToken.setToken(encryptedNewAccessToken);
+        existingToken.setExpiryTime(newExpiryTime);
+        existingToken.setDescription("OAuth Refreshed at " + new Date());
+
+        activeTokenRepository.save(existingToken);
+
+        // Set refresh token in cookie
+        cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
+
+        // Return only the access token in the response body
+        return AuthenticationResponse.builder()
+            .token(encryptedNewAccessToken)
+            .authenticated(true)
+            .build();
+      } catch (Exception e) {
+        log.error("Error refreshing token for OAuth user {}: {}", username, e.getMessage());
+        // Xóa token lỗi và tiếp tục tạo mới
+        activeTokenRepository.delete(existingToken);
+      }
+    }
+    // Both tokens expired, delete and create new ones
+    else {
+      activeTokenRepository.delete(existingToken);
+    }
+  }
+
+  // 4. Create new tokens
+  String jwtId = UUID.randomUUID().toString();
+  String plainAccessToken, plainRefreshToken;
+
+  try {
+    plainAccessToken = generateToken(user, jwtId);
+    plainRefreshToken = generateRefreshToken(user, jwtId);
+  } catch (Exception e) {
+    log.error("Error generating tokens for OAuth user {}: {}", username, e.getMessage());
+    throw new AppException(ErrorCode.GENERAL_EXCEPTION);
+  }
+
+  Date expiryTime, expireRefreshTime;
+
+  try {
+    expiryTime = extractTokenExpiry(plainAccessToken);
+    expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+  } catch (Exception e) {
+    log.error("Error extracting token expiry: {}", e.getMessage());
+    // Fallback nếu có lỗi
+    expiryTime = new Date(new Date().getTime() + TOKEN_EXPIRY_TIME);
+    expireRefreshTime = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
+  }
+
+  // Encrypt tokens
+  String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
+  String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
+
+  // 5. Save encrypted tokens in database
+  ActiveToken newToken = ActiveToken.builder()
+      .id(jwtId)
+      .token(encryptedAccessToken)
+      .refreshToken(encryptedRefreshToken)
+      .expiryTime(expiryTime)
+      .expiryRefreshTime(expireRefreshTime)
+      .username(user.getUsername())
+      .description("OAuth Login with dynamic key at " + new Date())
+      .build();
+
+  activeTokenRepository.save(newToken);
+
+  // 6. Set refresh token in cookie
+  cookieService.createRefreshTokenCookie(httpResponse, encryptedRefreshToken);
+
+  // 7. Return only the access token in the response body
+  return AuthenticationResponse.builder()
+      .token(encryptedAccessToken)
+      .authenticated(true)
+      .build();
 }
 
   @Transactional
@@ -1301,90 +1290,171 @@ public class AuthenticationService {
 
   private SignedJWT verifyToken(String token) throws ParseException, JOSEException {
     SignedJWT signedJWT = SignedJWT.parse(token);
-    JWSVerifier verifier = new MACVerifier(SECRET_KEY_BYTES);
-    Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-    boolean verified = signedJWT.verify(verifier) && expiryTime.after(new Date());
+
+    // Trích xuất thông tin cho dynamic key
+    String userIdStr = signedJWT.getJWTClaimsSet().getStringClaim("userId");
+    String refreshExpiryStr = signedJWT.getJWTClaimsSet().getStringClaim("refreshExpiry");
+
+    boolean verified = false;
+
+    // Trường hợp 1: Token mới với dynamic key
+    if (userIdStr != null && !userIdStr.isEmpty() &&
+        refreshExpiryStr != null && !refreshExpiryStr.isEmpty()) {
+      try {
+        UUID userId = UUID.fromString(userIdStr);
+
+        // Parse the refresh expiry
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        Date refreshExpiry = sdf.parse(refreshExpiryStr);
+
+        // Compute dynamic key
+        byte[] dynamicKey = computeDynamicSecretKey(userId, refreshExpiry);
+        JWSVerifier dynamicVerifier = new MACVerifier(dynamicKey);
+
+        verified = signedJWT.verify(dynamicVerifier);
+
+        if (verified) {
+          log.debug("Token verified with dynamic key for user: {}", userIdStr);
+          Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+          verified = expiryTime.after(new Date());
+        }
+      } catch (Exception e) {
+        log.warn("Error verifying with dynamic key: {}", e.getMessage());
+        verified = false;
+      }
+    }
+
+    // Trường hợp 2: Token cũ hoặc OAuth token
     if (!verified) {
+      try {
+        JWSVerifier staticVerifier = new MACVerifier(getSecretKeyBytes());
+        verified = signedJWT.verify(staticVerifier);
+
+        if (verified) {
+          log.debug("Token verified with static key");
+          Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+          verified = expiryTime.after(new Date());
+        }
+      } catch (Exception e) {
+        log.warn("Error verifying with static key: {}", e.getMessage());
+        verified = false;
+      }
+    }
+
+    // Trường hợp 3: Token không xác thực được
+    if (!verified) {
+      log.error("Token validation failed completely");
       throw new AppException(ErrorCode.INVALID_TOKEN);
     }
+
     return signedJWT;
   }
 
   public String generateToken(User user, String jwtId) {
     try {
-      JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
-      JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-          .subject(user.getUsername())
-          .claim("userId", user.getId().toString())
-          .issuer("tommem.com")
-          .issueTime(new Date())
-          .expirationTime(new Date(new Date().getTime() + TOKEN_EXPIRY_TIME))
-          .jwtID(jwtId)
-          .claim("scope", buildScope(user))
-          .build();
-      Payload payload = new Payload(jwtClaimsSet.toJSONObject());
+        // Compute expiry times
+        Date tokenExpiry = new Date(new Date().getTime() + TOKEN_EXPIRY_TIME);
+        Date refreshExpiry = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
+        
+        // Format refresh expiry for claim
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        String refreshExpiryStr = sdf.format(refreshExpiry);
+        
+        // Compute dynamic key
+        byte[] secretKey = computeDynamicSecretKey(user.getId(), refreshExpiry);
+        
+        JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
+        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+            .subject(user.getUsername())
+            .claim("userId", user.getId().toString())
+            .claim("refreshExpiry", refreshExpiryStr) // Include for verification
+            .issuer("tommem.com")
+            .issueTime(new Date())
+            .expirationTime(tokenExpiry)
+            .jwtID(jwtId)
+            .claim("scope", buildScope(user))
+            .build();
+        Payload payload = new Payload(jwtClaimsSet.toJSONObject());
 
-      JWSObject jwsObject = new JWSObject(jwsHeader, payload);
-      jwsObject.sign(new MACSigner(SECRET_KEY_BYTES));
-      String token = jwsObject.serialize();
+        JWSObject jwsObject = new JWSObject(jwsHeader, payload);
+        jwsObject.sign(new MACSigner(secretKey));
+        String token = jwsObject.serialize();
 
-      return token;
+        return token;
     } catch (Exception e) {
-      log.error("Error generating token: {}", e.getMessage(), e);
-      return null;
+        log.error("Error generating token: {}", e.getMessage(), e);
+        return null;
     }
-  }
+}
 
-  private String generateRefreshToken(User user, String jwtId) {
+ private String generateRefreshToken(User user, String jwtId) {
     try {
-      JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
-      JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-          .subject(user.getUsername())
-          .claim("userId", user.getId().toString())
-          .issuer("tommem.com")
-          .issueTime(new Date())
-          .expirationTime(new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME))
-          .jwtID(jwtId)
-          .claim("scope", buildScope(user))
-          .build();
-      Payload payload = new Payload(jwtClaimsSet.toJSONObject());
+        Date refreshExpiry = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        String refreshExpiryStr = sdf.format(refreshExpiry);
+        
+        // Use same dynamic key algorithm
+        byte[] secretKey = computeDynamicSecretKey(user.getId(), refreshExpiry);
+        
+        JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
+        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+            .subject(user.getUsername())
+            .claim("userId", user.getId().toString())
+            .claim("refreshExpiry", refreshExpiryStr)
+            .issuer("tommem.com")
+            .issueTime(new Date())
+            .expirationTime(refreshExpiry)
+            .jwtID(jwtId)
+            .claim("scope", buildScope(user))
+            .build();
+        Payload payload = new Payload(jwtClaimsSet.toJSONObject());
 
-      JWSObject jwsObject = new JWSObject(jwsHeader, payload);
-      jwsObject.sign(new MACSigner(SECRET_KEY_BYTES));
-      String token = jwsObject.serialize();
-
-      return token;
+        JWSObject jwsObject = new JWSObject(jwsHeader, payload);
+        jwsObject.sign(new MACSigner(secretKey));
+        
+        return jwsObject.serialize();
     } catch (Exception e) {
-      log.error("Error generating refresh token: {}", e.getMessage(), e);
-      return null;
+        log.error("Error generating refresh token: {}", e.getMessage(), e);
+        return null;
     }
-  }
+}
 
   // Add this new method for OAuth tokens with longer expiry time
-  private String generateOAuthToken(User user, String jwtId, long expiryTimeMillis) {
-      try {
-          JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
-          JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-              .subject(user.getUsername())
-              .claim("userId", user.getId().toString())
-              .issuer("tommem.com")
-              .issueTime(new Date())
-              .expirationTime(new Date(new Date().getTime() + expiryTimeMillis)) // Use passed expiry time
-              .jwtID(jwtId)
-              .claim("scope", buildScope(user))
-              .claim("tokenSource", "oauth") // Add a marker that this is an OAuth token
-              .build();
-          Payload payload = new Payload(jwtClaimsSet.toJSONObject());
+private String generateOAuthToken(User user, String jwtId, long expiryTimeMillis) {
+    try {
+        // Tính toán ngày hết hạn
+        Date tokenExpiry = new Date(new Date().getTime() + expiryTimeMillis);
+        Date refreshExpiry = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
+        
+        // Format refresh expiry for claim
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        String refreshExpiryStr = sdf.format(refreshExpiry);
+        
+        // Compute dynamic key
+        byte[] secretKey = computeDynamicSecretKey(user.getId(), refreshExpiry);
+        
+        JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
+        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+            .subject(user.getUsername())
+            .claim("userId", user.getId().toString())
+            .claim("refreshExpiry", refreshExpiryStr) // Thêm để có thể tái tạo key
+            .issuer("tommem.com")
+            .issueTime(new Date())
+            .expirationTime(tokenExpiry)
+            .jwtID(jwtId)
+            .claim("scope", buildScope(user))
+            .claim("tokenSource", "oauth") // Đánh dấu là token OAuth
+            .build();
+        Payload payload = new Payload(jwtClaimsSet.toJSONObject());
 
-          JWSObject jwsObject = new JWSObject(jwsHeader, payload);
-          jwsObject.sign(new MACSigner(SECRET_KEY_BYTES));
-          return jwsObject.serialize();
-      } catch (Exception e) {
-          log.error("Error generating OAuth token: {}", e.getMessage(), e);
-          return null;
-      }
-  }
-
+        JWSObject jwsObject = new JWSObject(jwsHeader, payload);
+        jwsObject.sign(new MACSigner(secretKey));
+        return jwsObject.serialize();
+    } catch (Exception e) {
+        log.error("Error generating OAuth token: {}", e.getMessage(), e);
+        return null;
+    }
+}
   private String buildScope(User user) {
     // Build the scope based on user roles
     StringJoiner scopeJoiner = new StringJoiner(" ");
@@ -1400,23 +1470,45 @@ public class AuthenticationService {
     return scopeJoiner.toString();
   }
 
-  private Date extractTokenExpiry(String token) {
-    Claims claims = Jwts.parser()
-        .verifyWith(Keys.hmacShaKeyFor(SECRET_KEY_BYTES))
-        .build()
-        .parseSignedClaims(token)
-        .getPayload();
-    return claims.getExpiration();
-  }
-  
-  private Claims extractAllClaims(String token) {
-    return Jwts.parser()
-        .verifyWith(Keys.hmacShaKeyFor(SECRET_KEY_BYTES))
-        .build()
-        .parseSignedClaims(token)
-        .getPayload();
-  }
+private Date extractTokenExpiry(String token) {
+    try {
+        // Đầu tiên parse JWT để lấy thông tin mà không cần verify
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        
+        // Trực tiếp trả về thời hạn của token mà không cần kiểm tra thêm
+        return signedJWT.getJWTClaimsSet().getExpirationTime();
+    } catch (Exception e) {
+        // Nếu không parse được bằng phương pháp trên, thử với cách cũ
+        log.warn("Error parsing token with SignedJWT, falling back to static method: {}", e.getMessage());
+        try {
+            Claims claims = Jwts.parser()
+                .verifyWith(Keys.hmacShaKeyFor(getSecretKeyBytes()))
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+            return claims.getExpiration();
+        } catch (Exception ex) {
+            log.error("Failed to extract token expiry: {}", ex.getMessage());
+            // Trả về thời gian hiện tại - 1 để xem như token đã hết hạn
+            return new Date(System.currentTimeMillis() - 1000);
+        }
+    }
+}
 
+private Claims extractAllClaims(String token) {
+    try {
+        // Thử trực tiếp với parser của JJWT
+        return Jwts.parser()
+            .verifyWith(Keys.hmacShaKeyFor(getSecretKeyBytes()))
+            .build()
+            .parseSignedClaims(token)
+            .getPayload();
+    } catch (Exception e) {
+        log.warn("Error parsing token with JJWT parser: {}", e.getMessage());
+        // Trong trường hợp lỗi, ném ngoại lệ
+        throw new AppException(ErrorCode.INVALID_TOKEN);
+    }
+}
   private String generateSixDigitCode() {
     Random random = new Random();
     int code = 100000 + random.nextInt(900000); // Generates a number between 100000 and 999999
@@ -1433,4 +1525,7 @@ public class AuthenticationService {
     activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
   }
 
+  public byte[] computeDynamicSecretKey(UUID userId, Date refreshTokenExpiry) {
+    return jwtUtils.computeDynamicSecretKey(userId, refreshTokenExpiry);
+  }
 }

@@ -3,7 +3,7 @@ package com.database.study.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication; // Add this import
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -18,7 +18,6 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
-import com.database.study.service.AuthenticationService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,11 +26,13 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -42,6 +43,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     
     @Autowired
     private EncryptionService encryptionService;
+    
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -61,7 +65,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 logger.info("Token decrypted successfully");
                 
                 // 2. Extract username from the decrypted JWT
-                String username = extractUsernameFromPlainJwt(plainJwtToken);
+                SignedJWT signedJWT = SignedJWT.parse(plainJwtToken);
+                String username = signedJWT.getJWTClaimsSet().getSubject();
                 if (username == null) {
                     logger.error("Username extraction failed");
                     throw new AppException(ErrorCode.INVALID_TOKEN);
@@ -89,8 +94,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                     throw new AppException(ErrorCode.INVALID_TOKEN);
                 }
                 
-                // 6. Verify JWT signature and expiry of the plain JWT
-                SignedJWT signedJWT = verifyJwtToken(plainJwtToken);
+                // 6. Verify JWT signature using dynamic key if available
+                verifyJwtSignature(signedJWT);
                 
                 // 7. Extract authorities from JWT
                 Collection<SimpleGrantedAuthority> authorities = extractAuthoritiesFromJwt(signedJWT);
@@ -128,30 +133,59 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         logger.info("After doFilter - Authentication in context: " + 
                 (afterAuth != null ? afterAuth.getName() : "null"));
     }
-        
-    private String extractUsernameFromPlainJwt(String token) {
-        try {
-            SignedJWT signedJWT = SignedJWT.parse(token);
-            return signedJWT.getJWTClaimsSet().getSubject();
-        } catch (Exception e) {
-            logger.error("Error extracting username from token", e);
-            return null;
-        }
-    }
     
-    private SignedJWT verifyJwtToken(String token) throws ParseException, JOSEException {
-        SignedJWT signedJWT = SignedJWT.parse(token);
-        JWSVerifier verifier = new MACVerifier(AuthenticationService.getSecretKeyBytes());
-        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-        boolean verified = signedJWT.verify(verifier) && expiryTime.after(new Date());
+    // Phương thức này đã được đơn giản hóa để sử dụng AuthenticationService
+    private void verifyJwtSignature(SignedJWT signedJWT) throws ParseException, JOSEException {
+        // Extract info for dynamic key
+        String userIdStr = signedJWT.getJWTClaimsSet().getStringClaim("userId");
+        String refreshExpiryStr = signedJWT.getJWTClaimsSet().getStringClaim("refreshExpiry");
+        
+        boolean verified = false;
+        
+        // First try with dynamic key if needed info is available
+        if (userIdStr != null && !userIdStr.isEmpty() && 
+            refreshExpiryStr != null && !refreshExpiryStr.isEmpty()) {
+            try {
+                UUID userId = UUID.fromString(userIdStr);
+                
+                // Parse the refresh expiry
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+                Date refreshExpiry = sdf.parse(refreshExpiryStr);
+                
+                // Sử dụng computeDynamicSecretKey từ AuthenticationService
+                byte[] dynamicKey = jwtUtils.computeDynamicSecretKey(userId, refreshExpiry);
+                JWSVerifier dynamicVerifier = new MACVerifier(dynamicKey);
+                
+                verified = signedJWT.verify(dynamicVerifier);
+                
+                if (verified) {
+                    logger.debug("Token verified with dynamic key for user: " + userIdStr);
+                    Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+                    verified = expiryTime.after(new Date());
+                }
+            } catch (Exception e) {
+                logger.warn("Error verifying with dynamic key: " + e.getMessage(), e);
+                verified = false;
+            }
+        }
+        
+        // If not verified with dynamic key, try with static key for backward compatibility
+        if (!verified) {
+            JWSVerifier staticVerifier = new MACVerifier(jwtUtils.getSecretKeyBytes());
+            verified = signedJWT.verify(staticVerifier);
+            
+            if (verified) {
+                logger.debug("Token verified with static key");
+                Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+                verified = expiryTime.after(new Date());
+            }
+        }
         
         if (!verified) {
             throw new AppException(ErrorCode.INVALID_TOKEN);
         }
-        
-        return signedJWT;
     }
-    
+        
     private Collection<SimpleGrantedAuthority> extractAuthoritiesFromJwt(SignedJWT jwt) {
         try {
             // Get the scope claim which contains space-separated role/permission strings
