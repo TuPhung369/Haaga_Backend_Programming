@@ -104,10 +104,6 @@ public class AuthenticationService {
   static final long TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 1 minutes
   static final long REFRESH_TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-  public byte[] getSecretKeyBytes() {
-    return jwtUtils.getSecretKeyBytes();
-  }
-
   @Transactional
   public AuthenticationResponse authenticate(AuthenticationRequest request) {
     // 1. Authenticate the user
@@ -1308,7 +1304,7 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
         Date refreshExpiry = sdf.parse(refreshExpiryStr);
 
         // Compute dynamic key
-        byte[] dynamicKey = computeDynamicSecretKey(userId, refreshExpiry);
+        byte[] dynamicKey = jwtUtils.computeDynamicSecretKey(userId, refreshExpiry);
         JWSVerifier dynamicVerifier = new MACVerifier(dynamicKey);
 
         verified = signedJWT.verify(dynamicVerifier);
@@ -1327,7 +1323,7 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
     // Trường hợp 2: Token cũ hoặc OAuth token
     if (!verified) {
       try {
-        JWSVerifier staticVerifier = new MACVerifier(getSecretKeyBytes());
+        JWSVerifier staticVerifier = new MACVerifier(jwtUtils.getSecretKeyBytes());
         verified = signedJWT.verify(staticVerifier);
 
         if (verified) {
@@ -1361,7 +1357,7 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
         String refreshExpiryStr = sdf.format(refreshExpiry);
         
         // Compute dynamic key
-        byte[] secretKey = computeDynamicSecretKey(user.getId(), refreshExpiry);
+        byte[] secretKey = jwtUtils.computeDynamicSecretKey(user.getId(), refreshExpiry);
         
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
@@ -1394,7 +1390,7 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
         String refreshExpiryStr = sdf.format(refreshExpiry);
         
         // Use same dynamic key algorithm
-        byte[] secretKey = computeDynamicSecretKey(user.getId(), refreshExpiry);
+        byte[] secretKey = jwtUtils.computeDynamicSecretKey(user.getId(), refreshExpiry);
         
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
@@ -1431,19 +1427,19 @@ private String generateOAuthToken(User user, String jwtId, long expiryTimeMillis
         String refreshExpiryStr = sdf.format(refreshExpiry);
         
         // Compute dynamic key
-        byte[] secretKey = computeDynamicSecretKey(user.getId(), refreshExpiry);
+        byte[] secretKey = jwtUtils.computeDynamicSecretKey(user.getId(), refreshExpiry);
         
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
             .subject(user.getUsername())
             .claim("userId", user.getId().toString())
-            .claim("refreshExpiry", refreshExpiryStr) // Thêm để có thể tái tạo key
+            .claim("refreshExpiry", refreshExpiryStr)
             .issuer("tommem.com")
             .issueTime(new Date())
             .expirationTime(tokenExpiry)
             .jwtID(jwtId)
             .claim("scope", buildScope(user))
-            .claim("tokenSource", "oauth") // Đánh dấu là token OAuth
+            .claim("tokenSource", "oauth")
             .build();
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
 
@@ -1482,7 +1478,7 @@ private Date extractTokenExpiry(String token) {
         log.warn("Error parsing token with SignedJWT, falling back to static method: {}", e.getMessage());
         try {
             Claims claims = Jwts.parser()
-                .verifyWith(Keys.hmacShaKeyFor(getSecretKeyBytes()))
+                .verifyWith(Keys.hmacShaKeyFor(jwtUtils.getSecretKeyBytes()))
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -1499,7 +1495,7 @@ private Claims extractAllClaims(String token) {
     try {
         // Thử trực tiếp với parser của JJWT
         return Jwts.parser()
-            .verifyWith(Keys.hmacShaKeyFor(getSecretKeyBytes()))
+            .verifyWith(Keys.hmacShaKeyFor(jwtUtils.getSecretKeyBytes()))
             .build()
             .parseSignedClaims(token)
             .getPayload();
@@ -1525,7 +1521,4 @@ private Claims extractAllClaims(String token) {
     activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
   }
 
-  public byte[] computeDynamicSecretKey(UUID userId, Date refreshTokenExpiry) {
-    return jwtUtils.computeDynamicSecretKey(userId, refreshTokenExpiry);
-  }
 }

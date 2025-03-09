@@ -1,12 +1,13 @@
 package com.database.study.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.database.study.service.JwtKeyProvider;
+import jakarta.annotation.PostConstruct;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
@@ -18,15 +19,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 public class JwtUtils {
-    private final JwtKeyProvider jwtKeyProvider;
+    @Value("${JWT_KEY}")
+    private String jwtKey;
     
-    @Autowired
-    public JwtUtils(JwtKeyProvider jwtKeyProvider) {
-        this.jwtKeyProvider = jwtKeyProvider;
+    private byte[] secretKeyBytes;
+    
+    @PostConstruct
+    public void init() {
+        secretKeyBytes = Base64.getDecoder().decode(jwtKey);
+        log.debug("JWT Key initialized, length: {}", secretKeyBytes.length);
     }
     
     public byte[] getSecretKeyBytes() {
-        return jwtKeyProvider.getSecretKeyBytes();
+        return secretKeyBytes;
     }
     
     public byte[] computeDynamicSecretKey(UUID userId, Date refreshTokenExpiry) {
@@ -40,10 +45,10 @@ public class JwtUtils {
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             byte[] step1Result = sha256.digest(input.getBytes(StandardCharsets.UTF_8));
             
-            // Step 2: HMAC(result_from_step_1, getSecretKeyBytes())
+            // Step 2: HMAC(result_from_step_1, secretKeyBytes)
             Mac hmac = Mac.getInstance("HmacSHA256");
             SecretKeySpec keySpec = new SecretKeySpec(
-                getSecretKeyBytes(),
+                secretKeyBytes,
                 "HmacSHA256"
             );
             hmac.init(keySpec);
@@ -60,7 +65,7 @@ public class JwtUtils {
         } catch (Exception e) {
             log.error("Error computing dynamic secret key: {}", e.getMessage(), e);
             // Fallback to static key for backward compatibility
-            return getSecretKeyBytes();
+            return secretKeyBytes;
         }
     }
 }

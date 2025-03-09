@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Component;
 
-import com.database.study.service.JwtKeyProvider;
+import com.database.study.security.JwtUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,19 +20,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 @Component
 public class CustomJwtDecoder implements JwtDecoder {
-
-  private final JwtKeyProvider jwtKeyProvider;
+  private final JwtUtils jwtUtils;
   private NimbusJwtDecoder nimbusJwtDecoder = null;
 
   @Autowired
-  public CustomJwtDecoder(JwtKeyProvider jwtKeyProvider) {
-    this.jwtKeyProvider = jwtKeyProvider;
+  public CustomJwtDecoder(JwtUtils jwtUtils) {
+    this.jwtUtils = jwtUtils;
   }
 
   @Override
   public Jwt decode(String token) throws JwtException {
     if (Objects.isNull(nimbusJwtDecoder)) {
-      byte[] secretKeyBytes = jwtKeyProvider.getSecretKeyBytes();
+      byte[] secretKeyBytes = jwtUtils.getSecretKeyBytes();
       SecretKeySpec secretKeySpec = new SecretKeySpec(secretKeyBytes, "HmacSHA512");
       nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
           .macAlgorithm(MacAlgorithm.HS512)
