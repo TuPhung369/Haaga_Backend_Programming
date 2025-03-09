@@ -162,7 +162,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
       // Focus the appropriate input based on paste length
       const focusIndex = Math.min(5, digits.length);
       if (inputRefs[focusIndex]?.current) {
-        inputRefs[focusIndex].current.focus();
+        inputRefs[focusIndex].current?.focus();
       }
     }
   };

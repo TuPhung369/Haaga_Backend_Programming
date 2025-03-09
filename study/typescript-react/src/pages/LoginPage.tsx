@@ -25,7 +25,7 @@ import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
 import { resetAllData } from "../store/resetActions";
-import { ValidationInput, AuthState, AuthError } from "../type/authType";
+import { ValidationInput, AuthState, AuthError } from "../type/types";
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
 

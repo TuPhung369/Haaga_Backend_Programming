@@ -39,26 +39,30 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance): void => {
         originalRequest._retry = true;
 
         try {
+          const currentToken = store.getState().auth.token;
           // Try to refresh the token
-          await setupTokenRefresh(store.getState().auth.token);
+          if (currentToken) {
+            // Try to refresh the token
+            await setupTokenRefresh(currentToken);
 
-          // Update the token in the request
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${
-              store.getState().auth.token
-            }`;
+            // Update the token in the request
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${
+                store.getState().auth.token
+              }`;
+            }
+
+            // Retry the original request with the new token
+            return axiosInstance(originalRequest);
+          } else {
+            throw new Error("No token available for refresh");
           }
-
-          // Retry the original request with the new token
-          return axiosInstance(originalRequest);
         } catch (refreshError) {
           // If refresh fails, redirect to login
           console.error("Token refresh failed:", refreshError);
           return Promise.reject(refreshError);
         }
       }
-
-      return Promise.reject(error);
     }
   );
 };

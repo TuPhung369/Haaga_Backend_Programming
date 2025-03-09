@@ -1,5 +1,5 @@
 // src/utils/validateInput.ts
-import { ValidationInput, ValidationErrors } from "../type/authType";
+import { ValidationInput, ValidationErrors } from "../type/types";
 
 export const validationMessages = {
   USERNAME_LENGTH: "Username must be between 5 and 20 characters.",

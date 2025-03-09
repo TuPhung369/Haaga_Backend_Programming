@@ -57,10 +57,11 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 cookie:
-  secure: false # This should be false for localhost (http) development
-  http-only: true
-  same-site: Lax # Try changing to "None" for cross-domain requests
-  max-age: 604800
+  secure: false # Just sent Cookie via HTTPS (local -> false)
+  http-only: true # Prevent JavaScript access Cookie (prevent XSS)
+  same-site: Lax # Support direction with FE, BE same Domain (`None` if FE vs BE run diff domain)
+  max-age: 604800 # expired 7 days
+  #_HOST_: #_HOST_refresh_token -> cookies working only main Domain (no use Sub Domain)
 
 logging:
   level:
