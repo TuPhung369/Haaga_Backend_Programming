@@ -187,28 +187,4 @@ public class EncryptionService {
             }
         }
     }
-    
-    /**
-     * Generate a user-specific key for better security
-     */
-    public byte[] generateUserSpecificKey(UUID userId) {
-        try {
-            // Convert user ID to bytes to use as salt
-            byte[] userIdBytes = userId.toString().getBytes(StandardCharsets.UTF_8);
-            
-            // Use PBKDF2 with user ID as salt
-            return deriveKeyWithPBKDF2(encryptionKey, userIdBytes);
-        } catch (Exception e) {
-            throw new RuntimeException("Error generating user-specific key", e);
-        }
-    }
-    
-    /**
-     * Generate a random secure key
-     */
-    public static String generateSecureKey() {
-        byte[] key = new byte[AES_KEY_LENGTH_BYTES];
-        new SecureRandom().nextBytes(key);
-        return Base64.getEncoder().encodeToString(key);
-    }
 }
