@@ -70,7 +70,11 @@ public enum ErrorCode {
         REFRESH_TOKEN_EXPIRED(4014,ENUMS.ErrorMessages.REFRESH_TOKEN_EXPIRED.getMessage(),HttpStatus.UNAUTHORIZED,
                         "401", ENUMS.Severity.HIGH.name()), // Unauthorized
         EMAIL_ALREADY_EXISTS(5001, ENUMS.ErrorMessages.EMAIL_ALREADY_EXISTS.getMessage(),HttpStatus.CONFLICT,
-                        "409", ENUMS.Severity.MEDIUM.name());
+                        "409", ENUMS.Severity.MEDIUM.name()),
+        TOTP_REQUIRED(4015, ENUMS.ErrorMessages.TOTP_REQUIRED.getMessage(), HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
+        TOTP_INVALID(4016, ENUMS.ErrorMessages.TOTP_INVALID.getMessage(), HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
+        TOTP_ALREADY_ENABLED(4091, ENUMS.ErrorMessages.TOTP_ALREADY_ENABLED.getMessage(), HttpStatus.CONFLICT, "409",
+                        ENUMS.Severity.MEDIUM.name());
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
                 this.code = code;

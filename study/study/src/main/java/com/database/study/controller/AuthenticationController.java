@@ -6,6 +6,7 @@ import com.database.study.dto.request.*;
 import com.database.study.dto.response.*;
 import com.database.study.security.GoogleTokenValidation;
 import com.database.study.service.AuthenticationService;
+import com.database.study.service.CookieService;
 import com.nimbusds.jose.JOSEException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -25,6 +26,7 @@ public class AuthenticationController {
 
   AuthenticationService authenticationService;
   GoogleTokenValidation googleTokenValidationService;
+  CookieService cookieService;
 
 
   // Authenticate user and generate token
@@ -99,6 +101,39 @@ public class AuthenticationController {
     return authenticationService.verifyEmailChange(request);
   }
 
+@PostMapping("/totp/token")
+public ApiResponse<AuthenticationResponse> authenticateWithTotp(@RequestBody TotpAuthenticationRequest request) {
+    var result = authenticationService.authenticateWithTotp(request);
+    return ApiResponse.<AuthenticationResponse>builder()
+        .result(result)
+        .build();
+}
+
+  @PostMapping("/totp/token/cookie")
+  public ApiResponse<AuthenticationResponse> authenticateWithTotpAndCookies(
+          @RequestBody TotpAuthenticationRequest request,
+      HttpServletResponse response) {
+
+    // First authenticate with TOTP
+    var authResult = authenticationService.authenticateWithTotp(request);
+
+    // Then set refresh token cookie if authentication successful
+    if (authResult.isAuthenticated()) {
+      cookieService.createRefreshTokenCookie(response, authResult.getRefreshToken());
+
+      // Don't return the refresh token in the response body when using cookies
+      return ApiResponse.<AuthenticationResponse>builder()
+          .result(AuthenticationResponse.builder()
+              .token(authResult.getToken())
+              .authenticated(true)
+              .build())
+          .build();
+    }
+
+    return ApiResponse.<AuthenticationResponse>builder()
+        .result(authResult)
+        .build();
+  }
 
   @PostMapping("/resend-verification")
   public ApiResponse<Void> resendVerification(@RequestBody ResendVerificationRequest request) {

@@ -14,6 +14,7 @@ import com.database.study.dto.request.VerifyResetTokenRequest;
 import com.database.study.dto.request.LogoutRequest;
 import com.database.study.dto.request.ResetPasswordRequest;
 import com.database.study.dto.request.TokenRefreshRequest;
+import com.database.study.dto.request.TotpAuthenticationRequest;
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.request.VerifyEmailChangeRequest;
 import com.database.study.dto.request.VerifyEmailRequest;
@@ -99,8 +100,8 @@ public class AuthenticationService {
   TokenSecurity tokenSecurity;
   CookieService cookieService;
   JwtUtils jwtUtils;
+  TotpService totpService;
 
-  static final int SURPLUS_EXPIRE_TIME = 7;
   static final long TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes
   static final long REFRESH_TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -309,6 +310,112 @@ public class AuthenticationService {
   }
 
   @Transactional
+  public AuthenticationResponse authenticateWithTotp(TotpAuthenticationRequest request) {
+    // 1. First authenticate username and password
+    User user = userRepository.findByUsername(request.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
+    if (!authenticated) {
+      throw new AppException(ErrorCode.PASSWORD_MISMATCH);
+    }
+
+    if (!user.isActive()) {
+      throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
+    }
+
+    // 2. Check if TOTP is required
+    boolean totpEnabled = totpService.isTotpEnabled(user.getUsername());
+
+    // 3. If TOTP is enabled, verify the TOTP code
+    if (totpEnabled) {
+      String totpCode = request.getTotpCode();
+
+      // If no TOTP code provided but required
+      if (totpCode == null || totpCode.isEmpty()) {
+        throw new AppException(ErrorCode.TOTP_REQUIRED);
+      }
+
+      // Verify TOTP code
+      boolean validTotp = totpService.validateCode(user.getUsername(), totpCode);
+      if (!validTotp) {
+        throw new AppException(ErrorCode.TOTP_INVALID);
+      }
+    }
+
+    // 4. If everything is valid, proceed with token generation (same as original authenticate method)
+    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+
+    if (existingTokenOpt.isPresent()) {
+      ActiveToken existingToken = existingTokenOpt.get();
+      Date currentTime = new Date();
+
+      // If access token is still valid, reuse it
+      if (existingToken.getExpiryTime().after(currentTime)) {
+        return AuthenticationResponse.builder()
+            .token(existingToken.getToken())
+            .refreshToken(existingToken.getRefreshToken())
+            .authenticated(true)
+            .build();
+      }
+      // If access token expired but refresh token is valid, create new access token
+      else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+        String plainNewAccessToken = generateToken(user, existingToken.getId());
+        Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+        String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+
+        existingToken.setToken(encryptedNewAccessToken);
+        existingToken.setExpiryTime(newExpiryTime);
+        existingToken.setDescription("Refreshed at " + new Date());
+
+        activeTokenRepository.save(existingToken);
+
+        return AuthenticationResponse.builder()
+            .token(encryptedNewAccessToken)
+            .refreshToken(existingToken.getRefreshToken())
+            .authenticated(true)
+            .build();
+      }
+      // Both tokens expired, delete and create new ones
+      else {
+        activeTokenRepository.delete(existingToken);
+      }
+    }
+
+    // Create new tokens if none exist or all expired
+    String jwtId = UUID.randomUUID().toString();
+    String plainAccessToken = generateToken(user, jwtId);
+    String plainRefreshToken = generateRefreshToken(user, jwtId);
+
+    Date expiryTime = extractTokenExpiry(plainAccessToken);
+    Date expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+
+    // Encrypt tokens
+    String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
+    String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
+
+    // Save encrypted tokens in database
+    ActiveToken newToken = ActiveToken.builder()
+        .id(jwtId)
+        .token(encryptedAccessToken)
+        .refreshToken(encryptedRefreshToken)
+        .expiryTime(expiryTime)
+        .expiryRefreshTime(expireRefreshTime)
+        .username(user.getUsername())
+        .description("Login with 2FA at " + new Date())
+        .build();
+
+    activeTokenRepository.save(newToken);
+
+    // Return encrypted tokens to client
+    return AuthenticationResponse.builder()
+        .token(encryptedAccessToken)
+        .refreshToken(encryptedRefreshToken)
+        .authenticated(true)
+        .build();
+  }
+
+  @Transactional
   public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
     String refreshToken = request.getRefreshToken();
     
@@ -355,7 +462,7 @@ public class AuthenticationService {
   }
 
   @Transactional
-public AuthenticationResponse authenticateWithCookies(AuthenticationRequest request, HttpServletResponse httpResponse) {
+  public AuthenticationResponse authenticateWithCookies(AuthenticationRequest request, HttpServletResponse httpResponse) {
     User user = userRepository.findByUsername(request.getUsername())
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
@@ -453,8 +560,8 @@ public AuthenticationResponse authenticateWithCookies(AuthenticationRequest requ
         .build();
 }
   
-@Transactional
-public AuthenticationResponse authenticateWithCookies(String username, HttpServletResponse httpResponse) {
+  @Transactional
+  public AuthenticationResponse authenticateWithCookies(String username, HttpServletResponse httpResponse) {
     User user = userRepository.findByUsername(username)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
@@ -466,37 +573,37 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
 
     if (existingTokenOpt.isPresent()) {
-        ActiveToken existingToken = existingTokenOpt.get();
-        Date currentTime = new Date();
+      ActiveToken existingToken = existingTokenOpt.get();
+      Date currentTime = new Date();
 
-        // If access token is still valid, reuse it
-        if (existingToken.getExpiryTime().after(currentTime)) {
-            log.info("Reusing existing valid token for user: {}", username);
-            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
-            return AuthenticationResponse.builder()
-                .token(existingToken.getToken())
-                .authenticated(true)
-                .build();
-        }
-        // If access token expired but refresh token is valid, create new access token
-        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
-            log.info("Access token expired but refresh token valid. Generating new access token for user: {}", username);
-            String plainNewAccessToken = generateToken(user, existingToken.getId());
-            Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
-            String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+      // If access token is still valid, reuse it
+      if (existingToken.getExpiryTime().after(currentTime)) {
+        log.info("Reusing existing valid token for user: {}", username);
+        cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
+        return AuthenticationResponse.builder()
+            .token(existingToken.getToken())
+            .authenticated(true)
+            .build();
+      }
+      // If access token expired but refresh token is valid, create new access token
+      else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+        log.info("Access token expired but refresh token valid. Generating new access token for user: {}", username);
+        String plainNewAccessToken = generateToken(user, existingToken.getId());
+        Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+        String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
 
-            existingToken.setToken(encryptedNewAccessToken);
-            existingToken.setExpiryTime(newExpiryTime);
-            existingToken.setDescription("OAuth Refreshed at " + new Date());
+        existingToken.setToken(encryptedNewAccessToken);
+        existingToken.setExpiryTime(newExpiryTime);
+        existingToken.setDescription("OAuth Refreshed at " + new Date());
 
-            activeTokenRepository.save(existingToken);
-            cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
-            return AuthenticationResponse.builder()
-                .token(encryptedNewAccessToken)
-                .authenticated(true)
-                .build();
-        }
-        // Do not delete token here if it has expired
+        activeTokenRepository.save(existingToken);
+        cookieService.createRefreshTokenCookie(httpResponse, existingToken.getRefreshToken());
+        return AuthenticationResponse.builder()
+            .token(encryptedNewAccessToken)
+            .authenticated(true)
+            .build();
+      }
+      // Do not delete token here if it has expired
     }
 
     // Create new tokens only if no valid token exists
@@ -504,21 +611,21 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
     String plainAccessToken, plainRefreshToken;
 
     try {
-        plainAccessToken = generateToken(user, jwtId);
-        plainRefreshToken = generateRefreshToken(user, jwtId);
+      plainAccessToken = generateToken(user, jwtId);
+      plainRefreshToken = generateRefreshToken(user, jwtId);
     } catch (Exception e) {
-        log.error("Error generating tokens for OAuth user {}: {}", username, e.getMessage());
-        throw new AppException(ErrorCode.GENERAL_EXCEPTION);
+      log.error("Error generating tokens for OAuth user {}: {}", username, e.getMessage());
+      throw new AppException(ErrorCode.GENERAL_EXCEPTION);
     }
 
     Date expiryTime, expireRefreshTime;
     try {
-        expiryTime = extractTokenExpiry(plainAccessToken);
-        expireRefreshTime = extractTokenExpiry(plainRefreshToken);
+      expiryTime = extractTokenExpiry(plainAccessToken);
+      expireRefreshTime = extractTokenExpiry(plainRefreshToken);
     } catch (Exception e) {
-        log.error("Error extracting token expiry: {}", e.getMessage());
-        expiryTime = new Date(new Date().getTime() + TOKEN_EXPIRY_TIME);
-        expireRefreshTime = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
+      log.error("Error extracting token expiry: {}", e.getMessage());
+      expiryTime = new Date(new Date().getTime() + TOKEN_EXPIRY_TIME);
+      expireRefreshTime = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
     }
 
     String encryptedAccessToken = encryptionService.encryptToken(plainAccessToken);
@@ -541,8 +648,9 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
         .token(encryptedAccessToken)
         .authenticated(true)
         .build();
-}
-  @Transactional
+  }
+  
+@Transactional
   public RefreshTokenResponse refreshTokenFromCookie(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
     try {
         // 1. Get the encrypted refresh token from cookie

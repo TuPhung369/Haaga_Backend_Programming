@@ -62,7 +62,10 @@ public class ENUMS {
     ACCOUNT_NOT_VERIFIED("Account not verified. Please check your email for verification code."),
     INVALID_REFRESH_TOKEN("Invalid refresh token"),
     REFRESH_TOKEN_EXPIRED("Refresh token expired"),
-    EMAIL_ALREADY_EXISTS("Email already exists with another account");
+    EMAIL_ALREADY_EXISTS("Email already exists with another account"),
+    TOTP_REQUIRED("Two-factor authentication code is required"),
+    TOTP_INVALID("Invalid two-factor authentication code"),
+    TOTP_ALREADY_ENABLED("Two-factor authentication is already enabled for this account");
 
     private final String message;
   }
