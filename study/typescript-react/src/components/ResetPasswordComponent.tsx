@@ -1,21 +1,26 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Form,
   Input,
   Button,
   Alert,
   Typography,
-  Card,
   notification,
   Space,
   Row,
   Col,
 } from "antd";
-import { LockOutlined, KeyOutlined } from "@ant-design/icons";
+import {
+  LockOutlined,
+  KeyOutlined,
+  ArrowLeftOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { resetPasswordWithToken } from "../services/authService";
 import { AxiosError } from "axios";
 import { ApiError } from "../type/types";
+import LoadingState from "../components/LoadingState";
+import "../styles/ResetPassword.css";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -28,11 +33,22 @@ interface ResetPasswordFormValues {
 const ResetPasswordComponent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const [verificationCode, setVerificationCode] = useState<string[]>(
     new Array(6).fill("")
   );
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [form] = Form.useForm();
+
+  useEffect(() => {
+    // Focus the first input field when component mounts
+    setTimeout(() => {
+      if (inputRefs.current[0]) {
+        inputRefs.current[0].focus();
+      }
+    }, 500);
+  }, []);
 
   // Handle input change for verification code
   const handleChange = (value: string, index: number) => {
@@ -85,6 +101,7 @@ const ResetPasswordComponent: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setIsSubmitting(true);
 
     try {
       const response = await resetPasswordWithToken(token, values.newPassword);
@@ -101,6 +118,7 @@ const ResetPasswordComponent: React.FC = () => {
         axiosError.response?.data?.message ||
           "Failed to reset password. Please try again."
       );
+      setIsSubmitting(false);
     } finally {
       setLoading(false);
     }
@@ -110,158 +128,174 @@ const ResetPasswordComponent: React.FC = () => {
     navigate("/login");
   };
 
+  // Check if all verification code inputs are filled
+  const isVerificationComplete = verificationCode.every(
+    (digit) => digit !== ""
+  );
+
   return (
-    <Card
-      style={{
-        boxShadow: "0 6px 16px rgba(0, 0, 0, 0.1)",
-        borderRadius: "10px",
-        maxWidth: "450px",
-        margin: "auto",
-      }}
-    >
-      <Title level={2} style={{ textAlign: "center", marginBottom: "5px" }}>
-        Reset Your Password
-      </Title>
-      <Paragraph
-        type="secondary"
-        style={{ textAlign: "center", marginBottom: "20px" }}
-      >
-        Enter the verification code sent to your email and create a new password
-      </Paragraph>
+    <div className="reset-password-container">
+      {isSubmitting && (
+        <LoadingState
+          tip="Resetting password..."
+          fullscreen={true}
+        />
+      )}
+      <div className="reset-password-card">
+        {!isSubmitting && (
+          <>
+            <div className="card-header">
+              <Button
+                type="link"
+                className="back-button"
+                onClick={handleBackToLogin}
+                icon={<ArrowLeftOutlined />}
+              >
+                Back to Login
+              </Button>
+              <Title level={2} className="card-title">
+                Reset Your Password
+              </Title>
+              <Paragraph className="card-subtitle">
+                Enter the verification code sent to your email and create a new
+                password
+              </Paragraph>
+            </div>
 
-      <Form
-        name="reset-password"
-        onFinish={handleSubmit}
-        layout="vertical"
-        size="large"
-        autoComplete="off"
-      >
-        {/* Verification Code Input with individual boxes */}
-        <Form.Item
-          label={<Text strong>Verification Code</Text>}
-          required
-          style={{ marginBottom: "30px" }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <Row gutter={12} justify="center">
-              {verificationCode.map((digit, index) => (
-                <Col key={index}>
-                  <Input
-                    ref={(el) => (inputRefs.current[index] = el)}
-                    value={digit}
-                    onChange={(e) => handleChange(e.target.value, index)}
-                    onKeyDown={(e) => handleKeyDown(e, index)}
-                    onPaste={index === 0 ? handlePaste : undefined}
-                    maxLength={1}
-                    style={{
-                      width: "55px",
-                      height: "55px",
-                      fontSize: "24px",
-                      textAlign: "center",
-                      borderRadius: "8px",
-                      borderColor: digit ? "#1890ff" : undefined,
-                      boxShadow: digit
-                        ? "0 0 0 2px rgba(24,144,255,0.2)"
-                        : undefined,
-                      transition: "all 0.3s",
-                    }}
-                  />
-                </Col>
-              ))}
-            </Row>
-            <Text
-              type="secondary"
-              style={{ display: "block", marginTop: "8px", fontSize: "12px" }}
+            <Form
+              form={form}
+              name="reset-password"
+              onFinish={handleSubmit}
+              layout="vertical"
+              size="large"
+              className="reset-password-form"
+              autoComplete="off"
             >
-              Enter the 6-digit code sent to your email
-            </Text>
-          </div>
-        </Form.Item>
+              {/* Verification Code Input with individual boxes */}
+              <Form.Item
+                label={<Text className="input-label">Verification Code</Text>}
+                required
+                className="verification-form-item"
+              >
+                <div className="verification-container">
+                  <Row
+                    gutter={12}
+                    justify="center"
+                    className="verification-row"
+                  >
+                    {verificationCode.map((digit, index) => (
+                      <Col key={index} className="verification-col">
+                        <Input
+                          ref={(el) => {
+                            inputRefs.current[index] = el;
+                          }}
+                          value={digit}
+                          onChange={(e) => handleChange(e.target.value, index)}
+                          onKeyDown={(e) => handleKeyDown(e, index)}
+                          onPaste={index === 0 ? handlePaste : undefined}
+                          maxLength={1}
+                          className={`verification-input ${
+                            digit ? "filled" : ""
+                          }`}
+                        />
+                      </Col>
+                    ))}
+                  </Row>
+                  <Text className="verification-hint">
+                    Enter the 6-digit code sent to your email
+                  </Text>
+                </div>
+              </Form.Item>
 
-        <div style={{ marginTop: "20px", marginBottom: "8px" }}>
-          <Text strong style={{ fontSize: "16px" }}>
-            Create New Password
-          </Text>
-        </div>
+              <div className="password-section-header">
+                <Text className="password-section-title">
+                  Create New Password
+                </Text>
+              </div>
 
-        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-          <Form.Item
-            name="newPassword"
-            rules={[
-              { required: true, message: "Please input your new password!" },
-              {
-                pattern:
-                  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&()#])[A-Za-z\d@$!%*?&()#]{8,}$/,
-                message:
-                  "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
-              },
-            ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Enter your new password"
-              autoComplete="new-password"
-            />
-          </Form.Item>
+              <Space
+                direction="vertical"
+                size="middle"
+                className="password-fields"
+              >
+                <Form.Item
+                  name="newPassword"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input your new password!",
+                    },
+                    {
+                      pattern:
+                        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&()#])[A-Za-z\d@$!%*?&()#]{8,}$/,
+                      message:
+                        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+                    },
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined className="input-icon" />}
+                    placeholder="Enter your new password"
+                    autoComplete="new-password"
+                    className="password-input"
+                  />
+                </Form.Item>
 
-          <Form.Item
-            name="confirmPassword"
-            rules={[
-              { required: true, message: "Please confirm your password!" },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue("newPassword") === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(
-                    new Error("The two passwords do not match!")
-                  );
-                },
-              }),
-            ]}
-          >
-            <Input.Password
-              prefix={<KeyOutlined />}
-              placeholder="Confirm your new password"
-              autoComplete="new-password"
-            />
-          </Form.Item>
-        </Space>
+                <Form.Item
+                  name="confirmPassword"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please confirm your password!",
+                    },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue("newPassword") === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(
+                          new Error("The two passwords do not match!")
+                        );
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<KeyOutlined className="input-icon" />}
+                    placeholder="Confirm your new password"
+                    autoComplete="new-password"
+                    className="password-input"
+                  />
+                </Form.Item>
+              </Space>
 
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: "15px", marginTop: "15px" }}
-          />
+              {error && (
+                <Alert
+                  message={error}
+                  type="error"
+                  showIcon
+                  closable
+                  className="error-alert"
+                />
+              )}
+
+              <Form.Item className="submit-form-item">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  className="reset-button"
+                  loading={loading}
+                  disabled={!isVerificationComplete || isSubmitting}
+                >
+                  Reset Password
+                </Button>
+              </Form.Item>
+            </Form>
+          </>
         )}
-
-        <Form.Item style={{ marginTop: "24px" }}>
-          <Button
-            type="primary"
-            htmlType="submit"
-            style={{ width: "100%", height: "45px" }}
-            loading={loading}
-          >
-            Reset Password
-          </Button>
-        </Form.Item>
-
-        <Form.Item style={{ textAlign: "center", marginBottom: "0" }}>
-          <Button
-            type="link"
-            onClick={handleBackToLogin}
-            style={{ padding: "0" }}
-          >
-            Back to Login
-          </Button>
-        </Form.Item>
-      </Form>
-    </Card>
+      </div>
+    </div>
   );
 };
 
 export default ResetPasswordComponent;
-

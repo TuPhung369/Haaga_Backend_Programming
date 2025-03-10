@@ -28,6 +28,7 @@ import { resetAllData } from "../store/resetActions";
 import { ValidationInput, AuthState, AuthError } from "../type/types";
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
+import LoadingState from "../components/LoadingState";
 
 const { Title } = Typography;
 const { Content } = Layout;
@@ -38,6 +39,7 @@ const LoginPage: React.FC = () => {
   //const appBaseUri = import.meta.env.VITE_BASE_URI;
 
   useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] =
     useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
@@ -54,6 +56,7 @@ const LoginPage: React.FC = () => {
   const { isAuthenticated, token } = useSelector(
     (state: { auth: AuthState }) => state.auth
   );
+  const [registerForm] = Form.useForm();
 
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -72,21 +75,17 @@ const LoginPage: React.FC = () => {
     });
 
     if (Object.keys(errors).length > 0) {
-      return; // Stop if there are validation errors (they're shown under inputs)
+      return;
     }
-
+    setIsSubmitting(true);
     try {
-      // Use the cookie-based authentication endpoint
       const data = await authenticateUserWithCookies(
         values.username,
         values.password
       );
 
       if (data && data.result && data.result.token) {
-        // First clear any existing data
         dispatch(resetAllData());
-
-        // Then set the new auth data
         dispatch(
           setAuthData({
             token: data.result.token,
@@ -94,16 +93,11 @@ const LoginPage: React.FC = () => {
             loginSocial: false,
           })
         );
-
-        // Set up token refresh
         setupTokenRefresh(data.result.token);
-
         notification.success({
           message: "Success",
           description: "Logged in successfully!",
         });
-
-        // Redirect to home page
         navigate("/");
       } else {
         throw new Error("Invalid response format from server");
@@ -115,6 +109,8 @@ const LoginPage: React.FC = () => {
         message: "Login Error",
         description: message,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -138,34 +134,46 @@ const LoginPage: React.FC = () => {
     setDob(moment("1987-07-07", "YYYY-MM-DD"));
     setEmail("");
     setIsRegisterModalVisible(true);
+    registerForm.resetFields();
   };
 
   const handleRegisterConfirm = async () => {
-    const userData: ValidationInput = {
-      username,
-      password: newPassword,
-      firstname,
-      lastname,
-      dob: dob ? dob.format("YYYY-MM-DD") : undefined,
-      email,
-      roles: ["User"],
-    };
-
-    const errors = validateInput(userData);
-    if (Object.keys(errors).length > 0) {
-      return; // Stop if there are validation errors (they're shown under inputs)
-    }
-
-    if (newPassword !== confirmPassword) {
-      return; // Validation handled by Form rules, no need for manual error setting here
-    }
-
-    setRegisterLoading(true);
     try {
+      await registerForm.validateFields(); // Validate all fields first
+      const userData: ValidationInput = {
+        username,
+        password: newPassword,
+        firstname,
+        lastname,
+        dob: dob ? dob.format("YYYY-MM-DD") : undefined,
+        email,
+        roles: ["User"],
+      };
+
+      const errors = validateInput(userData);
+      if (Object.keys(errors).length > 0) {
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        registerForm.setFields([
+          {
+            name: "confirmPassword",
+            errors: ["Passwords do not match!"],
+          },
+        ]);
+        return;
+      }
+
+      setRegisterLoading(true);
       await registerUser(userData);
       setIsRegisterModalVisible(false);
       navigate("/verify-email", { state: { username } });
     } catch (error: unknown) {
+      if (error instanceof Error) {
+        // Handle validation errors
+        return;
+      }
       const authError = error as AuthError;
       const serverError = authError.response?.data;
       const message =
@@ -174,6 +182,8 @@ const LoginPage: React.FC = () => {
         message: `Error ${serverError?.httpCode || ""}`,
         description: message,
       });
+    } finally {
+      setRegisterLoading(false);
     }
   };
 
@@ -308,11 +318,7 @@ const LoginPage: React.FC = () => {
                 </Row>
               </Form.Item>
               <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  className="login-button"
-                >
+                <Button type="primary" htmlType="submit" loading={isSubmitting}>
                   Login
                 </Button>
               </Form.Item>
@@ -352,16 +358,19 @@ const LoginPage: React.FC = () => {
         <Modal
           title="Register"
           open={isRegisterModalVisible}
-          onCancel={() => setIsRegisterModalVisible(false)}
-          footer={null} // Ẩn các nút mặc định
+          onCancel={() => !registerLoading && setIsRegisterModalVisible(false)}
+          footer={null}
           maskClosable={false}
           centered
           className="login-page-modal"
+          style={{ zIndex: 1000 }}
         >
           <Form
+            form={registerForm} // Connect form instance
             layout="vertical"
             className="login-page-modal-form"
             autoComplete="off"
+            disabled={registerLoading} // Disable entire form when loading
           >
             <Form.Item
               name="username"
@@ -369,15 +378,14 @@ const LoginPage: React.FC = () => {
               rules={[
                 { required: true, message: "Please enter your username!" },
                 {
-                  validator: (_, value) => {
-                    const errors = validateInput({ username: value });
-                    return errors.username
-                      ? Promise.reject(errors.username)
-                      : Promise.resolve();
-                  },
+                  validator: (_, value) =>
+                    validateInput({ username: value }).username
+                      ? Promise.reject(
+                          validateInput({ username: value }).username
+                        )
+                      : Promise.resolve(),
                 },
               ]}
-              className="login-page-modal-form-item"
             >
               <Input
                 value={username}
@@ -392,15 +400,14 @@ const LoginPage: React.FC = () => {
               rules={[
                 { required: true, message: "Please enter your password!" },
                 {
-                  validator: (_, value) => {
-                    const errors = validateInput({ password: value });
-                    return errors.password
-                      ? Promise.reject(errors.password)
-                      : Promise.resolve();
-                  },
+                  validator: (_, value) =>
+                    validateInput({ password: value }).password
+                      ? Promise.reject(
+                          validateInput({ password: value }).password
+                        )
+                      : Promise.resolve(),
                 },
               ]}
-              className="login-page-modal-form-item"
             >
               <Input.Password
                 value={newPassword}
@@ -412,6 +419,7 @@ const LoginPage: React.FC = () => {
             <Form.Item
               name="confirmPassword"
               label="Confirm Password"
+              dependencies={["newPassword"]}
               rules={[
                 { required: true, message: "Please confirm your password!" },
                 ({ getFieldValue }) => ({
@@ -423,7 +431,6 @@ const LoginPage: React.FC = () => {
                   },
                 }),
               ]}
-              className="login-page-modal-form-item"
             >
               <Input.Password
                 value={confirmPassword}
@@ -438,15 +445,14 @@ const LoginPage: React.FC = () => {
               rules={[
                 { required: true, message: "Please enter your first name!" },
                 {
-                  validator: (_, value) => {
-                    const errors = validateInput({ firstname: value });
-                    return errors.firstname
-                      ? Promise.reject(errors.firstname)
-                      : Promise.resolve();
-                  },
+                  validator: (_, value) =>
+                    validateInput({ firstname: value }).firstname
+                      ? Promise.reject(
+                          validateInput({ firstname: value }).firstname
+                        )
+                      : Promise.resolve(),
                 },
               ]}
-              className="login-page-modal-form-item"
             >
               <Input
                 value={firstname}
@@ -461,15 +467,14 @@ const LoginPage: React.FC = () => {
               rules={[
                 { required: true, message: "Please enter your last name!" },
                 {
-                  validator: (_, value) => {
-                    const errors = validateInput({ lastname: value });
-                    return errors.lastname
-                      ? Promise.reject(errors.lastname)
-                      : Promise.resolve();
-                  },
+                  validator: (_, value) =>
+                    validateInput({ lastname: value }).lastname
+                      ? Promise.reject(
+                          validateInput({ lastname: value }).lastname
+                        )
+                      : Promise.resolve(),
                 },
               ]}
-              className="login-page-modal-form-item"
             >
               <Input
                 value={lastname}
@@ -496,7 +501,6 @@ const LoginPage: React.FC = () => {
                       : Promise.resolve(),
                 },
               ]}
-              className="login-page-modal-form-item"
             >
               <DatePicker
                 value={dob}
@@ -511,15 +515,12 @@ const LoginPage: React.FC = () => {
               rules={[
                 { required: true, message: "Please enter your email!" },
                 {
-                  validator: (_, value) => {
-                    const errors = validateInput({ email: value });
-                    return errors.email
-                      ? Promise.reject(errors.email)
-                      : Promise.resolve();
-                  },
+                  validator: (_, value) =>
+                    validateInput({ email: value }).email
+                      ? Promise.reject(validateInput({ email: value }).email)
+                      : Promise.resolve(),
                 },
               ]}
-              className="login-page-modal-form-item"
             >
               <Input
                 value={email}
@@ -529,12 +530,12 @@ const LoginPage: React.FC = () => {
               />
             </Form.Item>
 
-            {/* Thêm nút Register vào cuối form */}
             <Form.Item>
               <Button
                 type="primary"
                 onClick={handleRegisterConfirm}
                 loading={registerLoading}
+                disabled={registerLoading}
                 style={{ width: "100%" }}
               >
                 Register
@@ -542,6 +543,10 @@ const LoginPage: React.FC = () => {
             </Form.Item>
           </Form>
         </Modal>
+        {registerLoading && (
+          <LoadingState tip="Registering user..." fullscreen={true} />
+        )}
+        {isSubmitting && <LoadingState tip="Logging in..." fullscreen={true} />}
       </Layout>
     </>
   );
