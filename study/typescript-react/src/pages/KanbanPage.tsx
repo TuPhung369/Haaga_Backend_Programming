@@ -630,7 +630,6 @@ const KanbanPage: React.FC = () => {
   if (loading) {
     return (
       <LoadingState
-        size="large"
         tip="Loading Kanban Board..."
         fullscreen={true}
       />

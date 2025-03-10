@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 import com.database.study.security.JwtUtils;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 @Component
@@ -23,7 +22,6 @@ public class CustomJwtDecoder implements JwtDecoder {
   private final JwtUtils jwtUtils;
   private NimbusJwtDecoder nimbusJwtDecoder = null;
 
-  @Autowired
   public CustomJwtDecoder(JwtUtils jwtUtils) {
     this.jwtUtils = jwtUtils;
   }

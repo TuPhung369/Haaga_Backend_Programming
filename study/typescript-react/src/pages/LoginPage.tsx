@@ -38,8 +38,8 @@ const LoginPage: React.FC = () => {
   const oauth2RedirectUri = import.meta.env.VITE_OAUTH2_REDIRECT_URI;
   //const appBaseUri = import.meta.env.VITE_BASE_URI;
 
-  useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false);
   const [isRegisterModalVisible, setIsRegisterModalVisible] =
     useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
@@ -57,6 +57,11 @@ const LoginPage: React.FC = () => {
     (state: { auth: AuthState }) => state.auth
   );
   const [registerForm] = Form.useForm();
+
+  // For debugging purposes
+  useEffect(() => {
+    console.log("registerLoading state changed:", registerLoading);
+  }, [registerLoading]);
 
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -77,6 +82,7 @@ const LoginPage: React.FC = () => {
     if (Object.keys(errors).length > 0) {
       return;
     }
+    console.log("Login: Setting isSubmitting to true");
     setIsSubmitting(true);
     try {
       const data = await authenticateUserWithCookies(
@@ -110,15 +116,28 @@ const LoginPage: React.FC = () => {
         description: message,
       });
     } finally {
+      console.log("Login: Setting isSubmitting to false");
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleLogin = () => {
-    const scope = "openid email profile";
-    const responseType = "code";
-    const authorizationUri = `https://accounts.google.com/o/oauth2/auth?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
-    window.location.href = authorizationUri;
+    console.log("Google Login: Setting isGoogleLoading to true");
+    setIsGoogleLoading(true);
+    try {
+      const scope = "openid email profile";
+      const responseType = "code";
+      const authorizationUri = `https://accounts.google.com/o/oauth2/auth?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
+      window.location.href = authorizationUri;
+    } catch (error) {
+      console.error("Google login error:", error);
+      setIsGoogleLoading(false);
+      notification.error({
+        message: "Google Login Error",
+        description: "Failed to initialize Google login",
+      });
+    }
+    // Note: We don't set isGoogleLoading to false here since we're redirecting away
   };
 
   const handleForgotPassword = () => {
@@ -126,6 +145,7 @@ const LoginPage: React.FC = () => {
   };
 
   const handleRegister = () => {
+    console.log("Opening register modal");
     setUsername("");
     setNewPassword("");
     setConfirmPassword("");
@@ -138,7 +158,9 @@ const LoginPage: React.FC = () => {
   };
 
   const handleRegisterConfirm = async () => {
+    console.log("Register button clicked");
     try {
+      console.log("Validating form fields");
       await registerForm.validateFields(); // Validate all fields first
       const userData: ValidationInput = {
         username,
@@ -149,13 +171,16 @@ const LoginPage: React.FC = () => {
         email,
         roles: ["User"],
       };
+      console.log("Form data:", userData);
 
       const errors = validateInput(userData);
       if (Object.keys(errors).length > 0) {
+        console.log("Validation errors:", errors);
         return;
       }
 
       if (newPassword !== confirmPassword) {
+        console.log("Passwords don't match");
         registerForm.setFields([
           {
             name: "confirmPassword",
@@ -165,27 +190,54 @@ const LoginPage: React.FC = () => {
         return;
       }
 
+      console.log("Setting registerLoading to true");
       setRegisterLoading(true);
-      await registerUser(userData);
-      setIsRegisterModalVisible(false);
-      navigate("/verify-email", { state: { username } });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        // Handle validation errors
-        return;
+
+      // Force render to ensure the loading state is applied
+      setTimeout(() => {
+        console.log("After timeout, registerLoading is:", registerLoading);
+      }, 0);
+
+      // Don't hide modal immediately to give visual feedback of submit
+      try {
+        console.log("Calling registerUser API");
+        await registerUser(userData);
+        console.log("Registration successful");
+
+        // Only after successful registration, hide modal
+        // Give enough time for user to see loading animation
+        console.log("Setting timeout before navigation");
+        setTimeout(() => {
+          console.log("Timeout completed, hiding modal and navigating");
+          setIsRegisterModalVisible(false);
+          navigate("/verify-email", { state: { username } });
+        }, 1500); // Increased timeout for better visibility
+      } catch (error: unknown) {
+        console.error("Registration error:", error);
+        if (error instanceof Error) {
+          // Handle validation errors
+          return;
+        }
+        const authError = error as AuthError;
+        const serverError = authError.response?.data;
+        const message =
+          serverError?.message || "An error occurred during registration";
+        notification.error({
+          message: `Error ${serverError?.httpCode || ""}`,
+          description: message,
+        });
+        console.log("Setting registerLoading to false after error");
+        setRegisterLoading(false);
       }
-      const authError = error as AuthError;
-      const serverError = authError.response?.data;
-      const message =
-        serverError?.message || "An error occurred during registration";
-      notification.error({
-        message: `Error ${serverError?.httpCode || ""}`,
-        description: message,
-      });
-    } finally {
-      setRegisterLoading(false);
+    } catch (error: unknown) {
+      // Handle form validation errors
+      console.error("Form validation error:", error);
     }
   };
+
+  // Debug: to check when the LoadingState should be shown
+  console.log("Render - registerLoading:", registerLoading);
+  console.log("Render - isRegisterModalVisible:", isRegisterModalVisible);
 
   return (
     <>
@@ -196,6 +248,10 @@ const LoginPage: React.FC = () => {
           }
         `}
       </style>
+
+      {/* Fullscreen loading for login submission */}
+      {isSubmitting && <LoadingState tip="Logging in..." fullscreen={true} />}
+
       <Layout
         className="login-page-layout"
         style={{
@@ -318,7 +374,12 @@ const LoginPage: React.FC = () => {
                 </Row>
               </Form.Item>
               <Form.Item>
-                <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isSubmitting}
+                  style={{ width: "100%" }}
+                >
                   Login
                 </Button>
               </Form.Item>
@@ -326,7 +387,9 @@ const LoginPage: React.FC = () => {
                 <Button
                   type="primary"
                   onClick={handleGoogleLogin}
+                  loading={isGoogleLoading}
                   className="google-login-button"
+                  style={{ width: "100%" }}
                 >
                   <span style={{ marginRight: "10px" }}>
                     <FcGoogle size={24} />
@@ -365,188 +428,198 @@ const LoginPage: React.FC = () => {
           className="login-page-modal"
           style={{ zIndex: 1000 }}
         >
-          <Form
-            form={registerForm} // Connect form instance
-            layout="vertical"
-            className="login-page-modal-form"
-            autoComplete="off"
-            disabled={registerLoading} // Disable entire form when loading
-          >
-            <Form.Item
-              name="username"
-              label="Username"
-              rules={[
-                { required: true, message: "Please enter your username!" },
-                {
-                  validator: (_, value) =>
-                    validateInput({ username: value }).username
-                      ? Promise.reject(
-                          validateInput({ username: value }).username
-                        )
-                      : Promise.resolve(),
-                },
-              ]}
-            >
-              <Input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                autoComplete="username"
-              />
-            </Form.Item>
-            <Form.Item
-              name="newPassword"
-              label="Password"
-              rules={[
-                { required: true, message: "Please enter your password!" },
-                {
-                  validator: (_, value) =>
-                    validateInput({ password: value }).password
-                      ? Promise.reject(
-                          validateInput({ password: value }).password
-                        )
-                      : Promise.resolve(),
-                },
-              ]}
-            >
-              <Input.Password
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter your password"
-                autoComplete="new-password"
-              />
-            </Form.Item>
-            <Form.Item
-              name="confirmPassword"
-              label="Confirm Password"
-              dependencies={["newPassword"]}
-              rules={[
-                { required: true, message: "Please confirm your password!" },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    if (!value || getFieldValue("newPassword") === value) {
-                      return Promise.resolve();
-                    }
-                    return Promise.reject("Passwords do not match!");
-                  },
-                }),
-              ]}
-            >
-              <Input.Password
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                autoComplete="new-password"
-              />
-            </Form.Item>
-            <Form.Item
-              name="firstname"
-              label="First Name"
-              rules={[
-                { required: true, message: "Please enter your first name!" },
-                {
-                  validator: (_, value) =>
-                    validateInput({ firstname: value }).firstname
-                      ? Promise.reject(
-                          validateInput({ firstname: value }).firstname
-                        )
-                      : Promise.resolve(),
-                },
-              ]}
-            >
-              <Input
-                value={firstname}
-                onChange={(e) => setFirstname(e.target.value)}
-                placeholder="Enter your first name"
-                autoComplete="given-name"
-              />
-            </Form.Item>
-            <Form.Item
-              name="lastname"
-              label="Last Name"
-              rules={[
-                { required: true, message: "Please enter your last name!" },
-                {
-                  validator: (_, value) =>
-                    validateInput({ lastname: value }).lastname
-                      ? Promise.reject(
-                          validateInput({ lastname: value }).lastname
-                        )
-                      : Promise.resolve(),
-                },
-              ]}
-            >
-              <Input
-                value={lastname}
-                onChange={(e) => setLastname(e.target.value)}
-                placeholder="Enter your last name"
-                autoComplete="family-name"
-              />
-            </Form.Item>
-            <Form.Item
-              name="dob"
-              label="Date of Birth"
-              rules={[
-                { required: true, message: "Please enter your date of birth!" },
-                {
-                  validator: (_, value) =>
-                    validateInput({
-                      dob: value ? value.format("YYYY-MM-DD") : undefined,
-                    }).dob
-                      ? Promise.reject(
-                          validateInput({
-                            dob: value ? value.format("YYYY-MM-DD") : undefined,
-                          }).dob
-                        )
-                      : Promise.resolve(),
-                },
-              ]}
-            >
-              <DatePicker
-                value={dob}
-                onChange={(date) => setDob(date || moment())}
-                format="YYYY-MM-DD"
-                style={{ width: "100%" }}
-              />
-            </Form.Item>
-            <Form.Item
-              name="email"
-              label="Email"
-              rules={[
-                { required: true, message: "Please enter your email!" },
-                {
-                  validator: (_, value) =>
-                    validateInput({ email: value }).email
-                      ? Promise.reject(validateInput({ email: value }).email)
-                      : Promise.resolve(),
-                },
-              ]}
-            >
-              <Input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                autoComplete="email"
-              />
-            </Form.Item>
+          {registerLoading && (
+            <>
+              {console.log("Should show LoadingState now")}
+              <LoadingState tip="Registering user..." fullscreen={false} />
+            </>
+          )}
 
-            <Form.Item>
-              <Button
-                type="primary"
-                onClick={handleRegisterConfirm}
-                loading={registerLoading}
-                disabled={registerLoading}
-                style={{ width: "100%" }}
+          {!registerLoading && (
+            <Form
+              form={registerForm} // Connect form instance
+              layout="vertical"
+              className="login-page-modal-form"
+              autoComplete="off"
+            >
+              <Form.Item
+                name="username"
+                label="Username"
+                rules={[
+                  { required: true, message: "Please enter your username!" },
+                  {
+                    validator: (_, value) =>
+                      validateInput({ username: value }).username
+                        ? Promise.reject(
+                            validateInput({ username: value }).username
+                          )
+                        : Promise.resolve(),
+                  },
+                ]}
               >
-                Register
-              </Button>
-            </Form.Item>
-          </Form>
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  autoComplete="username"
+                />
+              </Form.Item>
+              <Form.Item
+                name="newPassword"
+                label="Password"
+                rules={[
+                  { required: true, message: "Please enter your password!" },
+                  {
+                    validator: (_, value) =>
+                      validateInput({ password: value }).password
+                        ? Promise.reject(
+                            validateInput({ password: value }).password
+                          )
+                        : Promise.resolve(),
+                  },
+                ]}
+              >
+                <Input.Password
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="new-password"
+                />
+              </Form.Item>
+              <Form.Item
+                name="confirmPassword"
+                label="Confirm Password"
+                dependencies={["newPassword"]}
+                rules={[
+                  { required: true, message: "Please confirm your password!" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("newPassword") === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject("Passwords do not match!");
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  autoComplete="new-password"
+                />
+              </Form.Item>
+              <Form.Item
+                name="firstname"
+                label="First Name"
+                rules={[
+                  { required: true, message: "Please enter your first name!" },
+                  {
+                    validator: (_, value) =>
+                      validateInput({ firstname: value }).firstname
+                        ? Promise.reject(
+                            validateInput({ firstname: value }).firstname
+                          )
+                        : Promise.resolve(),
+                  },
+                ]}
+              >
+                <Input
+                  value={firstname}
+                  onChange={(e) => setFirstname(e.target.value)}
+                  placeholder="Enter your first name"
+                  autoComplete="given-name"
+                />
+              </Form.Item>
+              <Form.Item
+                name="lastname"
+                label="Last Name"
+                rules={[
+                  { required: true, message: "Please enter your last name!" },
+                  {
+                    validator: (_, value) =>
+                      validateInput({ lastname: value }).lastname
+                        ? Promise.reject(
+                            validateInput({ lastname: value }).lastname
+                          )
+                        : Promise.resolve(),
+                  },
+                ]}
+              >
+                <Input
+                  value={lastname}
+                  onChange={(e) => setLastname(e.target.value)}
+                  placeholder="Enter your last name"
+                  autoComplete="family-name"
+                />
+              </Form.Item>
+              <Form.Item
+                name="dob"
+                label="Date of Birth"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter your date of birth!",
+                  },
+                  {
+                    validator: (_, value) =>
+                      validateInput({
+                        dob: value ? value.format("YYYY-MM-DD") : undefined,
+                      }).dob
+                        ? Promise.reject(
+                            validateInput({
+                              dob: value
+                                ? value.format("YYYY-MM-DD")
+                                : undefined,
+                            }).dob
+                          )
+                        : Promise.resolve(),
+                  },
+                ]}
+              >
+                <DatePicker
+                  value={dob}
+                  onChange={(date) => setDob(date || moment())}
+                  format="YYYY-MM-DD"
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: "Please enter your email!" },
+                  {
+                    validator: (_, value) =>
+                      validateInput({ email: value }).email
+                        ? Promise.reject(validateInput({ email: value }).email)
+                        : Promise.resolve(),
+                  },
+                ]}
+              >
+                <Input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  autoComplete="email"
+                />
+              </Form.Item>
+
+              <Form.Item>
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    console.log("Register button clicked directly");
+                    handleRegisterConfirm();
+                  }}
+                  style={{ width: "100%" }}
+                >
+                  Register
+                </Button>
+              </Form.Item>
+            </Form>
+          )}
         </Modal>
-        {registerLoading && (
-          <LoadingState tip="Registering user..." fullscreen={true} />
-        )}
-        {isSubmitting && <LoadingState tip="Logging in..." fullscreen={true} />}
       </Layout>
     </>
   );
