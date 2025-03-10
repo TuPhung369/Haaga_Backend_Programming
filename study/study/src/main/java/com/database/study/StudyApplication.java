@@ -8,7 +8,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
+@EnableScheduling
 @Slf4j
 @SpringBootApplication(scanBasePackages = { "com.database.study" })
 public class StudyApplication {

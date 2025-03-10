@@ -101,7 +101,7 @@ public class AuthenticationService {
   JwtUtils jwtUtils;
 
   static final int SURPLUS_EXPIRE_TIME = 7;
-  static final long TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 1 minutes
+  static final long TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes
   static final long REFRESH_TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
 
   @Transactional
@@ -120,8 +120,8 @@ public class AuthenticationService {
     }
 
     // 2. Clean up expired tokens
-    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+    // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    // activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
 
     // 3. Check for existing tokens
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
@@ -213,8 +213,8 @@ public class AuthenticationService {
           .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
       // Delete expired tokens
-      activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-      activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+      // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+      // activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
       // Define longer expiry for OAuth tokens
       final long OAUTH_TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes for OAuth tokens
 
@@ -369,8 +369,8 @@ public AuthenticationResponse authenticateWithCookies(AuthenticationRequest requ
     }
 
     // Clean up expired tokens
-    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+    // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    // activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
 
     // Check for existing tokens
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
@@ -459,8 +459,8 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
     // Clean up expired tokens
-    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
+    // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    // activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
 
     // Check for existing tokens
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
@@ -1119,7 +1119,7 @@ public AuthenticationResponse authenticateWithCookies(String username, HttpServl
     String uuid = signedToken.getJWTClaimsSet().getJWTID();
     
     // Delete all expired tokens
-    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
+    //activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
 
     // Find the existing ActiveToken by UUID
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findById(uuid);
@@ -1509,18 +1509,53 @@ private Claims extractAllClaims(String token) {
 }
   private String generateSixDigitCode() {
     Random random = new Random();
-    int code = 100000 + random.nextInt(900000); // Generates a number between 100000 and 999999
+    int code = 100000 + random.nextInt(900000); 
     return String.valueOf(code);
   }
 
   // Scheduled task to clean up expired tokens
-  @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // Run once a day
-  public void cleanupExpiredTokens() {
-    passwordResetTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
+@Scheduled(cron = "${cleanup.cron.expression}")
+@Transactional
+public void cleanupExpiredTokens() {
+    log.info("Running scheduled token cleanup...");
     
-    // Also clean up expired tokens
-    activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
-  }
+    try {
+        // Get current dates
+        java.util.Date now = new java.util.Date();
+        LocalDateTime nowDateTime = LocalDateTime.now();
 
+        // Log token counts before deletion
+        long totalTokensBeforeCleanup = activeTokenRepository.count();
+        long expiredAccessTokens = activeTokenRepository.countByExpiryTimeBefore(now);
+        long passwordTokensBefore = passwordResetTokenRepository.count(); // Add this line
+        
+        log.info("Before cleanup: {} total tokens, {} expired access tokens found, {} password tokens", 
+                 totalTokensBeforeCleanup, expiredAccessTokens, passwordTokensBefore);
+        
+        // Execute deletion queries
+        log.info("Deleting expired access tokens...");
+        int deletedAccessTokens = activeTokenRepository.deleteByExpiryTimeBefore(now);
+        
+        log.info("Deleting expired refresh tokens...");
+        int deletedRefreshTokens = activeTokenRepository.deleteByExpiryRefreshTimeBefore(now);
+        
+        // For password reset tokens
+        log.info("Deleting expired password reset tokens...");
+        passwordResetTokenRepository.deleteByExpiryDateBefore(nowDateTime);
+        long passwordTokensAfter = passwordResetTokenRepository.count();
+        int deletedPasswordTokens = (int)(passwordTokensBefore - passwordTokensAfter);
+        
+        // Log results
+        long remainingTokens = activeTokenRepository.count();
+        log.info("Cleanup completed: Deleted {} access tokens, {} refresh tokens, {} password tokens", 
+                 deletedAccessTokens, deletedRefreshTokens, deletedPasswordTokens);
+        log.info("After cleanup: {} tokens remain in database", remainingTokens);
+        
+        if (totalTokensBeforeCleanup == remainingTokens && expiredAccessTokens > 0) {
+            log.warn("Warning: Found expired tokens but none were deleted!");
+        }
+    } catch (Exception e) {
+        log.error("Error during token cleanup: {}", e.getMessage(), e);
+    }
+}
 }
