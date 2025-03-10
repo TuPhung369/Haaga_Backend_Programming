@@ -1487,7 +1487,6 @@ private Date extractTokenExpiry(String token) {
             return claims.getExpiration();
         } catch (Exception ex) {
             log.error("Failed to extract token expiry: {}", ex.getMessage());
-            // Trả về thời gian hiện tại - 1 để xem như token đã hết hạn
             return new Date(System.currentTimeMillis() - 1000);
         }
     }
@@ -1503,7 +1502,6 @@ private Claims extractAllClaims(String token) {
             .getPayload();
     } catch (Exception e) {
         log.warn("Error parsing token with JJWT parser: {}", e.getMessage());
-        // Trong trường hợp lỗi, ném ngoại lệ
         throw new AppException(ErrorCode.INVALID_TOKEN);
     }
 }
