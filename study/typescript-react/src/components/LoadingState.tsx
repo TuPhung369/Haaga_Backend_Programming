@@ -20,6 +20,7 @@ interface LoadingStateProps {
   size?: "small" | "medium" | "large";
   color?: string;
   className?: string;
+  tipChangeSpeed?: number; // New prop to control tip change speed
 }
 
 const LoadingState: React.FC<LoadingStateProps> = ({
@@ -31,6 +32,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({
   size = "medium",
   color,
   className = "",
+  tipChangeSpeed = 20, // Default value: higher = slower change
 }) => {
   const [shapeProgress, setShapeProgress] = useState(0);
   const [shapeType, setShapeType] = useState(0);
@@ -41,6 +43,8 @@ const LoadingState: React.FC<LoadingStateProps> = ({
     color1: SHAPE_COLORS[0],
     color2: SHAPE_COLORS[1],
   });
+  // We'll use a ref instead of state since we don't need to trigger re-renders with this counter
+  const tipChangeCounter = React.useRef(0);
 
   // Animated quotes for variety (slower quote rotation)
   const loadingQuotes = useMemo(
@@ -85,15 +89,21 @@ const LoadingState: React.FC<LoadingStateProps> = ({
           y: Math.cos(Date.now() * 0.0005) * 100, // Move below text area
         });
 
-        // Slower quote rotation
-        setCurrentQuote(
-          loadingQuotes[Math.floor(Math.random() * loadingQuotes.length)]
-        );
+        // Only change the quote occasionally based on tipChangeSpeed
+        tipChangeCounter.current += 1;
+
+        // Only change quote when counter reaches the specified speed
+        if (tipChangeCounter.current >= tipChangeSpeed) {
+          setCurrentQuote(
+            loadingQuotes[Math.floor(Math.random() * loadingQuotes.length)]
+          );
+          tipChangeCounter.current = 0; // Reset counter
+        }
       }, 100);
 
       return () => clearInterval(animationTimer);
     }
-  }, [loadingQuotes, buttonMode, fullscreen, isLoading]);
+  }, [loadingQuotes, buttonMode, fullscreen, isLoading, tipChangeSpeed]);
 
   // Calculate shape morphing
   const calculatePath = (progress: number) => {
@@ -290,7 +300,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({
             fontSize: "2.5rem",
             marginBottom: "15px",
             textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
-            animation: "pulse 2s infinite",
+            animation: "pulse 10s infinite",
             color: "white",
           }}
         >

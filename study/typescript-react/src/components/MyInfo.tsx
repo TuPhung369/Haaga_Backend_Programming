@@ -29,6 +29,7 @@ import { RootState, ExtendApiError, User } from "../type/types";
 import VerificationCodeInput from "./VerificationCodeInput";
 import styled from "styled-components";
 import { COLORS } from "../utils/constant";
+import LoadingState from "../components/LoadingState";
 
 const { Option } = Select;
 
@@ -104,12 +105,21 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
     message: string;
     description: string;
   } | null>(null);
+  const [isUpdatingInfo, setIsUpdatingInfo] = useState(false);
+  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(true);
 
   const { token, loginSocial } = useSelector((state: RootState) => state.auth);
   const { userInfo, roles, allUsers } = useSelector(
     (state: RootState) => state.user
   );
   const dispatch = useDispatch();
+
+  // Set loading state to false once userInfo is loaded
+  useEffect(() => {
+    if (userInfo) {
+      setIsLoadingUserInfo(false);
+    }
+  }, [userInfo]);
 
   const openNotificationWithIcon = useCallback(
     (type: "success" | "error", message: string, description: string) => {
@@ -222,6 +232,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         "currentPassword",
       ]);
 
+      setIsRequestingCode(true);
       await requestEmailChangeCode({
         userId: userInfo?.id || "",
         currentEmail: userInfo?.email || "",
@@ -244,6 +255,8 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           axiosError.response?.data?.message ||
           "Failed to resend verification code",
       });
+    } finally {
+      setIsRequestingCode(false);
     }
   };
 
@@ -270,6 +283,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         verificationCode,
         token: token!,
       });
+
       if (userInfo && userInfo.id) {
         // Create updated user info with new email (ensuring all required User properties)
         const updatedUserInfo: User = {
@@ -305,8 +319,11 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         description: "Your email has been successfully updated.",
       });
 
-      setIsEmailChangeModalVisible(false);
-      if (onUpdateSuccess) onUpdateSuccess();
+      // Delay closing the modal to show success state
+      setTimeout(() => {
+        setIsEmailChangeModalVisible(false);
+        if (onUpdateSuccess) onUpdateSuccess();
+      }, 1000);
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
       setVerificationError(true);
@@ -317,7 +334,10 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           axiosError.response?.data?.message || "Failed to verify code",
       });
     } finally {
-      setIsVerifying(false);
+      // We keep isVerifying true for the LoadingState to show minimum time
+      setTimeout(() => {
+        setIsVerifying(false);
+      }, 1000);
     }
   };
 
@@ -344,6 +364,9 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
       }
 
       if (userInfo) {
+        // Show loading state
+        setIsUpdatingInfo(true);
+
         // Create a copy of values without email
         const updateValues = { ...values };
 
@@ -368,9 +391,14 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           message: "Success",
           description: "User information updated successfully.",
         });
-        if (onUpdateSuccess) onUpdateSuccess();
+
+        // Delay closing the modal to show success state
+        setTimeout(() => {
+          setIsModalVisible(false);
+          if (onUpdateSuccess) onUpdateSuccess();
+          setIsUpdatingInfo(false);
+        }, 1000);
       }
-      setIsModalVisible(false);
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error("Error updating user:", axiosError.response?.data?.message);
@@ -381,6 +409,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           axiosError.response?.data?.message ||
           "An error occurred while updating the user.",
       });
+      setIsUpdatingInfo(false);
     }
   };
 
@@ -408,6 +437,33 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
   return (
     <MyInfoStyle>
       {contextHolder}
+
+      {/* Loading states */}
+      {isLoadingUserInfo && (
+        <LoadingState tip="Loading user information..." fullscreen={true} />
+      )}
+
+      {isUpdatingInfo && (
+        <LoadingState
+          tip="Updating your information..."
+          fullscreen={true}
+        />
+      )}
+
+      {isRequestingCode && (
+        <LoadingState
+          tip="Sending verification code..."
+          fullscreen={true}
+        />
+      )}
+
+      {isVerifying && (
+        <LoadingState
+          tip="Verifying and updating email..."
+          fullscreen={true}
+        />
+      )}
+
       {userInfo ? (
         <Descriptions
           className="custom-descriptions mt-0"
@@ -471,6 +527,8 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         open={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
+        okButtonProps={{ loading: isUpdatingInfo, disabled: isUpdatingInfo }}
+        cancelButtonProps={{ disabled: isUpdatingInfo }}
       >
         <Form form={form} layout="vertical" name="userForm">
           <Form.Item
@@ -560,6 +618,8 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         open={isEmailChangeModalVisible}
         onCancel={handleEmailChangeCancel}
         footer={null}
+        maskClosable={!isRequestingCode && !isVerifying}
+        closable={!isRequestingCode && !isVerifying}
       >
         <Form form={emailChangeForm} layout="vertical">
           <Form.Item
@@ -575,7 +635,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           >
             <Input
               placeholder="Enter your new email address"
-              disabled={codeSent}
+              disabled={codeSent || isRequestingCode || isVerifying}
               prefix={<MailOutlined />}
             />
           </Form.Item>
@@ -589,7 +649,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
           >
             <Input.Password
               placeholder="Enter your current password"
-              disabled={codeSent}
+              disabled={codeSent || isRequestingCode || isVerifying}
               prefix={<KeyOutlined />}
             />
           </Form.Item>
@@ -600,6 +660,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
                 type="primary"
                 onClick={handleRequestVerificationCode}
                 loading={isRequestingCode}
+                disabled={isRequestingCode}
                 block
               >
                 Request Verification Code
@@ -630,13 +691,18 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
                       setVerificationCode("");
                       setVerificationError(false);
                     }}
+                    disabled={isVerifying || isRequestingCode}
                   >
                     Back
                   </Button>
                   <Button
                     type="primary"
                     onClick={handleVerifyAndChangeEmail}
-                    disabled={verificationCode.length !== 6 || isVerifying}
+                    disabled={
+                      verificationCode.length !== 6 ||
+                      isVerifying ||
+                      isRequestingCode
+                    }
                     loading={isVerifying}
                   >
                     Verify & Change Email
