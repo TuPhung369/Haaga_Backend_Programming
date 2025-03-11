@@ -321,20 +321,23 @@ public class TotpService {
     public void deactivateTotpDevice(UUID secretId, String username) {
         TotpSecret totpSecret = totpSecretRepository.findById(secretId)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_OPERATION));
-        
+
         if (!totpSecret.getUsername().equals(username)) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
-        
-        // Delete the TOTP secret instead of just deactivating
+
+        // Count remaining devices before deletion
+        long remainingDevicesCount = totpSecretRepository.countByUsernameAndActive(username, true);
+
+        // Delete the TOTP secret
         totpSecretRepository.delete(totpSecret);
-        
-        // Check if there are any remaining active TOTP devices for the user
-        List<TotpSecret> remainingDevices = totpSecretRepository.findAllByUsername(username);
-        
-        // If no active devices remain, do nothing (let the application handle this case)
+
+        // Log a warning if no active devices remain
+        if (remainingDevicesCount <= 1) {
+            log.warn("User {} has no remaining active TOTP devices after deletion", username);
+        }
     }
-    
+
     /**
      * Check if user has TOTP enabled
      */
