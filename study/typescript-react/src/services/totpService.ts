@@ -120,8 +120,10 @@ export const getTotpDevices = async (
   }
 };
 
+// Updated to include verification code parameter
 export const deactivateTotpDevice = async (
   deviceId: string,
+  verificationCode: string,
   token: string
 ): Promise<ApiResponse<void>> => {
   try {
@@ -130,6 +132,9 @@ export const deactivateTotpDevice = async (
       {
         headers: {
           Authorization: `Bearer ${token}`,
+        },
+        data: {
+          verificationCode: verificationCode,
         },
       }
     );
@@ -140,13 +145,17 @@ export const deactivateTotpDevice = async (
   }
 };
 
+// Updated to include verification code parameter
 export const regenerateBackupCodes = async (
+  verificationCode: string,
   token: string
 ): Promise<ApiResponse<string[]>> => {
   try {
     const response = await apiClient.post<ApiResponse<string[]>>(
       "/auth/totp/backup-codes/regenerate",
-      {},
+      {
+        verificationCode: verificationCode,
+      },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -156,6 +165,58 @@ export const regenerateBackupCodes = async (
     return response.data;
   } catch (error) {
     console.error("Error regenerating backup codes:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// New function to request admin reset
+export const requestAdminReset = async (
+  username: string,
+  email: string,
+  token: string
+): Promise<ApiResponse<void>> => {
+  try {
+    const response = await apiClient.post<ApiResponse<void>>(
+      "/auth/totp/request-admin-reset",
+      {
+        username,
+        email,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error requesting admin reset:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// New function to request device change
+export const requestDeviceChange = async (
+  verificationCode: string,
+  newDeviceName: string,
+  token: string
+): Promise<ApiResponse<TotpSetupResponse>> => {
+  try {
+    const response = await apiClient.post<ApiResponse<TotpSetupResponse>>(
+      "/auth/totp/change-device",
+      {
+        verificationCode,
+        deviceName: newDeviceName,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error requesting device change:", error);
     throw handleServiceError(error);
   }
 };
@@ -203,6 +264,8 @@ export default {
   getTotpDevices,
   deactivateTotpDevice,
   regenerateBackupCodes,
+  requestAdminReset,
+  requestDeviceChange,
   authenticateWithTotp,
   authenticateWithTotpAndCookies,
 };

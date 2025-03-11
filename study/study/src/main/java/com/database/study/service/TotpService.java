@@ -468,7 +468,7 @@ public class TotpService {
         String requestId = UUID.randomUUID().toString();
         
         // Send email to admin
-        String adminEmail = "admin@yourcompany.com"; // Replace with actual admin email
+        String adminEmail = "tuphung010787@gmail.com"; // Replace with actual admin email
         String subject = "TOTP Reset Request for " + username;
         String message = String.format(
             "A TOTP reset request has been submitted for user: %s\n" +

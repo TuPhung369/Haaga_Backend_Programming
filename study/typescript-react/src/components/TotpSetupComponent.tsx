@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Steps,
@@ -14,6 +14,7 @@ import {
   notification,
   Space,
   QRCode,
+  Modal,
 } from "antd";
 import {
   QrcodeOutlined,
@@ -21,11 +22,14 @@ import {
   SafetyOutlined,
   CopyOutlined,
   CheckOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import {
   setupTotp,
   verifyTotp,
+  requestDeviceChange,
   TotpSetupResponse,
+  getTotpStatus,
 } from "../services/totpService";
 import { useSelector } from "react-redux";
 import { RootState } from "../type/types";
@@ -59,8 +63,37 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
   const [isSettingUp, setIsSettingUp] = useState<boolean>(false);
   const [verificationError, setVerificationError] = useState<boolean>(false);
 
+  // New states for handling device change
+  const [hasTotpEnabled, setHasTotpEnabled] = useState<boolean>(false);
+  const [showDeviceChangeModal, setShowDeviceChangeModal] =
+    useState<boolean>(false);
+  const [deviceChangeCode, setDeviceChangeCode] = useState<string>("");
+  const [isChangingDevice, setIsChangingDevice] = useState<boolean>(false);
+  const [deviceChangeError, setDeviceChangeError] = useState<boolean>(false);
+
   // Get token from Redux store
   const { token } = useSelector((state: RootState) => state.auth);
+
+  // Check if user already has TOTP enabled
+  useEffect(() => {
+    const checkTotpStatus = async () => {
+      if (!token) return;
+
+      try {
+        const response = await getTotpStatus(token);
+        setHasTotpEnabled(response.result);
+
+        if (response.result) {
+          // Show device change modal automatically if user already has TOTP enabled
+          setShowDeviceChangeModal(true);
+        }
+      } catch (error) {
+        console.error("Error checking TOTP status:", error);
+      }
+    };
+
+    checkTotpStatus();
+  }, [token]);
 
   // Initialize the setup process
   const handleSetup = async () => {
@@ -147,6 +180,49 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
     }
   };
 
+  // Handle device change verification
+  const handleDeviceChange = async () => {
+    setDeviceChangeError(false);
+
+    if (!deviceChangeCode || deviceChangeCode.length !== 6) {
+      setDeviceChangeError(true);
+      return;
+    }
+
+    setIsChangingDevice(true);
+
+    try {
+      if (!token) {
+        throw new Error("Authentication token is missing");
+      }
+
+      const response = await requestDeviceChange(
+        deviceChangeCode,
+        deviceName,
+        token
+      );
+      setSetupData(response.result);
+      setShowDeviceChangeModal(false);
+      setCurrentStep(1);
+
+      notification.success({
+        message: "Device Change Initiated",
+        description: "Please verify your new device by scanning the QR code.",
+      });
+    } catch (error) {
+      handleServiceError(error);
+      setDeviceChangeError(true);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to change device";
+      notification.error({
+        message: "Verification Failed",
+        description: errorMessage,
+      });
+    } finally {
+      setIsChangingDevice(false);
+    }
+  };
+
   // Copy text to clipboard
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(
@@ -190,6 +266,89 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
     }
   };
 
+  // Device change verification modal
+  const renderDeviceChangeModal = () => (
+    <Modal
+      title={
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <KeyOutlined style={{ marginRight: 8, color: "#faad14" }} />
+          Verify Current Device
+        </div>
+      }
+      open={showDeviceChangeModal}
+      onCancel={() => {
+        setShowDeviceChangeModal(false);
+        if (onCancel) onCancel();
+      }}
+      footer={[
+        <Button
+          key="cancel"
+          onClick={() => {
+            setShowDeviceChangeModal(false);
+            if (onCancel) onCancel();
+          }}
+        >
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          onClick={handleDeviceChange}
+          loading={isChangingDevice}
+          disabled={deviceChangeCode.length !== 6 || isChangingDevice}
+        >
+          Verify & Continue
+        </Button>,
+      ]}
+      width={400}
+    >
+      <Alert
+        message="You Already Have 2FA Enabled"
+        description="To set up a new device, you must first verify your identity with your current authenticator device or a backup code."
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
+
+      <Form layout="vertical">
+        <Form.Item
+          label="New Device Name"
+          help="Give a name to this device (e.g., 'My iPhone', 'Work Phone')"
+          validateStatus={!deviceName.trim() ? "error" : ""}
+        >
+          <Input
+            value={deviceName}
+            onChange={(e) => setDeviceName(e.target.value)}
+            placeholder="Enter device name"
+            maxLength={50}
+          />
+        </Form.Item>
+      </Form>
+
+      <Divider />
+
+      <Paragraph>
+        <Text strong>Enter Verification Code</Text>
+      </Paragraph>
+
+      <VerificationCodeInput
+        value={deviceChangeCode}
+        onChange={setDeviceChangeCode}
+        isError={deviceChangeError}
+        isSubmitting={isChangingDevice}
+        autoFocus={true}
+        onResendCode={undefined}
+      />
+
+      <Paragraph style={{ marginTop: 16 }}>
+        <Text type="secondary">
+          Enter the 6-digit code from your current authenticator app or use one
+          of your backup codes.
+        </Text>
+      </Paragraph>
+    </Modal>
+  );
+
   // Steps content
   const steps = [
     {
@@ -197,6 +356,14 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
       icon: <SafetyOutlined />,
       content: (
         <div>
+          <Alert
+            message="Only One Device Allowed"
+            description="You can only have one active authenticator device at a time. Setting up a new device will replace any existing one."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+
           <Paragraph>
             Two-factor authentication adds an extra layer of security to your
             account by requiring a verification code along with your password.
@@ -407,8 +574,17 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
             />
           </Card>
 
+          <Alert
+            message="One-time codes"
+            description="Each backup code can only be used once. After using a backup code, it will be invalidated."
+            type="info"
+            showIcon
+            icon={<InfoCircleOutlined />}
+            style={{ marginTop: 16, marginBottom: 16 }}
+          />
+
           <Paragraph style={{ marginTop: 16 }}>
-            <Text strong>
+            <Text strong type="danger">
               These codes will NOT be shown again. Please save them in a secure
               place.
             </Text>
@@ -428,6 +604,8 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
 
   return (
     <div className="totp-setup-container">
+      {renderDeviceChangeModal()}
+      {hasTotpEnabled && <Alert message="You already have 2FA enabled" />}
       {(isSettingUp || isVerifying) && (
         <LoadingState
           tip={

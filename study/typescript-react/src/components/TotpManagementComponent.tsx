@@ -12,6 +12,8 @@ import {
   Divider,
   Alert,
   notification,
+  Input,
+  Form,
 } from "antd";
 import {
   SecurityScanOutlined,
@@ -23,12 +25,16 @@ import {
   ClockCircleOutlined,
   RightOutlined,
   DownOutlined,
+  QuestionCircleOutlined,
+  KeyOutlined,
+  MailOutlined,
 } from "@ant-design/icons";
 import {
   getTotpStatus,
   getTotpDevices,
   deactivateTotpDevice,
   regenerateBackupCodes,
+  requestAdminReset,
   TotpDeviceResponse,
 } from "../services/totpService";
 import { useSelector } from "react-redux";
@@ -38,9 +44,9 @@ import TotpSetupComponent from "./TotpSetupComponent";
 import moment from "moment";
 import LoadingState from "./LoadingState";
 import styled from "styled-components";
+import VerificationCodeInput from "./VerificationCodeInput";
 
 const { Text, Paragraph, Title } = Typography;
-const { confirm } = Modal;
 
 const StyledCard = styled(Card)`
   border-radius: 8px;
@@ -150,7 +156,22 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   const [regeneratingCodes, setRegeneratingCodes] = useState<boolean>(false);
   const [deletingDevice, setDeletingDevice] = useState<string | null>(null);
 
+  // New state for verification modals
+  const [showDeleteVerification, setShowDeleteVerification] =
+    useState<boolean>(false);
+  const [showRegenerateVerification, setShowRegenerateVerification] =
+    useState<boolean>(false);
+  const [showAdminResetModal, setShowAdminResetModal] =
+    useState<boolean>(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
+  const [verificationCode, setVerificationCode] = useState<string>("");
+  const [verificationError, setVerificationError] = useState<boolean>(false);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [adminResetEmail, setAdminResetEmail] = useState<string>("");
+  const [isRequestingReset, setIsRequestingReset] = useState<boolean>(false);
+
   const { token } = useSelector((state: RootState) => state.auth);
+  const { userInfo } = useSelector((state: RootState) => state.user);
 
   const fetchTotpData = useCallback(async () => {
     if (!token) return;
@@ -190,71 +211,101 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
     setShowSetup(true);
   };
 
+  // Updated to show verification modal instead of direct deletion
   const handleDeleteDevice = (deviceId: string) => {
-    confirm({
-      title: "Remove Device?",
-      content: "This will disable 2FA for this device. Re-setup required.",
-      icon: <DeleteOutlined style={{ color: "red" }} />,
-      okText: "Yes",
-      okType: "danger",
-      cancelText: "No",
-      onOk: async () => {
-        if (!token) return;
-
-        setDeletingDevice(deviceId);
-
-        try {
-          await deactivateTotpDevice(deviceId, token);
-          notification.success({
-            message: "Device Removed",
-            description: "2FA device removed successfully.",
-          });
-          fetchTotpData();
-          if (onUpdate) onUpdate();
-        } catch (error) {
-          handleServiceError(error);
-          notification.error({
-            message: "Error",
-            description: "Failed to remove device.",
-          });
-        } finally {
-          setDeletingDevice(null);
-        }
-      },
-    });
+    setDeviceToDelete(deviceId);
+    setVerificationCode("");
+    setVerificationError(false);
+    setShowDeleteVerification(true);
   };
 
+  // New function to handle the actual deletion after verification
+  const handleVerifyAndDeleteDevice = async () => {
+    if (!token || !deviceToDelete) return;
+    setIsVerifying(true);
+    setVerificationError(false);
+    setDeletingDevice(deviceToDelete);
+    try {
+      await deactivateTotpDevice(deviceToDelete, verificationCode, token);
+      notification.success({
+        message: "Device Removed",
+        description: "2FA device removed successfully.",
+      });
+      setShowDeleteVerification(false);
+      fetchTotpData();
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      handleServiceError(error);
+      setVerificationError(true);
+      notification.error({
+        message: "Verification Failed",
+        description: "Invalid verification code or an error occurred.",
+      });
+    } finally {
+      setIsVerifying(false);
+      setDeletingDevice(null);
+    }
+  };
+
+  // Updated to show verification modal first
   const handleRegenerateBackupCodes = () => {
-    confirm({
-      title: "Regenerate Backup Codes?",
-      content: "This invalidates existing codes. Save new ones securely.",
-      icon: <ReloadOutlined style={{ color: "#faad14" }} />,
-      okText: "Yes",
-      cancelText: "No",
-      onOk: async () => {
-        if (!token) return;
+    setVerificationCode("");
+    setVerificationError(false);
+    setShowRegenerateVerification(true);
+  };
 
-        setRegeneratingCodes(true);
+  // New function to handle the actual regeneration after verification
+  const handleVerifyAndRegenerateCodes = async () => {
+    if (!token) return;
+    setIsVerifying(true);
+    setVerificationError(false);
+    setRegeneratingCodes(true);
 
-        try {
-          const response = await regenerateBackupCodes(token);
-          setBackupCodes(response.result);
-          setShowBackupCodes(true);
-          notification.success({
-            message: "Codes Regenerated",
-            description: "New backup codes generated. Save them securely.",
-          });
-        } catch (error) {
-          handleServiceError(error);
-          notification.error({
-            message: "Error",
-            description: "Failed to regenerate codes.",
-          });
-        } finally {
-          setRegeneratingCodes(false);
-        }
-      },
-    });
+    try {
+      const response = await regenerateBackupCodes(verificationCode, token);
+      setBackupCodes(response.result);
+      setShowRegenerateVerification(false);
+      setShowBackupCodes(true);
+      notification.success({
+        message: "Codes Regenerated",
+        description: "New backup codes generated. Save them securely.",
+      });
+    } catch (error) {
+      handleServiceError(error);
+      setVerificationError(true);
+      notification.error({
+        message: "Verification Failed",
+        description: "Invalid verification code or an error occurred.",
+      });
+    } finally {
+      setIsVerifying(false);
+      setRegeneratingCodes(false);
+    }
+  };
+
+  // New function to request admin reset
+  const handleRequestAdminReset = async () => {
+    if (!userInfo?.username || !adminResetEmail) return;
+    setIsRequestingReset(true);
+
+    try {
+      if (!token) return;
+      await requestAdminReset(userInfo.username, adminResetEmail, token);
+      setShowAdminResetModal(false);
+      notification.success({
+        message: "Reset Request Submitted",
+        description:
+          "An administrator will review your request and contact you via email.",
+      });
+    } catch (error) {
+      handleServiceError(error);
+      notification.error({
+        message: "Request Failed",
+        description: "Failed to submit reset request. Please try again.",
+      });
+    } finally {
+      setIsRequestingReset(false);
+    }
   };
 
   const handleSetupComplete = () => {
@@ -310,7 +361,205 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
       </div>
       <Paragraph>
         <Text strong type="danger">
-          Save these codes securely. They won’t be shown again.
+          Save these codes securely. They won't be shown again.
+        </Text>
+      </Paragraph>
+    </Modal>
+  );
+
+  // New modal for device deletion verification
+  const renderDeleteVerificationModal = () => (
+    <Modal
+      title={
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <KeyOutlined style={{ marginRight: 8, color: "#faad14" }} />
+          Verify Identity
+        </div>
+      }
+      open={showDeleteVerification}
+      onCancel={() => setShowDeleteVerification(false)}
+      footer={[
+        <Button key="cancel" onClick={() => setShowDeleteVerification(false)}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          onClick={handleVerifyAndDeleteDevice}
+          loading={isVerifying}
+          disabled={verificationCode.length !== 6 || isVerifying}
+        >
+          Verify & Remove
+        </Button>,
+      ]}
+      width={400}
+    >
+      <Alert
+        message="Verification Required"
+        description="Please enter your current 2FA code to confirm your identity."
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
+
+      <VerificationCodeInput
+        value={verificationCode}
+        onChange={setVerificationCode}
+        isError={verificationError}
+        isSubmitting={isVerifying}
+        autoFocus={true}
+        onResendCode={undefined}
+      />
+
+      <Divider />
+
+      <Paragraph>
+        <Text>
+          Lost access to your authenticator app? You can also use one of your
+          backup codes.
+        </Text>
+      </Paragraph>
+
+      <Space style={{ marginTop: 16 }}>
+        <Button
+          type="link"
+          icon={<QuestionCircleOutlined />}
+          onClick={() => {
+            setShowDeleteVerification(false);
+            setShowAdminResetModal(true);
+          }}
+        >
+          Lost access to authenticator and backup codes?
+        </Button>
+      </Space>
+    </Modal>
+  );
+
+  // New modal for backup code regeneration verification
+  const renderRegenerateVerificationModal = () => (
+    <Modal
+      title={
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <KeyOutlined style={{ marginRight: 8, color: "#faad14" }} />
+          Verify Identity
+        </div>
+      }
+      open={showRegenerateVerification}
+      onCancel={() => setShowRegenerateVerification(false)}
+      footer={[
+        <Button
+          key="cancel"
+          onClick={() => setShowRegenerateVerification(false)}
+        >
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          onClick={handleVerifyAndRegenerateCodes}
+          loading={isVerifying}
+          disabled={verificationCode.length !== 6 || isVerifying}
+        >
+          Verify & Regenerate
+        </Button>,
+      ]}
+      width={400}
+    >
+      <Alert
+        message="Verification Required"
+        description="Please enter your current 2FA code to confirm your identity."
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
+
+      <VerificationCodeInput
+        value={verificationCode}
+        onChange={setVerificationCode}
+        isError={verificationError}
+        isSubmitting={isVerifying}
+        autoFocus={true}
+        onResendCode={undefined}
+      />
+
+      <Divider />
+
+      <Paragraph>
+        <Text>
+          Lost access to your authenticator app? You can also use one of your
+          backup codes.
+        </Text>
+      </Paragraph>
+
+      <Space style={{ marginTop: 16 }}>
+        <Button
+          type="link"
+          icon={<QuestionCircleOutlined />}
+          onClick={() => {
+            setShowRegenerateVerification(false);
+            setShowAdminResetModal(true);
+          }}
+        >
+          Lost access to authenticator and backup codes?
+        </Button>
+      </Space>
+    </Modal>
+  );
+
+  // New modal for admin reset request
+  const renderAdminResetModal = () => (
+    <Modal
+      title={
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <MailOutlined style={{ marginRight: 8, color: "#1890ff" }} />
+          Request Admin Assistance
+        </div>
+      }
+      open={showAdminResetModal}
+      onCancel={() => setShowAdminResetModal(false)}
+      footer={[
+        <Button key="cancel" onClick={() => setShowAdminResetModal(false)}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          onClick={handleRequestAdminReset}
+          loading={isRequestingReset}
+          disabled={!adminResetEmail || isRequestingReset}
+        >
+          Submit Request
+        </Button>,
+      ]}
+      width={400}
+    >
+      <Alert
+        message="Admin Assistance Required"
+        description="If you've lost access to both your authenticator app and backup codes, an administrator can help reset your 2FA."
+        type="warning"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
+
+      <Form layout="vertical">
+        <Form.Item
+          label="Confirm Email Address"
+          required
+          help="Please provide your email address for verification and communication."
+        >
+          <Input
+            value={adminResetEmail}
+            onChange={(e) => setAdminResetEmail(e.target.value)}
+            placeholder="Enter your email address"
+            type="email"
+          />
+        </Form.Item>
+      </Form>
+
+      <Paragraph>
+        <Text type="secondary">
+          Note: An administrator will verify your identity before resetting your
+          2FA. This may take some time.
         </Text>
       </Paragraph>
     </Modal>
@@ -328,6 +577,9 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   return (
     <StyledCard>
       {renderBackupCodesModal()}
+      {renderDeleteVerificationModal()}
+      {renderRegenerateVerificationModal()}
+      {renderAdminResetModal()}
 
       <div className="section-header" onClick={toggleExpand}>
         <Title level={4} className="section-title">
@@ -356,7 +608,8 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
               )}
 
               <Paragraph style={{ fontSize: 14, color: "#666" }}>
-                Enhance security with a second verification step.
+                Enhance security with a second verification step. Only one
+                device can be registered at a time.
               </Paragraph>
 
               <Space className="action-buttons">
@@ -373,9 +626,19 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={handleAddDevice}
+                  disabled={isTotpEnabled}
                 >
-                  Add Device
+                  {isTotpEnabled ? "Device Already Active" : "Add Device"}
                 </Button>
+                {isTotpEnabled && (
+                  <Button
+                    type="dashed"
+                    icon={<QuestionCircleOutlined />}
+                    onClick={() => setShowAdminResetModal(true)}
+                  >
+                    Lost Access?
+                  </Button>
+                )}
               </Space>
 
               <Divider orientation="left" style={{ margin: "16px 0" }}>

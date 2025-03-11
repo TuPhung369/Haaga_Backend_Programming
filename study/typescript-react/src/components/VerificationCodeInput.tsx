@@ -38,7 +38,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
       .map(() => React.createRef<HTMLInputElement>());
   }, []);
 
-  // Timer state
+  // Timer state - only used when onResendCode is provided
   const [countdown, setCountdown] = useState(resendCooldown);
   const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -52,8 +52,10 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
       .padStart(2, "0")}`;
   };
 
-  // Handle countdown
+  // Handle countdown - only run this effect if onResendCode is provided
   useEffect(() => {
+    if (!onResendCode) return; // Skip for TOTP authentication
+
     let timer: ReturnType<typeof setTimeout>;
     if (countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -63,7 +65,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     }
 
     return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [countdown, onResendCode]);
 
   // Focus first input on mount if autoFocus is true
   useEffect(() => {
@@ -208,31 +210,35 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
 
   return (
     <Form.Item
-      label="Verification Code"
+      label={onResendCode ? "Verification Code" : "Authenticator Code"}
       extra={
         <div className="verification-extra">
           <Text type="secondary">
-            Enter the 6-digit code sent to your new email address
+            {onResendCode
+              ? "Enter the 6-digit code sent to your email address"
+              : "Enter the 6-digit code from your authenticator app"}
           </Text>
-          <div className="resend-container">
-            {canResend ? (
-              <Button
-                type="link"
-                size="small"
-                onClick={handleResend}
-                disabled={isResending}
-                className="resend-button"
-                icon={isResending ? <SyncOutlined spin /> : null}
-              >
-                {isResending ? "Sending..." : "Resend code"}
-              </Button>
-            ) : (
-              <Text type="secondary" className="countdown">
-                <ClockCircleOutlined style={{ marginRight: 4 }} />
-                Resend available in {formatTime(countdown)}
-              </Text>
-            )}
-          </div>
+          {onResendCode && (
+            <div className="resend-container">
+              {canResend ? (
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={handleResend}
+                  disabled={isResending}
+                  className="resend-button"
+                  icon={isResending ? <SyncOutlined spin /> : null}
+                >
+                  {isResending ? "Sending..." : "Resend code"}
+                </Button>
+              ) : (
+                <Text type="secondary" className="countdown">
+                  <ClockCircleOutlined style={{ marginRight: 4 }} />
+                  Resend available in {formatTime(countdown)}
+                </Text>
+              )}
+            </div>
+          )}
         </div>
       }
     >
