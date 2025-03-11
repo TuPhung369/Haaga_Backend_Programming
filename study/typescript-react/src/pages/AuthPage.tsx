@@ -28,6 +28,7 @@ import { setupTokenRefresh } from "../utils/tokenRefresh";
 import "../styles/AuthPage.css";
 import { FcGoogle } from "react-icons/fc";
 import LoadingState from "../components/LoadingState";
+import TotpAuthComponent from "../components/TotpAuthComponent";
 
 const { Title, Text } = Typography;
 
@@ -37,6 +38,11 @@ const AuthPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Added for TOTP
+  const [showTotpAuth, setShowTotpAuth] = useState<boolean>(false);
+  const [totpUsername, setTotpUsername] = useState<string>("");
+  const [totpPassword, setTotpPassword] = useState<string>("");
 
   // Use our new field errors hook instead of manual error handling
   const { fieldErrors, setFieldError, clearFieldError, clearAllFieldErrors } =
@@ -126,11 +132,35 @@ const AuthPage: React.FC = () => {
         throw new Error("Invalid response format from server");
       }
     } catch (error: unknown) {
-      // Hiển thị thông báo lỗi chung chung trong form
-      setLoginError("Invalid username or password. Please try again.");
+      // Check if this is a TOTP required error (code 4070)
+      const authError = error as {
+        message?: string;
+        response?: {
+          data?: {
+            message?: string;
+            code?: number;
+          };
+        };
+      };
 
-      // Ghi log lỗi chi tiết cho dev
-      console.error("Login error:", error);
+      if (
+        authError.response?.data?.code === 4070 ||
+        (authError.response?.data?.message &&
+          authError.response?.data?.message.includes(
+            "Two-factor authentication code is required"
+          ))
+      ) {
+        console.log("TOTP authentication required");
+        // Store credentials for the TOTP component
+        setTotpUsername(values.username);
+        setTotpPassword(values.password);
+        // Show TOTP authentication screen
+        setShowTotpAuth(true);
+      } else {
+        // Display a generic error for login failures
+        setLoginError("Invalid username or password. Please try again.");
+        console.error("Login error:", error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -214,7 +244,7 @@ const AuthPage: React.FC = () => {
   // Handle input changes for registration form - Updated to use field errors hook
   const handleInputChange = (
     name: string,
-    value: string | moment.Moment | null
+    value: string | dayjs.Dayjs | null
   ) => {
     setRegisterValues((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
@@ -242,10 +272,7 @@ const AuthPage: React.FC = () => {
   ]);
 
   // Validate a single field - Updated to use field errors hook
-  const validateField = (
-    name: string,
-    value: string | moment.Moment | null
-  ) => {
+  const validateField = (name: string, value: string | dayjs.Dayjs | null) => {
     // Create an object with just the field being validated
     const fieldToValidate: Partial<ValidationInput> = { [name]: value };
 
@@ -270,6 +297,26 @@ const AuthPage: React.FC = () => {
       validatePasswordConfirmation();
     }
   }, [registerValues.confirmPassword, validatePasswordConfirmation]);
+
+  // If showing TOTP authentication, render TotpAuthComponent
+  if (showTotpAuth) {
+    return (
+      <TotpAuthComponent
+        username={totpUsername}
+        password={totpPassword}
+        onBack={() => {
+          setShowTotpAuth(false);
+          setTotpUsername("");
+          setTotpPassword("");
+        }}
+        onAuthenticated={() => {
+          setShowTotpAuth(false);
+          setTotpUsername("");
+          setTotpPassword("");
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -644,3 +691,4 @@ const AuthPage: React.FC = () => {
 };
 
 export default AuthPage;
+

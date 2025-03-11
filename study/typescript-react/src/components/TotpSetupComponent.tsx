@@ -1,4 +1,3 @@
-// src/components/TotpSetupComponent.tsx
 import React, { useState } from "react";
 import {
   Card,
@@ -14,7 +13,7 @@ import {
   List,
   notification,
   Space,
-  Image,
+  QRCode,
 } from "antd";
 import {
   QrcodeOutlined,
@@ -80,6 +79,7 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
       }
 
       const response = await setupTotp(deviceName, token);
+      console.log("Setup Data:", response.result); // Keep this for debugging
       setSetupData(response.result);
       setCurrentStep(1);
     } catch (error) {
@@ -255,13 +255,32 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
 
           <Row gutter={[24, 24]} justify="center">
             <Col span={24} style={{ textAlign: "center" }}>
-              <Card style={{ display: "inline-block", margin: "0 auto" }}>
-                <Image
-                  width={200}
-                  src={setupData.qrCodeUri}
-                  alt="QR Code for TOTP Setup"
-                  preview={false}
-                />
+              <Card
+                style={{
+                  display: "inline-block",
+                  margin: "0 auto",
+                  padding: "16px",
+                  background: "#f8f8f8",
+                  minHeight: "220px",
+                  minWidth: "220px",
+                }}
+              >
+                {setupData.qrCodeUri ? (
+                  <QRCode
+                    value={setupData.qrCodeUri}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+                ) : (
+                  <Text type="danger">
+                    QR code data is unavailable. Please use the secret key
+                    below.
+                  </Text>
+                )}
+                <div style={{ marginTop: "10px", fontWeight: "bold" }}>
+                  Scan with authenticator app
+                </div>
               </Card>
             </Col>
           </Row>
@@ -437,3 +456,4 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
 };
 
 export default TotpSetupComponent;
+

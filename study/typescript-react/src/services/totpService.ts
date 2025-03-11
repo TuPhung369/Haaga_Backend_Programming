@@ -5,9 +5,9 @@ import { ApiResponse } from "../type/types";
 
 // Response interfaces
 export interface TotpSetupResponse {
-  secretId: string;
-  secretKey: string;
   qrCodeUri: string;
+  secretKey: string;
+  secretId: string;
 }
 
 export interface TotpVerifyResponse {
@@ -206,3 +206,4 @@ export default {
   authenticateWithTotp,
   authenticateWithTotpAndCookies,
 };
+

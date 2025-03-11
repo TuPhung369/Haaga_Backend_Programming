@@ -41,7 +41,12 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
     setIsSubmitting(true);
 
     try {
-      const response = await authenticateWithTotp(username, password, totpCode);
+      // Fix: Pass an object with the expected properties instead of separate arguments
+      const response = await authenticateWithTotp({
+        username,
+        password,
+        totpCode,
+      });
 
       if (response && response.result && response.result.token) {
         dispatch(

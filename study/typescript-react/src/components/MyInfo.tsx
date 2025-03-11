@@ -1,4 +1,4 @@
-// src/components/MyInfo.tsx (updated with TOTP integration)
+// src/components/MyInfo.tsx
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Descriptions,
@@ -39,7 +39,7 @@ import VerificationCodeInput from "./VerificationCodeInput";
 import styled from "styled-components";
 import { COLORS } from "../utils/constant";
 import LoadingState from "./LoadingState";
-import TotpManagementComponent from "./TotpManagementComponent"; // Import TOTP Management Component
+import TotpManagementComponent from "./TotpManagementComponent";
 
 const { Option } = Select;
 

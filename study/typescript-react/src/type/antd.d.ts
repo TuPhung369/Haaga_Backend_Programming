@@ -68,9 +68,11 @@ declare module "antd" {
     TreeSelect,
     Typography,
     Upload,
+    QRCode,
   } from "antd";
 
   // Export all components
+  export const QRCode: React.FC<QRCodeProps>;
   export const Affix: typeof Affix;
   export const Alert: typeof Alert;
   export const Anchor: typeof Anchor;
@@ -142,6 +144,15 @@ declare module "antd" {
     focus: () => void;
     blur: () => void;
     input: HTMLInputElement | HTMLTextAreaElement;
+  }
+  export interface QRCodeProps {
+    value: string;
+    size?: number;
+    level?: "L" | "M" | "Q" | "H";
+    bgColor?: string;
+    fgColor?: string;
+    includeMargin?: boolean;
+    // Add other props as needed based on the library's documentation
   }
 
   export interface ModalFuncProps {
