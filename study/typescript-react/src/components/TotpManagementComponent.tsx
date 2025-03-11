@@ -49,7 +49,7 @@ const StyledCard = styled(Card)`
   transition: all 0.3s ease;
 
   &:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 6px rgba(0, 0, 0, 0.15);
   }
 
   .ant-card-body {
@@ -449,3 +449,4 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
 };
 
 export default TotpManagementComponent;
+
