@@ -1,7 +1,6 @@
 // src/components/MyInfo.tsx
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
-  Descriptions,
   Tag,
   Modal,
   Form,
@@ -11,30 +10,37 @@ import {
   Button,
   Space,
   Divider,
-  Tabs,
-  TabsProps,
+  Typography,
+  Result,
+  Skeleton,
 } from "antd";
 import {
   EditOutlined,
   MailOutlined,
   KeyOutlined,
-  SecurityScanOutlined,
+  ReloadOutlined,
+  VerifiedOutlined,
   UserOutlined,
+  DownOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import {
   invalidateUserInfo,
   setAllUsers,
   setUserInfo,
+  setRoles,
 } from "../store/userSlice";
-import { updateMyInfo } from "../services/userService";
+import { getAllRoles } from "../services/roleService";
+import { getMyInfo, updateMyInfo } from "../services/userService";
+import { handleServiceError } from "../services/baseService";
 import {
   verifyEmailChange,
   requestEmailChangeCode,
 } from "../services/authService";
 import validateInput from "../utils/validateInput";
 import { AxiosError } from "axios";
-import { RootState, ExtendApiError, User } from "../type/types";
+import { RootState, ExtendApiError, User, Role } from "../type/types";
 import VerificationCodeInput from "./VerificationCodeInput";
 import styled from "styled-components";
 import { COLORS } from "../utils/constant";
@@ -42,63 +48,293 @@ import LoadingState from "./LoadingState";
 import TotpManagementComponent from "./TotpManagementComponent";
 
 const { Option } = Select;
+const { Text, Title } = Typography;
 
-// Define styled component outside of component function
+// Styled components
 const MyInfoStyle = styled.div`
-  .custom-descriptions.mt-0 {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+  background-color: ${COLORS[12]}; /* White background */
+  padding: 24px 0;
+  min-height: 100vh;
+
+  .page-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 16px;
   }
 
-  .descriptions-title-container {
+  .section-card {
+    background: ${COLORS[12]}; /* White */
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 24px;
+    padding: 24px;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .section-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .section-header {
     display: flex;
-    flex-direction: row;
-    justify-content: start;
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 24px;
+    border-bottom: 1px solid ${COLORS[11]};
+    padding-bottom: 16px;
   }
 
   .section-title {
-    font-size: 20px;
+    font-size: 22px;
+    font-weight: 600;
     margin: 0;
-    font-weight: 700;
+    color: ${COLORS[13]}; /* Black */
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
-  .edit-icon {
-    cursor: pointer;
-    margin-left: 10px;
-    font-size: 18px;
-    color: ${COLORS[14]};
-    transition: color 0.3s;
+  .section-title .anticon {
+    color: ${COLORS[14]}; /* Blue */
   }
 
-  .edit-icon:hover {
-    opacity: 0.8;
+  .edit-button {
+    color: ${COLORS[14]}; /* Blue */
   }
 
-  /* Make tags more compact */
+  .info-item {
+    padding: 16px 0;
+    border-bottom: 1px solid ${COLORS[11]}; /* Light gray */
+  }
+
+  .info-item:last-child {
+    border-bottom: none;
+  }
+
+  .info-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: ${COLORS[10]}; /* Slightly darker gray */
+    margin-bottom: 8px;
+  }
+
+  .info-value {
+    font-size: 16px;
+    font-weight: 500;
+    color: ${COLORS[13]}; /* Black */
+  }
+
+  /* Tags styling */
   .ant-tag {
-    margin-right: 4px;
-    margin-bottom: 4px;
-    padding: 0 6px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    padding: 4px 10px;
+    font-size: 14px;
+    border-radius: 4px;
   }
 
-  /* Reduce overall padding */
-  .ant-descriptions-item-label,
-  .ant-descriptions-item-content {
-    padding: 8px 12px !important;
+  /* Section dividers */
+  .section-divider {
+    margin: 32px 0 24px;
+    font-size: 18px;
+    color: ${COLORS[9]}; /* Purple */
+    font-weight: 500;
   }
 
-  /* Adjust spacing for modals */
+  /* For permissions and tags containers */
+  .tags-container {
+    margin-top: 12px;
+  }
+
+  /* Modal adjustments */
   .ant-modal-body .ant-form-item {
-    margin-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  /* Email change link */
+  .email-change-link {
+    margin-left: 8px;
+    color: ${COLORS[14]}; /* Blue */
+  }
+
+  /* Error state */
+  .error-container {
+    padding: 16px;
+  }
+
+  /* Skeleton styles */
+  .skeleton-item {
+    margin-bottom: 16px;
   }
 `;
 
+// Sub-components
+const PersonalInfoCard = ({ userInfo, onEdit }) => {
+  const [expanded, setExpanded] = useState(true); // Start expanded by default
+
+  if (!userInfo) return null;
+
+  const toggleExpand = () => {
+    setExpanded(!expanded);
+  };
+
+  return (
+    <div className="section-card">
+      <div
+        className="section-header"
+        style={{ cursor: "pointer" }}
+        onClick={toggleExpand}
+      >
+        <Title level={4} className="section-title">
+          <UserOutlined /> Personal Details{" "}
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="edit-button"
+            size="large"
+          />
+        </Title>
+        <Space>{expanded ? <DownOutlined /> : <RightOutlined />}</Space>
+      </div>
+
+      {expanded && (
+        <div className="personal-info-content">
+          <div className="info-item">
+            <div className="info-label">First Name</div>
+            <div className="info-value">
+              {userInfo.firstname || "Not specified"}
+            </div>
+          </div>
+
+          <div className="info-item">
+            <div className="info-label">Last Name</div>
+            <div className="info-value">
+              {userInfo.lastname || "Not specified"}
+            </div>
+          </div>
+
+          <div className="info-item">
+            <div className="info-label">Username</div>
+            <div className="info-value">{userInfo.username}</div>
+          </div>
+
+          <div className="info-item">
+            <div className="info-label">Date of Birth</div>
+            <div className="info-value">{userInfo.dob || "Not specified"}</div>
+          </div>
+
+          <div className="info-item">
+            <div className="info-label">Email</div>
+            <div className="info-value">
+              {userInfo.email || "Not specified"}
+            </div>
+          </div>
+
+          <div className="info-item">
+            <div className="info-label">Roles</div>
+            <div className="tags-container">
+              {userInfo.roles && userInfo.roles.length > 0 ? (
+                <Space size={[0, 8]} wrap>
+                  {userInfo.roles.map((role) => (
+                    <Tag key={role.name} color={role.color}>
+                      {role.name}
+                    </Tag>
+                  ))}
+                </Space>
+              ) : (
+                <Text type="secondary">No roles assigned</Text>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const PermissionsCard = ({ userInfo }) => {
+  const uniquePermissions = useMemo(() => {
+    if (!userInfo || !userInfo.roles || userInfo.roles.length === 0) return [];
+
+    return [
+      ...new Set(
+        userInfo.roles.flatMap(
+          (role) => role.permissions?.map((perm) => perm.name) || []
+        )
+      ),
+    ]
+      .map((permName) => {
+        const perm = userInfo.roles
+          .flatMap((role) => role.permissions || [])
+          .find((p) => p && p.name === permName);
+        return perm;
+      })
+      .filter(Boolean);
+  }, [userInfo]);
+
+  if (!userInfo) return null;
+
+  return (
+    <div className="section-card">
+      <div className="section-header">
+        <Title level={4} className="section-title">
+          <VerifiedOutlined /> Permissions
+        </Title>
+      </div>
+
+      <div className="tags-container">
+        {uniquePermissions.length > 0 ? (
+          <Space size={[8, 16]} wrap>
+            {uniquePermissions.map((perm) => (
+              <Tag key={perm.name} color={perm.color}>
+                {perm.name}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          <Text type="secondary">No permissions</Text>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const LoadingCard = () => (
+  <div className="section-card">
+    <Skeleton active avatar paragraph={{ rows: 6 }} />
+  </div>
+);
+
+const ErrorCard = ({ message, onRetry }) => (
+  <div className="section-card error-container">
+    <Result
+      status="warning"
+      title="Could not load your information"
+      subTitle={
+        message ||
+        "Please try again or contact support if the problem persists."
+      }
+      extra={
+        <Button type="primary" icon={<ReloadOutlined />} onClick={onRetry}>
+          Try Again
+        </Button>
+      }
+    />
+  </div>
+);
+
+// Main component
 interface MyInfoProps {
   onUpdateSuccess?: () => void;
 }
 
 const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
+  // State
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEmailChangeModalVisible, setIsEmailChangeModalVisible] =
     useState(false);
@@ -117,24 +353,60 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
   } | null>(null);
   const [isUpdatingInfo, setIsUpdatingInfo] = useState(false);
   const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Added for tabs
-  const [activeTab, setActiveTab] = useState<string>("1");
-
-  const { token, loginSocial } = useSelector((state: RootState) => state.auth);
-  const { userInfo, roles, allUsers } = useSelector(
-    (state: RootState) => state.user
+  // Redux
+  const { token, loginSocial, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
   );
+  const {
+    userInfo,
+    roles,
+    allUsers,
+    isUserInfoInvalidated,
+    isRolesInvalidated,
+  } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
-
-  // Set loading state to false once userInfo is loaded
-  useEffect(() => {
-    if (userInfo) {
-      setIsLoadingUserInfo(false);
+  const fetchRoles = useCallback(async () => {
+    if (!isRolesInvalidated && roles.length > 0) return;
+    try {
+      if (!token) {
+        throw new Error("Token is null");
+      }
+      const response = await getAllRoles(token);
+      if (response && Array.isArray(response.result)) {
+        const allRolesData = response.result.map((role: Role) => ({
+          name: role.name,
+          description: role.description,
+          color: role.color,
+          permissions: role.permissions?.map((permission) => ({
+            name: permission.name,
+            description: permission.description,
+            color: permission.color,
+          })),
+        }));
+        dispatch(setRoles(allRolesData));
+      } else {
+        console.error("Response is not an array");
+        dispatch(setRoles([]));
+      }
+    } catch (error) {
+      handleServiceError(error);
+      const axiosError = error as AxiosError<ExtendApiError>;
+      console.error(
+        "Error fetching all roles:",
+        axiosError.response?.data?.message
+      );
+      dispatch(setRoles([]));
+      setNotificationMessage({
+        type: "error",
+        message: "Fetch Failed",
+        description: "Error fetching all roles. Please try again later.",
+      });
     }
-  }, [userInfo]);
-
-  const openNotificationWithIcon = useCallback(
+  }, [token, dispatch, isRolesInvalidated, roles]);
+  // Effects and callbacks
+  const openNotification = useCallback(
     (type: "success" | "error", message: string, description: string) => {
       api[type]({
         message,
@@ -145,16 +417,97 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
   );
 
   useEffect(() => {
+    if (userInfo) {
+      setIsLoadingUserInfo(false);
+      setError(null);
+    }
+  }, [userInfo]);
+
+  useEffect(() => {
+    // Prevent infinite loading state
+    const timer = setTimeout(() => {
+      if (isLoadingUserInfo) {
+        console.warn(
+          "User info taking too long to load, resetting loading state"
+        );
+        setIsLoadingUserInfo(false);
+        setError("User information took too long to load");
+      }
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, [isLoadingUserInfo]);
+
+  useEffect(() => {
     if (notificationMessage) {
-      openNotificationWithIcon(
+      openNotification(
         notificationMessage.type,
         notificationMessage.message,
         notificationMessage.description
       );
       setNotificationMessage(null);
     }
-  }, [notificationMessage, openNotificationWithIcon]);
+  }, [notificationMessage, openNotification]);
 
+  const getHighestRole = (roles) => {
+    if (roles.includes("ADMIN")) return "ADMIN";
+    if (roles.includes("MANAGER")) return "MANAGER";
+    return "USER";
+  };
+  const fetchMyInfo = useCallback(async () => {
+    if (!token || !isAuthenticated) return;
+
+    // Only fetch if we don't have userInfo or if data is invalidated
+    if (userInfo && !isUserInfoInvalidated) return;
+
+    setIsLoadingUserInfo(true);
+    setError(null);
+
+    try {
+      const response = await getMyInfo(token);
+      if (response && response.result) {
+        const userData: User = {
+          id: response.result.id,
+          username: response.result.username,
+          firstname: response.result.firstname,
+          lastname: response.result.lastname,
+          dob: response.result.dob,
+          email: response.result.email,
+          roles: response.result.roles.map((role: Role) => ({
+            name: role.name,
+            description: role.description,
+            color: role.color,
+            permissions: role.permissions?.map((permission) => ({
+              name: permission.name,
+              description: permission.description,
+              color: permission.color,
+            })),
+          })),
+        };
+        dispatch(setUserInfo(userData));
+      }
+    } catch (error) {
+      handleServiceError(error);
+      const axiosError = error as AxiosError<ExtendApiError>;
+      console.error(
+        "Error fetching user info:",
+        axiosError.response?.data?.message
+      );
+      setError(
+        axiosError.response?.data?.message || "Error fetching user information"
+      );
+      setIsLoadingUserInfo(false);
+    }
+  }, [token, dispatch, isUserInfoInvalidated, isAuthenticated, userInfo]);
+
+  useEffect(() => {
+    if (token && isAuthenticated) {
+      fetchMyInfo();
+      fetchRoles();
+    }
+  }, [token, isAuthenticated, fetchMyInfo, fetchRoles]);
+
+  // Event handlers
   const showModalUpdate = () => {
     if (userInfo) {
       setIsModalVisible(true);
@@ -237,7 +590,6 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
     }
   };
 
-  // Function to handle resending verification code
   const handleResendVerificationCode = async () => {
     try {
       const values = await emailChangeForm.validateFields([
@@ -357,6 +709,28 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+
+      // Check for role escalation if user info exists
+      if (userInfo) {
+        const currentHighestRole = getHighestRole(
+          userInfo.roles.map((role) => role.name)
+        );
+        const newHighestRole = getHighestRole(values.roles || []);
+
+        // Prevent role escalation
+        if (
+          currentHighestRole === "USER" &&
+          (newHighestRole === "ADMIN" || newHighestRole === "MANAGER")
+        ) {
+          setNotificationMessage({
+            type: "error",
+            message: "Permission Denied",
+            description: "You don't have permission to escalate your role.",
+          });
+          return;
+        }
+      }
+
       const errors = validateInput({
         username: values.username,
         password: values.password,
@@ -447,94 +821,44 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
     return ["USER"];
   };
 
-  // Define tabs for user info sections
-  const items: (typeof TabsProps)["items"] = [
-    {
-      key: "1",
-      label: (
-        <span>
-          <UserOutlined />
-          Profile Information
-        </span>
-      ),
-      children: userInfo ? (
-        <Descriptions
-          className="custom-descriptions mt-0"
-          title={
-            <div className="descriptions-title-container">
-              <h2 className="section-title">User Information</h2>
-              <EditOutlined onClick={showModalUpdate} className="edit-icon" />
-            </div>
-          }
-          bordered
-        >
-          <Descriptions.Item label="First Name">
-            {userInfo.firstname}
-          </Descriptions.Item>
-          <Descriptions.Item label="Last Name">
-            {userInfo.lastname}
-          </Descriptions.Item>
-          <Descriptions.Item label="Role">
-            {userInfo.roles && userInfo.roles.length > 0
-              ? userInfo.roles.map((role) => (
-                  <Tag key={role.name} color={role.color}>
-                    {role.name}
-                  </Tag>
-                ))
-              : "No role assigned"}
-          </Descriptions.Item>
-          <Descriptions.Item label="Username">
-            {userInfo.username}
-          </Descriptions.Item>
-          <Descriptions.Item label="Date of Birth">
-            {userInfo.dob}
-          </Descriptions.Item>
-          <Descriptions.Item label="Permissions">
-            {userInfo.roles && userInfo.roles.length > 0
-              ? [
-                  ...new Set(
-                    userInfo.roles.flatMap((role) =>
-                      role.permissions?.map((perm) => perm.name)
-                    )
-                  ),
-                ].map((permName) => {
-                  const perm = userInfo.roles
-                    .flatMap((role) => role.permissions)
-                    .find((p) => p && p.name === permName);
-                  return perm ? (
-                    <Tag key={perm.name} color={perm.color}>
-                      {perm.name}
-                    </Tag>
-                  ) : null;
-                })
-              : "No permissions"}
-          </Descriptions.Item>
-        </Descriptions>
-      ) : (
-        <p>Loading user information...</p>
-      ),
-    },
-    {
-      key: "2",
-      label: (
-        <span>
-          <SecurityScanOutlined />
-          Security Settings
-        </span>
-      ),
-      children: <TotpManagementComponent onUpdate={onUpdateSuccess} />,
-    },
-  ];
+  // Render component
+  const renderContent = () => {
+    if (isLoadingUserInfo) {
+      return (
+        <>
+          <LoadingCard />
+          <LoadingCard />
+        </>
+      );
+    }
+
+    if (error) {
+      return <ErrorCard message={error} onRetry={fetchMyInfo} />;
+    }
+
+    if (!userInfo) {
+      return (
+        <ErrorCard
+          message="User information not available"
+          onRetry={fetchMyInfo}
+        />
+      );
+    }
+
+    return (
+      <>
+        <PersonalInfoCard userInfo={userInfo} onEdit={showModalUpdate} />
+        <PermissionsCard userInfo={userInfo} />
+        <TotpManagementComponent onUpdate={onUpdateSuccess} />
+      </>
+    );
+  };
 
   return (
     <MyInfoStyle>
       {contextHolder}
 
       {/* Loading states */}
-      {isLoadingUserInfo && (
-        <LoadingState tip="Loading user information..." fullscreen={true} />
-      )}
-
       {isUpdatingInfo && (
         <LoadingState tip="Updating your information..." fullscreen={true} />
       )}
@@ -547,13 +871,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         <LoadingState tip="Verifying and updating email..." fullscreen={true} />
       )}
 
-      {/* Tab navigation for different sections */}
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={items}
-        size="large"
-      />
+      <div className="page-container">{renderContent()}</div>
 
       {/* Main profile edit modal */}
       <Modal
@@ -633,7 +951,18 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
             label="Role"
             rules={[{ required: true, message: "Please select the role!" }]}
           >
-            <Select mode="multiple" placeholder="Select roles" disabled>
+            <Select
+              mode="multiple"
+              placeholder="Select roles"
+              disabled={
+                userInfo
+                  ? userInfo.roles.some((role) => role.name === "USER") &&
+                    !userInfo.roles.some((role) =>
+                      ["ADMIN", "MANAGER"].includes(role.name)
+                    )
+                  : true
+              }
+            >
               {roles
                 .filter((role) => getAvailableRoles().includes(role.name))
                 .map((role) => (
@@ -704,7 +1033,6 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
             <>
               <Divider />
 
-              {/* Replace the old verification code input with our new component */}
               <VerificationCodeInput
                 value={verificationCode}
                 onChange={setVerificationCode}

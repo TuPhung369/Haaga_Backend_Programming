@@ -1,4 +1,4 @@
-// src/components/TotpManagementComponent.tsx
+// TotpManagementComponent.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
@@ -21,6 +21,8 @@ import {
   SafetyCertificateOutlined,
   MobileOutlined,
   ClockCircleOutlined,
+  RightOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 import {
   getTotpStatus,
@@ -35,9 +37,100 @@ import { handleServiceError } from "../services/baseService";
 import TotpSetupComponent from "./TotpSetupComponent";
 import moment from "moment";
 import LoadingState from "./LoadingState";
+import styled from "styled-components";
 
-const { Text, Paragraph } = Typography;
+const { Text, Paragraph, Title } = Typography;
 const { confirm } = Modal;
+
+const StyledCard = styled(Card)`
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .ant-card-body {
+    padding: 24px;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #e8e8e8;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a365d;
+
+    .anticon {
+      margin-right: 8px;
+    }
+
+    .ant-tag {
+      margin-left: 8px;
+      font-size: 12px;
+      padding: 2px 8px;
+    }
+  }
+
+  .action-buttons {
+    margin-bottom: 24px;
+
+    .ant-btn {
+      margin-right: 12px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .ant-btn-primary {
+      background: #1890ff;
+      border-color: #1890ff;
+    }
+  }
+
+  .device-list .ant-list-item {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.3s;
+
+    &:hover {
+      background: #fafafa;
+    }
+
+    .ant-list-item-meta-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #2d3748;
+    }
+
+    .ant-list-item-meta-description {
+      font-size: 14px;
+      color: #718096;
+    }
+
+    .ant-btn-danger {
+      background: #ff4d4f;
+      border-color: #ff4d4f;
+      color: #fff;
+    }
+  }
+
+  .empty-state {
+    padding: 32px 0;
+    text-align: center;
+    color: #718096;
+  }
+`;
 
 interface TotpManagementComponentProps {
   onUpdate?: () => void;
@@ -46,6 +139,7 @@ interface TotpManagementComponentProps {
 const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   onUpdate,
 }) => {
+  const [expanded, setExpanded] = useState<boolean>(false);
   const [isTotpEnabled, setIsTotpEnabled] = useState<boolean>(false);
   const [devices, setDevices] = useState<TotpDeviceResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -65,12 +159,10 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
     setError(null);
 
     try {
-      // Get TOTP status
       const statusResponse = await getTotpStatus(token);
       setIsTotpEnabled(statusResponse.result);
 
       if (statusResponse.result) {
-        // Get TOTP devices if enabled
         const devicesResponse = await getTotpDevices(token);
         setDevices(devicesResponse.result || []);
       } else {
@@ -100,13 +192,12 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
 
   const handleDeleteDevice = (deviceId: string) => {
     confirm({
-      title: "Are you sure you want to remove this device?",
-      content:
-        "This will disable two-factor authentication for this device. You'll need to set it up again if you want to use it in the future.",
+      title: "Remove Device?",
+      content: "This will disable 2FA for this device. Re-setup required.",
       icon: <DeleteOutlined style={{ color: "red" }} />,
-      okText: "Yes, Remove",
+      okText: "Yes",
       okType: "danger",
-      cancelText: "Cancel",
+      cancelText: "No",
       onOk: async () => {
         if (!token) return;
 
@@ -116,18 +207,15 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
           await deactivateTotpDevice(deviceId, token);
           notification.success({
             message: "Device Removed",
-            description:
-              "Two-factor authentication device has been successfully removed.",
+            description: "2FA device removed successfully.",
           });
           fetchTotpData();
           if (onUpdate) onUpdate();
         } catch (error) {
           handleServiceError(error);
-          const errorMessage =
-            error instanceof Error ? error.message : "Failed to remove device";
           notification.error({
             message: "Error",
-            description: errorMessage,
+            description: "Failed to remove device.",
           });
         } finally {
           setDeletingDevice(null);
@@ -139,11 +227,10 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   const handleRegenerateBackupCodes = () => {
     confirm({
       title: "Regenerate Backup Codes?",
-      content:
-        "This will invalidate all your current backup codes. You'll need to save the new ones in a secure place.",
+      content: "This invalidates existing codes. Save new ones securely.",
       icon: <ReloadOutlined style={{ color: "#faad14" }} />,
-      okText: "Yes, Regenerate",
-      cancelText: "Cancel",
+      okText: "Yes",
+      cancelText: "No",
       onOk: async () => {
         if (!token) return;
 
@@ -154,19 +241,14 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
           setBackupCodes(response.result);
           setShowBackupCodes(true);
           notification.success({
-            message: "Backup Codes Regenerated",
-            description:
-              "Your new backup codes have been generated. Make sure to save them in a secure place.",
+            message: "Codes Regenerated",
+            description: "New backup codes generated. Save them securely.",
           });
         } catch (error) {
           handleServiceError(error);
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : "Failed to regenerate backup codes";
           notification.error({
             message: "Error",
-            description: errorMessage,
+            description: "Failed to regenerate codes.",
           });
         } finally {
           setRegeneratingCodes(false);
@@ -181,7 +263,10 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
     if (onUpdate) onUpdate();
   };
 
-  // Render the backup codes modal
+  const toggleExpand = () => {
+    setExpanded(!expanded);
+  };
+
   const renderBackupCodesModal = () => (
     <Modal
       title={
@@ -189,7 +274,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
           <SafetyCertificateOutlined
             style={{ marginRight: 8, color: "#52c41a" }}
           />
-          <span>Backup Codes</span>
+          Backup Codes
         </div>
       }
       open={showBackupCodes}
@@ -199,34 +284,33 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
           Close
         </Button>,
       ]}
-      width={500}
+      width={400}
     >
       <Alert
-        message="Keep these codes safe"
-        description="If you lose access to your authenticator app, you can use one of these codes to sign in. Each code can only be used once."
+        message="Secure Your Codes"
+        description="Use these one-time codes if you lose access to your authenticator."
         type="warning"
         showIcon
         style={{ marginBottom: 16 }}
       />
-
-      <div style={{ maxHeight: "300px", overflow: "auto", marginBottom: 16 }}>
+      <div style={{ maxHeight: "250px", overflow: "auto", marginBottom: 16 }}>
         <List
-          grid={{ gutter: 16, column: 2 }}
+          grid={{ gutter: 12, column: 2 }}
           dataSource={backupCodes}
           renderItem={(code) => (
             <List.Item>
-              <Card size="small">
-                <Text copyable>{code}</Text>
+              <Card size="small" style={{ borderRadius: 4 }}>
+                <Text copyable style={{ fontSize: 14 }}>
+                  {code}
+                </Text>
               </Card>
             </List.Item>
           )}
         />
       </div>
-
       <Paragraph>
         <Text strong type="danger">
-          These codes will NOT be shown again. Please save them in a secure
-          place.
+          Save these codes securely. They won’t be shown again.
         </Text>
       </Paragraph>
     </Modal>
@@ -241,130 +325,127 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
     );
   }
 
-  // Show loading state
-  if (loading) {
-    return (
-      <LoadingState
-        tip="Loading two-factor authentication settings..."
-        fullscreen={false}
-      />
-    );
-  }
-
   return (
-    <div className="totp-management-container">
+    <StyledCard>
       {renderBackupCodesModal()}
 
-      <Card
-        title={
-          <Space>
-            <SecurityScanOutlined />
-            <span>Two-Factor Authentication</span>
-            {isTotpEnabled && <Tag color="success">Enabled</Tag>}
-          </Space>
-        }
-        extra={
-          <Space>
-            {isTotpEnabled && (
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={handleRegenerateBackupCodes}
-                loading={regeneratingCodes}
-              >
-                Regenerate Backup Codes
-              </Button>
-            )}
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAddDevice}
-            >
-              Add New Device
-            </Button>
-          </Space>
-        }
-      >
-        {error && (
-          <Alert
-            message="Error loading two-factor authentication data"
-            description={error}
-            type="error"
-            showIcon
-            style={{ marginBottom: 16 }}
-            closable
-            onClose={() => setError(null)}
-          />
-        )}
+      <div className="section-header" onClick={toggleExpand}>
+        <Title level={4} className="section-title">
+          <SecurityScanOutlined /> Two-Factor Authentication
+          {isTotpEnabled && <Tag color="success">Enabled</Tag>}
+        </Title>
+        {expanded ? <DownOutlined /> : <RightOutlined />}
+      </div>
 
-        <Paragraph>
-          Two-factor authentication adds an extra layer of security to your
-          account by requiring a verification code along with your password.
-        </Paragraph>
+      {expanded && (
+        <>
+          {loading ? (
+            <LoadingState tip="Loading 2FA settings..." fullscreen={false} />
+          ) : (
+            <>
+              {error && (
+                <Alert
+                  message="Error"
+                  description={error}
+                  type="error"
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                  closable
+                  onClose={() => setError(null)}
+                />
+              )}
 
-        <Divider orientation="left">Your Authenticator Devices</Divider>
+              <Paragraph style={{ fontSize: 14, color: "#666" }}>
+                Enhance security with a second verification step.
+              </Paragraph>
 
-        {devices.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span>
-                You haven't set up any authenticator devices yet.{" "}
-                <Button
-                  type="link"
-                  onClick={handleAddDevice}
-                  style={{ padding: 0 }}
-                >
-                  Set up now
-                </Button>
-              </span>
-            }
-          />
-        ) : (
-          <List
-            itemLayout="horizontal"
-            dataSource={devices}
-            renderItem={(device) => (
-              <List.Item
-                actions={[
+              <Space className="action-buttons">
+                {isTotpEnabled && (
                   <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteDevice(device.id)}
-                    loading={deletingDevice === device.id}
+                    icon={<ReloadOutlined />}
+                    onClick={handleRegenerateBackupCodes}
+                    loading={regeneratingCodes}
                   >
-                    Remove
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <MobileOutlined
-                      style={{ fontSize: 24, color: "#1890ff" }}
-                    />
-                  }
-                  title={device.deviceName}
+                    Regenerate Codes
+                  </Button>
+                )}
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAddDevice}
+                >
+                  Add Device
+                </Button>
+              </Space>
+
+              <Divider orientation="left" style={{ margin: "16px 0" }}>
+                Authenticator Devices
+              </Divider>
+
+              {devices.length === 0 ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  className="empty-state"
                   description={
-                    <Space direction="vertical" size={0}>
-                      <Text type="secondary">
-                        <ClockCircleOutlined /> Added on{" "}
-                        {moment(device.createdAt).format("MMM D, YYYY")}
-                      </Text>
-                      {device.active ? (
-                        <Tag color="success">Active</Tag>
-                      ) : (
-                        <Tag color="error">Inactive</Tag>
-                      )}
-                    </Space>
+                    <span>
+                      No devices setup.{" "}
+                      <Button
+                        type="link"
+                        onClick={handleAddDevice}
+                        style={{ padding: 0 }}
+                      >
+                        Add now
+                      </Button>
+                    </span>
                   }
                 />
-              </List.Item>
-            )}
-          />
-        )}
-      </Card>
-    </div>
+              ) : (
+                <List
+                  className="device-list"
+                  dataSource={devices}
+                  renderItem={(device) => (
+                    <List.Item
+                      actions={[
+                        <Button
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleDeleteDevice(device.id)}
+                          loading={deletingDevice === device.id}
+                          size="small"
+                        >
+                          Remove
+                        </Button>,
+                      ]}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <MobileOutlined
+                            style={{ fontSize: 20, color: "#1890ff" }}
+                          />
+                        }
+                        title={device.deviceName}
+                        description={
+                          <Space direction="vertical" size={2}>
+                            <Text type="secondary">
+                              <ClockCircleOutlined />{" "}
+                              {moment(device.createdAt).format("MMM D, YYYY")}
+                            </Text>
+                            <Tag color={device.active ? "success" : "error"}>
+                              {device.active ? "Active" : "Inactive"}
+                            </Tag>
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              )}
+            </>
+          )}
+        </>
+      )}
+    </StyledCard>
   );
 };
 
 export default TotpManagementComponent;
-

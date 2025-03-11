@@ -60,6 +60,7 @@ declare module "antd" {
     Tabs,
     TabsProps,
     Tag,
+    Typography,
     TimePicker,
     Timeline,
     Tooltip,
@@ -130,6 +131,7 @@ declare module "antd" {
   export const Tabs: typeof Tabs;
   export const TabsProps: typeof TabsProps;
   export const Tag: typeof Tag;
+  export const Typography: typeof Typography;
   export const TimePicker: typeof TimePicker;
   export const Timeline: typeof Timeline;
   export const Tooltip: typeof Tooltip;
@@ -174,4 +176,5 @@ declare module "antd" {
   // You can continue adding interfaces for other components like Form, Select, etc.,
   // based on their props in the Ant Design documentation
 }
+
 
