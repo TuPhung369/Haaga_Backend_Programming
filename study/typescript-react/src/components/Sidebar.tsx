@@ -11,6 +11,7 @@ import {
   ProjectOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  DashboardOutlined,
 } from "@ant-design/icons";
 
 import { COLORS } from "../utils/constant";
@@ -101,6 +102,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       label: "Kanban",
       path: "/kanban",
       icon: <ProjectOutlined />,
+    },
+    {
+      key: "8",
+      label: "Admin Dashboard",
+      path: "/adminDashBoard",
+      icon: <DashboardOutlined />,
     },
   ];
 

@@ -2,10 +2,13 @@ package com.database.study.service;
 
 import com.database.study.entity.TotpSecret;
 import com.database.study.entity.TotpUsedCode;
+import com.database.study.entity.TotpResetRequest;
+import com.database.study.entity.User;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.repository.TotpSecretRepository;
 import com.database.study.repository.TotpUsedCodeRepository;
+import com.database.study.repository.TotpResetRequestRepository;
 import com.database.study.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -44,6 +47,7 @@ public class TotpService {
     
     TotpSecretRepository totpSecretRepository;
     TotpUsedCodeRepository totpUsedCodeRepository;
+    TotpResetRequestRepository totpResetRequestRepository;
     UserRepository userRepository;
     PasswordEncoder passwordEncoder;
     ObjectMapper objectMapper;
@@ -459,16 +463,38 @@ public class TotpService {
      * This is used when a user has lost access to their TOTP device and backup codes
      */
     @Transactional
-    public void requestAdminReset(String username, String email) {
+    public UUID requestAdminReset(String username, String email) {
         // Verify the user exists and the email matches
-        userRepository.findByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-                
-        // Generate a unique request ID
-        String requestId = UUID.randomUUID().toString();
+        
+        if (!user.getEmail().equalsIgnoreCase(email)) {
+            log.warn("Email mismatch for TOTP reset request. User: {}, Provided email: {}, Actual email: {}", 
+                    username, email, user.getEmail());
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        
+        // Check if there's already a pending request
+        List<TotpResetRequest> pendingRequests = totpResetRequestRepository.findByUsernameOrderByRequestTimeDesc(username);
+        if (!pendingRequests.isEmpty() && 
+            pendingRequests.get(0).getStatus() == TotpResetRequest.RequestStatus.PENDING) {
+            log.info("User {} already has a pending TOTP reset request", username);
+            return pendingRequests.get(0).getId();
+        }
+        
+        // Create a new request
+        TotpResetRequest resetRequest = TotpResetRequest.builder()
+                .username(username)
+                .email(email)
+                .requestTime(LocalDateTime.now())
+                .status(TotpResetRequest.RequestStatus.PENDING)
+                .processed(false)
+                .build();
+        
+        resetRequest = totpResetRequestRepository.save(resetRequest);
         
         // Send email to admin
-        String adminEmail = "tuphung010787@gmail.com"; // Replace with actual admin email
+        String adminEmail = "tuphung010787@gmail.com"; // In production, use a configurable admin email
         String subject = "TOTP Reset Request for " + username;
         String message = String.format(
             "A TOTP reset request has been submitted for user: %s\n" +
@@ -476,16 +502,131 @@ public class TotpService {
             "User Email: %s\n" +
             "Timestamp: %s\n\n" +
             "To approve this request, please verify the user's identity and use the admin panel.",
-            username, requestId, email, LocalDateTime.now()
+            username, resetRequest.getId(), email, resetRequest.getRequestTime()
         );
         
         try {
             emailService.sendSimpleMessage(adminEmail, subject, message);
-            log.info("TOTP reset request for user {} sent to admin", username);
+            log.info("TOTP reset request for user {} sent to admin, request ID: {}", 
+                    username, resetRequest.getId());
         } catch (Exception e) {
             log.error("Failed to send admin notification for TOTP reset: {}", e.getMessage());
-            throw new AppException(ErrorCode.GENERAL_EXCEPTION);
+            // Don't throw exception, the request is still created
         }
+        
+        return resetRequest.getId();
+    }
+
+    /**
+     * Get all TOTP reset requests
+     */
+    public List<TotpResetRequest> getAllResetRequests() {
+        return totpResetRequestRepository.findAllByOrderByRequestTimeDesc();
+    }
+
+    /**
+     * Get pending TOTP reset requests
+     */
+    public List<TotpResetRequest> getPendingResetRequests() {
+        return totpResetRequestRepository.findByStatusOrderByRequestTimeDesc(
+                TotpResetRequest.RequestStatus.PENDING);
+    }
+
+    /**
+     * Approve a TOTP reset request
+     */
+    @Transactional
+    public void approveResetRequest(UUID requestId, String adminUsername, String notes) {
+        TotpResetRequest request = totpResetRequestRepository.findById(requestId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
+        
+        // Check if request is already processed
+        if (request.isProcessed() || request.getStatus() != TotpResetRequest.RequestStatus.PENDING) {
+            throw new AppException(ErrorCode.INVALID_OPERATION);
+        }
+        
+        // Update request status
+        request.setProcessed(true);
+        request.setProcessedBy(adminUsername);
+        request.setProcessedTime(LocalDateTime.now());
+        request.setStatus(TotpResetRequest.RequestStatus.APPROVED);
+        request.setNotes(notes);
+        
+        totpResetRequestRepository.save(request);
+        
+        // Reset TOTP for the user
+        adminResetTotp(request.getUsername());
+        
+        // Notify user
+        try {
+            User user = userRepository.findByUsername(request.getUsername())
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+            
+            String subject = "TOTP Reset Request Approved";
+            String message = String.format(
+                "Dear %s,\n\n" +
+                "Your request to reset your two-factor authentication (TOTP) has been approved.\n" +
+                "Your TOTP has been reset, and you can now set up a new device.\n\n" +
+                "If you did not request this reset, please contact support immediately.\n\n" +
+                "Best regards,\nThe Support Team",
+                user.getFirstname()
+            );
+            
+            emailService.sendSimpleMessage(user.getEmail(), subject, message);
+        } catch (Exception e) {
+            log.error("Failed to send user notification for TOTP reset approval: {}", e.getMessage());
+            // Continue execution even if email fails
+        }
+        
+        log.info("TOTP reset request {} for user {} approved by admin {}", 
+                requestId, request.getUsername(), adminUsername);
+    }
+
+    /**
+     * Reject a TOTP reset request
+     */
+    @Transactional
+    public void rejectResetRequest(UUID requestId, String adminUsername, String notes) {
+        TotpResetRequest request = totpResetRequestRepository.findById(requestId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
+        
+        // Check if request is already processed
+        if (request.isProcessed() || request.getStatus() != TotpResetRequest.RequestStatus.PENDING) {
+            throw new AppException(ErrorCode.INVALID_OPERATION);
+        }
+        
+        // Update request status
+        request.setProcessed(true);
+        request.setProcessedBy(adminUsername);
+        request.setProcessedTime(LocalDateTime.now());
+        request.setStatus(TotpResetRequest.RequestStatus.REJECTED);
+        request.setNotes(notes);
+        
+        totpResetRequestRepository.save(request);
+        
+        // Notify user
+        try {
+            User user = userRepository.findByUsername(request.getUsername())
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+            
+            String subject = "TOTP Reset Request Rejected";
+            String message = String.format(
+                "Dear %s,\n\n" +
+                "Your request to reset your two-factor authentication (TOTP) has been rejected.\n" +
+                "If you believe this is a mistake or if you still need assistance, " +
+                "please contact our support team.\n\n" +
+                "Best regards,\nThe Support Team",
+                user.getFirstname()
+            );
+            
+            emailService.sendSimpleMessage(user.getEmail(), subject, message);
+        } catch (Exception e) {
+            log.error("Failed to send user notification for TOTP reset rejection: {}", e.getMessage());
+            // Continue execution even if email fails
+        }
+        
+        log.info("TOTP reset request {} for user {} rejected by admin {}", 
+                requestId, request.getUsername(), adminUsername);
     }
     
     /**
@@ -505,18 +646,21 @@ public class TotpService {
     /**
      * Scheduled task to clean up used codes older than USED_CODES_RETENTION_HOURS
      */
-    @Scheduled(cron = "0 0 */4 * * ?") // Run every 4 hours
-    @Transactional
-    public void cleanupUsedCodes() {
-        try {
-            LocalDateTime cutoffTime = LocalDateTime.now().minusHours(USED_CODES_RETENTION_HOURS);
-            int deletedCount = totpUsedCodeRepository.deleteByUsedAtBefore(cutoffTime);
-            
-            if (deletedCount > 0) {
-                log.info("Cleaned up {} used TOTP codes older than {} hours", deletedCount, USED_CODES_RETENTION_HOURS);
-            }
-        } catch (Exception e) {
-            log.error("Error cleaning up used TOTP codes: {}", e.getMessage(), e);
+@Scheduled(cron = "${totp.reset.cleanup.cron:0 0 2 * * ?}") // Default: 2 AM every day
+@Transactional
+public void cleanupOldResetRequests() {
+    try {
+        // Clean up processed requests older than 24 hours
+        LocalDateTime cutoffDate = LocalDateTime.now().minusHours(USED_CODES_RETENTION_HOURS);
+        
+        List<TotpResetRequest> oldRequests = totpResetRequestRepository.findByProcessedTrueAndProcessedTimeBefore(cutoffDate);
+        
+        if (!oldRequests.isEmpty()) {
+            totpResetRequestRepository.deleteAll(oldRequests);
+            log.info("Cleaned up {} old TOTP reset requests", oldRequests.size());
         }
+    } catch (Exception e) {
+        log.error("Error during TOTP reset request cleanup", e);
     }
+}
 }

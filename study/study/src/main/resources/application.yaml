@@ -5,10 +5,15 @@ server:
     session:
       tracking-modes: cookie
       cookie:
-        enabled: false
+        secure: false # Just sent Cookie via HTTPS (local -> false)
+        http-only: true # Prevent JavaScript access Cookie (prevent XSS)
+        same-site: LAX # Support direction with FE, BE same Domain (`None` if FE vs BE run diff domain)
+        max-age: 604800 # expired 7 days
+        #_HOST_: #_HOST_refresh_token -> cookies working only main Domain (no use Sub Domain)
 spring:
   session:
-    store-type: none
+    jdbc:
+      initialize-schema: always # Hoặc `redis: namespace: myapp:sessions` nếu dùng Redis
   profiles:
     active: dev # google || aws || dev
   sql:
@@ -56,15 +61,9 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
-cookie:
-  secure: false # Just sent Cookie via HTTPS (local -> false)
-  http-only: true # Prevent JavaScript access Cookie (prevent XSS)
-  same-site: Lax # Support direction with FE, BE same Domain (`None` if FE vs BE run diff domain)
-  max-age: 604800 # expired 7 days
-  #_HOST_: #_HOST_refresh_token -> cookies working only main Domain (no use Sub Domain)
 cleanup:
   cron:
-    expression: "0 0 2 * * ?" # Second Minute Hour Day Month WeekDay
+    expression: "0 0 2 * * ?" # 2AM every day
 logging:
   level:
     root: DEBUG # Global log level

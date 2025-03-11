@@ -7,6 +7,7 @@ import com.database.study.dto.response.TotpDeviceResponse;
 import com.database.study.dto.response.TotpSetupResponse;
 import com.database.study.dto.response.TotpVerifyResponse;
 import com.database.study.entity.TotpSecret;
+import com.database.study.entity.TotpResetRequest;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
 import com.database.study.service.TotpService;
@@ -14,6 +15,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -217,14 +219,15 @@ public class TotpController {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
         
-        totpService.requestAdminReset(username, email);
+        UUID requestId = totpService.requestAdminReset(username, email);
         
         return ApiResponse.<Void>builder()
-            .message("TOTP reset request submitted. An administrator will review your request and contact you via email.")
+            .message("TOTP reset request submitted. An administrator will review your request (Request ID: " + requestId + ").")
             .build();
     }
     
     @PostMapping("/admin-reset/{username}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> adminResetTotp(@PathVariable String username) {
         // Verify the current user has admin privileges
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -239,5 +242,62 @@ public class TotpController {
         return ApiResponse.<Void>builder()
             .message("TOTP reset completed for user: " + username)
             .build();
+    }
+
+    /* NEW ADMIN ENDPOINTS FOR MANAGING TOTP RESET REQUESTS */
+    
+    @GetMapping("/admin/reset-requests")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<List<TotpResetRequest>> getResetRequests(
+            @RequestParam(required = false) Boolean pending) {
+                
+        List<TotpResetRequest> requests;
+        if (pending != null && pending) {
+            requests = totpService.getPendingResetRequests();
+        } else {
+            requests = totpService.getAllResetRequests();
+        }
+        
+        return ApiResponse.<List<TotpResetRequest>>builder()
+                .result(requests)
+                .message(requests.isEmpty() ? "No TOTP reset requests found" : 
+                         "Retrieved " + requests.size() + " TOTP reset requests")
+                .build();
+    }
+
+    @PostMapping("/admin/reset-requests/{requestId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> approveResetRequest(
+            @PathVariable UUID requestId,
+            @RequestBody Map<String, String> request) {
+        
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String adminUsername = auth.getName();
+        
+        String notes = request.getOrDefault("notes", "Approved by administrator");
+        
+        totpService.approveResetRequest(requestId, adminUsername, notes);
+        
+        return ApiResponse.<Void>builder()
+                .message("TOTP reset request has been approved")
+                .build();
+    }
+
+    @PostMapping("/admin/reset-requests/{requestId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> rejectResetRequest(
+            @PathVariable UUID requestId,
+            @RequestBody Map<String, String> request) {
+        
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String adminUsername = auth.getName();
+        
+        String notes = request.getOrDefault("notes", "Rejected by administrator");
+        
+        totpService.rejectResetRequest(requestId, adminUsername, notes);
+        
+        return ApiResponse.<Void>builder()
+                .message("TOTP reset request has been rejected")
+                .build();
     }
 }
