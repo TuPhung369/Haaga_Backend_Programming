@@ -44,7 +44,7 @@ public class TotpController {
         String qrCodeUri = totpService.generateQrCodeUri(
             username, 
             totpSecret.getSecretKey(), 
-            "YourAppName", 
+            "TOM", 
             request.getDeviceName()
         );
         
