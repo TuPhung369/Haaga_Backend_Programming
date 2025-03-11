@@ -326,8 +326,13 @@ public class TotpService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
         
-        totpSecret.setActive(false);
-        totpSecretRepository.save(totpSecret);
+        // Delete the TOTP secret instead of just deactivating
+        totpSecretRepository.delete(totpSecret);
+        
+        // Check if there are any remaining active TOTP devices for the user
+        List<TotpSecret> remainingDevices = totpSecretRepository.findAllByUsername(username);
+        
+        // If no active devices remain, do nothing (let the application handle this case)
     }
     
     /**

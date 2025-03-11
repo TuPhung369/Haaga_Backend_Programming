@@ -14,4 +14,5 @@ public interface TotpSecretRepository extends JpaRepository<TotpSecret, UUID> {
     List<TotpSecret> findAllByUsername(String username);
     List<TotpSecret> findAllByUsernameAndActive(String username, boolean active);
     void deleteByUsername(String username);
+    long countByUsernameAndActive(String username, boolean active);
 }
