@@ -58,6 +58,7 @@ declare module "antd" {
     Switch,
     Table,
     Tabs,
+    TabsProps,
     Tag,
     TimePicker,
     Timeline,
@@ -125,6 +126,7 @@ declare module "antd" {
   export const Switch: typeof Switch;
   export const Table: typeof Table;
   export const Tabs: typeof Tabs;
+  export const TabsProps: typeof TabsProps;
   export const Tag: typeof Tag;
   export const TimePicker: typeof TimePicker;
   export const Timeline: typeof Timeline;

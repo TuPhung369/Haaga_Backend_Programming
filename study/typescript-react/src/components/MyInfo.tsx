@@ -1,3 +1,4 @@
+// src/components/MyInfo.tsx (updated with TOTP integration)
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Descriptions,
@@ -10,8 +11,16 @@ import {
   Button,
   Space,
   Divider,
+  Tabs,
+  TabsProps,
 } from "antd";
-import { EditOutlined, MailOutlined, KeyOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  MailOutlined,
+  KeyOutlined,
+  SecurityScanOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import {
   invalidateUserInfo,
@@ -29,7 +38,8 @@ import { RootState, ExtendApiError, User } from "../type/types";
 import VerificationCodeInput from "./VerificationCodeInput";
 import styled from "styled-components";
 import { COLORS } from "../utils/constant";
-import LoadingState from "../components/LoadingState";
+import LoadingState from "./LoadingState";
+import TotpManagementComponent from "./TotpManagementComponent"; // Import TOTP Management Component
 
 const { Option } = Select;
 
@@ -107,6 +117,9 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
   } | null>(null);
   const [isUpdatingInfo, setIsUpdatingInfo] = useState(false);
   const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(true);
+
+  // Added for tabs
+  const [activeTab, setActiveTab] = useState<string>("1");
 
   const { token, loginSocial } = useSelector((state: RootState) => state.auth);
   const { userInfo, roles, allUsers } = useSelector(
@@ -434,37 +447,17 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
     return ["USER"];
   };
 
-  return (
-    <MyInfoStyle>
-      {contextHolder}
-
-      {/* Loading states */}
-      {isLoadingUserInfo && (
-        <LoadingState tip="Loading user information..." fullscreen={true} />
-      )}
-
-      {isUpdatingInfo && (
-        <LoadingState
-          tip="Updating your information..."
-          fullscreen={true}
-        />
-      )}
-
-      {isRequestingCode && (
-        <LoadingState
-          tip="Sending verification code..."
-          fullscreen={true}
-        />
-      )}
-
-      {isVerifying && (
-        <LoadingState
-          tip="Verifying and updating email..."
-          fullscreen={true}
-        />
-      )}
-
-      {userInfo ? (
+  // Define tabs for user info sections
+  const items: (typeof TabsProps)["items"] = [
+    {
+      key: "1",
+      label: (
+        <span>
+          <UserOutlined />
+          Profile Information
+        </span>
+      ),
+      children: userInfo ? (
         <Descriptions
           className="custom-descriptions mt-0"
           title={
@@ -519,7 +512,48 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
         </Descriptions>
       ) : (
         <p>Loading user information...</p>
+      ),
+    },
+    {
+      key: "2",
+      label: (
+        <span>
+          <SecurityScanOutlined />
+          Security Settings
+        </span>
+      ),
+      children: <TotpManagementComponent onUpdate={onUpdateSuccess} />,
+    },
+  ];
+
+  return (
+    <MyInfoStyle>
+      {contextHolder}
+
+      {/* Loading states */}
+      {isLoadingUserInfo && (
+        <LoadingState tip="Loading user information..." fullscreen={true} />
       )}
+
+      {isUpdatingInfo && (
+        <LoadingState tip="Updating your information..." fullscreen={true} />
+      )}
+
+      {isRequestingCode && (
+        <LoadingState tip="Sending verification code..." fullscreen={true} />
+      )}
+
+      {isVerifying && (
+        <LoadingState tip="Verifying and updating email..." fullscreen={true} />
+      )}
+
+      {/* Tab navigation for different sections */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={items}
+        size="large"
+      />
 
       {/* Main profile edit modal */}
       <Modal

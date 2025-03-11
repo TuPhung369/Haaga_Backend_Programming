@@ -1,6 +1,7 @@
 import axios from "axios";
 import { setupAxiosInterceptors } from "../utils/axiosSetup";
 import { handleServiceError } from "./baseService";
+import { TotpAuthenticationRequest } from "./totpService";
 import {
   AuthResponse,
   IntrospectResponse,
@@ -111,6 +112,38 @@ export const authenticateUserWithCookies = async (
     return response.data;
   } catch (error) {
     console.error("Error authenticating user with cookies:", error);
+    throw handleServiceError(error);
+  }
+};
+export const authenticateWithTotp = async (
+  request: TotpAuthenticationRequest
+): Promise<AuthResponse> => {
+  try {
+    const response = await apiClient.post<AuthResponse>(
+      "/auth/totp/token",
+      request
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error authenticating with TOTP:", error);
+    throw handleServiceError(error);
+  }
+};
+
+/**
+ * Authenticates a user with username, password and TOTP code using cookies
+ */
+export const authenticateWithTotpAndCookies = async (
+  request: TotpAuthenticationRequest
+): Promise<AuthResponse> => {
+  try {
+    const response = await apiClient.post<AuthResponse>(
+      "/auth/totp/token/cookie",
+      request
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error authenticating with TOTP and cookies:", error);
     throw handleServiceError(error);
   }
 };

@@ -36,6 +36,7 @@ import { clearAuthData, setAuthData } from "./store/authSlice";
 import { resetAllData } from "./store/resetActions";
 import { RootState } from "./type/types";
 import { setupTokenRefresh } from "./utils/tokenRefresh";
+import "./styles/Totp.css";
 
 const { Content, Footer } = Layout;
 
@@ -201,3 +202,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
