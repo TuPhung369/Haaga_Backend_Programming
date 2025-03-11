@@ -65,7 +65,10 @@ public class ENUMS {
     EMAIL_ALREADY_EXISTS("Email already exists with another account"),
     TOTP_REQUIRED("Two-factor authentication code is required"),
     TOTP_INVALID("Invalid two-factor authentication code"),
-    TOTP_ALREADY_ENABLED("Two-factor authentication is already enabled for this account");
+    TOTP_ALREADY_ENABLED("Two-factor authentication is already enabled for this account"),
+    TOTP_VERIFICATION_REQUIRED("Verification with current TOTP device or backup code is required for this operation"),
+    TOTP_CHANGE_DENIED("TOTP device change denied. Verification failed or admin approval required"),
+    TOTP_ADMIN_RESET_REQUIRED("TOTP reset requires administrator verification. Please contact support");
 
     private final String message;
   }

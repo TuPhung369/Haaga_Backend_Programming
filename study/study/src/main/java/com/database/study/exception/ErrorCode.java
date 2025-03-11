@@ -74,7 +74,15 @@ public enum ErrorCode {
         TOTP_REQUIRED(4015, ENUMS.ErrorMessages.TOTP_REQUIRED.getMessage(), HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
         TOTP_INVALID(4016, ENUMS.ErrorMessages.TOTP_INVALID.getMessage(), HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
         TOTP_ALREADY_ENABLED(4091, ENUMS.ErrorMessages.TOTP_ALREADY_ENABLED.getMessage(), HttpStatus.CONFLICT, "409",
-                        ENUMS.Severity.MEDIUM.name());
+                        ENUMS.Severity.MEDIUM.name()),
+        TOTP_VERIFICATION_REQUIRED(4017, "Verification with current TOTP device or backup code is required for this operation", 
+                          HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
+        // TOTP_CHANGE_DENIED
+        TOTP_CHANGE_DENIED(4018, "TOTP device change denied. Verification failed or admin approval required", 
+                        HttpStatus.FORBIDDEN, "403", ENUMS.Severity.HIGH.name()),
+        // TOTP_ADMIN_RESET_REQUIRED
+        TOTP_ADMIN_RESET_REQUIRED(4019, "TOTP reset requires administrator verification. Please contact support", 
+                                HttpStatus.FORBIDDEN, "403", ENUMS.Severity.HIGH.name());
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
                 this.code = code;
