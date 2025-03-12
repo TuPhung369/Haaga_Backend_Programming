@@ -54,7 +54,7 @@ public class TotpService {
     PasswordEncoder passwordEncoder;
     ObjectMapper objectMapper;
     EmailService emailService;
-    SecretKeyEncryptionService secretKeyEncryptionService;
+    EncryptionService encryptionService;
     
     /**
      * Generate a new random TOTP secret key
@@ -120,7 +120,7 @@ public class TotpService {
     // Decrypt if the secret is encrypted
     if (totpSecretEntity.isSecretEncrypted()) {
         try {
-            secretKey = secretKeyEncryptionService.decrypt(secretKey);
+            secretKey = encryptionService.decryptTotpSecret(secretKey);
             log.debug("Successfully decrypted TOTP secret for verification");
         } catch (Exception e) {
             log.error("Failed to decrypt TOTP secret: {}", e.getMessage(), e);
@@ -241,7 +241,7 @@ public class TotpService {
     
     try {
         // Explicitly encrypt the secret
-        encryptedSecretKey = secretKeyEncryptionService.encrypt(plainSecretKey);
+        encryptedSecretKey = encryptionService.encryptTotpSecret(plainSecretKey);
         log.debug("Successfully encrypted TOTP secret key");
     } catch (Exception e) {
         log.error("Failed to encrypt TOTP secret: {}", e.getMessage(), e);
@@ -327,7 +327,7 @@ public Map<String, Object> verifyAndActivateTotpSecret(UUID secretId, String cod
     // Decrypt if needed
     if (totpSecret.isSecretEncrypted()) {
         try {
-            secretKey = secretKeyEncryptionService.decrypt(secretKey);
+            secretKey = encryptionService.decryptTotpSecret(secretKey);
             log.debug("Successfully decrypted TOTP secret for verification");
         } catch (Exception e) {
             log.error("Failed to decrypt TOTP secret: {}", e.getMessage(), e);

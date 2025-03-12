@@ -2,8 +2,12 @@ package com.database.study.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
@@ -11,9 +15,12 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Base64;
 
@@ -23,6 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Service for encryption and decryption using a dynamically derived key from ENCRYPTION_KEY
  * Uses standard Java libraries (no external dependencies)
+ * This service handles both token encryption and TOTP secret encryption
  */
 @Service
 public class EncryptionService {
@@ -31,6 +39,11 @@ public class EncryptionService {
 
     @Value("${ENCRYPTION_KEY}")
     private String encryptionKey;
+    
+    @Value("${totp.encryption.key:${ENCRYPTION_KEY}}")
+    private String totpEncryptionKey;
+    
+    private SecretKey totpSecretKey;
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;  // 96 bits, standard for GCM
@@ -40,6 +53,20 @@ public class EncryptionService {
     // PBKDF2 parameters
     private static final int PBKDF2_ITERATIONS = 100000;  // Higher iterations = more secure but slower
     private static final int PBKDF2_KEY_LENGTH = 256;     // 256 bits for AES-256
+    
+    @PostConstruct
+    public void init() {
+        try {
+            // Initialize TOTP secret key
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] keyBytes = digest.digest(totpEncryptionKey.getBytes(StandardCharsets.UTF_8));
+            totpSecretKey = new SecretKeySpec(keyBytes, "AES");
+            log.debug("TOTP encryption key initialized successfully");
+        } catch (NoSuchAlgorithmException e) {
+            log.error("Failed to initialize TOTP encryption service", e);
+            throw new RuntimeException("Failed to initialize encryption service", e);
+        }
+    }
 
     /**
      * Encrypts the refresh token before sending it to the client
@@ -75,9 +102,8 @@ public class EncryptionService {
 
             // Encode as Base64 for safe transport
             return Base64.getEncoder().encodeToString(byteBuffer.array());
-        } catch (Exception e) {
-            log.error("Error encrypting token: {}", e.getMessage(), e);
-            throw new RuntimeException("Error encrypting token", e);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException("Error encrypting token: {}", e);
         }
     }
 
@@ -132,9 +158,57 @@ public class EncryptionService {
             byte[] decryptedToken = cipher.doFinal(cipherText);
             log.debug("Token successfully decrypted");
             return new String(decryptedToken, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            log.error("Error decrypting token: {}", e.getMessage(), e);
-            throw new RuntimeException("Error decrypting token", e);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException("Error decrypting token: {}", e);
+        }
+    }
+    
+    /**
+     * Encrypt TOTP secret key
+     */
+    public String encryptTotpSecret(String plainText) {
+        try {
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+            GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, totpSecretKey, parameterSpec);
+            
+            byte[] encryptedData = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
+            
+            // Combine IV and encrypted data
+            ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + encryptedData.length);
+            byteBuffer.put(iv);
+            byteBuffer.put(encryptedData);
+            
+            return Base64.getEncoder().encodeToString(byteBuffer.array());
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException("Error encrypting TOTP secret", e);
+        }
+    }
+    
+    /**
+     * Decrypt TOTP secret key
+     */
+    public String decryptTotpSecret(String encryptedText) {
+        try {
+            byte[] data = Base64.getDecoder().decode(encryptedText);
+            ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+            
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            byteBuffer.get(iv);
+            
+            byte[] encryptedData = new byte[byteBuffer.remaining()];
+            byteBuffer.get(encryptedData);
+            
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            cipher.init(Cipher.DECRYPT_MODE, totpSecretKey, parameterSpec);
+            
+            byte[] decryptedData = cipher.doFinal(encryptedData);
+            return new String(decryptedData, StandardCharsets.UTF_8);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException("Error decrypting TOTP secret", e);
         }
     }
     
@@ -144,8 +218,6 @@ public class EncryptionService {
      */
     private byte[] deriveKeyWithPBKDF2(String masterKey, byte[] salt) {
         try {
-            // Convert master key to bytes
-            
             // Setup PBKDF2 to derive a secure key
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             KeySpec spec = new PBEKeySpec(
@@ -167,23 +239,23 @@ public class EncryptionService {
             }
             
             return keyBytes;
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             log.error("Error deriving key with PBKDF2: {}", e.getMessage(), e);
-            
-            // Fallback to simple SHA-256 if PBKDF2 fails
+
+            // Fallback to simple SHA-256
             try {
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
                 byte[] hash = digest.digest(masterKey.getBytes(StandardCharsets.UTF_8));
-                
-                // Mix in the salt using simple XOR (not as secure as PBKDF2 but better than nothing)
                 for (int i = 0; i < hash.length && i < salt.length; i++) {
                     hash[i] ^= salt[i % salt.length];
                 }
-                
                 return hash;
             } catch (NoSuchAlgorithmException ex) {
-                throw new RuntimeException("Cannot derive key: " + ex.getMessage(), ex);
+                // Nếu SHA-256 cũng không tồn tại, ném RuntimeException
+                throw new RuntimeException("Cannot derive key using fallback: " + ex.getMessage(), ex);
             }
+        } catch (InvalidKeySpecException e) {
+            throw new RuntimeException("Error deriving key with PBKDF2: {}", e);
         }
     }
 }
