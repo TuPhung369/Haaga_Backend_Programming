@@ -46,6 +46,7 @@ public interface UserMapper {
   @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRolesToRoleResponse")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "active", source = "active")
+  @Mapping(target = "totpSecurity", ignore = true)
   UserResponse toUserResponse(User user);
 
   // New Method: Convert UserResponse back to User

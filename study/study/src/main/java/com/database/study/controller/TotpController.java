@@ -191,6 +191,30 @@ public class TotpController {
             .message("TOTP device successfully deactivated after verification. Two-factor authentication is now disabled.")
             .build();
     }
+
+    @DeleteMapping("/deactivate")
+    public ApiResponse<Void> deactivateTotpForCurrentUser(@RequestBody Map<String, String> request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        
+        String verificationCode = request.get("verificationCode");
+        if (verificationCode == null) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+        
+        // Find the active TOTP device for this user
+        TotpSecret activeDevice = totpService.findActiveDeviceForUser(username);
+        if (activeDevice == null) {
+            throw new AppException(ErrorCode.INVALID_OPERATION);
+        }
+        
+        // Deactivate it with verification
+        totpService.deactivateTotpDevice(activeDevice.getId(), username, verificationCode);
+        
+        return ApiResponse.<Void>builder()
+            .message("TOTP successfully disabled after verification.")
+            .build();
+    }
     
     @PostMapping("/backup-codes/regenerate")
     public ApiResponse<List<String>> regenerateBackupCodes(@RequestBody Map<String, String> request) {

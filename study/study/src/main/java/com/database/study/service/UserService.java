@@ -13,6 +13,7 @@ import com.database.study.repository.UserRepository;
 import com.database.study.entity.Role;
 import com.database.study.enums.ENUMS;
 import com.database.study.repository.RoleRepository;
+import com.database.study.repository.TotpSecretRepository;
 import com.database.study.repository.EventRepository;
 import com.database.study.repository.KanbanBoardRepository;
 import com.database.study.repository.EmailVerificationTokenRepository;
@@ -47,6 +48,8 @@ public class UserService {
   KanbanBoardRepository kanbanBoardRepository;
   EmailVerificationTokenRepository emailVerificationTokenRepository;
   ActiveTokenRepository invalidatedTokenRepository;
+  TotpService totpService;
+  TotpSecretRepository totpSecretRepository;
 
 
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
@@ -88,22 +91,34 @@ public class UserService {
     return userMapper.toUserResponse(user);
   }
 
-  public UserResponse getMyInfo() {
-    String name = SecurityContextHolder.getContext().getAuthentication().getName();
-    User user = userRepository.findByUsername(name)
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-    return userMapper.toUserResponse(user);
-  }
+public UserResponse getMyInfo() {
+  String name = SecurityContextHolder.getContext().getAuthentication().getName();
+  User user = userRepository.findByUsername(name)
+      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+  
+  UserResponse userResponse = userMapper.toUserResponse(user);
+  
+  // Add TOTP security information
+  enrichUserResponseWithTotpInfo(userResponse);
+  
+  return userResponse;
+}
 
-  @PostAuthorize("hasRole('ADMIN')")
-  public UserResponse getUserById(UUID userId) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> {
-          log.error("User with ID {} not found", userId);
-          throw new AppException(ErrorCode.USER_NOT_FOUND);
-        });
-    return userMapper.toUserResponse(user);
-  }
+@PostAuthorize("hasRole('ADMIN')")
+public UserResponse getUserById(UUID userId) {
+  User user = userRepository.findById(userId)
+      .orElseThrow(() -> {
+        log.error("User with ID {} not found", userId);
+        throw new AppException(ErrorCode.USER_NOT_FOUND);
+      });
+  
+  UserResponse userResponse = userMapper.toUserResponse(user);
+  
+  // Add TOTP security information
+  enrichUserResponseWithTotpInfo(userResponse);
+  
+  return userResponse;
+}
 
   @PreAuthorize("hasRole('ADMIN') || hasRole('MANAGER')")
   @Transactional
@@ -208,4 +223,30 @@ public class UserService {
         
         deleteUser(user.getId());
     }
+
+    private void enrichUserResponseWithTotpInfo(UserResponse userResponse) {
+  // Check if TOTP is enabled
+  boolean totpEnabled = totpService.isTotpEnabled(userResponse.getUsername());
+  
+  if (totpEnabled) {
+    // Get TOTP device information
+    totpSecretRepository.findByUsernameAndActive(userResponse.getUsername(), true)
+        .ifPresent(totpSecret -> {
+          UserResponse.TotpSecurityInfo totpInfo = UserResponse.TotpSecurityInfo.builder()
+              .enabled(true)
+              .deviceName(totpSecret.getDeviceName())
+              .enabledDate(totpSecret.getCreatedAt().toLocalDate())
+              .build();
+          
+          userResponse.setTotpSecurity(totpInfo);
+        });
+  } else {
+    // Set default TOTP info (not enabled)
+    userResponse.setTotpSecurity(
+        UserResponse.TotpSecurityInfo.builder()
+            .enabled(false)
+            .build()
+    );
+  }
+}
 }

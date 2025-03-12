@@ -530,7 +530,10 @@ public class TotpService {
         return totpResetRequestRepository.findByStatusOrderByRequestTimeDesc(
                 TotpResetRequest.RequestStatus.PENDING);
     }
-
+    
+    public TotpSecret findActiveDeviceForUser(String username) {
+        return totpSecretRepository.findByUsernameAndActive(username, true).orElse(null);
+    }
     /**
      * Approve a TOTP reset request
      */

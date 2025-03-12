@@ -22,4 +22,16 @@ public class UserResponse {
 
   Set<RoleResponse> roles;
   boolean active;
+
+  TotpSecurityInfo totpSecurity;
+  
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder
+  public static class TotpSecurityInfo {
+    boolean enabled;
+    String deviceName;
+    LocalDate enabledDate;
+  }
 }
