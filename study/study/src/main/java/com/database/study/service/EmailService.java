@@ -286,133 +286,144 @@ public class EmailService {
                 "</html>";
     }
     
-public String getTotpResetApprovedTemplate(String firstName) {
-        return "<!DOCTYPE html>\n" +
-               "<html>\n" +
-               "<head>\n" +
-               "    <meta charset=\"UTF-8\">\n" +
-               "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-               "    <title>TOTP Reset Approved</title>\n" +
-               "    <style>\n" +
-               "        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n" +
-               "        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eee; }\n" +
-               "        .content { padding: 20px 0; }\n" +
-               "        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777; text-align: center; }\n" +
-               "        .button { display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; }\n" +
-               "    </style>\n" +
-               "</head>\n" +
-               "<body>\n" +
-               "    <div class=\"header\">\n" +
-               "        <h2>TOTP Reset Request Approved</h2>\n" +
-               "    </div>\n" +
-               "    <div class=\"content\">\n" +
-               "        <p>Dear " + firstName + ",</p>\n" +
-               "        <p>Your request to reset your two-factor authentication (TOTP) has been <strong>approved</strong>.</p>\n" +
-               "        <p>Your TOTP has been reset, and you can now set up a new device by visiting your account security settings.</p>\n" +
-               "        <p style=\"text-align: center; margin: 30px 0;\">\n" +
-               "            <a href=\"${applicationUrl}/settings/security\" class=\"button\">Security Settings</a>\n" +
-               "        </p>\n" +
-               "        <p><strong>Important:</strong> If you did not request this reset, please contact support immediately.</p>\n" +
-               "    </div>\n" +
-               "    <div class=\"footer\">\n" +
-               "        <p>This is an automated message, please do not reply to this email.</p>\n" +
-               "        <p>&copy; " + java.time.Year.now().getValue() + " " + applicationName + ". All rights reserved.</p>\n" +
-               "    </div>\n" +
-               "</body>\n" +
-               "</html>";
+    public String getTotpResetApprovedTemplate(String firstName) {
+        String template = "<!DOCTYPE html>\n" +
+            "<html>\n" +
+            "<head>\n" +
+            "    <meta charset=\"UTF-8\">\n" +
+            "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+            "    <title>TOTP Reset Approved</title>\n" +
+            "    <style>\n" +
+            "        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n" +
+            "        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eee; }\n" +
+            "        .content { padding: 20px 0; }\n" +
+            "        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777; text-align: center; }\n" +
+            "        .button { display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; }\n" +
+            "    </style>\n" +
+            "</head>\n" +
+            "<body>\n" +
+            "    <div class=\"header\">\n" +
+            "        <h2>TOTP Reset Request Approved</h2>\n" +
+            "    </div>\n" +
+            "    <div class=\"content\">\n" +
+            "        <p>Dear " + firstName + ",</p>\n" +
+            "        <p>Your request to reset your two-factor authentication (TOTP) has been <strong>approved</strong>.</p>\n" +
+            "        <p>Your TOTP has been reset, and you can now set up a new device by visiting your account security settings.</p>\n" +
+            "        <p style=\"text-align: center; margin: 30px 0;\">\n" +
+            "            <a href=\"" + applicationUrl + "/settings/security\" class=\"button\">Security Settings</a>\n" +
+            "        </p>\n" +
+            "        <p><strong>Important:</strong> If you did not request this reset, please contact support immediately.</p>\n" +
+            "    </div>\n" +
+            "    <div class=\"footer\">\n" +
+            "        <p>This is an automated message, please do not reply to this email.</p>\n" +
+            "        <p>&copy; " + java.time.Year.now().getValue() + " " + applicationName + ". All rights reserved.</p>\n" +
+            "    </div>\n" +
+            "</body>\n" +
+            "</html>";
+        
+        return template;
     }
-    
+
     public String getTotpResetRejectedTemplate(String firstName) {
-        return "<!DOCTYPE html>\n" +
-               "<html>\n" +
-               "<head>\n" +
-               "    <meta charset=\"UTF-8\">\n" +
-               "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-               "    <title>TOTP Reset Rejected</title>\n" +
-               "    <style>\n" +
-               "        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n" +
-               "        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eee; }\n" +
-               "        .content { padding: 20px 0; }\n" +
-               "        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777; text-align: center; }\n" +
-               "        .support-button { display: inline-block; background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; }\n" +
-               "    </style>\n" +
-               "</head>\n" +
-               "<body>\n" +
-               "    <div class=\"header\">\n" +
-               "        <h2>TOTP Reset Request Rejected</h2>\n" +
-               "    </div>\n" +
-               "    <div class=\"content\">\n" +
-               "        <p>Dear " + firstName + ",</p>\n" +
-               "        <p>Your request to reset your two-factor authentication (TOTP) has been <strong>rejected</strong>.</p>\n" +
-               "        <p>If you believe this is a mistake or if you still need assistance, please contact our support team.</p>\n" +
-               "        <p style=\"text-align: center; margin: 30px 0;\">\n" +
-               "            <a href=\"${applicationUrl}/support\" class=\"support-button\">Contact Support</a>\n" +
-               "        </p>\n" +
-               "    </div>\n" +
-               "    <div class=\"footer\">\n" +
-               "        <p>This is an automated message, please do not reply to this email.</p>\n" +
-               "        <p>&copy; " + java.time.Year.now().getValue() + " " + applicationName + ". All rights reserved.</p>\n" +
-               "    </div>\n" +
-               "</body>\n" +
-               "</html>";
+        String template = "<!DOCTYPE html>\n" +
+            "<html>\n" +
+            "<head>\n" +
+            "    <meta charset=\"UTF-8\">\n" +
+            "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+            "    <title>TOTP Reset Rejected</title>\n" +
+            "    <style>\n" +
+            "        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n" +
+            "        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eee; }\n" +
+            "        .content { padding: 20px 0; }\n" +
+            "        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777; text-align: center; }\n" +
+            "        .support-button { display: inline-block; background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; }\n" +
+            "    </style>\n" +
+            "</head>\n" +
+            "<body>\n" +
+            "    <div class=\"header\">\n" +
+            "        <h2>TOTP Reset Request Rejected</h2>\n" +
+            "    </div>\n" +
+            "    <div class=\"content\">\n" +
+            "        <p>Dear " + firstName + ",</p>\n" +
+            "        <p>Your request to reset your two-factor authentication (TOTP) has been <strong>rejected</strong>.</p>\n" +
+            "        <p>If you believe this is a mistake or if you still need assistance, please contact our support team.</p>\n" +
+            "        <p style=\"text-align: center; margin: 30px 0;\">\n" +
+            "            <a href=\"" + applicationUrl + "/support\" class=\"support-button\">Contact Support</a>\n" +
+            "        </p>\n" +
+            "    </div>\n" +
+            "    <div class=\"footer\">\n" +
+            "        <p>This is an automated message, please do not reply to this email.</p>\n" +
+            "        <p>&copy; " + java.time.Year.now().getValue() + " " + applicationName + ". All rights reserved.</p>\n" +
+            "    </div>\n" +
+            "</body>\n" +
+            "</html>";
+        
+        return template;
     }
-    
+
     public String getAdminNotificationTemplate(String username, String userId, String email, String requestId) {
-        return "<!DOCTYPE html>\n" +
-               "<html>\n" +
-               "<head>\n" +
-               "    <meta charset=\"UTF-8\">\n" +
-               "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-               "    <title>TOTP Reset Request Notification</title>\n" +
-               "    <style>\n" +
-               "        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n" +
-               "        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eee; }\n" +
-               "        .content { padding: 20px 0; }\n" +
-               "        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777; text-align: center; }\n" +
-               "        .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; }\n" +
-               "        .info-table td { padding: 8px; border-bottom: 1px solid #eee; }\n" +
-               "        .info-table td:first-child { font-weight: bold; width: 30%; }\n" +
-               "        .action-button { display: inline-block; background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; }\n" +
-               "    </style>\n" +
-               "</head>\n" +
-               "<body>\n" +
-               "    <div class=\"header\">\n" +
-               "        <h2>New TOTP Reset Request</h2>\n" +
-               "    </div>\n" +
-               "    <div class=\"content\">\n" +
-               "        <p>A new request to reset TOTP has been submitted and requires administrator review.</p>\n" +
-               "        <table class=\"info-table\">\n" +
-               "            <tr>\n" +
-               "                <td>Username:</td>\n" +
-               "                <td>" + username + "</td>\n" +
-               "            </tr>\n" +
-               "            <tr>\n" +
-               "                <td>User ID:</td>\n" +
-               "                <td>" + userId + "</td>\n" +
-               "            </tr>\n" +
-               "            <tr>\n" +
-               "                <td>Email:</td>\n" +
-               "                <td>" + email + "</td>\n" +
-               "            </tr>\n" +
-               "            <tr>\n" +
-               "                <td>Request ID:</td>\n" +
-               "                <td>" + requestId + "</td>\n" +
-               "            </tr>\n" +
-               "            <tr>\n" +
-               "                <td>Request Time:</td>\n" +
-               "                <td>" + java.time.LocalDateTime.now() + "</td>\n" +
-               "            </tr>\n" +
-               "        </table>\n" +
-               "        <p style=\"text-align: center; margin: 30px 0;\">\n" +
-               "            <a href=\"${applicationUrl}/admin/totp-reset\" class=\"action-button\">Review Request</a>\n" +
-               "        </p>\n" +
-               "    </div>\n" +
-               "    <div class=\"footer\">\n" +
-               "        <p>This is an automated message, please do not reply to this email.</p>\n" +
-               "        <p>&copy; " + java.time.Year.now().getValue() + " " + applicationName + ". All rights reserved.</p>\n" +
-               "    </div>\n" +
-               "</body>\n" +
-               "</html>";
+        String template = "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head>\n" +
+                "    <meta charset=\"UTF-8\">\n" +
+                "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+                "    <title>TOTP Reset Request Notification</title>\n" +
+                "    <style>\n" +
+                "        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }\n"
+                +
+                "        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eee; }\n" +
+                "        .content { padding: 20px 0; }\n" +
+                "        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777; text-align: center; }\n"
+                +
+                "        .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; }\n" +
+                "        .info-table td { padding: 8px; border-bottom: 1px solid #eee; }\n" +
+                "        .info-table td:first-child { font-weight: bold; width: 30%; }\n" +
+                "        .action-button { display: inline-block; background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; }\n"
+                +
+                "    </style>\n" +
+                "</head>\n" +
+                "<body>\n" +
+                "    <div class=\"header\">\n" +
+                "        <h2>New TOTP Reset Request</h2>\n" +
+                "    </div>\n" +
+                "    <div class=\"content\">\n" +
+                "        <p>A new request to reset TOTP has been submitted and requires administrator review.</p>\n" +
+                "        <table class=\"info-table\">\n" +
+                "            <tr>\n" +
+                "                <td>Username:</td>\n" +
+                "                <td>" + username + "</td>\n" +
+                "            </tr>\n" +
+                "            <tr>\n" +
+                "                <td>User ID:</td>\n" +
+                "                <td>" + userId + "</td>\n" +
+                "            </tr>\n" +
+                "            <tr>\n" +
+                "                <td>Email:</td>\n" +
+                "                <td>" + email + "</td>\n" +
+                "            </tr>\n" +
+                "            <tr>\n" +
+                "                <td>Request ID:</td>\n" +
+                "                <td>" + requestId + "</td>\n" +
+                "            </tr>\n" +
+                "            <tr>\n" +
+                "                <td>Request Time:</td>\n" +
+                "                <td>" + java.time.LocalDateTime.now() + "</td>\n" +
+                "            </tr>\n" +
+                "        </table>\n" +
+                "        <p style=\"text-align: center; margin: 30px 0;\">\n" +
+                "            <a href=\"" + applicationUrl
+                + "/admin/totp-reset\" class=\"action-button\">Review Request</a>\n" +
+                "        </p>\n" +
+                "    </div>\n" +
+                "    <div class=\"footer\">\n" +
+                "        <p>This is an automated message, please do not reply to this email.</p>\n" +
+                "        <p>&copy; " + java.time.Year.now().getValue() + " " + applicationName
+                + ". All rights reserved.</p>\n" +
+                "    </div>\n" +
+                "</body>\n" +
+                "</html>";
+
+        return template;
     }
 
 }

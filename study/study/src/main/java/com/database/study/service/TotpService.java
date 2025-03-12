@@ -467,21 +467,21 @@ public class TotpService {
         // Verify the user exists and the email matches
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-        
+
         if (!user.getEmail().equalsIgnoreCase(email)) {
-            log.warn("Email mismatch for TOTP reset request. User: {}, Provided email: {}, Actual email: {}", 
+            log.warn("Email mismatch for TOTP reset request. User: {}, Provided email: {}, Actual email: {}",
                     username, email, user.getEmail());
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
-        
+
         // Check if there's already a pending request
         List<TotpResetRequest> pendingRequests = totpResetRequestRepository.findByUsernameOrderByRequestTimeDesc(username);
-        if (!pendingRequests.isEmpty() && 
-            pendingRequests.get(0).getStatus() == TotpResetRequest.RequestStatus.PENDING) {
+        if (!pendingRequests.isEmpty() &&
+                pendingRequests.get(0).getStatus() == TotpResetRequest.RequestStatus.PENDING) {
             log.info("User {} already has a pending TOTP reset request", username);
             return pendingRequests.get(0).getId();
         }
-        
+
         // Create a new request
         TotpResetRequest resetRequest = TotpResetRequest.builder()
                 .username(username)
@@ -490,33 +490,32 @@ public class TotpService {
                 .status(TotpResetRequest.RequestStatus.PENDING)
                 .processed(false)
                 .build();
-        
+
         resetRequest = totpResetRequestRepository.save(resetRequest);
-        
-        // Send email to admin
+
+        // Send email to admin using HTML template
         String adminEmail = "tuphung010787@gmail.com"; // In production, use a configurable admin email
         String subject = "TOTP Reset Request for " + username;
-        String message = String.format(
-            "A TOTP reset request has been submitted for user: %s\n" +
-            "Request ID: %s\n" +
-            "User Email: %s\n" +
-            "Timestamp: %s\n\n" +
-            "To approve this request, please verify the user's identity and use the admin panel.",
-            username, resetRequest.getId(), email, resetRequest.getRequestTime()
-        );
-        
+
         try {
-            emailService.sendSimpleMessage(adminEmail, subject, message);
-            log.info("TOTP reset request for user {} sent to admin, request ID: {}", 
+            // Use the HTML template
+            String htmlContent = emailService.getAdminNotificationTemplate(
+                    username,
+                    user.getId(),
+                    email,
+                    resetRequest.getId().toString());
+
+            emailService.sendSimpleMessage(adminEmail, subject, htmlContent);
+            log.info("TOTP reset request for user {} sent to admin, request ID: {}",
                     username, resetRequest.getId());
         } catch (Exception e) {
             log.error("Failed to send admin notification for TOTP reset: {}", e.getMessage());
             // Don't throw exception, the request is still created
         }
-        
+
         return resetRequest.getId();
     }
-
+        
     /**
      * Get all TOTP reset requests
      */
@@ -539,50 +538,47 @@ public class TotpService {
     public void approveResetRequest(UUID requestId, String adminUsername, String notes) {
         TotpResetRequest request = totpResetRequestRepository.findById(requestId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
-        
+
         // Check if request is already processed
         if (request.isProcessed() || request.getStatus() != TotpResetRequest.RequestStatus.PENDING) {
             throw new AppException(ErrorCode.INVALID_OPERATION);
         }
-        
+
         // Update request status
         request.setProcessed(true);
         request.setProcessedBy(adminUsername);
         request.setProcessedTime(LocalDateTime.now());
         request.setStatus(TotpResetRequest.RequestStatus.APPROVED);
         request.setNotes(notes);
-        
+
         totpResetRequestRepository.save(request);
-        
+
         // Reset TOTP for the user
         adminResetTotp(request.getUsername());
-        
-        // Notify user
+
+        // Notify user with HTML template
         try {
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-            
+
             String subject = "TOTP Reset Request Approved";
-            String message = String.format(
-                "Dear %s,\n\n" +
-                "Your request to reset your two-factor authentication (TOTP) has been approved.\n" +
-                "Your TOTP has been reset, and you can now set up a new device.\n\n" +
-                "If you did not request this reset, please contact support immediately.\n\n" +
-                "Best regards,\nThe Support Team",
-                user.getFirstname()
-            );
-            
-            emailService.sendSimpleMessage(user.getEmail(), subject, message);
+
+            // Get HTML template and replace placeholder variables
+            String htmlContent = emailService.getTotpResetApprovedTemplate(user.getFirstname());
+
+            // Send email using the HTML template
+            emailService.sendSimpleMessage(user.getEmail(), subject, htmlContent);
+
         } catch (Exception e) {
             log.error("Failed to send user notification for TOTP reset approval: {}", e.getMessage());
             // Continue execution even if email fails
         }
-        
-        log.info("TOTP reset request {} for user {} approved by admin {}", 
+
+        log.info("TOTP reset request {} for user {} approved by admin {}",
                 requestId, request.getUsername(), adminUsername);
     }
-
-    /**
+        
+     /**
      * Reject a TOTP reset request
      */
     @Transactional
@@ -604,22 +600,19 @@ public class TotpService {
         
         totpResetRequestRepository.save(request);
         
-        // Notify user
+        // Notify user with HTML template
         try {
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
             
             String subject = "TOTP Reset Request Rejected";
-            String message = String.format(
-                "Dear %s,\n\n" +
-                "Your request to reset your two-factor authentication (TOTP) has been rejected.\n" +
-                "If you believe this is a mistake or if you still need assistance, " +
-                "please contact our support team.\n\n" +
-                "Best regards,\nThe Support Team",
-                user.getFirstname()
-            );
             
-            emailService.sendSimpleMessage(user.getEmail(), subject, message);
+            // Get HTML template
+            String htmlContent = emailService.getTotpResetRejectedTemplate(user.getFirstname());
+            
+            // Send email using the HTML template
+            emailService.sendSimpleMessage(user.getEmail(), subject, htmlContent);
+            
         } catch (Exception e) {
             log.error("Failed to send user notification for TOTP reset rejection: {}", e.getMessage());
             // Continue execution even if email fails
@@ -628,7 +621,7 @@ public class TotpService {
         log.info("TOTP reset request {} for user {} rejected by admin {}", 
                 requestId, request.getUsername(), adminUsername);
     }
-    
+
     /**
      * Admin reset of TOTP
      * This should only be accessible by admin users
