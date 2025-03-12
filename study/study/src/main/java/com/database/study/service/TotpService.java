@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base32;
+import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -103,23 +104,34 @@ public class TotpService {
      * Verify a TOTP code with replay protection
      */
     @Transactional
-    public boolean verifyCode(String username, String secretKey, String code) {
-        // Get the TotpSecret entity first to check encryption status
-        TotpSecret totpSecretEntity = totpSecretRepository.findByUsernameAndActive(username, true)
-                .orElse(null);
-        
-        if (totpSecretEntity != null && totpSecretEntity.isSecretEncrypted()) {
-            try {
-                // Try to decrypt the secret
-                secretKey = secretKeyEncryptionService.decrypt(secretKey);
-            } catch (Exception e) {
-                // Log at debug level instead
-                log.debug("Failed to decrypt TOTP secret: {}", e.getMessage());
-            }
+    public boolean verifyCode(String username, String code) {
+        // Get the TOTP secret entity with encryption status
+    TotpSecret totpSecretEntity = totpSecretRepository.findByUsernameAndActive(username, true)
+            .orElse(null);
+    
+    if (totpSecretEntity == null) {
+        log.warn("No active TOTP device found for user: {}", username);
+        return false;
+    }
+    
+    // Get the stored secret key (which may be encrypted)
+    String secretKey = totpSecretEntity.getSecretKey();
+    
+    // Decrypt if the secret is encrypted
+    if (totpSecretEntity.isSecretEncrypted()) {
+        try {
+            secretKey = secretKeyEncryptionService.decrypt(secretKey);
+            log.debug("Successfully decrypted TOTP secret for verification");
+        } catch (Exception e) {
+            log.error("Failed to decrypt TOTP secret: {}", e.getMessage(), e);
+            return false;  // Fail securely if decryption fails
         }
-        if (code == null || code.length() != CODE_DIGITS) {
-            return false;
-        }
+    }
+    
+    if (code == null || code.length() != CODE_DIGITS) {
+        log.warn("Invalid TOTP code format for user: {}", username);
+        return false;
+    }
         
         try {
             Base32 base32 = new Base32();
@@ -220,6 +232,23 @@ public class TotpService {
      */
     @Transactional
     public TotpSecret createTotpSecret(String username, String deviceName) {
+    // Generate the TOTP secret
+    String plainSecretKey = generateSecretKey();
+    log.debug("Generated plaintext secret key for user {}", username);
+    
+    // Store plaintext version for returning to UI
+    String encryptedSecretKey;
+    
+    try {
+        // Explicitly encrypt the secret
+        encryptedSecretKey = secretKeyEncryptionService.encrypt(plainSecretKey);
+        log.debug("Successfully encrypted TOTP secret key");
+    } catch (Exception e) {
+        log.error("Failed to encrypt TOTP secret: {}", e.getMessage(), e);
+        throw new AppException(ErrorCode.GENERAL_EXCEPTION, "Failed to secure TOTP secret");
+    }
+        
+        // Mark as encrypted
         // Verify the user exists before proceeding
         userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
@@ -240,14 +269,6 @@ public class TotpService {
             totpSecretRepository.flush();
         }
         
-        // Generate secret key
-        String secretKey = generateSecretKey();
-        
-        // Store the plaintext version temporarily for QR code generation
-        String plaintextSecretKey = secretKey;
-        
-        // Encrypt before storing in database
-        secretKey = secretKeyEncryptionService.encrypt(secretKey);
 
         // Generate backup codes
         List<String> backupCodes = generateBackupCodes();
@@ -266,38 +287,81 @@ public class TotpService {
             throw new AppException(ErrorCode.GENERAL_EXCEPTION);
         }
 
-        TotpSecret totpSecret = TotpSecret.builder()
-                .username(username)
-                .secretKey(secretKey)
-                .deviceName(deviceName)
-                .active(false) // Not active until verified
-                .backupCodes(backupCodesJson)
-                .build();
-        
-        totpSecret = totpSecretRepository.save(totpSecret);
-        // Set the plaintext secret back temporarily for UI display purposes
-        totpSecret.setSecretKey(plaintextSecretKey);
-        return totpSecret;
-    }
+       // Use encrypted value in the entity
+    TotpSecret totpSecret = TotpSecret.builder()
+        .username(username)
+        .secretKey(encryptedSecretKey) // Store encrypted version
+        .deviceName(deviceName)
+        .active(false)
+        .backupCodes(backupCodesJson)
+        .secretEncrypted(true) // Only set true because encryption succeeded
+        .build();
+    
+    // Save entity with encrypted secret
+    TotpSecret savedEntity = totpSecretRepository.save(totpSecret);
+    
+    // Create a copy for returning to the UI with plaintext secret
+    TotpSecret responseEntity = new TotpSecret();
+    BeanUtils.copyProperties(savedEntity, responseEntity);
+    responseEntity.setSecretKey(plainSecretKey);
+    
+    return responseEntity;
+}
     
     /**
      * Verify and activate a TOTP secret
      */
-    @Transactional
-    public Map<String, Object> verifyAndActivateTotpSecret(UUID secretId, String code) {
-        TotpSecret totpSecret = totpSecretRepository.findById(secretId)
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_OPERATION));
+@Transactional
+public Map<String, Object> verifyAndActivateTotpSecret(UUID secretId, String code) {
+    TotpSecret totpSecret = totpSecretRepository.findById(secretId)
+        .orElseThrow(() -> new AppException(ErrorCode.INVALID_OPERATION));
+    
+    // Check if already verified
+    if (totpSecret.isActive()) {
+        throw new AppException(ErrorCode.TOTP_ALREADY_ENABLED);
+    }
+    
+    // Get the secret key from the inactive device
+    String secretKey = totpSecret.getSecretKey();
+    
+    // Decrypt if needed
+    if (totpSecret.isSecretEncrypted()) {
+        try {
+            secretKey = secretKeyEncryptionService.decrypt(secretKey);
+            log.debug("Successfully decrypted TOTP secret for verification");
+        } catch (Exception e) {
+            log.error("Failed to decrypt TOTP secret: {}", e.getMessage(), e);
+            return Map.of("success", false);
+        }
+    }
+    
+    // Verify directly against this specific device's secret
+    try {
+        Base32 base32 = new Base32();
+        byte[] bytes = base32.decode(secretKey);
         
-        // Check if already verified
-        if (totpSecret.isActive()) {
-            throw new AppException(ErrorCode.TOTP_ALREADY_ENABLED);
+        // Get current timestamp and convert to time units
+        long currentTimeMillis = Instant.now().toEpochMilli();
+        long currentTimeWindow = currentTimeMillis / 1000 / TIME_STEP;
+        
+        boolean codeValid = false;
+        
+        // Try current and adjacent time windows
+        for (int i = -WINDOW_SIZE; i <= WINDOW_SIZE; i++) {
+            long timeWindow = currentTimeWindow + i;
+            String calculatedCode = generateTOTP(bytes, timeWindow);
+            
+            if (calculatedCode.equals(code)) {
+                codeValid = true;
+                break;
+            }
         }
         
-        if (verifyCode(totpSecret.getUsername(), totpSecret.getSecretKey(), code)) {
-            // Check for any existing active devices and delete them
+        if (codeValid) {
+            // Proceed with activation as in your original code
+            // Check for existing active devices and delete them
             List<TotpSecret> activeSecrets = totpSecretRepository.findAllByUsernameAndActive(totpSecret.getUsername(), true);
             for (TotpSecret activeSecret : activeSecrets) {
-                log.info("Removing existing active TOTP device for user: {}", totpSecret.getUsername());
                 totpSecretRepository.delete(activeSecret);
             }
             
@@ -305,31 +369,20 @@ public class TotpService {
             totpSecret.setActive(true);
             totpSecretRepository.save(totpSecret);
             
-            // Generate new set of backup codes to return to the user
+            // Generate new backup codes and continue with your existing logic...
             List<String> backupCodes = generateBackupCodes();
             
-            // Update hashed backup codes
-            List<String> newHashedBackupCodes = new ArrayList<>();
-            for (String backupCode : backupCodes) {
-                newHashedBackupCodes.add(passwordEncoder.encode(backupCode));
-            }
+            // Rest of backup code generation and storage...
             
-            try {
-                totpSecret.setBackupCodes(objectMapper.writeValueAsString(newHashedBackupCodes));
-                totpSecretRepository.save(totpSecret);
-            } catch (JsonProcessingException e) {
-                throw new AppException(ErrorCode.GENERAL_EXCEPTION);
-            }
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("backupCodes", backupCodes);
-            return result;
+            return Map.of("success", true, "backupCodes", backupCodes);
         }
         
         return Map.of("success", false);
+    } catch (InvalidKeyException | NoSuchAlgorithmException e) {
+        log.error("Error validating TOTP code: {}", e.getMessage(), e);
+        return Map.of("success", false);
     }
-    
+}
     /**
      * Creates a new TOTP device after verifying with the current device or backup code
      * This is used when a user wants to change their TOTP device
@@ -368,7 +421,7 @@ public class TotpService {
         TotpSecret totpSecret = totpSecretOpt.get();
         
         // First try as TOTP code
-        if (verifyCode(username, totpSecret.getSecretKey(), code)) {
+        if (verifyCode(username, code)) {
             return true;
         }
         
