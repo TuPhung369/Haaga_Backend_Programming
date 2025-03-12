@@ -123,28 +123,15 @@ public class GlobalExceptionHandler {
     // attributes
     String detailedMessage = mapToDetailedMessage(messageCode, attributes);
 
-    switch (field) {
-      case "username":
-        errorCode = ErrorCode.USERNAME_LENGTH;
-        break;
-      case "password":
-        errorCode = ErrorCode.PASSWORD_MIN_LENGTH;
-        break;
-      case "firstname":
-        errorCode = ErrorCode.FIRSTNAME_NOT_BLANK;
-        break;
-      case "lastname":
-        errorCode = ErrorCode.LASTNAME_NOT_BLANK;
-        break;
-      case "dob":
-        errorCode = ErrorCode.INVALID_DOB;
-        break;
-      case "roles":
-        errorCode = ErrorCode.ROLES_NOT_NULL;
-        break;
-      default:
-        break;
-    }
+    errorCode = switch (field) {
+      case "username" -> ErrorCode.USERNAME_LENGTH;
+      case "password" -> ErrorCode.PASSWORD_MIN_LENGTH;
+      case "firstname" -> ErrorCode.FIRSTNAME_NOT_BLANK;
+      case "lastname" -> ErrorCode.LASTNAME_NOT_BLANK;
+      case "dob" -> ErrorCode.INVALID_DOB;
+      case "roles" -> ErrorCode.ROLES_NOT_NULL;
+      default -> errorCode;
+    };
 
     // log.warn("Validation error for field '{}': {}", field, message);
     ApiResponse<Object> apiResponse = buildErrorResponse(errorCode, detailedMessage);
@@ -161,7 +148,7 @@ public class GlobalExceptionHandler {
 
   private String mapToDetailedMessage(String messageCode, Map<String, Object> attributes) {
     // Retrieve the message template from ENUMS.ErrorMessages based on the code
-    String messageTemplate = "";
+    String messageTemplate;
     try {
       ENUMS.ErrorMessages errorMessage = ENUMS.ErrorMessages.valueOf(messageCode);
       messageTemplate = errorMessage.getMessage();

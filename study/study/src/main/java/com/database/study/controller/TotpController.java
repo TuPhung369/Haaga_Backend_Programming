@@ -55,9 +55,9 @@ public class TotpController {
         TotpSecret totpSecret = totpService.createTotpSecret(username, request.getDeviceName());
         
         String qrCodeUri = totpService.generateQrCodeUri(
-            username, 
-            totpSecret.getSecretKey(), 
-            "TOM", 
+            username,
+            totpSecret.getSecretKey(),
+            "TOM",
             request.getDeviceName()
         );
         
@@ -120,9 +120,9 @@ public class TotpController {
         TotpSecret newSecret = totpService.changeDevice(username, verificationCode, newDeviceName);
         
         String qrCodeUri = totpService.generateQrCodeUri(
-            username, 
-            newSecret.getSecretKey(), 
-            "TOM", 
+            username,
+            newSecret.getSecretKey(),
+            "TOM",
             newDeviceName
         );
         

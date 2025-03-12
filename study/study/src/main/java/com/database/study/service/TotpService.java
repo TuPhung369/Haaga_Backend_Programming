@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -52,6 +53,7 @@ public class TotpService {
     PasswordEncoder passwordEncoder;
     ObjectMapper objectMapper;
     EmailService emailService;
+    SecretKeyEncryptionService secretKeyEncryptionService;
     
     /**
      * Generate a new random TOTP secret key
@@ -102,6 +104,19 @@ public class TotpService {
      */
     @Transactional
     public boolean verifyCode(String username, String secretKey, String code) {
+        // Get the TotpSecret entity first to check encryption status
+        TotpSecret totpSecretEntity = totpSecretRepository.findByUsernameAndActive(username, true)
+                .orElse(null);
+        
+        if (totpSecretEntity != null && totpSecretEntity.isSecretEncrypted()) {
+            try {
+                // Try to decrypt the secret
+                secretKey = secretKeyEncryptionService.decrypt(secretKey);
+            } catch (Exception e) {
+                // Log at debug level instead
+                log.debug("Failed to decrypt TOTP secret: {}", e.getMessage());
+            }
+        }
         if (code == null || code.length() != CODE_DIGITS) {
             return false;
         }
@@ -140,7 +155,7 @@ public class TotpService {
             }
             
             return false;
-        } catch (Exception e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException e) {
             log.error("Error validating TOTP code", e);
             return false;
         }
@@ -228,6 +243,12 @@ public class TotpService {
         // Generate secret key
         String secretKey = generateSecretKey();
         
+        // Store the plaintext version temporarily for QR code generation
+        String plaintextSecretKey = secretKey;
+        
+        // Encrypt before storing in database
+        secretKey = secretKeyEncryptionService.encrypt(secretKey);
+
         // Generate backup codes
         List<String> backupCodes = generateBackupCodes();
         
@@ -244,7 +265,7 @@ public class TotpService {
         } catch (JsonProcessingException e) {
             throw new AppException(ErrorCode.GENERAL_EXCEPTION);
         }
-        
+
         TotpSecret totpSecret = TotpSecret.builder()
                 .username(username)
                 .secretKey(secretKey)
@@ -254,7 +275,8 @@ public class TotpService {
                 .build();
         
         totpSecret = totpSecretRepository.save(totpSecret);
-        
+        // Set the plaintext secret back temporarily for UI display purposes
+        totpSecret.setSecretKey(plaintextSecretKey);
         return totpSecret;
     }
     
@@ -379,7 +401,7 @@ public class TotpService {
                     return true;
                 }
             }
-        } catch (Exception e) {
+        } catch (JsonProcessingException | IllegalArgumentException e) {
             log.error("Error validating backup code", e);
         }
         
@@ -530,7 +552,7 @@ public class TotpService {
         return totpResetRequestRepository.findByStatusOrderByRequestTimeDesc(
                 TotpResetRequest.RequestStatus.PENDING);
     }
-    
+
     public TotpSecret findActiveDeviceForUser(String username) {
         return totpSecretRepository.findByUsernameAndActive(username, true).orElse(null);
     }
@@ -648,9 +670,10 @@ public void cleanupOldResetRequests() {
     try {
         // Clean up processed requests older than 24 hours
         LocalDateTime cutoffDate = LocalDateTime.now().minusHours(USED_CODES_RETENTION_HOURS);
-        
-        List<TotpResetRequest> oldRequests = totpResetRequestRepository.findByProcessedTrueAndProcessedTimeBefore(cutoffDate);
-        
+
+        List<TotpResetRequest> oldRequests = totpResetRequestRepository
+                .findByProcessedTrueAndProcessedTimeBefore(cutoffDate);
+
         if (!oldRequests.isEmpty()) {
             totpResetRequestRepository.deleteAll(oldRequests);
             log.info("Cleaned up {} old TOTP reset requests", oldRequests.size());
@@ -659,4 +682,5 @@ public void cleanupOldResetRequests() {
         log.error("Error during TOTP reset request cleanup", e);
     }
 }
+
 }

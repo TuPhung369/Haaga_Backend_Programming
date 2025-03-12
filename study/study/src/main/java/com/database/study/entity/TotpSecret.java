@@ -37,6 +37,10 @@ public class TotpSecret {
     
     @Column(length = 1000)
     String backupCodes;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean secretEncrypted = false;
     
     @PrePersist
     protected void onCreate() {

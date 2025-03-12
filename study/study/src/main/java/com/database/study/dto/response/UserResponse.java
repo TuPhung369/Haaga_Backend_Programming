@@ -1,6 +1,7 @@
 package com.database.study.dto.response;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Set;
 
@@ -33,5 +34,7 @@ public class UserResponse {
     boolean enabled;
     String deviceName;
     LocalDate enabledDate;
+    UUID deviceId;
+    LocalDateTime createdAt;
   }
 }

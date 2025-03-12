@@ -64,6 +64,9 @@ spring:
 cleanup:
   cron:
     expression: "0 0 2 * * ?" # 2AM every day
+totp:
+  encryption:
+    key: "2fl9V3Xl0ks5yX9dGuVHRV1H6ld9F0OjhrYhP7QvxqJrB/1OLKJHpPoMxSBcUe3EEC6hq0kseMfUQlhK2w2yQA=="
 logging:
   level:
     root: DEBUG # Global log level

@@ -4,8 +4,8 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class AppException extends RuntimeException {
-    private ErrorCode errorCode;
-    private Map<String, Object> metadata;
+    private final ErrorCode errorCode;
+    private final Map<String, Object> metadata;
 
     // Constructor with just ErrorCode
     public AppException(ErrorCode errorCode) {

@@ -206,7 +206,7 @@ public class OAuth2TokenController {
     } catch (HttpClientErrorException | HttpServerErrorException e) {
       log.error("STEP 3: Error exchanging token: {}", e.getResponseBodyAsString(), e);
       return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
-    } catch (Exception e) {
+    } catch (AppException e) {
       log.error("Unexpected error exchanging token", e);
       return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
     }

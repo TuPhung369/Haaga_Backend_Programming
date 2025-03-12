@@ -435,9 +435,16 @@ public class AuthenticationService {
     try {
       SignedJWT signedJWT = SignedJWT.parse(refreshToken);
       username = signedJWT.getJWTClaimsSet().getSubject();
-    } catch (Exception e) {
-      throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
-    }
+    } catch (AppException e) {
+        throw e;
+      } catch (ParseException e) {
+          log.error("Error parsing token: {}", e.getMessage(), e);
+          throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+      } catch (Exception e) {
+          // Keep this as fallback for truly unexpected exceptions
+          log.error("Unexpected error refreshing token: {}", e.getMessage(), e);
+          throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+      }
     
     // Find the user
     User user = userRepository.findByUsername(username)
@@ -724,37 +731,40 @@ public class AuthenticationService {
 
   @Transactional
   public ApiResponse<Void> logoutWithCookies(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-  try {
-    // Get the encrypted refresh token from cookie
-    String encryptedRefreshToken = cookieService.getRefreshTokenFromCookies(httpRequest);
+    try {
+      // Get the encrypted refresh token from cookie
+      String encryptedRefreshToken = cookieService.getRefreshTokenFromCookies(httpRequest);
 
-    if (encryptedRefreshToken != null) {
-      // Decrypt to get username
-      String plainRefreshToken = encryptionService.decryptToken(encryptedRefreshToken);
-      // Verify token and extract UUID
-      SignedJWT signedToken = SignedJWT.parse(plainRefreshToken); // Giả sử bạn có hàm verify token
-      String uuid = signedToken.getJWTClaimsSet().getJWTID();
+      if (encryptedRefreshToken != null) {
+        // Decrypt to get username
+        String plainRefreshToken = encryptionService.decryptToken(encryptedRefreshToken);
+        // Verify token and extract UUID
+        SignedJWT signedToken = SignedJWT.parse(plainRefreshToken); // Giả sử bạn có hàm verify token
+        String uuid = signedToken.getJWTClaimsSet().getJWTID();
 
-      if (uuid != null) {
-        // Delete token from database
-        activeTokenRepository.deleteByUsername(uuid);
+        if (uuid != null) {
+          // Delete token from database
+          activeTokenRepository.deleteByUsername(uuid);
+        }
       }
-    }
 
-    // Clear the cookie regardless of token validity
-    cookieService.deleteRefreshTokenCookie(httpResponse);
+      // Clear the cookie regardless of token validity
+      cookieService.deleteRefreshTokenCookie(httpResponse);
 
-    return ApiResponse.<Void>builder()
-        .message("Logged out successfully")
-        .build();
+      return ApiResponse.<Void>builder()
+          .message("Logged out successfully")
+          .build();
+  } catch (ParseException e) {
+      log.error("Error parsing JWT token: {}", e.getMessage(), e);
+      return null;
   } catch (Exception e) {
-    // Still clear cookie even if error occurs
-    cookieService.deleteRefreshTokenCookie(httpResponse);
+      // Still clear cookie even if error occurs
+      cookieService.deleteRefreshTokenCookie(httpResponse);
 
-    log.error("Error during logout: {}", e.getMessage());
-    return ApiResponse.<Void>builder()
-        .message("Logged out successfully")
-        .build();
+      log.error("Error during logout: {}", e.getMessage());
+      return ApiResponse.<Void>builder()
+          .message("Logged out successfully")
+          .build();
   }
 }
   
@@ -920,7 +930,7 @@ public class AuthenticationService {
       user.setPassword(passwordEncoder.encode(request.getPassword()));
       
       // Set active status
-      user.setActive(request.getActive() != null ? request.getActive() : false);
+      user.setActive(Boolean.TRUE.equals(request.getActive()));
       log.info("Setting active status: {}", user.isActive());
       
       // Set default role as USER if roles are not provided or empty
@@ -1314,6 +1324,9 @@ public class AuthenticationService {
   try {
     SignedJWT signedJWT = SignedJWT.parse(token);
     return signedJWT.getJWTClaimsSet().getSubject();
+  } catch (ParseException e) {
+      log.error("Error parsing JWT token: {}", e.getMessage(), e);
+      return null;
   } catch (Exception e) {
     log.error("Error extracting username from token", e);
     return null;
@@ -1388,9 +1401,9 @@ public class AuthenticationService {
             return IntrospectResponse.builder().valid(false).build();
         }
         return IntrospectResponse.builder().valid(true).build();
-    } catch (Exception e) {
-        log.warn("Token validation failed: {}", e.getMessage());
-        return IntrospectResponse.builder().valid(false).build();
+    } catch (ParseException | JOSEException e) {
+      log.error("Error parsing or validating JWT token: {}", e.getMessage(), e);
+      return IntrospectResponse.builder().valid(false).build();
     }
 }
 
@@ -1424,7 +1437,7 @@ public class AuthenticationService {
           Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
           verified = expiryTime.after(new Date());
         }
-      } catch (Exception e) {
+      } catch (ParseException | JOSEException e) {
         log.warn("Error verifying with dynamic key: {}", e.getMessage());
         verified = false;
       }
@@ -1441,7 +1454,7 @@ public class AuthenticationService {
           Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
           verified = expiryTime.after(new Date());
         }
-      } catch (Exception e) {
+      } catch (ParseException | JOSEException e) {
         log.warn("Error verifying with static key: {}", e.getMessage());
         verified = false;
       }
@@ -1487,7 +1500,7 @@ public class AuthenticationService {
         String token = jwsObject.serialize();
 
         return token;
-    } catch (Exception e) {
+    } catch (JOSEException e) {
         log.error("Error generating token: {}", e.getMessage(), e);
         return null;
     }
@@ -1519,7 +1532,7 @@ public class AuthenticationService {
         jwsObject.sign(new MACSigner(secretKey));
         
         return jwsObject.serialize();
-    } catch (Exception e) {
+    } catch (JOSEException e) {
         log.error("Error generating refresh token: {}", e.getMessage(), e);
         return null;
     }
@@ -1556,7 +1569,7 @@ private String generateOAuthToken(User user, String jwtId, long expiryTimeMillis
         JWSObject jwsObject = new JWSObject(jwsHeader, payload);
         jwsObject.sign(new MACSigner(secretKey));
         return jwsObject.serialize();
-    } catch (Exception e) {
+    } catch (JOSEException e) {
         log.error("Error generating OAuth token: {}", e.getMessage(), e);
         return null;
     }
@@ -1583,7 +1596,7 @@ private Date extractTokenExpiry(String token) {
         
         // Trực tiếp trả về thời hạn của token mà không cần kiểm tra thêm
         return signedJWT.getJWTClaimsSet().getExpirationTime();
-    } catch (Exception e) {
+    } catch (ParseException e) {
         // Nếu không parse được bằng phương pháp trên, thử với cách cũ
         log.warn("Error parsing token with SignedJWT, falling back to static method: {}", e.getMessage());
         try {
@@ -1593,7 +1606,10 @@ private Date extractTokenExpiry(String token) {
                 .parseSignedClaims(token)
                 .getPayload();
             return claims.getExpiration();
-        } catch (Exception ex) {
+        } catch (io.jsonwebtoken.security.SecurityException ex) {
+            log.error("Failed to extract token expiry: {}", ex.getMessage());
+            return new Date(System.currentTimeMillis() - 1000);
+        } catch (io.jsonwebtoken.JwtException ex) {
             log.error("Failed to extract token expiry: {}", ex.getMessage());
             return new Date(System.currentTimeMillis() - 1000);
         }
@@ -1608,7 +1624,7 @@ private Claims extractAllClaims(String token) {
             .build()
             .parseSignedClaims(token)
             .getPayload();
-    } catch (Exception e) {
+    } catch (io.jsonwebtoken.JwtException e) {
         log.warn("Error parsing token with JJWT parser: {}", e.getMessage());
         throw new AppException(ErrorCode.INVALID_TOKEN);
     }

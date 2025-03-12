@@ -1,6 +1,8 @@
 package com.database.study.entity;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
@@ -19,8 +21,8 @@ public class ExceptionsConverter implements AttributeConverter<List<Event.Except
         return null;
       }
       return objectMapper.writeValueAsString(attribute);
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Error converting exceptions to JSON", e);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Error converting exceptions to JSON: " + e.getMessage(), e);
     }
   }
 
@@ -30,10 +32,11 @@ public class ExceptionsConverter implements AttributeConverter<List<Event.Except
       if (dbData == null || dbData.isEmpty()) {
         return new ArrayList<>();
       }
-      return objectMapper.readValue(dbData, new TypeReference<List<Event.ExceptionEntry>>() {
-      });
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Error converting JSON to exceptions", e);
+      return objectMapper.readValue(dbData, new TypeReference<List<Event.ExceptionEntry>>() {});
+    } catch (JsonMappingException e) {
+      throw new IllegalArgumentException("Error mapping JSON to exception entries: " + e.getMessage(), e);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Error processing JSON from database: " + e.getMessage(), e);
     }
   }
 }

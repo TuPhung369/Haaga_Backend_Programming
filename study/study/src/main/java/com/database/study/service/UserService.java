@@ -225,28 +225,27 @@ public UserResponse getUserById(UUID userId) {
     }
 
     private void enrichUserResponseWithTotpInfo(UserResponse userResponse) {
-  // Check if TOTP is enabled
-  boolean totpEnabled = totpService.isTotpEnabled(userResponse.getUsername());
+      boolean totpEnabled = totpService.isTotpEnabled(userResponse.getUsername());
+
+      if (totpEnabled) {
+        totpSecretRepository.findByUsernameAndActive(userResponse.getUsername(), true)
+            .ifPresent(totpSecret -> {
+              UserResponse.TotpSecurityInfo totpInfo = UserResponse.TotpSecurityInfo.builder()
+                  .enabled(true)
+                  .deviceName(totpSecret.getDeviceName())
+                  .enabledDate(totpSecret.getCreatedAt().toLocalDate())
+                  .deviceId(totpSecret.getId())
+                  .createdAt(totpSecret.getCreatedAt())
+                  .build();
+
+              userResponse.setTotpSecurity(totpInfo);
+            });
+      } else {
+        userResponse.setTotpSecurity(
+            UserResponse.TotpSecurityInfo.builder()
+                .enabled(false)
+                .build());
+      }
+    }
   
-  if (totpEnabled) {
-    // Get TOTP device information
-    totpSecretRepository.findByUsernameAndActive(userResponse.getUsername(), true)
-        .ifPresent(totpSecret -> {
-          UserResponse.TotpSecurityInfo totpInfo = UserResponse.TotpSecurityInfo.builder()
-              .enabled(true)
-              .deviceName(totpSecret.getDeviceName())
-              .enabledDate(totpSecret.getCreatedAt().toLocalDate())
-              .build();
-          
-          userResponse.setTotpSecurity(totpInfo);
-        });
-  } else {
-    // Set default TOTP info (not enabled)
-    userResponse.setTotpSecurity(
-        UserResponse.TotpSecurityInfo.builder()
-            .enabled(false)
-            .build()
-    );
-  }
-}
 }
