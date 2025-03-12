@@ -218,6 +218,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
               color: permission.color,
             })),
           })),
+          totpSecurity: response.result.totpSecurity,
         };
         dispatch(setUserInfo(userData));
       }

@@ -333,7 +333,7 @@ interface MyInfoProps {
   onUpdateSuccess?: () => void;
 }
 
-const MyInfo: React.FC<MyInfoProps> = ( ) => {
+const MyInfo: React.FC<MyInfoProps> = () => {
   // State
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEmailChangeModalVisible, setIsEmailChangeModalVisible] =
@@ -484,6 +484,7 @@ const MyInfo: React.FC<MyInfoProps> = ( ) => {
               color: permission.color,
             })),
           })),
+          totpSecurity: response.result.totpSecurity,
         };
         dispatch(setUserInfo(userData));
       }
@@ -513,7 +514,7 @@ const MyInfo: React.FC<MyInfoProps> = ( ) => {
     // Fetch user info again to get updated TOTP status
     fetchMyInfo();
   }, [dispatch, fetchMyInfo]);
-  
+
   // Event handlers
   const showModalUpdate = () => {
     if (userInfo) {
@@ -1090,7 +1091,4 @@ const MyInfo: React.FC<MyInfoProps> = ( ) => {
 };
 
 export default MyInfo;
-
-
-
 
