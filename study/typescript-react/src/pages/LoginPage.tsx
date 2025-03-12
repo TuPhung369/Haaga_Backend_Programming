@@ -24,8 +24,17 @@ import validateInput from "../utils/validateInput";
 import moment, { Moment } from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
+import { setUserInfo } from "../store/userSlice";
+import { getMyInfo } from "../services/userService";
+import { handleServiceError } from "../services/baseService";
 import { resetAllData } from "../store/resetActions";
-import { ValidationInput, AuthState, AuthError } from "../type/types";
+import {
+  ValidationInput,
+  AuthState,
+  AuthError,
+  User,
+  Role,
+} from "../type/types";
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
 import LoadingState from "../components/LoadingState";
@@ -100,6 +109,34 @@ const LoginPage: React.FC = () => {
           })
         );
         setupTokenRefresh(data.result.token);
+        try {
+          const userInfoResponse = await getMyInfo(data.result.token);
+          if (userInfoResponse && userInfoResponse.result) {
+            const userData: User = {
+              id: userInfoResponse.result.id,
+              username: userInfoResponse.result.username,
+              firstname: userInfoResponse.result.firstname,
+              lastname: userInfoResponse.result.lastname,
+              dob: userInfoResponse.result.dob,
+              email: userInfoResponse.result.email,
+              roles: userInfoResponse.result.roles.map((role: Role) => ({
+                name: role.name,
+                description: role.description,
+                color: role.color,
+                permissions: role.permissions?.map((permission) => ({
+                  name: permission.name,
+                  description: permission.description,
+                  color: permission.color,
+                })),
+              })),
+            };
+            dispatch(setUserInfo(userData));
+          }
+        } catch (error) {
+          handleServiceError(error);
+          console.error("Failed to fetch user info after login:", error);
+        }
+
         notification.success({
           message: "Success",
           description: "Logged in successfully!",

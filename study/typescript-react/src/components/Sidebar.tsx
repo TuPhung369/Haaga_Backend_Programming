@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Layout, Menu, Button } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
+import { RootState } from "../type/types";
+import { useSelector } from "react-redux";
 import {
   HomeOutlined,
   UserOutlined,
@@ -30,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     return savedState ? JSON.parse(savedState) : false;
   });
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const { userInfo } = useSelector((state: RootState) => state.user);
 
   // Update window width when resized
   useEffect(() => {
@@ -111,6 +114,14 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     },
   ];
 
+  // Filter menu items based on user roles
+  const filteredMenuItems = menuItems.filter((item) => {
+    // Always show items that are not the Admin Dashboard
+    if (item.path !== "/adminDashBoard") return true;
+
+    // Only show Admin Dashboard if user has ADMIN role
+    return userInfo?.roles?.some((role) => role.name === "ADMIN");
+  });
   return (
     <Sider
       width={200}
@@ -177,7 +188,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         mode="inline"
         theme="light"
         selectedKeys={[
-          menuItems.find((item) => item.path === location.pathname)?.key ||
+          filteredMenuItems.find((item) => item.path === location.pathname)
+            ?.key ||
             defaultSelectedKey ||
             "1",
         ]}
@@ -186,7 +198,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           borderRight: 0,
           transition: "width 0.3s ease",
         }}
-        items={menuItems.map(({ key, label, path, icon }, index) => ({
+        items={filteredMenuItems.map(({ key, label, path, icon }, index) => ({
           key,
           label,
           icon: React.cloneElement(icon, {
