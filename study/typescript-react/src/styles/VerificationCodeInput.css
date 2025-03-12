@@ -28,7 +28,9 @@
               inset 0 0 0 1px rgba(255, 255, 255, 0.4);
   transition: all 0.5s var(--animation-curve);
   isolation: isolate;
-  overflow: visible;
+  pointer-events: none !important; /* Explicitly disable all pointer events */
+  z-index: 1;
+  user-select: none;
 }
 
 /* Animated background effect */
@@ -50,6 +52,7 @@
   animation: ambientShift 15s infinite linear;
   opacity: 0;
   transition: opacity 0.5s ease;
+  pointer-events: none !important;
 }
 
 .verification-code-container:hover::before {
@@ -66,6 +69,10 @@
   transition: all 0.5s var(--animation-curve);
   filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.03));
   isolation: isolate;
+  cursor: text;
+  pointer-events: auto !important; /* Explicitly set to auto */
+  z-index: 100 !important; /* Much higher z-index to guarantee it's above everything */
+  overflow: visible; /* Ensure visibility of any child elements */
 }
 
 /* Floating effect on hover */
@@ -77,6 +84,12 @@
 .code-input {
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
   font-size: 28px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -94,6 +107,8 @@
   backdrop-filter: blur(4px);
   transform: translateZ(0);
   caret-color: var(--primary-color);
+  pointer-events: auto !important; /* Explicitly set to auto */
+  z-index: 11; /* Increased z-index to ensure it's above other elements */
 }
 
 /* Force single digit input on iOS/Mobile */
@@ -124,7 +139,8 @@
   animation: borderGradientShift 4s infinite linear;
   opacity: 0;
   transition: opacity 0.4s ease;
-  z-index: -1;
+  z-index: 3; /* Lower than input but still visible */
+  pointer-events: none !important; /* Changed to none to not interfere with clicks */
 }
 
 /* Show animated border on focus */
@@ -154,6 +170,8 @@
   transform: translateX(-50%) scale(0);
   opacity: 0;
   transition: all 0.6s var(--animation-curve);
+  pointer-events: none !important; /* Changed to none to not interfere with clicks */
+  z-index: 12;
 }
 
 /* Error state styling */
@@ -215,6 +233,7 @@
   z-index: -2;
   opacity: 0.5;
   animation: successPulse 2s infinite var(--animation-curve);
+  pointer-events: none !important;
 }
 
 /* Submitting state styling */
@@ -239,6 +258,8 @@
   opacity: 0;
   filter: drop-shadow(0 0 8px rgba(10, 207, 131, 0.4));
   animation: checkIconAppear 1s 0.6s forwards var(--animation-curve);
+  pointer-events: none !important; /* Changed to none */
+  z-index: 12;
 }
 
 /* Resend container styling */
@@ -268,6 +289,9 @@
   font-size: 14px;
   font-weight: 500;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 12;
 }
 
 /* Resend button styling */
@@ -283,6 +307,9 @@
   overflow: hidden;
   height: auto;
   border: none;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 12;
 }
 
 .resend-button:hover {
@@ -309,6 +336,7 @@
     transparent
   );
   transition: left 0.3s ease;
+  pointer-events: none !important;
 }
 
 .resend-button:hover::after {
@@ -496,7 +524,7 @@
   height: 100%;
   top: 0;
   left: 0;
-  pointer-events: none;
+  pointer-events: none !important;
   background-image: radial-gradient(circle at 20% 20%, rgba(71, 118, 230, 0.1) 0%, transparent 2%),
                     radial-gradient(circle at 80% 30%, rgba(142, 84, 233, 0.1) 0%, transparent 2%),
                     radial-gradient(circle at 40% 70%, rgba(71, 118, 230, 0.1) 0%, transparent 2%),
@@ -521,4 +549,75 @@
   100% {
     background-position: 100% 100%;
   }
+}
+
+/* ADDITIONAL FIXES FOR CLICK ISSUE */
+
+/* Create a completely blocking overlay that only allows clicks on specific elements */
+.verification-code-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none !important;
+  z-index: 0;
+}
+
+/* Block ALL pointer events by default */
+.verification-code-container *,
+.verification-code-container::before,
+.verification-code-container::after,
+.input-border,
+.success-indicator,
+.verification-code-container > div:not(.code-input-wrapper) {
+  pointer-events: none !important;
+}
+
+/* ONLY enable pointer events on the specific input elements */
+.code-input-wrapper,
+.code-input,
+.verification-extra,
+.resend-container,
+.countdown,
+.resend-button {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 20 !important; /* Ensure these are above everything else */
+}
+
+/* Make the input area completely fill the wrapper with no gaps */
+.code-input-wrapper {
+  touch-action: manipulation;
+  isolation: isolate;
+  display: block;
+}
+
+.code-input {
+  width: 100%;
+  height: 100%;
+  touch-action: manipulation;
+  position: absolute;
+  border: 1px solid rgba(118, 119, 122,0.4);
+  top: 0;
+  left: 0;
+}
+.code-input:focus {
+  border: 1px solid #6EADFF;
+  box-shadow: 0 0 0 2px rgba(110, 173, 255, 0.3);
+}
+
+.input-border {
+  background: linear-gradient(
+    45deg,
+    #6EADFF,
+    #8E54E9,
+    #6EADFF,
+    #8E54E9
+  );
+}
+
+.ant-modal {
+  top: 0;
 }

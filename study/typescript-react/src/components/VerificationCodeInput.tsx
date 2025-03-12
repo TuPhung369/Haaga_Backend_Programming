@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Form, Button, Typography } from "antd";
 import {
   CheckCircleFilled,
   ClockCircleOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
-import "../styles/VerificationCodeInput.css";
+import "../styles/VerificationCodeInput.css"; // Your premium CSS file
 
 const { Text } = Typography;
 
@@ -13,11 +13,12 @@ interface VerificationCodeInputProps {
   value: string;
   onChange: (value: string) => void;
   onResendCode?: () => Promise<void | boolean>;
-  resendCooldown?: number; // Cooldown in seconds
+  resendCooldown?: number;
   isSubmitting?: boolean;
   isError?: boolean;
   autoFocus?: boolean;
-  inputRef?: React.RefObject<HTMLInputElement>; // New prop for ref
+  inputRef?: React.RefObject<HTMLInputElement>;
+  onFocus?: () => void;
 }
 
 const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
@@ -28,22 +29,25 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
   isSubmitting = false,
   isError = false,
   autoFocus = false,
-  inputRef, // New prop
+  inputRef,
+  onFocus,
 }) => {
-  // Create an array from the current value, padding with empty strings if needed
+  // Split the value into an array of digits, padding with empty strings if needed
   const valueArray = value.split("").concat(Array(6 - value.length).fill(""));
 
-  // Create refs array with useMemo to avoid re-creation on each render
+  // Track if we've done the initial focus (to prevent constant re-focusing)
+  const hasInitialFocused = useRef<boolean>(false);
+
+  // Create refs for each input
   const inputRefs = React.useMemo(() => {
     return Array(6)
       .fill(0)
       .map((_, i) =>
-        // For the first input, use the provided ref if available
         i === 0 && inputRef ? inputRef : React.createRef<HTMLInputElement>()
       );
   }, [inputRef]);
 
-  // Timer state - only used when onResendCode is provided
+  // Timer state for resend functionality
   const [countdown, setCountdown] = useState(resendCooldown);
   const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -57,9 +61,9 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
       .padStart(2, "0")}`;
   };
 
-  // Handle countdown - only run this effect if onResendCode is provided
+  // Handle countdown for resend functionality
   useEffect(() => {
-    if (!onResendCode) return; // Skip for TOTP authentication
+    if (!onResendCode) return;
 
     let timer: ReturnType<typeof setTimeout>;
     if (countdown > 0) {
@@ -72,39 +76,41 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     return () => clearTimeout(timer);
   }, [countdown, onResendCode]);
 
-  // Improved focus handling for the first input
+  // Handle initial focus only once
   useEffect(() => {
-    if (!autoFocus) return;
-
-    // First attempt - immediate focus
-    if (inputRefs[0]?.current) {
-      inputRefs[0].current.focus();
-    }
-
-    // Multiple attempts with different delays
-    const focusTimes = [50, 100, 300, 500];
-
-    const focusTimers = focusTimes.map((time) =>
-      setTimeout(() => {
+    if (autoFocus && !hasInitialFocused.current) {
+      const focusTimer = setTimeout(() => {
         if (inputRefs[0]?.current) {
           inputRefs[0].current.focus();
+          hasInitialFocused.current = true;
+          if (onFocus) onFocus();
         }
-      }, time)
-    );
+      }, 200); // Delay focus to ensure component is fully rendered
+
+      return () => clearTimeout(focusTimer);
+    }
+  }, [autoFocus, inputRefs, onFocus]);
+
+  // Reset the focus state when component unmounts or autoFocus changes to false
+  useEffect(() => {
+    if (!autoFocus) {
+      hasInitialFocused.current = false;
+    }
 
     return () => {
-      focusTimers.forEach((timer) => clearTimeout(timer));
+      hasInitialFocused.current = false;
     };
-  }, [autoFocus, inputRefs]);
+  }, [autoFocus]);
 
   // Handle resend click
-  const handleResend = async () => {
+  const handleResend = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
     if (!canResend || isResending || !onResendCode) return;
 
     setIsResending(true);
     try {
       await onResendCode();
-      // Reset countdown
       setCountdown(resendCooldown);
       setCanResend(false);
     } catch (error) {
@@ -114,11 +120,12 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     }
   };
 
-  // Handle input change for a specific position
+  // Handle input change
   const handleChange = (
     index: number,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
+    e.stopPropagation();
     const digit = e.target.value;
 
     // Only allow numbers
@@ -132,20 +139,26 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     newValueArray[index] = singleDigit;
 
     // Call the onChange prop with the new combined value
-    const newValue = newValueArray.join("");
-    onChange(newValue);
+    onChange(newValueArray.join(""));
 
-    // Auto-advance to next input if a digit was entered and not deleting
+    // Auto-advance to next input if a digit was entered
     if (singleDigit && index < 5 && inputRefs[index + 1]?.current) {
       inputRefs[index + 1].current?.focus();
     }
   };
 
-  // Handle keyboard navigation and backspace
+  // Handle keyboard navigation
   const handleKeyDown = (
     index: number,
     e: React.KeyboardEvent<HTMLInputElement>
   ) => {
+    if (e.key === "Tab") {
+      // Let Tab work normally for accessibility
+      return;
+    }
+
+    e.stopPropagation();
+
     if (
       e.key === "Backspace" &&
       !valueArray[index] &&
@@ -171,17 +184,14 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     }
   };
 
-  // Handle paste event (allows pasting the entire code)
+  // Handle paste event
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     const pastedData = e.clipboardData.getData("text/plain").trim();
 
-    // Check if pasted data is numeric and of appropriate length
     if (/^\d+$/.test(pastedData)) {
       // Take only up to 6 digits
       const digits = pastedData.slice(0, 6);
-
-      // Update value through onChange
       onChange(digits);
 
       // Focus the appropriate input based on paste length
@@ -192,27 +202,21 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     }
   };
 
-  // Handle div click to focus on the current or next empty input
-  const handleContainerClick = () => {
-    // Find the first empty input or the last input if all filled
-    const emptyIndex = valueArray.findIndex((digit) => digit === "");
-    const indexToFocus = emptyIndex >= 0 ? emptyIndex : 5;
-
-    if (inputRefs[indexToFocus]?.current) {
-      inputRefs[indexToFocus].current?.focus();
-    } else if (inputRefs[0]?.current) {
-      // Fallback to first input
-      inputRefs[0].current?.focus();
+  // Handle clicks on the input wrapper to focus the input
+  const handleWrapperClick = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (inputRefs[index]?.current && !isSubmitting) {
+      inputRefs[index].current.focus();
+      if (onFocus) onFocus();
     }
   };
 
   // Check if all digits are filled
   const isComplete = valueArray.every((digit) => digit !== "");
 
-  // Effect to add animation when code is complete
+  // Add classes for success animation
   useEffect(() => {
     if (isComplete && !isError) {
-      // Add success animation class after a small delay
       const timer = setTimeout(() => {
         const container = document.querySelector(
           ".verification-code-container"
@@ -224,7 +228,6 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
 
       return () => clearTimeout(timer);
     } else {
-      // Remove success animation class
       const container = document.querySelector(".verification-code-container");
       if (container) {
         container.classList.remove("complete");
@@ -232,7 +235,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     }
   }, [isComplete, isError]);
 
-  // Add error class when there's an error
+  // Add error class
   useEffect(() => {
     const container = document.querySelector(".verification-code-container");
     if (container) {
@@ -283,10 +286,14 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
         className={`verification-code-container ${
           isComplete && !isError ? "all-filled" : ""
         } ${isSubmitting ? "submitting" : ""}`}
-        onClick={handleContainerClick}
       >
         {valueArray.map((digit, index) => (
-          <div className="code-input-wrapper" key={index}>
+          <div
+            className="code-input-wrapper"
+            key={index}
+            onClick={(e) => handleWrapperClick(index, e)}
+            style={{ cursor: isSubmitting ? "not-allowed" : "text" }}
+          >
             <input
               ref={inputRefs[index]}
               className="code-input"
@@ -298,13 +305,13 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
               onChange={(e) => handleChange(index, e)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={index === 0 ? handlePaste : undefined}
+              onFocus={(e) => {
+                e.stopPropagation();
+                if (onFocus) onFocus();
+              }}
               aria-label={`Digit ${index + 1} of verification code`}
               disabled={isSubmitting}
-              // Add direct autoFocus to first input for better browser compatibility
-              {...(index === 0 && autoFocus ? { autoFocus: true } : {})}
-              // Add data attribute to help identify inputs in modals
               data-index={index}
-              data-verification-input="true"
             />
             <div className="input-border"></div>
             {isComplete && !isError && (
@@ -322,3 +329,4 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
 };
 
 export default VerificationCodeInput;
+

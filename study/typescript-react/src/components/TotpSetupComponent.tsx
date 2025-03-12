@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Card,
   Steps,
@@ -71,6 +71,15 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
   const [isChangingDevice, setIsChangingDevice] = useState<boolean>(false);
   const [deviceChangeError, setDeviceChangeError] = useState<boolean>(false);
 
+  // Add refs for the input fields
+  const deviceNameInputRef = useRef<typeof Input>(null);
+
+  // Add state to control auto focus behavior
+  const [shouldFocusVerificationInput, setShouldFocusVerificationInput] =
+    useState<boolean>(false);
+  const [shouldFocusDeviceChangeInput, setShouldFocusDeviceChangeInput] =
+    useState<boolean>(false);
+
   // Get token from Redux store
   const { token } = useSelector((state: RootState) => state.auth);
 
@@ -86,6 +95,12 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
         if (response.result) {
           // Show device change modal automatically if user already has TOTP enabled
           setShowDeviceChangeModal(true);
+          // Focus on device name input when modal opens
+          setTimeout(() => {
+            if (deviceNameInputRef.current) {
+              deviceNameInputRef.current.focus();
+            }
+          }, 300);
         }
       } catch (error) {
         console.error("Error checking TOTP status:", error);
@@ -94,6 +109,16 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
 
     checkTotpStatus();
   }, [token]);
+
+  // Handle focus for verification input after step changes
+  useEffect(() => {
+    if (currentStep === 1) {
+      // When moving to verification step, enable the focus
+      setShouldFocusVerificationInput(true);
+    } else {
+      setShouldFocusVerificationInput(false);
+    }
+  }, [currentStep]);
 
   // Initialize the setup process
   const handleSetup = async () => {
@@ -112,7 +137,6 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
       }
 
       const response = await setupTotp(deviceName, token);
-      console.log("Setup Data:", response.result); // Keep this for debugging
       setSetupData(response.result);
       setCurrentStep(1);
     } catch (error) {
@@ -168,6 +192,8 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
       } else {
         setVerificationError(true);
         setError("Invalid verification code. Please try again.");
+        // Re-enable focus on error to help user correct input
+        setShouldFocusVerificationInput(true);
       }
     } catch (error) {
       handleServiceError(error);
@@ -175,6 +201,8 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
       const errorMessage =
         error instanceof Error ? error.message : "Failed to verify TOTP code";
       setError(errorMessage);
+      // Re-enable focus on error to help user correct input
+      setShouldFocusVerificationInput(true);
     } finally {
       setIsVerifying(false);
     }
@@ -186,6 +214,8 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
 
     if (!deviceChangeCode || deviceChangeCode.length !== 6) {
       setDeviceChangeError(true);
+      // Enable focus to help user correct input
+      setShouldFocusDeviceChangeInput(true);
       return;
     }
 
@@ -218,6 +248,8 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
         message: "Verification Failed",
         description: errorMessage,
       });
+      // Re-enable focus to help user correct input
+      setShouldFocusDeviceChangeInput(true);
     } finally {
       setIsChangingDevice(false);
     }
@@ -225,6 +257,9 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
 
   // Copy text to clipboard
   const copyToClipboard = (text: string, key: string) => {
+    // Temporarily disable verification input focus
+    setShouldFocusVerificationInput(false);
+
     navigator.clipboard.writeText(text).then(
       () => {
         setIsCopied({ ...isCopied, [key]: true });
@@ -301,6 +336,14 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
         </Button>,
       ]}
       width={400}
+      afterOpenChange={(visible) => {
+        if (visible) {
+          // Enable focus when the modal opens
+          setTimeout(() => {
+            setShouldFocusDeviceChangeInput(true);
+          }, 300);
+        }
+      }}
     >
       <Alert
         message="You Already Have 2FA Enabled"
@@ -317,6 +360,7 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
           validateStatus={!deviceName.trim() ? "error" : ""}
         >
           <Input
+            ref={deviceNameInputRef}
             value={deviceName}
             onChange={(e) => setDeviceName(e.target.value)}
             placeholder="Enter device name"
@@ -336,8 +380,12 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
         onChange={setDeviceChangeCode}
         isError={deviceChangeError}
         isSubmitting={isChangingDevice}
-        autoFocus={true}
+        autoFocus={shouldFocusDeviceChangeInput}
         onResendCode={undefined}
+        onFocus={() => {
+          // Disable auto focus after initial focus
+          setShouldFocusDeviceChangeInput(false);
+        }}
       />
 
       <Paragraph style={{ marginTop: 16 }}>
@@ -381,6 +429,7 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
                 placeholder="Enter device name"
                 maxLength={50}
                 disabled={isSettingUp}
+                autoFocus
               />
             </Form.Item>
 
@@ -465,6 +514,10 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
                 value={setupData.secretKey}
                 readOnly
                 addonBefore={<KeyOutlined />}
+                onFocus={() => {
+                  // Disable verification input focus when user interacts with this field
+                  setShouldFocusVerificationInput(false);
+                }}
               />
             </Col>
             <Col span={6}>
@@ -475,6 +528,10 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
                 onClick={() =>
                   copyToClipboard(setupData.secretKey, "secretKey")
                 }
+                onFocus={() => {
+                  // Disable verification input focus when user interacts with this button
+                  setShouldFocusVerificationInput(false);
+                }}
               >
                 {isCopied["secretKey"] ? "Copied" : "Copy"}
               </Button>
@@ -493,7 +550,11 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
             onChange={setVerificationCode}
             isError={verificationError}
             isSubmitting={isVerifying}
-            autoFocus={true}
+            autoFocus={shouldFocusVerificationInput}
+            onFocus={() => {
+              // Disable auto focus after initial focus
+              setShouldFocusVerificationInput(false);
+            }}
           />
 
           {error && (
@@ -516,6 +577,10 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
                 setError(null);
               }}
               disabled={isVerifying}
+              onFocus={() => {
+                // Disable verification input focus when user interacts with this button
+                setShouldFocusVerificationInput(false);
+              }}
             >
               Back
             </Button>
@@ -524,6 +589,10 @@ const TotpSetupComponent: React.FC<TotpSetupComponentProps> = ({
               onClick={handleVerify}
               loading={isVerifying}
               disabled={isVerifying || verificationCode.length !== 6}
+              onFocus={() => {
+                // Disable verification input focus when user interacts with this button
+                setShouldFocusVerificationInput(false);
+              }}
             >
               Verify
             </Button>
