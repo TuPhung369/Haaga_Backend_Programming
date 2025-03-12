@@ -17,6 +17,7 @@ interface VerificationCodeInputProps {
   isSubmitting?: boolean;
   isError?: boolean;
   autoFocus?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement>; // New prop for ref
 }
 
 const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
@@ -27,6 +28,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
   isSubmitting = false,
   isError = false,
   autoFocus = false,
+  inputRef, // New prop
 }) => {
   // Create an array from the current value, padding with empty strings if needed
   const valueArray = value.split("").concat(Array(6 - value.length).fill(""));
@@ -35,8 +37,11 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
   const inputRefs = React.useMemo(() => {
     return Array(6)
       .fill(0)
-      .map(() => React.createRef<HTMLInputElement>());
-  }, []);
+      .map((_, i) =>
+        // For the first input, use the provided ref if available
+        i === 0 && inputRef ? inputRef : React.createRef<HTMLInputElement>()
+      );
+  }, [inputRef]);
 
   // Timer state - only used when onResendCode is provided
   const [countdown, setCountdown] = useState(resendCooldown);
@@ -67,11 +72,29 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     return () => clearTimeout(timer);
   }, [countdown, onResendCode]);
 
-  // Focus first input on mount if autoFocus is true
+  // Improved focus handling for the first input
   useEffect(() => {
-    if (autoFocus && inputRefs[0]?.current) {
+    if (!autoFocus) return;
+
+    // First attempt - immediate focus
+    if (inputRefs[0]?.current) {
       inputRefs[0].current.focus();
     }
+
+    // Multiple attempts with different delays
+    const focusTimes = [50, 100, 300, 500];
+
+    const focusTimers = focusTimes.map((time) =>
+      setTimeout(() => {
+        if (inputRefs[0]?.current) {
+          inputRefs[0].current.focus();
+        }
+      }, time)
+    );
+
+    return () => {
+      focusTimers.forEach((timer) => clearTimeout(timer));
+    };
   }, [autoFocus, inputRefs]);
 
   // Handle resend click
@@ -169,6 +192,20 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
     }
   };
 
+  // Handle div click to focus on the current or next empty input
+  const handleContainerClick = () => {
+    // Find the first empty input or the last input if all filled
+    const emptyIndex = valueArray.findIndex((digit) => digit === "");
+    const indexToFocus = emptyIndex >= 0 ? emptyIndex : 5;
+
+    if (inputRefs[indexToFocus]?.current) {
+      inputRefs[indexToFocus].current?.focus();
+    } else if (inputRefs[0]?.current) {
+      // Fallback to first input
+      inputRefs[0].current?.focus();
+    }
+  };
+
   // Check if all digits are filled
   const isComplete = valueArray.every((digit) => digit !== "");
 
@@ -246,6 +283,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
         className={`verification-code-container ${
           isComplete && !isError ? "all-filled" : ""
         } ${isSubmitting ? "submitting" : ""}`}
+        onClick={handleContainerClick}
       >
         {valueArray.map((digit, index) => (
           <div className="code-input-wrapper" key={index}>
@@ -262,6 +300,11 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
               onPaste={index === 0 ? handlePaste : undefined}
               aria-label={`Digit ${index + 1} of verification code`}
               disabled={isSubmitting}
+              // Add direct autoFocus to first input for better browser compatibility
+              {...(index === 0 && autoFocus ? { autoFocus: true } : {})}
+              // Add data attribute to help identify inputs in modals
+              data-index={index}
+              data-verification-input="true"
             />
             <div className="input-border"></div>
             {isComplete && !isError && (
@@ -279,4 +322,3 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
 };
 
 export default VerificationCodeInput;
-

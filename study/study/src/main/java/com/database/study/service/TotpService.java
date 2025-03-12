@@ -501,7 +501,7 @@ public class TotpService {
             // Use the HTML template
             String htmlContent = emailService.getAdminNotificationTemplate(
                     username,
-                    user.getId(),
+                    user.getId().toString(),
                     email,
                     resetRequest.getId().toString());
 

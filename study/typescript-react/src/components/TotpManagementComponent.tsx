@@ -1,5 +1,5 @@
 // TotpManagementComponent.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Card,
   Button,
@@ -169,6 +169,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [adminResetEmail, setAdminResetEmail] = useState<string>("");
   const [isRequestingReset, setIsRequestingReset] = useState<boolean>(false);
+  const verificationInputRef = useRef<HTMLInputElement>(null);
 
   const { token } = useSelector((state: RootState) => state.auth);
   const { userInfo } = useSelector((state: RootState) => state.user);
@@ -217,6 +218,61 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
     setVerificationCode("");
     setVerificationError(false);
     setShowDeleteVerification(true);
+    focusVerificationInput();
+    // Focus after a small delay to ensure the modal is rendered
+    setTimeout(() => {
+      const firstInput = document.querySelector(
+        ".verification-code-container .code-input"
+      );
+      if (firstInput instanceof HTMLInputElement) {
+        firstInput.focus();
+      }
+    }, 300);
+  };
+  const focusVerificationInput = useCallback(() => {
+    // Try immediately
+    tryFocus();
+
+    // Try after short delay
+    setTimeout(tryFocus, 100);
+
+    // Try after longer delay
+    setTimeout(tryFocus, 300);
+
+    // Try after modal animation should be complete
+    setTimeout(tryFocus, 500);
+  }, []);
+
+  // Effect that runs when the verification modal visibility changes
+  useEffect(() => {
+    if (showDeleteVerification) {
+      focusVerificationInput();
+    }
+  }, [showDeleteVerification, focusVerificationInput]);
+  // Function to try various focus methods
+  const tryFocus = () => {
+    // Method 1: Use the ref
+    if (verificationInputRef.current) {
+      verificationInputRef.current.focus();
+      return;
+    }
+
+    // Method 2: Query selector for the first input
+    const firstInput = document.querySelector(
+      ".verification-code-container .code-input"
+    );
+    if (firstInput instanceof HTMLInputElement) {
+      firstInput.focus();
+      return;
+    }
+
+    // Method 3: Try to find any input within the modal
+    const modalInput = document.querySelector(
+      ".ant-modal-wrap:not(.ant-modal-hidden) input"
+    );
+    if (modalInput instanceof HTMLInputElement) {
+      modalInput.focus();
+    }
   };
 
   // New function to handle the actual deletion after verification
@@ -252,6 +308,30 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
     setVerificationCode("");
     setVerificationError(false);
     setShowRegenerateVerification(true);
+
+    // Focus after a small delay to ensure the modal is rendered
+    setTimeout(() => {
+      const firstInput = document.querySelector(
+        ".verification-code-container .code-input"
+      );
+      if (firstInput instanceof HTMLInputElement) {
+        firstInput.focus();
+      }
+    }, 300);
+  };
+
+  // Function to handle opening the admin reset modal with focus
+  const handleOpenAdminResetModal = () => {
+    setAdminResetEmail(""); // Reset the email input
+    setShowAdminResetModal(true);
+
+    // Focus on the email input after a slight delay
+    setTimeout(() => {
+      const emailInput = document.querySelector('input[type="email"]');
+      if (emailInput instanceof HTMLInputElement) {
+        emailInput.focus();
+      }
+    }, 300);
   };
 
   // New function to handle the actual regeneration after verification
@@ -393,6 +473,11 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
         </Button>,
       ]}
       width={400}
+      afterOpenChange={(visible) => {
+        if (visible) {
+          focusVerificationInput();
+        }
+      }}
     >
       <Alert
         message="Verification Required"
@@ -409,6 +494,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
         isSubmitting={isVerifying}
         autoFocus={true}
         onResendCode={undefined}
+        inputRef={verificationInputRef}
       />
 
       <Divider />
@@ -426,7 +512,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
           icon={<QuestionCircleOutlined />}
           onClick={() => {
             setShowDeleteVerification(false);
-            setShowAdminResetModal(true);
+            handleOpenAdminResetModal();
           }}
         >
           Lost access to authenticator and backup codes?
@@ -464,6 +550,24 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
         </Button>,
       ]}
       width={400}
+      afterOpenChange={(visible) => {
+        if (visible) {
+          // Reset verification state when modal opens
+          setVerificationCode("");
+          setVerificationError(false);
+
+          // Short delay for focus to work reliably
+          setTimeout(() => {
+            // Find the first input field in the modal and focus it
+            const firstInput = document.querySelector(
+              ".verification-code-container .code-input"
+            );
+            if (firstInput instanceof HTMLInputElement) {
+              firstInput.focus();
+            }
+          }, 100);
+        }
+      }}
     >
       <Alert
         message="Verification Required"
@@ -532,6 +636,21 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
         </Button>,
       ]}
       width={400}
+      afterOpenChange={(visible) => {
+        if (visible) {
+          // Reset email state when modal opens
+          setAdminResetEmail("");
+
+          // Short delay for focus to work reliably
+          setTimeout(() => {
+            // Find the email input in this modal and focus it
+            const emailInput = document.querySelector('input[type="email"]');
+            if (emailInput instanceof HTMLInputElement) {
+              emailInput.focus();
+            }
+          }, 100);
+        }
+      }}
     >
       <Alert
         message="Admin Assistance Required"
@@ -634,7 +753,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
                   <Button
                     type="dashed"
                     icon={<QuestionCircleOutlined />}
-                    onClick={() => setShowAdminResetModal(true)}
+                    onClick={handleOpenAdminResetModal}
                   >
                     Lost Access?
                   </Button>
