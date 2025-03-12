@@ -247,6 +247,11 @@ export interface User {
   dob: string;
   email: string;
   roles: Role[];
+  totpSecurity?: {
+    enabled: boolean;
+    deviceName?: string;
+    enabledDate?: string;
+  };
 }
 export interface UserResponse {
   code?: number;

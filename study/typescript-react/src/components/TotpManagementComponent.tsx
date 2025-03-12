@@ -30,7 +30,6 @@ import {
   MailOutlined,
 } from "@ant-design/icons";
 import {
-  getTotpStatus,
   getTotpDevices,
   deactivateTotpDevice,
   regenerateBackupCodes,
@@ -140,13 +139,18 @@ const StyledCard = styled(Card)`
 
 interface TotpManagementComponentProps {
   onUpdate?: () => void;
+  totpSecurity?: {
+    enabled: boolean;
+    deviceName?: string;
+    enabledDate?: string;
+  };
 }
 
 const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   onUpdate,
+  totpSecurity,
 }) => {
   const [expanded, setExpanded] = useState<boolean>(false);
-  const [isTotpEnabled, setIsTotpEnabled] = useState<boolean>(false);
   const [devices, setDevices] = useState<TotpDeviceResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +159,9 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   const [showBackupCodes, setShowBackupCodes] = useState<boolean>(false);
   const [regeneratingCodes, setRegeneratingCodes] = useState<boolean>(false);
   const [deletingDevice, setDeletingDevice] = useState<string | null>(null);
+  const [isTotpEnabled, setIsTotpEnabled] = useState<boolean>(
+    totpSecurity?.enabled || false
+  );
 
   // New state for verification modals
   const [showDeleteVerification, setShowDeleteVerification] =
@@ -181,10 +188,12 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
     setError(null);
 
     try {
-      const statusResponse = await getTotpStatus(token);
-      setIsTotpEnabled(statusResponse.result);
+      // Use the value from props instead of making a separate API call
+      const isEnabled = totpSecurity?.enabled || false;
+      setIsTotpEnabled(isEnabled);
 
-      if (statusResponse.result) {
+      // Only fetch devices if TOTP is enabled
+      if (isEnabled) {
         const devicesResponse = await getTotpDevices(token);
         setDevices(devicesResponse.result || []);
       } else {
@@ -202,7 +211,14 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, totpSecurity]);
+
+  // Update state when props change
+  useEffect(() => {
+    if (totpSecurity) {
+      setIsTotpEnabled(totpSecurity.enabled);
+    }
+  }, [totpSecurity, setIsTotpEnabled]);
 
   useEffect(() => {
     fetchTotpData();

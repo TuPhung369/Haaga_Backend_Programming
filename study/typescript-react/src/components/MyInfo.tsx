@@ -333,7 +333,7 @@ interface MyInfoProps {
   onUpdateSuccess?: () => void;
 }
 
-const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
+const MyInfo: React.FC<MyInfoProps> = ( ) => {
   // State
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEmailChangeModalVisible, setIsEmailChangeModalVisible] =
@@ -367,6 +367,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
     isRolesInvalidated,
   } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
+
   const fetchRoles = useCallback(async () => {
     if (!isRolesInvalidated && roles.length > 0) return;
     try {
@@ -506,7 +507,13 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
       fetchRoles();
     }
   }, [token, isAuthenticated, fetchMyInfo, fetchRoles]);
-
+  const onUpdateSuccess = useCallback(() => {
+    // Invalidate user info to trigger a refresh
+    dispatch(invalidateUserInfo());
+    // Fetch user info again to get updated TOTP status
+    fetchMyInfo();
+  }, [dispatch, fetchMyInfo]);
+  
   // Event handlers
   const showModalUpdate = () => {
     if (userInfo) {
@@ -849,7 +856,10 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
       <>
         <PersonalInfoCard userInfo={userInfo} onEdit={showModalUpdate} />
         <PermissionsCard userInfo={userInfo} />
-        <TotpManagementComponent onUpdate={onUpdateSuccess} />
+        <TotpManagementComponent
+          onUpdate={onUpdateSuccess}
+          totpSecurity={userInfo?.totpSecurity}
+        />
       </>
     );
   };
@@ -1080,4 +1090,7 @@ const MyInfo: React.FC<MyInfoProps> = ({ onUpdateSuccess }) => {
 };
 
 export default MyInfo;
+
+
+
 
