@@ -1,28 +1,18 @@
-import React, { useState, useEffect } from "react";
-
-// Define the types for TOTP reset request
-interface TotpResetRequest {
-  id: string;
-  username: string;
-  email: string;
-  requestTime: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  processed: boolean;
-  processedBy?: string;
-  processedTime?: string;
-  notes?: string;
-}
+import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "../type/types";
+import { handleServiceError } from "../services/baseService";
+import {
+  fetchTotpResetRequests,
+  approveTotpResetRequest,
+  rejectTotpResetRequest,
+  TotpResetRequest,
+} from "../services/totpAdminService";
 
 // Define notification type
 interface Notification {
   type: "success" | "error";
   message: string;
-}
-
-// Define API response type
-interface ApiResponse {
-  result: TotpResetRequest[];
-  message?: string;
 }
 
 function TotpResetRequestManager() {
@@ -41,34 +31,44 @@ function TotpResetRequestManager() {
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [notification, setNotification] = useState<Notification | null>(null);
 
+  // Get token from Redux store
+  const { token } = useSelector((state: RootState) => state.auth);
+
   // Fetch TOTP reset requests
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
+    if (!token) {
+      setError("Authentication required");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const isPending = activeTab === "pending";
-      const response = await fetch(
-        `/auth/totp/admin/reset-requests?pending=${isPending}`
-      );
+      const response = await fetchTotpResetRequests(isPending, token);
 
-      if (!response.ok) {
-        throw new Error(`Error fetching requests: ${response.statusText}`);
+      if (response && response.result) {
+        setRequests(response.result);
+        setError(null);
+      } else {
+        throw new Error("Invalid response format");
       }
-
-      const data: ApiResponse = await response.json();
-      setRequests(data.result || []);
-      setError(null);
     } catch (err) {
       console.error("Failed to fetch TOTP reset requests:", err);
-      setError("Failed to load TOTP reset requests. Please try again.");
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to load TOTP reset requests";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, token]);
 
   // Load requests when component mounts or tab changes
   useEffect(() => {
     fetchRequests();
-  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTab, token, fetchRequests]); // Add fetchRequests to dependency array
 
   // Handle opening the action dialog
   const handleActionClick = (
@@ -87,24 +87,15 @@ function TotpResetRequestManager() {
 
   // Handle submitting the action
   const handleConfirmAction = async () => {
-    if (!selectedRequest || !actionType) return;
+    if (!selectedRequest || !actionType || !token) return;
 
     try {
       setActionLoading(true);
-      const endpoint = `/auth/totp/admin/reset-requests/${selectedRequest.id}/${actionType}`;
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ notes }),
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to ${actionType} request: ${response.statusText}`
-        );
+      if (actionType === "approve") {
+        await approveTotpResetRequest(selectedRequest.id, notes, token);
+      } else if (actionType === "reject") {
+        await rejectTotpResetRequest(selectedRequest.id, notes, token);
       }
 
       // Show success notification
@@ -120,12 +111,20 @@ function TotpResetRequestManager() {
       setDialogOpen(false);
     } catch (err) {
       console.error(`Error ${actionType}ing request:`, err);
-      const errorMessage =
-        err instanceof Error ? err.message : "An unknown error occurred";
-      setNotification({
-        type: "error",
-        message: `Failed to ${actionType} request: ${errorMessage}`,
-      });
+
+      try {
+        handleServiceError(err);
+      } catch (handledError) {
+        const errorMessage =
+          handledError instanceof Error
+            ? handledError.message
+            : "An unknown error occurred";
+
+        setNotification({
+          type: "error",
+          message: `Failed to ${actionType} request: ${errorMessage}`,
+        });
+      }
     } finally {
       setActionLoading(false);
     }

@@ -1,20 +1,10 @@
 import React, { useState, useEffect } from "react";
-
-// Define the interface for the stats object
-interface TotpResetStats {
-  totalRequests: number;
-  pendingRequests: number;
-  requestsLastMonth: number;
-  approvedRequests: number;
-  rejectedRequests: number;
-  averageProcessingTimeHours: number | null;
-}
-
-// Define the interface for the API response
-interface ApiResponse {
-  result: TotpResetStats;
-  message?: string;
-}
+import { useSelector } from "react-redux";
+import { RootState } from "../type/types";
+import {
+  fetchTotpResetAnalytics,
+  TotpResetStats,
+} from "../services/totpAdminService";
 
 function TotpResetAnalytics() {
   // Initialize with proper types
@@ -22,29 +12,39 @@ function TotpResetAnalytics() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Get token from Redux store
+  const { token } = useSelector((state: RootState) => state.auth);
+
   useEffect(() => {
     const fetchStats = async () => {
+      if (!token) {
+        setError("Authentication required");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await fetch("/auth/totp/admin/analytics");
+        const response = await fetchTotpResetAnalytics(token);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch analytics data");
+        if (response && response.result) {
+          setStats(response.result);
+          setError(null);
+        } else {
+          throw new Error("Invalid response format");
         }
-
-        const data: ApiResponse = await response.json();
-        setStats(data.result);
-        setError(null);
       } catch (err) {
         console.error("Error fetching TOTP reset analytics:", err);
-        setError("Failed to load analytics data");
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load analytics data";
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
+  }, [token]);
 
   if (loading) return <div>Loading analytics...</div>;
   if (error) return <div className="text-red-600">{error}</div>;
@@ -104,7 +104,7 @@ function TotpResetAnalytics() {
           Average Processing Time
         </div>
         <div className="text-2xl font-bold">
-          {stats.averageProcessingTimeHours
+          {stats.averageProcessingTimeHours !== null
             ? `${stats.averageProcessingTimeHours.toFixed(1)} hours`
             : "N/A"}
         </div>
