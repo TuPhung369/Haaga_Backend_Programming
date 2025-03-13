@@ -1539,41 +1539,42 @@ public class AuthenticationService {
 }
 
   // Add this new method for OAuth tokens with longer expiry time
-private String generateOAuthToken(User user, String jwtId, long expiryTimeMillis) {
+  private String generateOAuthToken(User user, String jwtId, long expiryTimeMillis) {
     try {
-        // Tính toán ngày hết hạn
-        Date tokenExpiry = new Date(new Date().getTime() + expiryTimeMillis);
-        Date refreshExpiry = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
-        
-        // Format refresh expiry for claim
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        String refreshExpiryStr = sdf.format(refreshExpiry);
-        
-        // Compute dynamic key
-        byte[] secretKey = jwtUtils.computeDynamicSecretKey(user.getId(), refreshExpiry);
-        
-        JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
-        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-            .subject(user.getUsername())
-            .claim("userId", user.getId().toString())
-            .claim("refreshExpiry", refreshExpiryStr)
-            .issuer("tommem.com")
-            .issueTime(new Date())
-            .expirationTime(tokenExpiry)
-            .jwtID(jwtId)
-            .claim("scope", buildScope(user))
-            .claim("tokenSource", "oauth")
-            .build();
-        Payload payload = new Payload(jwtClaimsSet.toJSONObject());
+      // Tính toán ngày hết hạn
+      Date tokenExpiry = new Date(new Date().getTime() + expiryTimeMillis);
+      Date refreshExpiry = new Date(new Date().getTime() + REFRESH_TOKEN_EXPIRY_TIME);
 
-        JWSObject jwsObject = new JWSObject(jwsHeader, payload);
-        jwsObject.sign(new MACSigner(secretKey));
-        return jwsObject.serialize();
+      // Format refresh expiry for claim
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+      String refreshExpiryStr = sdf.format(refreshExpiry);
+
+      // Compute dynamic key
+      byte[] secretKey = jwtUtils.computeDynamicSecretKey(user.getId(), refreshExpiry);
+
+      JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
+      JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+          .subject(user.getUsername())
+          .claim("userId", user.getId().toString())
+          .claim("refreshExpiry", refreshExpiryStr)
+          .issuer("tommem.com")
+          .issueTime(new Date())
+          .expirationTime(tokenExpiry)
+          .jwtID(jwtId)
+          .claim("scope", buildScope(user))
+          .claim("tokenSource", "oauth")
+          .build();
+      Payload payload = new Payload(jwtClaimsSet.toJSONObject());
+
+      JWSObject jwsObject = new JWSObject(jwsHeader, payload);
+      jwsObject.sign(new MACSigner(secretKey));
+      return jwsObject.serialize();
     } catch (JOSEException e) {
-        log.error("Error generating OAuth token: {}", e.getMessage(), e);
-        return null;
+      log.error("Error generating OAuth token: {}", e.getMessage(), e);
+      return null;
     }
-}
+  }
+
   private String buildScope(User user) {
     // Build the scope based on user roles
     StringJoiner scopeJoiner = new StringJoiner(" ");
@@ -1589,95 +1590,97 @@ private String generateOAuthToken(User user, String jwtId, long expiryTimeMillis
     return scopeJoiner.toString();
   }
 
-private Date extractTokenExpiry(String token) {
-    try {
-        // Đầu tiên parse JWT để lấy thông tin mà không cần verify
-        SignedJWT signedJWT = SignedJWT.parse(token);
-        
-        // Trực tiếp trả về thời hạn của token mà không cần kiểm tra thêm
-        return signedJWT.getJWTClaimsSet().getExpirationTime();
-    } catch (ParseException e) {
-        // Nếu không parse được bằng phương pháp trên, thử với cách cũ
-        log.warn("Error parsing token with SignedJWT, falling back to static method: {}", e.getMessage());
-        try {
-            Claims claims = Jwts.parser()
-                .verifyWith(Keys.hmacShaKeyFor(jwtUtils.getSecretKeyBytes()))
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-            return claims.getExpiration();
-        } catch (io.jsonwebtoken.security.SecurityException ex) {
-            log.error("Failed to extract token expiry: {}", ex.getMessage());
-            return new Date(System.currentTimeMillis() - 1000);
-        } catch (io.jsonwebtoken.JwtException ex) {
-            log.error("Failed to extract token expiry: {}", ex.getMessage());
-            return new Date(System.currentTimeMillis() - 1000);
-        }
-    }
-}
+  private Date extractTokenExpiry(String token) {
+      try {
+          // Đầu tiên parse JWT để lấy thông tin mà không cần verify
+          SignedJWT signedJWT = SignedJWT.parse(token);
+          
+          // Trực tiếp trả về thời hạn của token mà không cần kiểm tra thêm
+          return signedJWT.getJWTClaimsSet().getExpirationTime();
+      } catch (ParseException e) {
+          // Nếu không parse được bằng phương pháp trên, thử với cách cũ
+          log.warn("Error parsing token with SignedJWT, falling back to static method: {}", e.getMessage());
+          try {
+              Claims claims = Jwts.parser()
+                  .verifyWith(Keys.hmacShaKeyFor(jwtUtils.getSecretKeyBytes()))
+                  .build()
+                  .parseSignedClaims(token)
+                  .getPayload();
+              return claims.getExpiration();
+          } catch (io.jsonwebtoken.security.SecurityException ex) {
+              log.error("Failed to extract token expiry: {}", ex.getMessage());
+              return new Date(System.currentTimeMillis() - 1000);
+          } catch (io.jsonwebtoken.JwtException ex) {
+              log.error("Failed to extract token expiry: {}", ex.getMessage());
+              return new Date(System.currentTimeMillis() - 1000);
+          }
+      }
+  }
 
-private Claims extractAllClaims(String token) {
+  private Claims extractAllClaims(String token) {
     try {
-        // Thử trực tiếp với parser của JJWT
-        return Jwts.parser()
-            .verifyWith(Keys.hmacShaKeyFor(jwtUtils.getSecretKeyBytes()))
-            .build()
-            .parseSignedClaims(token)
-            .getPayload();
+      // Thử trực tiếp với parser của JJWT
+      return Jwts.parser()
+          .verifyWith(Keys.hmacShaKeyFor(jwtUtils.getSecretKeyBytes()))
+          .build()
+          .parseSignedClaims(token)
+          .getPayload();
     } catch (io.jsonwebtoken.JwtException e) {
-        log.warn("Error parsing token with JJWT parser: {}", e.getMessage());
-        throw new AppException(ErrorCode.INVALID_TOKEN);
+      log.warn("Error parsing token with JJWT parser: {}", e.getMessage());
+      throw new AppException(ErrorCode.INVALID_TOKEN);
     }
-}
+  }
+
   private String generateSixDigitCode() {
     Random random = new Random();
     int code = 100000 + random.nextInt(900000); 
     return String.valueOf(code);
   }
 
-  // Scheduled task to clean up expired tokens
-@Scheduled(cron = "${cleanup.cron.expression}")
-@Transactional
-public void cleanupExpiredTokens() {
+    // Scheduled task to clean up expired tokens
+  @Scheduled(cron = "${cleanup.cron.expression}")
+  @Transactional
+  public void cleanupExpiredTokens() {
     log.info("Running scheduled token cleanup...");
-    
-    try {
-        // Get current dates
-        java.util.Date now = new java.util.Date();
-        LocalDateTime nowDateTime = LocalDateTime.now();
 
-        // Log token counts before deletion
-        long totalTokensBeforeCleanup = activeTokenRepository.count();
-        long expiredAccessTokens = activeTokenRepository.countByExpiryTimeBefore(now);
-        long passwordTokensBefore = passwordResetTokenRepository.count(); // Add this line
-        
-        log.info("Before cleanup: {} total tokens, {} expired access tokens found, {} password tokens", 
-                 totalTokensBeforeCleanup, expiredAccessTokens, passwordTokensBefore);
-        
-        // Execute deletion queries
-        log.info("Deleting expired access tokens...");
-        int deletedAccessTokens = activeTokenRepository.deleteByExpiryTimeBefore(now);
-        
-        log.info("Deleting expired refresh tokens...");
-        int deletedRefreshTokens = activeTokenRepository.deleteByExpiryRefreshTimeBefore(now);
-        
-        // For password reset tokens
-        log.info("Deleting expired password reset tokens...");
-        passwordResetTokenRepository.deleteByExpiryDateBefore(nowDateTime);
-        long passwordTokensAfter = passwordResetTokenRepository.count();
-        int deletedPasswordTokens = (int)(passwordTokensBefore - passwordTokensAfter);
-        
-        // Log results
-        long remainingTokens = activeTokenRepository.count();
-        log.info("Cleanup completed: Deleted {} access tokens, {} refresh tokens, {} password tokens", 
-                 deletedAccessTokens, deletedRefreshTokens, deletedPasswordTokens);
-        log.info("After cleanup: {} tokens remain in database", remainingTokens);
-        
-        if (totalTokensBeforeCleanup == remainingTokens && expiredAccessTokens > 0) {
-            log.warn("Warning: Found expired tokens but none were deleted!");
-        }
+    try {
+      // Get current dates
+      java.util.Date now = new java.util.Date();
+      LocalDateTime nowDateTime = LocalDateTime.now();
+
+      // Log token counts before deletion
+      long totalTokensBeforeCleanup = activeTokenRepository.count();
+      long expiredAccessTokens = activeTokenRepository.countByExpiryTimeBefore(now);
+      long passwordTokensBefore = passwordResetTokenRepository.count(); // Add this line
+
+      log.info("Before cleanup: {} total tokens, {} expired access tokens found, {} password tokens",
+          totalTokensBeforeCleanup, expiredAccessTokens, passwordTokensBefore);
+
+      // Execute deletion queries
+      log.info("Deleting expired access tokens...");
+      int deletedAccessTokens = activeTokenRepository.deleteByExpiryTimeBefore(now);
+
+      log.info("Deleting expired refresh tokens...");
+      int deletedRefreshTokens = activeTokenRepository.deleteByExpiryRefreshTimeBefore(now);
+
+      // For password reset tokens
+      log.info("Deleting expired password reset tokens...");
+      passwordResetTokenRepository.deleteByExpiryDateBefore(nowDateTime);
+      long passwordTokensAfter = passwordResetTokenRepository.count();
+      int deletedPasswordTokens = (int) (passwordTokensBefore - passwordTokensAfter);
+
+      // Log results
+      long remainingTokens = activeTokenRepository.count();
+      log.info("Cleanup completed: Deleted {} access tokens, {} refresh tokens, {} password tokens",
+          deletedAccessTokens, deletedRefreshTokens, deletedPasswordTokens);
+      log.info("After cleanup: {} tokens remain in database", remainingTokens);
+
+      if (totalTokensBeforeCleanup == remainingTokens && expiredAccessTokens > 0) {
+        log.warn("Warning: Found expired tokens but none were deleted!");
+      }
     } catch (Exception e) {
-        log.error("Error during token cleanup: {}", e.getMessage(), e);
+      log.error("Error during token cleanup: {}", e.getMessage(), e);
     }
-}
+  }
+
 }

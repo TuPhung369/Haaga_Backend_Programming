@@ -247,6 +247,7 @@ export interface User {
   dob: string;
   email: string;
   roles: Role[];
+  active?: boolean;
   totpSecurity?: {
     enabled: boolean;
     deviceName?: string;

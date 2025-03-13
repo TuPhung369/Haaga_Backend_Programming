@@ -1,10 +1,6 @@
 import apiClient from "./authService";
 import { handleServiceError } from "./baseService";
-import {
-  UserResponse,
-  UsersResponse,
-  ValidationInput,
-} from "../type/types";
+import { UserResponse, UsersResponse, ValidationInput } from "../type/types";
 
 export const createUser = async (
   userData: ValidationInput,
@@ -44,6 +40,7 @@ export const getMyInfo = async (token: string): Promise<UserResponse> => {
         Authorization: `Bearer ${token}`,
       },
     });
+    console.log("response.data", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching my user:", error);
@@ -61,6 +58,7 @@ export const getUserById = async (
         Authorization: `Bearer ${token}`,
       },
     });
+    console.log("response.data", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching user by ID:", error);

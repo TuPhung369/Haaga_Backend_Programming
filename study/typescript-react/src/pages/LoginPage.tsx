@@ -129,7 +129,7 @@ const LoginPage: React.FC = () => {
                   color: permission.color,
                 })),
               })),
-              totpSecurity: response.result.totpSecurity,
+              totpSecurity: userInfoResponse.result.totpSecurity,
             };
             dispatch(setUserInfo(userData));
           }

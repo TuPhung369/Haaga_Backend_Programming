@@ -465,28 +465,10 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     setError(null);
 
     try {
+      if (!token) throw new Error("Token is null");
       const response = await getMyInfo(token);
       if (response && response.result) {
-        const userData: User = {
-          id: response.result.id,
-          username: response.result.username,
-          firstname: response.result.firstname,
-          lastname: response.result.lastname,
-          dob: response.result.dob,
-          email: response.result.email,
-          roles: response.result.roles.map((role: Role) => ({
-            name: role.name,
-            description: role.description,
-            color: role.color,
-            permissions: role.permissions?.map((permission) => ({
-              name: permission.name,
-              description: permission.description,
-              color: permission.color,
-            })),
-          })),
-          totpSecurity: response.result.totpSecurity,
-        };
-        dispatch(setUserInfo(userData));
+        dispatch(setUserInfo(response.result));
       }
     } catch (error) {
       handleServiceError(error);

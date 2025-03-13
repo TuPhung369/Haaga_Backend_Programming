@@ -133,25 +133,7 @@ const StatisticPage = () => {
       }
       const response = await getMyInfo(token);
       if (response && response.result) {
-        const userData = {
-          id: response.result.id,
-          username: response.result.username,
-          firstname: response.result.firstname,
-          lastname: response.result.lastname,
-          dob: response.result.dob,
-          email: response.result.email,
-          roles: response.result.roles.map((role) => ({
-            name: role.name,
-            description: role.description,
-            color: role.color,
-            permissions: role.permissions?.map((permission) => ({
-              name: permission.name,
-              description: permission.description,
-              color: permission.color,
-            })),
-          })),
-        };
-        dispatch(setUserInfo(userData));
+        dispatch(setUserInfo(response.result));
       }
     } catch (error) {
       handleServiceError(error);
