@@ -538,58 +538,87 @@ public Map<String, Object> verifyAndActivateTotpSecret(UUID secretId, String cod
      * This is used when a user has lost access to their TOTP device and backup codes
      */
     @Transactional
-    public UUID requestAdminReset(String username, String email) {
-        // Verify the user exists and the email matches
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+public UUID requestAdminReset(String username, String email) {
+    log.info("TOTP reset request initiated for username: {}, email: {}", username, email);
+    
+    // Verify the user exists and the email matches
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+    
+    log.info("User found for TOTP reset: {}", username);
 
-        if (!user.getEmail().equalsIgnoreCase(email)) {
-            log.warn("Email mismatch for TOTP reset request. User: {}, Provided email: {}, Actual email: {}",
-                    username, email, user.getEmail());
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
-        }
-
-        // Check if there's already a pending request
-        List<TotpResetRequest> pendingRequests = totpResetRequestRepository.findByUsernameOrderByRequestTimeDesc(username);
-        if (!pendingRequests.isEmpty() &&
-                pendingRequests.get(0).getStatus() == TotpResetRequest.RequestStatus.PENDING) {
-            log.info("User {} already has a pending TOTP reset request", username);
-            return pendingRequests.get(0).getId();
-        }
-
-        // Create a new request
-        TotpResetRequest resetRequest = TotpResetRequest.builder()
-                .username(username)
-                .email(email)
-                .requestTime(LocalDateTime.now())
-                .status(TotpResetRequest.RequestStatus.PENDING)
-                .processed(false)
-                .build();
-
-        resetRequest = totpResetRequestRepository.save(resetRequest);
-
-        // Send email to admin using HTML template
-        String adminEmail = "tuphung010787@gmail.com"; // In production, use a configurable admin email
-        String subject = "TOTP Reset Request for " + username;
-
-        try {
-            // Use the HTML template
-            String htmlContent = emailService.getAdminNotificationTemplate(
-                    username,
-                    user.getId().toString(),
-                    email,
-                    resetRequest.getId().toString());
-
-            emailService.sendSimpleMessage(adminEmail, subject, htmlContent);
-            log.info("TOTP reset request for user {} sent to admin, request ID: {}",
-                    username, resetRequest.getId());
-        } catch (Exception e) {
-            log.error("Failed to send admin notification for TOTP reset: {}", e.getMessage());
-            // Don't throw exception, the request is still created
-        }
-
-        return resetRequest.getId();
+    if (!user.getEmail().equalsIgnoreCase(email)) {
+        log.warn("Email mismatch for TOTP reset request. User: {}, Provided email: {}, Actual email: {}",
+                username, email, user.getEmail());
+        throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
     }
+    
+    log.info("Email validated for user: {}", username);
+
+    // Check if there's already a pending request
+    List<TotpResetRequest> pendingRequests = totpResetRequestRepository.findByUsernameOrderByRequestTimeDesc(username);
+    if (!pendingRequests.isEmpty() &&
+            pendingRequests.get(0).getStatus() == TotpResetRequest.RequestStatus.PENDING) {
+        log.info("User {} already has a pending TOTP reset request", username);
+        return pendingRequests.get(0).getId();
+    }
+
+    // Create a new request
+    TotpResetRequest resetRequest = TotpResetRequest.builder()
+            .username(username)
+            .email(email)
+            .requestTime(LocalDateTime.now())
+            .status(TotpResetRequest.RequestStatus.PENDING)
+            .processed(false)
+            .build();
+
+    // Save the request first to get its ID
+    resetRequest = totpResetRequestRepository.save(resetRequest);
+    log.info("TOTP reset request created with ID: {}", resetRequest.getId());
+    
+    // Add log before calling sendAdminNotification
+    log.info("About to send admin notification for request ID: {}", resetRequest.getId());
+    
+    // Send notification to admin about the new request
+    sendAdminNotification(resetRequest, user);
+
+    return resetRequest.getId();
+}
+
+private void sendAdminNotification(TotpResetRequest resetRequest, User user) {
+    log.info("sendAdminNotification method called for user: {}, request ID: {}", 
+            resetRequest.getUsername(), resetRequest.getId());
+    
+    try {
+        // Get admin email from configuration or use a default
+        String adminEmail = "tuphung010787@gmail.com"; // Use a configurable admin email in production
+        log.info("Admin email for notification: {}", adminEmail);
+        
+        String subject = "TOTP Reset Request for " + resetRequest.getUsername();
+        log.info("Preparing email with subject: {}", subject);
+
+        // Create the email content using the template
+        log.info("About to generate email template for user: {}", resetRequest.getUsername());
+        String htmlContent = emailService.getAdminNotificationTemplate(
+                resetRequest.getUsername(),
+                user.getId().toString(),
+                resetRequest.getEmail(),
+                resetRequest.getId().toString());
+        log.info("Email template generated successfully, content length: {} characters", 
+                htmlContent != null ? htmlContent.length() : 0);
+
+        // Send the email
+        log.info("About to send email to admin: {}", adminEmail);
+        emailService.sendSimpleMessage(adminEmail, subject, htmlContent);
+        
+        log.info("Admin notification sent successfully for TOTP reset request ID: {}", resetRequest.getId());
+    } catch (Exception e) {
+        // Log the exception but don't throw it - we don't want to block the user flow
+        log.error("Failed to send admin notification for TOTP reset: {}", e.getMessage());
+        log.error("Exception type: {}", e.getClass().getName());
+        log.debug("Detailed error information:", e);
+    }
+}
         
     /**
      * Get all TOTP reset requests
