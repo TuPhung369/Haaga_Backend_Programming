@@ -67,6 +67,8 @@ public enum ErrorCode {
                         ENUMS.Severity.LOW.name()), // Not found
         ACCOUNT_NOT_VERIFIED(4012, ENUMS.ErrorMessages.ACCOUNT_NOT_VERIFIED.getMessage(), HttpStatus.UNAUTHORIZED,
                         "401", ENUMS.Severity.HIGH.name()), // Unauthorized
+        ACCOUNT_LOCKED(4031, "Account locked for security reasons", HttpStatus.FORBIDDEN,
+                        "403", ENUMS.Severity.HIGH.name()), // Forbidden
         INVALID_REFRESH_TOKEN(4013, ENUMS.ErrorMessages.INVALID_REFRESH_TOKEN.getMessage(), HttpStatus.UNAUTHORIZED,
                         "401", ENUMS.Severity.HIGH.name()), // Unauthorized
         REFRESH_TOKEN_EXPIRED(4014, ENUMS.ErrorMessages.REFRESH_TOKEN_EXPIRED.getMessage(), HttpStatus.UNAUTHORIZED,

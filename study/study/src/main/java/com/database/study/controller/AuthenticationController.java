@@ -31,8 +31,10 @@ public class AuthenticationController {
 
   // New initial authentication endpoint that checks for 2FA requirements
   @PostMapping("/initAuthentication")
-  public ApiResponse<AuthenticationInitResponse> initiateAuthentication(@RequestBody AuthenticationRequest request) {
-    var result = authenticationService.initiateAuthentication(request);
+  public ApiResponse<AuthenticationInitResponse> initiateAuthentication(
+      @RequestBody AuthenticationRequest request,
+      HttpServletRequest httpRequest) {
+    var result = authenticationService.initiateAuthentication(request, httpRequest);
     return ApiResponse.<AuthenticationInitResponse>builder()
         .result(result)
         .build();
@@ -41,8 +43,9 @@ public class AuthenticationController {
   // Email OTP authentication endpoint
   @PostMapping("/email-otp/token")
   public ApiResponse<AuthenticationResponse> authenticateWithEmailOtp(
-      @RequestBody EmailOtpAuthenticationRequest request) {
-    var result = authenticationService.authenticateWithEmailOtp(request);
+      @RequestBody EmailOtpAuthenticationRequest request,
+      HttpServletRequest httpRequest) {
+    var result = authenticationService.authenticateWithEmailOtp(request, httpRequest);
     return ApiResponse.<AuthenticationResponse>builder()
         .result(result)
         .build();
@@ -52,14 +55,15 @@ public class AuthenticationController {
   @PostMapping("/email-otp/token/cookie")
   public ApiResponse<AuthenticationResponse> authenticateWithEmailOtpAndCookies(
       @RequestBody EmailOtpAuthenticationRequest request,
-      HttpServletResponse response) {
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse) {
 
     // First authenticate with Email OTP
-    var authResult = authenticationService.authenticateWithEmailOtp(request);
+    var authResult = authenticationService.authenticateWithEmailOtp(request, httpRequest);
 
     // Then set refresh token cookie if authentication successful
     if (authResult.isAuthenticated()) {
-      cookieService.createRefreshTokenCookie(response, authResult.getRefreshToken());
+      cookieService.createRefreshTokenCookie(httpResponse, authResult.getRefreshToken());
 
       // Don't return the refresh token in the response body when using cookies
       return ApiResponse.<AuthenticationResponse>builder()
@@ -77,8 +81,10 @@ public class AuthenticationController {
 
   // Authenticate user and generate token
   @PostMapping("/token")
-  public ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
-    var result = authenticationService.authenticate(request);
+  public ApiResponse<AuthenticationResponse> authenticate(
+      @RequestBody AuthenticationRequest request,
+      HttpServletRequest httpRequest) {
+    var result = authenticationService.authenticate(request, false, httpRequest);
     return ApiResponse.<AuthenticationResponse>builder()
         .result(result)
         .build();
@@ -155,8 +161,10 @@ public class AuthenticationController {
   }
 
   @PostMapping("/totp/token")
-  public ApiResponse<AuthenticationResponse> authenticateWithTotp(@RequestBody TotpAuthenticationRequest request) {
-    var result = authenticationService.authenticateWithTotp(request);
+  public ApiResponse<AuthenticationResponse> authenticateWithTotp(
+      @RequestBody TotpAuthenticationRequest request,
+      HttpServletRequest httpRequest) {
+    var result = authenticationService.authenticateWithTotp(request, httpRequest);
     return ApiResponse.<AuthenticationResponse>builder()
         .result(result)
         .build();
@@ -165,14 +173,15 @@ public class AuthenticationController {
   @PostMapping("/totp/token/cookie")
   public ApiResponse<AuthenticationResponse> authenticateWithTotpAndCookies(
       @RequestBody TotpAuthenticationRequest request,
-      HttpServletResponse response) {
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse) {
 
     // First authenticate with TOTP
-    var authResult = authenticationService.authenticateWithTotp(request);
+    var authResult = authenticationService.authenticateWithTotp(request, httpRequest);
 
     // Then set refresh token cookie if authentication successful
     if (authResult.isAuthenticated()) {
-      cookieService.createRefreshTokenCookie(response, authResult.getRefreshToken());
+      cookieService.createRefreshTokenCookie(httpResponse, authResult.getRefreshToken());
 
       // Don't return the refresh token in the response body when using cookies
       return ApiResponse.<AuthenticationResponse>builder()

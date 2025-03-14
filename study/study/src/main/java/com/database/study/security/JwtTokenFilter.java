@@ -177,7 +177,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 (afterAuth != null ? afterAuth.getName() : "null"));
     }
 
-    // Phương thức này đã được đơn giản hóa để sử dụng AuthenticationService
     private void verifyJwtSignature(SignedJWT signedJWT) throws ParseException, JOSEException {
         // Extract info for dynamic key
         String userIdStr = signedJWT.getJWTClaimsSet().getStringClaim("userId");

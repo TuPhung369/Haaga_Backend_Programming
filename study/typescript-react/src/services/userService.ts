@@ -40,7 +40,6 @@ export const getMyInfo = async (token: string): Promise<UserResponse> => {
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log("response.data", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching my user:", error);
@@ -58,7 +57,6 @@ export const getUserById = async (
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log("response.data", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching user by ID:", error);
@@ -68,7 +66,7 @@ export const getUserById = async (
 
 export const updateUser = async (
   userId: string,
-  userData: Partial<ValidationInput>, // Partial allows partial updates
+  userData: Partial<ValidationInput>,
   token: string
 ): Promise<UserResponse> => {
   try {
