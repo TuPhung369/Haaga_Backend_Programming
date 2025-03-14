@@ -78,7 +78,6 @@ const CalendarPage: React.FC = () => {
   const dispatch = useDispatch();
   const inputRef = useRef<InputRef>(null);
 
-  // Hàm fetch lại dữ liệu từ API và lưu vào Redux
   const fetchAndUpdateEvents = useCallback(async () => {
     if (!userId || !token) return;
     try {

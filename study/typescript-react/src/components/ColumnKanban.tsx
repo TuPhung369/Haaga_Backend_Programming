@@ -71,7 +71,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
-    setNewTitle(column.title); // Reset về giá trị hiện tại khi đóng
+    setNewTitle(column.title);
   };
 
   const handleSubmitEdit = () => {
