@@ -128,7 +128,7 @@ const CalendarPage: React.FC = () => {
         end: endMoment.format("YYYY-MM-DDTHH:mm")
       }));
     }
-  }, [eventDetails.start, eventDetails.id]);
+  }, [eventDetails.start, eventDetails.id, eventDetails.end]);
 
   const userEvents = useMemo(
     () => events.filter((event) => event.userId === userId),
