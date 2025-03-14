@@ -231,6 +231,56 @@ const CalendarPage: React.FC = () => {
     setDisplayEvents(computedDisplayEvents);
   }, [computedDisplayEvents]);
 
+  // Thêm CSS cho Agenda view
+  useEffect(() => {
+    // Thêm CSS để chỉnh sửa lại giao diện của Agenda
+    const style = document.createElement("style");
+    style.textContent = `
+      .rbc-agenda-view table.rbc-agenda-table {
+        width: 100%;
+      }
+      .rbc-agenda-view table.rbc-agenda-table tbody > tr > td:first-child {
+        width: 200px;
+      }
+      .rbc-agenda-view .rbc-agenda-time-cell {
+        padding-right: 15px;
+      }
+      #agenda-header {
+        display: none;
+      }
+      
+      /* CSS cho Day và Week view */
+      .rbc-event {
+        padding: 2px 3px !important;
+      }
+      .rbc-event-content {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      /* Responsive font size cho event dựa vào kích thước */
+      .rbc-event.rbc-event-allday .rbc-event-content,
+      .rbc-event.rbc-event-continues-prior .rbc-event-content,
+      .rbc-event.rbc-event-continues-after .rbc-event-content {
+        font-size: 10px;
+      }
+      
+      /* Đảm bảo tooltip hiển thị đúng */
+      .ant-tooltip {
+        max-width: 300px;
+      }
+      .ant-tooltip-inner {
+        word-wrap: break-word;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const handleDeleteEvent = async () => {
     try {
       await deleteEvent(eventDetails.id, token);
@@ -596,28 +646,129 @@ const CalendarPage: React.FC = () => {
   };
 
   const eventContent = ({ event }: { event: CalendarEvent }) => {
+    const eventStart = moment(event.start).format("HH:mm");
+    const eventEnd = moment(event.end).format("HH:mm");
+
     return (
       <Tooltip
         title={
           <>
-            <span
-              style={{
-                color: COLORS[12],
-                fontWeight: "bold",
-                fontSize: "16px"
-              }}
-            >
-              {event.title}
-            </span>
-            <br />
             <span style={{ color: COLORS[7] }}>{event.description}</span>
+            <br />
+            <span>
+              {eventStart} - {eventEnd}
+            </span>
           </>
         }
       >
-        <span>{event.title}</span>
+        <div style={{ width: "100%", height: "100%" }}>
+          <span>{event.title}</span>
+        </div>
       </Tooltip>
     );
   };
+
+  // Component riêng cho Week view - chỉ hiển thị title
+  const weekEvent = ({ event }: { event: CalendarEvent }) => {
+    const eventStart = moment(event.start).format("HH:mm");
+    const eventEnd = moment(event.end).format("HH:mm");
+
+    return (
+      <Tooltip
+        title={
+          <>
+            <span style={{ color: COLORS[7] }}>{event.description}</span>
+            <br />
+            <span>
+              {eventStart} - {eventEnd}
+            </span>
+          </>
+        }
+      >
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center"
+          }}
+        >
+          <div
+            style={{ fontWeight: "bold", fontSize: "12px", lineHeight: "1.2" }}
+          >
+            {event.title}
+          </div>
+        </div>
+      </Tooltip>
+    );
+  };
+
+  // Component riêng cho Day view - hiển thị Title : Description
+  const dayEvent = ({ event }: { event: CalendarEvent }) => {
+    const eventStart = moment(event.start).format("HH:mm");
+    const eventEnd = moment(event.end).format("HH:mm");
+
+    return (
+      <Tooltip
+        title={
+          <>
+            <span style={{ color: COLORS[7] }}>{event.description}</span>
+            <br />
+            <span>
+              {eventStart} - {eventEnd}
+            </span>
+          </>
+        }
+      >
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "start"
+          }}
+        >
+          <div
+            style={{
+              fontWeight: "bold",
+              fontSize: "12px",
+              lineHeight: "1.2",
+              marginBottom: "2px"
+            }}
+          >
+            {event.title}
+            <span style={{ fontSize: "11px" }}>{event.description || ""}</span>
+          </div>
+        </div>
+      </Tooltip>
+    );
+  };
+
+  // Custom agenda format
+  const formats = {
+    agendaDateFormat: "ddd DD/MM",
+    agendaTimeFormat: "HH:mm",
+    agendaTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) => {
+      return `${moment(start).format("HH:mm")} - ${moment(end).format(
+        "HH:mm"
+      )}`;
+    }
+  };
+
+  // Custom agenda component with title and description columns
+  const AgendaEvent = ({ event }: { event: CalendarEvent }) => (
+    <div style={{ display: "flex", width: "100%" }}>
+      <span style={{ fontWeight: "bold" }}>
+        {event.title}
+        {"  -  "}
+      </span>
+      <span style={{ flex: "1" }}>{event.description || ""}</span>
+    </div>
+  );
 
   const showEventModal = (event?: CalendarEvent) => {
     const defaultStart = moment();
@@ -686,6 +837,23 @@ const CalendarPage: React.FC = () => {
             Add Event
           </Button>
 
+          {/* Title và Description cho Agenda view */}
+          <div
+            id="agenda-header"
+            style={{
+              display: "flex",
+              width: "100%",
+              backgroundColor: "#f5f5f5",
+              padding: "8px",
+              marginBottom: "8px",
+              fontWeight: "bold"
+            }}
+          >
+            <div style={{ flex: "0 0 200px" }}>Date/Time</div>
+            <div style={{ flex: "1" }}>Title</div>
+            <div style={{ flex: "1" }}>Description</div>
+          </div>
+
           <Calendar
             localizer={localizer}
             events={displayEvents}
@@ -698,7 +866,19 @@ const CalendarPage: React.FC = () => {
             onEventResize={handleEventResize}
             onDoubleClickEvent={(event) => showEventModal(event)}
             eventPropGetter={eventStyleGetter}
-            components={{ event: eventContent }}
+            formats={formats}
+            components={{
+              event: eventContent,
+              agenda: {
+                event: AgendaEvent
+              },
+              day: {
+                event: dayEvent
+              },
+              week: {
+                event: weekEvent
+              }
+            }}
             tooltipAccessor={null}
             onRangeChange={handleRangeChange}
             defaultView="month"
@@ -708,6 +888,14 @@ const CalendarPage: React.FC = () => {
             timeslots={2} // Show 2 slots per step (15 minute divisions)
             dayLayoutAlgorithm="no-overlap" // Improves day/week view layout
             longPressThreshold={10} // Make drag operations more responsive
+            onView={(view) => {
+              // Hiển thị hoặc ẩn header của Agenda
+              const agendaHeader = document.getElementById("agenda-header");
+              if (agendaHeader) {
+                agendaHeader.style.display =
+                  view === "agenda" ? "flex" : "none";
+              }
+            }}
           />
 
           <Modal
