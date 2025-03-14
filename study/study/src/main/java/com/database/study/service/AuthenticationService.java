@@ -288,12 +288,55 @@ public class AuthenticationService implements AuthenticationUtilities {
       // Reset failed attempts on successful authentication
       securityMonitoringService.resetFailedAttempts(request.getUsername(), user.getEmail(), httpRequest);
 
-      // 4. Generate tokens
+      // 4. Check for existing tokens instead of always creating new ones
+      Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+
+      if (existingTokenOpt.isPresent()) {
+        ActiveToken existingToken = existingTokenOpt.get();
+        Date currentTime = new Date();
+
+        // If access token is still valid, reuse it
+        if (existingToken.getExpiryTime().after(currentTime)) {
+          log.info("Reusing existing valid token for user: {}", user.getUsername());
+
+          return AuthenticationResponse.builder()
+              .token(existingToken.getToken())
+              .refreshToken(existingToken.getRefreshToken())
+              .authenticated(true)
+              .build();
+        }
+        // If access token expired but refresh token is valid, create new access token
+        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+          log.info("Access token expired but refresh token valid. Generating new access token for user with TOTP: {}",
+              user.getUsername());
+
+          String plainNewAccessToken = generateToken(user, existingToken.getId());
+          Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+
+          // Encrypt token
+          String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+
+          // Update only access token, keep refresh token
+          existingToken.setToken(encryptedNewAccessToken);
+          existingToken.setExpiryTime(newExpiryTime);
+          existingToken.setDescription("Updated with TOTP at " + new Date());
+
+          activeTokenRepository.save(existingToken);
+
+          return AuthenticationResponse.builder()
+              .token(encryptedNewAccessToken)
+              .refreshToken(existingToken.getRefreshToken())
+              .authenticated(true)
+              .build();
+        }
+      }
+
+      // Create new tokens only if no valid tokens exist
       String jwtId = UUID.randomUUID().toString();
       String token = generateToken(user, jwtId);
       String refreshToken = generateRefreshToken(user, jwtId);
 
-      // 5. Store the token in the active token table
+      // Store the token in the active token table
       ActiveToken activeToken = ActiveToken.builder()
           .id(jwtId)
           .token(token)
@@ -1699,12 +1742,56 @@ public class AuthenticationService implements AuthenticationUtilities {
       // Reset failed attempts on successful authentication
       securityMonitoringService.resetFailedAttempts(request.getUsername(), user.getEmail(), httpRequest);
 
-      // 3. Generate tokens
+      // 3. Check for existing tokens instead of always creating new ones
+      Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+
+      if (existingTokenOpt.isPresent()) {
+        ActiveToken existingToken = existingTokenOpt.get();
+        Date currentTime = new Date();
+
+        // If access token is still valid, reuse it
+        if (existingToken.getExpiryTime().after(currentTime)) {
+          log.info("Reusing existing valid token for user: {}", user.getUsername());
+
+          return AuthenticationResponse.builder()
+              .token(existingToken.getToken())
+              .refreshToken(existingToken.getRefreshToken())
+              .authenticated(true)
+              .build();
+        }
+        // If access token expired but refresh token is valid, create new access token
+        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+          log.info(
+              "Access token expired but refresh token valid. Generating new access token for user with Email OTP: {}",
+              user.getUsername());
+
+          String plainNewAccessToken = generateToken(user, existingToken.getId());
+          Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+
+          // Encrypt token
+          String encryptedNewAccessToken = encryptionService.encryptToken(plainNewAccessToken);
+
+          // Update only access token, keep refresh token
+          existingToken.setToken(encryptedNewAccessToken);
+          existingToken.setExpiryTime(newExpiryTime);
+          existingToken.setDescription("Updated with Email OTP at " + new Date());
+
+          activeTokenRepository.save(existingToken);
+
+          return AuthenticationResponse.builder()
+              .token(encryptedNewAccessToken)
+              .refreshToken(existingToken.getRefreshToken())
+              .authenticated(true)
+              .build();
+        }
+      }
+
+      // Create new tokens only if no valid tokens exist
       String jwtId = UUID.randomUUID().toString();
       String token = generateToken(user, jwtId);
       String refreshToken = generateRefreshToken(user, jwtId);
 
-      // 4. Store the token in the active token table
+      // Store the token in the active token table
       ActiveToken activeToken = ActiveToken.builder()
           .id(jwtId)
           .token(token)
