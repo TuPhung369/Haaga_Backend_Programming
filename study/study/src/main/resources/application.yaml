@@ -13,7 +13,7 @@ server:
 spring:
   session:
     jdbc:
-      initialize-schema: always # Hoặc `redis: namespace: myapp:sessions` nếu dùng Redis
+      initialize-schema: always # Hoặc `redis: namespace: myapp:sessions` nếu using Redis
   profiles:
     active: dev # google || aws || dev
   sql:
@@ -61,6 +61,15 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
+
+# Security settings
+security:
+  max-failed-attempts: 3
+  block-duration-minutes: 30
+  rate-limit:
+    enabled: true
+    max-requests-per-second: 10
+
 cleanup:
   cron:
     expression: "0 0 2 * * ?" # 2AM every day
@@ -75,4 +84,6 @@ logging:
     "[org.springframework.beans.factory]": DEBUG
     "[org.springframework.security.oauth2]": ERROR
     "[org.springframework.web.cors]": DEBUG
+    "[com.database.study.service.SecurityMonitoringService]": DEBUG # Thêm debug logging cho SecurityMonitoringService
+
 

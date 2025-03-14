@@ -94,7 +94,18 @@ public enum ErrorCode {
         OTP_EXPIRED(4020, ENUMS.ErrorMessages.OTP_EXPIRED.getMessage(), HttpStatus.BAD_REQUEST, "400",
                         ENUMS.Severity.MEDIUM.name()),
         INVALID_OTP(4021, ENUMS.ErrorMessages.INVALID_OTP.getMessage(), HttpStatus.BAD_REQUEST, "400",
-                        ENUMS.Severity.MEDIUM.name());
+                        ENUMS.Severity.MEDIUM.name()),
+        // Authentication error codes
+        INVALID_CREDENTIALS(4022, "Invalid username or password", HttpStatus.UNAUTHORIZED, "401",
+                        ENUMS.Severity.MEDIUM.name()),
+        INACTIVE_USER(4023, "User account is inactive", HttpStatus.UNAUTHORIZED, "401",
+                        ENUMS.Severity.MEDIUM.name()),
+        FORBIDDEN(4024, "Access forbidden", HttpStatus.FORBIDDEN, "403",
+                        ENUMS.Severity.HIGH.name()),
+        NOT_FOUND(4025, "Resource not found", HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()),
+        ACCOUNT_BLOCKED(4026, "Account blocked for security reasons", HttpStatus.FORBIDDEN, "403",
+                        ENUMS.Severity.HIGH.name());
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
                 this.code = code;

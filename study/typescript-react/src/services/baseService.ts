@@ -29,7 +29,7 @@ interface InterceptorErrorData {
 // Combined type for axios response data that might include interceptor data
 interface EnhancedErrorResponseData
   extends ErrorResponseData,
-    InterceptorErrorData {}
+  InterceptorErrorData { }
 
 // Error type mapping based on server's error codes
 export enum ErrorType {
@@ -44,24 +44,41 @@ export enum ErrorType {
 
 // Base class for error handling
 export class ServiceError extends Error {
-  code?: number;
+  errorType: ErrorType;
   field?: string;
-  metadata?: Record<string, unknown>;
-  originalError?: unknown;
   isHandled?: boolean;
-  errorType?: ErrorType;
+  code?: string;
+  errorCode?: string;
+  originalError?: unknown;
   httpStatus?: number;
   severity?: string;
+  remainingAttempts?: number;
 
   constructor(message: string, options?: Partial<ServiceError>) {
     super(message);
     this.name = "ServiceError";
-    Object.assign(this, options);
+    this.errorType = options?.errorType || ErrorType.UNKNOWN;
 
-    // If code is provided but errorType isn't, determine error type from code
-    if (this.code && !this.errorType) {
-      this.errorType = this.determineErrorType(this.code);
+    if (options) {
+      this.field = options.field;
+      this.isHandled = options.isHandled;
+      this.code = options.code;
+      this.errorCode = options.errorCode;
+      this.originalError = options.originalError;
+      this.httpStatus = options.httpStatus;
+      this.severity = options.severity;
+      this.remainingAttempts = options.remainingAttempts;
     }
+
+    // Ensure the prototype is set correctly
+    Object.setPrototypeOf(this, ServiceError.prototype);
+  }
+
+  /**
+   * Get remaining attempts if available
+   */
+  getRemainingAttempts(): number | undefined {
+    return this.remainingAttempts;
   }
 
   private determineErrorType(code: number): ErrorType {
@@ -77,97 +94,84 @@ export class ServiceError extends Error {
 
 // Common error handler for all services
 export const handleServiceError = (error: unknown): never => {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<ErrorResponseData>;
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    error.response &&
+    typeof error.response === "object" &&
+    "data" in error.response
+  ) {
+    // Axios error with response data
+    const axiosError = error as AxiosError;
+    const responseData = axiosError.response?.data as ErrorResponseData;
 
-    // Check if this error was already handled by the interceptor
-    if (axiosError.response?.data && "isHandled" in axiosError.response.data) {
-      const responseData = axiosError.response
-        .data as EnhancedErrorResponseData;
+    // Log to debug error structure
+    console.log("Handle API error response:", responseData);
 
-      if (responseData.isHandled) {
-        const originalError = responseData.originalError || axiosError;
-        const errorMessage =
-          typeof originalError === "object" &&
-          originalError !== null &&
-          "message" in originalError
-            ? String(originalError.message)
-            : responseData.message || "Error already handled";
+    // Determine error type and extract field errors
+    let field = undefined;
+    let errorType = ErrorType.UNKNOWN;
+    let errorMessage = "An unexpected error occurred";
+    let errorCode = undefined;
+    let remainingAttempts = undefined;
 
-        const status = axiosError.response?.status;
-        let errorType: ErrorType;
-        switch (status) {
-          case 400:
-            errorType = ErrorType.VALIDATION;
-            break;
-          case 401:
-          case 403:
-            errorType = ErrorType.AUTHENTICATION;
-            break;
-          case 404:
-            errorType = ErrorType.NOT_FOUND;
-            break;
-          case 409:
-            errorType = ErrorType.CONFLICT;
-            break;
-          case 500:
-          case 502:
-          case 503:
-            errorType = ErrorType.SERVER_ERROR;
-            break;
-          default:
-            errorType = ErrorType.UNKNOWN;
-        }
+    if (
+      typeof responseData === "object" &&
+      responseData !== null &&
+      "message" in responseData
+    ) {
+      errorMessage = responseData.message as string;
 
-        throw new ServiceError(errorMessage, {
-          isHandled: true,
-          code: responseData.code || responseData.errorCode,
-          field: responseData.field,
-          originalError: originalError,
-          errorType: errorType,
-        });
+      // Check if responseData contains remaining attempts information
+      if ("remainingAttempts" in responseData) {
+        remainingAttempts = responseData.remainingAttempts as number;
+      } else if (
+        "extraInfo" in responseData &&
+        responseData.extraInfo &&
+        typeof responseData.extraInfo === "object" &&
+        "remainingAttempts" in responseData.extraInfo
+      ) {
+        remainingAttempts = responseData.extraInfo.remainingAttempts as number;
       }
-    }
 
-    const status = axiosError.response?.status;
-    const data = axiosError.response?.data;
+      // Check for errorCode
+      if ("errorCode" in responseData) {
+        errorCode = responseData.errorCode as string;
+      } else if ("code" in responseData) {
+        errorCode = String(responseData.code);
+      }
 
-    let errorType: ErrorType;
-    switch (status) {
-      case 400:
+      if (
+        axiosError.response?.status === 400 ||
+        errorMessage.toLowerCase().includes("invalid") ||
+        errorMessage.toLowerCase().includes("validation")
+      ) {
         errorType = ErrorType.VALIDATION;
-        break;
-      case 401:
-      case 403:
+      } else if (axiosError.response?.status === 401) {
         errorType = ErrorType.AUTHENTICATION;
-        break;
-      case 404:
+      } else if (axiosError.response?.status === 404) {
         errorType = ErrorType.NOT_FOUND;
-        break;
-      case 409:
+      } else if (axiosError.response?.status === 409) {
         errorType = ErrorType.CONFLICT;
-        break;
-      case 500:
-      case 502:
-      case 503:
+      } else if (axiosError.response?.status && axiosError.response.status >= 500) {
         errorType = ErrorType.SERVER_ERROR;
-        break;
-      default:
-        errorType = ErrorType.UNKNOWN;
+      }
+
+      // Check for field validation errors
+      if (responseData.metadata?.field) {
+        field = responseData.metadata.field as string;
+      }
     }
 
-    const serviceError = new ServiceError(
-      data?.message || "An unexpected error occurred",
-      {
-        code: data?.code,
-        httpStatus: status,
-        field: data?.metadata?.field,
-        metadata: data?.metadata,
-        severity: data?.severity,
-        errorType: errorType,
-        originalError: error,
-      }
-    );
+    const serviceError = new ServiceError(errorMessage, {
+      field,
+      errorType,
+      errorCode,
+      originalError: error,
+      httpStatus: axiosError.response?.status,
+      remainingAttempts
+    });
     throw serviceError;
   } else if (
     typeof error === "object" &&

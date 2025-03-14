@@ -44,28 +44,59 @@ public class GlobalExceptionHandler {
     return buildErrorResponse(errorCode, null);
   }
 
- @ExceptionHandler(ResourceNotFoundException.class)
- public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException exception) {
-   log.error("Resource not found: {}", exception.getMessage(), exception);
-   ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode(), exception.getMessage());
+  @ExceptionHandler(ResourceNotFoundException.class)
+  public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException exception) {
+    log.error("Resource not found: {}", exception.getMessage(), exception);
+    ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode(), exception.getMessage());
 
-   // Add metadata to response if needed
-   if (!exception.getMetadata().isEmpty()) {
-     apiResponse.setMetadata(exception.getMetadata());
-   }
+    // Add metadata to response if needed
+    if (!exception.getMetadata().isEmpty()) {
+      apiResponse.setMetadata(exception.getMetadata());
+    }
 
-   return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
- }
+    return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
+  }
 
   // Handle custom AppException and return a structured error response
   @ExceptionHandler(AppException.class)
-  public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception) {
-    log.error("Handling AppException: {}", exception.getErrorCode().getMessage(), exception);
-    ApiResponse<Object> apiResponse = buildErrorResponse(exception.getErrorCode());
-    return new ResponseEntity<>(apiResponse, exception.getErrorCode().getHttpStatus());
+  public ResponseEntity<ErrorResponse> handleAppException(AppException ex) {
+    log.error("Handling AppException: {}", ex.getMessage(), ex);
+
+    ErrorResponse errorResponse = new ErrorResponse(
+        ex.getMessage(),
+        ex.getErrorCode() != null ? ex.getErrorCode().name() : "APPLICATION_ERROR");
+
+    // Add remaining attempts info if present
+    if (ex.getExtraInfo("remainingAttempts") != null) {
+      errorResponse.setRemainingAttempts((Integer) ex.getExtraInfo("remainingAttempts"));
+    }
+
+    // Add any code information if present
+    if (ex.getCode() != null) {
+      errorResponse.setCode(ex.getCode());
+    }
+
+    // Add all extra info to response
+    if (!ex.getAllExtraInfo().isEmpty()) {
+      errorResponse.setExtraInfo(ex.getAllExtraInfo());
+    }
+
+    HttpStatus status = HttpStatus.BAD_REQUEST;
+    if (ex.getErrorCode() == ErrorCode.INVALID_TOKEN || ex.getErrorCode() == ErrorCode.UNAUTHORIZED_ACCESS) {
+      status = HttpStatus.UNAUTHORIZED;
+    } else if (ex.getErrorCode() == ErrorCode.FORBIDDEN || ex.getErrorCode() == ErrorCode.ACCESS_DENIED) {
+      status = HttpStatus.FORBIDDEN;
+    } else if (ex.getErrorCode() == ErrorCode.NOT_FOUND || ex.getErrorCode() == ErrorCode.RESOURCE_NOT_FOUND) {
+      status = HttpStatus.NOT_FOUND;
+    } else if (ex.getErrorCode() == ErrorCode.ACCOUNT_LOCKED || ex.getErrorCode() == ErrorCode.ACCOUNT_BLOCKED) {
+      status = HttpStatus.FORBIDDEN;
+    }
+
+    return new ResponseEntity<>(errorResponse, status);
   }
-  
-  // Method 2: This one is for backward compatibility with direct calls from your code
+
+  // Method 2: This one is for backward compatibility with direct calls from your
+  // code
   // Remove the @ExceptionHandler annotation so Spring doesn't get confused
   public ResponseEntity<ApiResponse<Object>> handleAppException(AppException exception, String customMessage) {
     log.error("Handling AppException with custom message: {}", customMessage, exception);
