@@ -117,6 +117,19 @@ const CalendarPage: React.FC = () => {
     }
   }, [isModalVisible]);
 
+  // Tự động cập nhật End Time khi Start Time thay đổi
+  useEffect(() => {
+    if (eventDetails.start && (!eventDetails.end || eventDetails.id === "")) {
+      // Chỉ cập nhật nếu là sự kiện mới hoặc end time chưa được đặt
+      const startMoment = moment(eventDetails.start);
+      const endMoment = startMoment.clone().add(30, "minutes");
+      setEventDetails((prev) => ({
+        ...prev,
+        end: endMoment.format("YYYY-MM-DDTHH:mm")
+      }));
+    }
+  }, [eventDetails.start, eventDetails.id]);
+
   const userEvents = useMemo(
     () => events.filter((event) => event.userId === userId),
     [events, userId]
@@ -325,17 +338,32 @@ const CalendarPage: React.FC = () => {
 
     const startDate = new Date(eventDetails.start);
     const endDate = new Date(eventDetails.end);
+
+    // Validate that end time is not before start time
+    if (endDate < startDate) {
+      notification.error({
+        message: "Invalid Time Range",
+        description: "End time cannot be earlier than start time."
+      });
+      return;
+    }
+
     const eventId = eventDetails.id || "";
 
     setIsSaving(true); // Start loading state
+
+    // Sử dụng moment để định dạng ngày giờ đúng với múi giờ địa phương
+    const formattedStart = moment(startDate).format("YYYY-MM-DDTHH:mm:ss");
+    const formattedEnd = moment(endDate).format("YYYY-MM-DDTHH:mm:ss");
+    const formattedDate = moment(startDate).format("YYYY-MM-DDTHH:mm:ss");
 
     const newEvent: Omit<CalendarEvent, "id" | "createdAt"> = {
       seriesId:
         eventDetails.repeat !== "none" ? eventDetails.seriesId : undefined,
       title: eventDetails.title,
-      start: startDate.toISOString(),
-      end: endDate.toISOString(),
-      date: startDate.toISOString(),
+      start: formattedStart,
+      end: formattedEnd,
+      date: formattedDate,
       description: eventDetails.description,
       color: eventDetails.color,
       allDay: false,
@@ -345,6 +373,15 @@ const CalendarPage: React.FC = () => {
         ? events.find((e) => e.id === eventDetails.id)?.exceptions || []
         : []
     };
+
+    // Debug log
+    console.log("Sending event with times:", {
+      localStart: eventDetails.start,
+      localEnd: eventDetails.end,
+      formattedStart,
+      formattedEnd,
+      timezone: moment().utcOffset() / 60
+    });
 
     try {
       if (eventDetails.id) {
@@ -1001,6 +1038,7 @@ const CalendarPage: React.FC = () => {
                   type="datetime-local"
                   value={eventDetails.end}
                   onChange={handleInputChange}
+                  min={eventDetails.start}
                 />
               </Form.Item>
               <Form.Item label="Description">
