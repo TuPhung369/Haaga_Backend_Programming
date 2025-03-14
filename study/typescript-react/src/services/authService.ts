@@ -11,6 +11,8 @@ import {
   ValidationInput,
   EmailChangeRequest,
   EmailVerificationRequest,
+  AuthenticationInitResponse,
+  EmailOtpAuthenticationRequest,
 } from "../type/types";
 import store from "../store/store";
 
@@ -380,6 +382,61 @@ export const validateGoogleToken = async (
     return response.data;
   } catch (error) {
     console.error("Error validating Google ID token:", error);
+    throw handleServiceError(error);
+  }
+};
+
+/**
+ * Initiates the authentication process checking if TOTP or Email OTP is required
+ */
+export const initiateAuthentication = async (
+  username: string,
+  password: string
+): Promise<AuthenticationInitResponse> => {
+  try {
+    const response = await apiClient.post<ApiResponse<AuthenticationInitResponse>>("/auth/initAuthentication", {
+      username,
+      password,
+    });
+    return response.data.result;
+  } catch (error) {
+    console.error("Error initiating authentication:", error);
+    throw handleServiceError(error);
+  }
+};
+
+/**
+ * Authenticates a user with username, password and Email OTP code
+ */
+export const authenticateWithEmailOtp = async (
+  request: EmailOtpAuthenticationRequest
+): Promise<AuthResponse> => {
+  try {
+    const response = await apiClient.post<AuthResponse>(
+      "/auth/email-otp/token",
+      request
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error authenticating with Email OTP:", error);
+    throw handleServiceError(error);
+  }
+};
+
+/**
+ * Authenticates a user with username, password and Email OTP code using cookies
+ */
+export const authenticateWithEmailOtpAndCookies = async (
+  request: EmailOtpAuthenticationRequest
+): Promise<AuthResponse> => {
+  try {
+    const response = await apiClient.post<AuthResponse>(
+      "/auth/email-otp/token/cookie",
+      request
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error authenticating with Email OTP and cookies:", error);
     throw handleServiceError(error);
   }
 };

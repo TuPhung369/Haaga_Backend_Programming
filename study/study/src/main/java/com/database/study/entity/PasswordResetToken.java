@@ -18,20 +18,24 @@ public class PasswordResetToken {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
-    
+
     @Column(nullable = false)
     String token;
-    
+
     @Column(nullable = false)
     String username;
-    
+
     @Column(nullable = false)
     String email;
-    
+
     @Column(nullable = false)
     LocalDateTime expiryDate;
-    
+
     @Column(nullable = false)
     @Builder.Default
     boolean used = false;
+
+    // Add OTP field for email verification
+    @Column
+    String otp;
 }

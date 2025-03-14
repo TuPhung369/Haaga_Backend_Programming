@@ -8,11 +8,12 @@ import {
   Typography,
   DatePicker,
   notification,
-  Divider,
+  Divider
 } from "antd";
 import {
   authenticateUserWithCookies,
   registerUser,
+  initiateAuthentication
 } from "../services/authService";
 import { useApi } from "../hooks/useApi";
 import { useFieldErrors } from "../hooks/useFieldErrors";
@@ -29,6 +30,7 @@ import "../styles/AuthPage.css";
 import { FcGoogle } from "react-icons/fc";
 import LoadingState from "../components/LoadingState";
 import TotpAuthComponent from "../components/TotpAuthComponent";
+import EmailOtpAuthComponent from "../components/EmailOtpAuthComponent";
 
 const { Title, Text } = Typography;
 
@@ -41,6 +43,8 @@ const AuthPage: React.FC = () => {
 
   // Added for TOTP
   const [showTotpAuth, setShowTotpAuth] = useState<boolean>(false);
+  // Added for Email OTP
+  const [showEmailOtpAuth, setShowEmailOtpAuth] = useState<boolean>(false);
   const [totpUsername, setTotpUsername] = useState<string>("");
   const [totpPassword, setTotpPassword] = useState<string>("");
 
@@ -56,7 +60,7 @@ const AuthPage: React.FC = () => {
     confirmPassword: "",
     firstname: "",
     lastname: "",
-    dob: dayjs("1999-09-09", "YYYY-MM-DD"),
+    dob: dayjs("1999-09-09", "YYYY-MM-DD")
   });
 
   // Use the API hook for registration
@@ -98,69 +102,60 @@ const AuthPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const data = await authenticateUserWithCookies(
+      // First, initiate authentication to check if TOTP or Email OTP is required
+      const authInitResponse = await initiateAuthentication(
         values.username,
         values.password
       );
 
-      if (data && data.result && data.result.token) {
-        // First clear any existing data
-        dispatch(resetAllData());
+      // Store credentials for potential TOTP/Email OTP verification
+      setTotpUsername(values.username);
+      setTotpPassword(values.password);
 
-        // Then set the new auth data
-        dispatch(
-          setAuthData({
-            token: data.result.token,
-            isAuthenticated: true,
-            loginSocial: false,
-          })
-        );
-
-        // Set up token refresh
-        setupTokenRefresh(data.result.token);
-
-        // Success notification is now likely handled by interceptors,
-        // but we can keep it here for certainty
-        notification.success({
-          message: "Success",
-          description: "Logged in successfully!",
-        });
-
-        // Redirect to home page
-        navigate("/");
-      } else {
-        throw new Error("Invalid response format from server");
-      }
-    } catch (error: unknown) {
-      // Check if this is a TOTP required error (code 4070)
-      const authError = error as {
-        message?: string;
-        response?: {
-          data?: {
-            message?: string;
-            code?: number;
-          };
-        };
-      };
-
-      if (
-        authError.response?.data?.code === 4070 ||
-        (authError.response?.data?.message &&
-          authError.response?.data?.message.includes(
-            "Two-factor authentication code is required"
-          ))
-      ) {
-        console.log("TOTP authentication required");
-        // Store credentials for the TOTP component
-        setTotpUsername(values.username);
-        setTotpPassword(values.password);
+      if (authInitResponse.requiresTotp) {
         // Show TOTP authentication screen
         setShowTotpAuth(true);
+      } else if (authInitResponse.requiresEmailOtp) {
+        // Show Email OTP authentication screen
+        setShowEmailOtpAuth(true);
       } else {
-        // Display a generic error for login failures
-        setLoginError("Invalid username or password. Please try again.");
-        console.error("Login error:", error);
+        // Direct authentication, fall back to the original method
+        const data = await authenticateUserWithCookies(
+          values.username,
+          values.password
+        );
+
+        if (data && data.result && data.result.token) {
+          // First clear any existing data
+          dispatch(resetAllData());
+
+          // Then set the new auth data
+          dispatch(
+            setAuthData({
+              token: data.result.token,
+              isAuthenticated: true,
+              loginSocial: false
+            })
+          );
+
+          // Set up token refresh
+          setupTokenRefresh(data.result.token);
+
+          notification.success({
+            message: "Success",
+            description: "Logged in successfully!"
+          });
+
+          // Redirect to home page
+          navigate("/");
+        } else {
+          throw new Error("Invalid response format from server");
+        }
       }
+    } catch (error: unknown) {
+      // Display a generic error for login failures
+      setLoginError("Invalid username or password. Please try again.");
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +174,7 @@ const AuthPage: React.FC = () => {
         ? registerValues.dob.format("YYYY-MM-DD")
         : undefined,
       email: registerValues.email,
-      roles: ["USER"],
+      roles: ["USER"]
     };
 
     if (registerValues.password !== registerValues.confirmPassword) {
@@ -204,10 +199,10 @@ const AuthPage: React.FC = () => {
     if (success) {
       notification.success({
         message: "Registration Successful",
-        description: "Please check your email to verify your account.",
+        description: "Please check your email to verify your account."
       });
       navigate("/verify-email", {
-        state: { username: registerValues.username },
+        state: { username: registerValues.username }
       });
     } else if (error) {
       console.log("Register error:", error); // Debugging
@@ -219,13 +214,13 @@ const AuthPage: React.FC = () => {
           notification.error({
             message: "Registration Failed",
             description:
-              error.message || "Please check your information and try again.",
+              error.message || "Please check your information and try again."
           });
         }
       } else if (!(error as { isHandled?: boolean })?.isHandled) {
         notification.error({
           message: "Registration Failed",
-          description: "An unexpected error occurred. Please try again.",
+          description: "An unexpected error occurred. Please try again."
         });
         console.error("Unknown registration error:", error);
       }
@@ -268,7 +263,7 @@ const AuthPage: React.FC = () => {
     registerValues.password,
     registerValues.confirmPassword,
     setFieldError,
-    clearFieldError,
+    clearFieldError
   ]);
 
   // Validate a single field - Updated to use field errors hook
@@ -311,6 +306,26 @@ const AuthPage: React.FC = () => {
         }}
         onAuthenticated={() => {
           setShowTotpAuth(false);
+          setTotpUsername("");
+          setTotpPassword("");
+        }}
+      />
+    );
+  }
+
+  // If showing Email OTP authentication, render EmailOtpAuthComponent
+  if (showEmailOtpAuth) {
+    return (
+      <EmailOtpAuthComponent
+        username={totpUsername}
+        password={totpPassword}
+        onBack={() => {
+          setShowEmailOtpAuth(false);
+          setTotpUsername("");
+          setTotpPassword("");
+        }}
+        onAuthenticated={() => {
+          setShowEmailOtpAuth(false);
           setTotpUsername("");
           setTotpPassword("");
         }}
@@ -365,7 +380,7 @@ const AuthPage: React.FC = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please input your username!",
+                        message: "Please input your username!"
                       },
                       {
                         validator: (_, value) => {
@@ -373,8 +388,8 @@ const AuthPage: React.FC = () => {
                           return errors.username
                             ? Promise.reject(errors.username)
                             : Promise.resolve();
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <Input
@@ -397,8 +412,8 @@ const AuthPage: React.FC = () => {
                           return errors.email
                             ? Promise.reject(errors.email)
                             : Promise.resolve();
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <Input
@@ -416,7 +431,7 @@ const AuthPage: React.FC = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please input your password!",
+                        message: "Please input your password!"
                       },
                       {
                         validator: (_, value) => {
@@ -424,8 +439,8 @@ const AuthPage: React.FC = () => {
                           return errors.password
                             ? Promise.reject(errors.password)
                             : Promise.resolve();
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <Input.Password
@@ -444,7 +459,7 @@ const AuthPage: React.FC = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please confirm your password!",
+                        message: "Please confirm your password!"
                       },
                       {
                         validator: (_, value) => {
@@ -452,8 +467,8 @@ const AuthPage: React.FC = () => {
                             return Promise.resolve();
                           }
                           return Promise.reject("Passwords do not match!");
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <Input.Password
@@ -472,7 +487,7 @@ const AuthPage: React.FC = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please input your first name!",
+                        message: "Please input your first name!"
                       },
                       {
                         validator: (_, value) => {
@@ -480,8 +495,8 @@ const AuthPage: React.FC = () => {
                           return errors.firstname
                             ? Promise.reject(errors.firstname)
                             : Promise.resolve();
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <Input
@@ -499,7 +514,7 @@ const AuthPage: React.FC = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please input your last name!",
+                        message: "Please input your last name!"
                       },
                       {
                         validator: (_, value) => {
@@ -507,8 +522,8 @@ const AuthPage: React.FC = () => {
                           return errors.lastname
                             ? Promise.reject(errors.lastname)
                             : Promise.resolve();
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <Input
@@ -526,7 +541,7 @@ const AuthPage: React.FC = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please select your date of birth!",
+                        message: "Please select your date of birth!"
                       },
                       {
                         validator: (_, value) => {
@@ -536,8 +551,8 @@ const AuthPage: React.FC = () => {
                           return errors.dob
                             ? Promise.reject(errors.dob)
                             : Promise.resolve();
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <DatePicker
@@ -548,7 +563,7 @@ const AuthPage: React.FC = () => {
                         if (date) {
                           setRegisterValues((prev) => ({
                             ...prev,
-                            dob: date,
+                            dob: date
                           }));
                           validateField("dob", date);
                         }
@@ -591,7 +606,7 @@ const AuthPage: React.FC = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please input your username!",
+                        message: "Please input your username!"
                       },
                       {
                         validator: (_, value) => {
@@ -599,8 +614,8 @@ const AuthPage: React.FC = () => {
                           return errors.username
                             ? Promise.reject(errors.username)
                             : Promise.resolve();
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <Input prefix={<UserOutlined />} placeholder="Username" />
@@ -611,7 +626,7 @@ const AuthPage: React.FC = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please input your password!",
+                        message: "Please input your password!"
                       },
                       {
                         validator: (_, value) => {
@@ -619,8 +634,8 @@ const AuthPage: React.FC = () => {
                           return errors.password
                             ? Promise.reject(errors.password)
                             : Promise.resolve();
-                        },
-                      },
+                        }
+                      }
                     ]}
                   >
                     <Input.Password

@@ -68,7 +68,9 @@ public class ENUMS {
     TOTP_ALREADY_ENABLED("Two-factor authentication is already enabled for this account"),
     TOTP_VERIFICATION_REQUIRED("Verification with current TOTP device or backup code is required for this operation"),
     TOTP_CHANGE_DENIED("TOTP device change denied. Verification failed or admin approval required"),
-    TOTP_ADMIN_RESET_REQUIRED("TOTP reset requires administrator verification. Please contact support");
+    TOTP_ADMIN_RESET_REQUIRED("TOTP reset requires administrator verification. Please contact support"),
+    OTP_EXPIRED("Email verification code has expired. Please request a new one."),
+    INVALID_OTP("Invalid email verification code. Please check and try again.");
 
     private final String message;
   }

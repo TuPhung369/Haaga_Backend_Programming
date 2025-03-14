@@ -40,124 +40,167 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
     @Autowired
     private ActiveTokenRepository activeTokenRepository;
-    
+
     @Autowired
     private EncryptionService encryptionService;
-    
+
     @Autowired
     private JwtUtils jwtUtils;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                   @NonNull HttpServletResponse response,
-                                   @NonNull FilterChain filterChain) throws ServletException, IOException {
-                                        
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
+
         String authorizationHeader = request.getHeader("Authorization");
-        logger.info("Request path: " + request.getRequestURI());
+        String requestURI = request.getRequestURI();
+        logger.info("Request path: " + requestURI);
+
+        // Special handling for API endpoints that should not throw exceptions
+        boolean isApiEndpoint = requestURI.contains("/auth/introspect") ||
+                requestURI.contains("/auth/refresh") ||
+                requestURI.contains("/auth/email-otp") ||
+                requestURI.contains("/auth/totp");
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String encryptedToken = authorizationHeader.substring(7);
             logger.info("Processing authorization header");
-            
+
             try {
                 // 1. First decrypt the token received from client
                 String plainJwtToken = encryptionService.decryptToken(encryptedToken);
                 logger.info("Token decrypted successfully");
-                
+
                 // 2. Extract username from the decrypted JWT
                 SignedJWT signedJWT = SignedJWT.parse(plainJwtToken);
                 String username = signedJWT.getJWTClaimsSet().getSubject();
                 if (username == null) {
                     logger.error("Username extraction failed");
+                    if (isApiEndpoint) {
+                        // For API endpoints, continue to the filter chain without authentication
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
                     throw new AppException(ErrorCode.INVALID_TOKEN);
                 }
                 logger.info("Username extracted: " + username);
-                
+
                 // 3. Find stored token by username
                 Optional<ActiveToken> activeTokenOpt = activeTokenRepository.findByUsername(username);
                 if (!activeTokenOpt.isPresent()) {
                     logger.error("No active token found for user: " + username);
+                    if (isApiEndpoint) {
+                        // For API endpoints, continue to the filter chain without authentication
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
                     throw new AppException(ErrorCode.INVALID_TOKEN);
                 }
-                
+
                 ActiveToken activeToken = activeTokenOpt.get();
-                
+
                 // 4. Check if token has expired
                 if (activeToken.getExpiryTime().before(new Date())) {
                     logger.error("Token has expired for user: " + username);
+                    if (isApiEndpoint) {
+                        // For API endpoints, continue to the filter chain without authentication
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
                     throw new AppException(ErrorCode.INVALID_TOKEN);
                 }
-                
+
                 // 5. Verify tokens match - compare encrypted tokens
                 if (!activeToken.getToken().equals(encryptedToken)) {
                     logger.error("Token mismatch for user: " + username);
+                    if (isApiEndpoint) {
+                        // For API endpoints, continue to the filter chain without authentication
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
                     throw new AppException(ErrorCode.INVALID_TOKEN);
                 }
-                
+
                 // 6. Verify JWT signature using dynamic key if available
                 verifyJwtSignature(signedJWT);
-                
+
                 // 7. Extract authorities from JWT
                 Collection<SimpleGrantedAuthority> authorities = extractAuthoritiesFromJwt(signedJWT);
-                
+
                 // 8. Create authentication object and set in security context
-                UsernamePasswordAuthenticationToken authentication = 
-                    new UsernamePasswordAuthenticationToken(username, null, authorities);
-                
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username,
+                        null, authorities);
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.info("Authentication set in SecurityContextHolder: " + 
+                logger.info("Authentication set in SecurityContextHolder: " +
                         authentication.getName());
-                logger.info("Authorities: " + 
+                logger.info("Authorities: " +
                         authentication.getAuthorities().stream()
-                        .map(a -> a.getAuthority())
-                        .collect(Collectors.joining(", ")));
-                
+                                .map(a -> a.getAuthority())
+                                .collect(Collectors.joining(", ")));
+
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
                 logger.error("Error validating token: " + e.getMessage(), e);
-                throw new AppException(ErrorCode.INVALID_TOKEN);
+
+                if (isApiEndpoint) {
+                    // For API endpoints, just continue the filter chain without throwing exception
+                    filterChain.doFilter(request, response);
+                    return;
+                } else {
+                    throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
             }
         } else {
             logger.info("No Authorization header found or not Bearer token");
+            // For API endpoints that require token validation but don't have one,
+            // we still want to proceed with the filter chain
+            if (isApiEndpoint && requestURI.contains("/auth/introspect")) {
+                // For introspect endpoint specifically, we'll let the controller handle the
+                // logic
+                // even when no token is provided
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
-        
+
         // Check if authentication exists before proceeding
         Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
-        logger.info("Before doFilter - Authentication in context: " + 
+        logger.info("Before doFilter - Authentication in context: " +
                 (existingAuth != null ? existingAuth.getName() : "null"));
-        
+
         filterChain.doFilter(request, response);
-        
+
         // Check if authentication exists after filter chain
         Authentication afterAuth = SecurityContextHolder.getContext().getAuthentication();
-        logger.info("After doFilter - Authentication in context: " + 
+        logger.info("After doFilter - Authentication in context: " +
                 (afterAuth != null ? afterAuth.getName() : "null"));
     }
-    
+
     // Phương thức này đã được đơn giản hóa để sử dụng AuthenticationService
     private void verifyJwtSignature(SignedJWT signedJWT) throws ParseException, JOSEException {
         // Extract info for dynamic key
         String userIdStr = signedJWT.getJWTClaimsSet().getStringClaim("userId");
         String refreshExpiryStr = signedJWT.getJWTClaimsSet().getStringClaim("refreshExpiry");
-        
+
         boolean verified = false;
-        
+
         // First try with dynamic key if needed info is available
-        if (userIdStr != null && !userIdStr.isEmpty() && 
-            refreshExpiryStr != null && !refreshExpiryStr.isEmpty()) {
+        if (userIdStr != null && !userIdStr.isEmpty() &&
+                refreshExpiryStr != null && !refreshExpiryStr.isEmpty()) {
             try {
                 UUID userId = UUID.fromString(userIdStr);
-                
+
                 // Parse the refresh expiry
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
                 Date refreshExpiry = sdf.parse(refreshExpiryStr);
-                
+
                 // Sử dụng computeDynamicSecretKey từ AuthenticationService
                 byte[] dynamicKey = jwtUtils.computeDynamicSecretKey(userId, refreshExpiry);
                 JWSVerifier dynamicVerifier = new MACVerifier(dynamicKey);
-                
+
                 verified = signedJWT.verify(dynamicVerifier);
-                
+
                 if (verified) {
                     logger.debug("Token verified with dynamic key for user: " + userIdStr);
                     Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
@@ -168,36 +211,37 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 verified = false;
             }
         }
-        
-        // If not verified with dynamic key, try with static key for backward compatibility
+
+        // If not verified with dynamic key, try with static key for backward
+        // compatibility
         if (!verified) {
             JWSVerifier staticVerifier = new MACVerifier(jwtUtils.getSecretKeyBytes());
             verified = signedJWT.verify(staticVerifier);
-            
+
             if (verified) {
                 logger.debug("Token verified with static key");
                 Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
                 verified = expiryTime.after(new Date());
             }
         }
-        
+
         if (!verified) {
             throw new AppException(ErrorCode.INVALID_TOKEN);
         }
     }
-        
+
     private Collection<SimpleGrantedAuthority> extractAuthoritiesFromJwt(SignedJWT jwt) {
         try {
             // Get the scope claim which contains space-separated role/permission strings
             String scope = jwt.getJWTClaimsSet().getStringClaim("scope");
-            
+
             if (scope != null && !scope.isEmpty()) {
                 // Split by space and convert to SimpleGrantedAuthority objects
                 return Arrays.stream(scope.split(" "))
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
             }
-            
+
             return List.of();
         } catch (Exception e) {
             logger.error("Error extracting authorities from token", e);

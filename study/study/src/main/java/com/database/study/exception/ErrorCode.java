@@ -57,32 +57,42 @@ public enum ErrorCode {
                         ENUMS.Severity.LOW.name()), // Not found
         INVALID_OPERATION(4045, ENUMS.ErrorMessages.INVALID_OPERATION.getMessage(), HttpStatus.BAD_REQUEST, "400",
                         ENUMS.Severity.MEDIUM.name()), // Bad request
-        KANBAN_BOARD_NOT_FOUND(4046, ENUMS.ErrorMessages.KANBAN_BOARD_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
+        KANBAN_BOARD_NOT_FOUND(4046, ENUMS.ErrorMessages.KANBAN_BOARD_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND,
+                        "404",
                         ENUMS.Severity.LOW.name()), // Not found
-        KANBAN_COLUMN_NOT_FOUND(4047, ENUMS.ErrorMessages.KANBAN_COLUMN_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
+        KANBAN_COLUMN_NOT_FOUND(4047, ENUMS.ErrorMessages.KANBAN_COLUMN_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND,
+                        "404",
                         ENUMS.Severity.LOW.name()), // Not found
         KANBAN_TASK_NOT_FOUND(4048, ENUMS.ErrorMessages.KANBAN_TASK_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()), // Not found
         ACCOUNT_NOT_VERIFIED(4012, ENUMS.ErrorMessages.ACCOUNT_NOT_VERIFIED.getMessage(), HttpStatus.UNAUTHORIZED,
                         "401", ENUMS.Severity.HIGH.name()), // Unauthorized
-        INVALID_REFRESH_TOKEN(4013,ENUMS.ErrorMessages.INVALID_REFRESH_TOKEN.getMessage(),HttpStatus.UNAUTHORIZED,
+        INVALID_REFRESH_TOKEN(4013, ENUMS.ErrorMessages.INVALID_REFRESH_TOKEN.getMessage(), HttpStatus.UNAUTHORIZED,
                         "401", ENUMS.Severity.HIGH.name()), // Unauthorized
-        REFRESH_TOKEN_EXPIRED(4014,ENUMS.ErrorMessages.REFRESH_TOKEN_EXPIRED.getMessage(),HttpStatus.UNAUTHORIZED,
+        REFRESH_TOKEN_EXPIRED(4014, ENUMS.ErrorMessages.REFRESH_TOKEN_EXPIRED.getMessage(), HttpStatus.UNAUTHORIZED,
                         "401", ENUMS.Severity.HIGH.name()), // Unauthorized
-        EMAIL_ALREADY_EXISTS(5001, ENUMS.ErrorMessages.EMAIL_ALREADY_EXISTS.getMessage(),HttpStatus.CONFLICT,
+        EMAIL_ALREADY_EXISTS(5001, ENUMS.ErrorMessages.EMAIL_ALREADY_EXISTS.getMessage(), HttpStatus.CONFLICT,
                         "409", ENUMS.Severity.MEDIUM.name()),
-        TOTP_REQUIRED(4015, ENUMS.ErrorMessages.TOTP_REQUIRED.getMessage(), HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
-        TOTP_INVALID(4016, ENUMS.ErrorMessages.TOTP_INVALID.getMessage(), HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
+        TOTP_REQUIRED(4015, ENUMS.ErrorMessages.TOTP_REQUIRED.getMessage(), HttpStatus.UNAUTHORIZED, "401",
+                        ENUMS.Severity.HIGH.name()),
+        TOTP_INVALID(4016, ENUMS.ErrorMessages.TOTP_INVALID.getMessage(), HttpStatus.UNAUTHORIZED, "401",
+                        ENUMS.Severity.HIGH.name()),
         TOTP_ALREADY_ENABLED(4091, ENUMS.ErrorMessages.TOTP_ALREADY_ENABLED.getMessage(), HttpStatus.CONFLICT, "409",
                         ENUMS.Severity.MEDIUM.name()),
-        TOTP_VERIFICATION_REQUIRED(4017, "Verification with current TOTP device or backup code is required for this operation", 
-                          HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
+        TOTP_VERIFICATION_REQUIRED(4017,
+                        "Verification with current TOTP device or backup code is required for this operation",
+                        HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
         // TOTP_CHANGE_DENIED
-        TOTP_CHANGE_DENIED(4018, "TOTP device change denied. Verification failed or admin approval required", 
+        TOTP_CHANGE_DENIED(4018, "TOTP device change denied. Verification failed or admin approval required",
                         HttpStatus.FORBIDDEN, "403", ENUMS.Severity.HIGH.name()),
         // TOTP_ADMIN_RESET_REQUIRED
-        TOTP_ADMIN_RESET_REQUIRED(4019, "TOTP reset requires administrator verification. Please contact support", 
-                                HttpStatus.FORBIDDEN, "403", ENUMS.Severity.HIGH.name());
+        TOTP_ADMIN_RESET_REQUIRED(4019, "TOTP reset requires administrator verification. Please contact support",
+                        HttpStatus.FORBIDDEN, "403", ENUMS.Severity.HIGH.name()),
+        // Add OTP-related error codes
+        OTP_EXPIRED(4020, ENUMS.ErrorMessages.OTP_EXPIRED.getMessage(), HttpStatus.BAD_REQUEST, "400",
+                        ENUMS.Severity.MEDIUM.name()),
+        INVALID_OTP(4021, ENUMS.ErrorMessages.INVALID_OTP.getMessage(), HttpStatus.BAD_REQUEST, "400",
+                        ENUMS.Severity.MEDIUM.name());
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
                 this.code = code;

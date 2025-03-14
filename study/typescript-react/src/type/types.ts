@@ -282,3 +282,15 @@ export interface FilterDropdownProps {
   visible: boolean;
 }
 
+export interface AuthenticationInitResponse {
+  requiresTotp: boolean;
+  requiresEmailOtp: boolean;
+  message: string;
+}
+
+export interface EmailOtpAuthenticationRequest {
+  username: string;
+  password: string;
+  otpCode: string;
+}
+

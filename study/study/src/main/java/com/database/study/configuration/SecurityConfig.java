@@ -39,37 +39,40 @@ public class SecurityConfig {
   @Value("${OAUTH2_REDIRECT_URI}")
   private String oauth2RedirectUrl;
 
-private final String[] PUBLIC_ENDPOINTS = { 
-      "/users/**", 
-      "/auth/token", 
-      "/auth/introspect", 
+  private final String[] PUBLIC_ENDPOINTS = {
+      "/users/**",
+      "/auth/token",
+      "/auth/introspect",
+      "/auth/initAuthentication",
       "/auth/logout",
-      "/auth/refreshToken", 
-      "/auth/resetPassword", 
-      "/auth/forgot-password", 
+      "/auth/refreshToken",
+      "/auth/resetPassword",
+      "/auth/forgot-password",
       "/auth/reset-password-with-token",
-      "/auth/register", 
-      "/auth/verify-email", 
-      "/auth/request-email-change", 
-      "/auth/verify-email-change", 
+      "/auth/register",
+      "/auth/verify-email",
+      "/auth/request-email-change",
+      "/auth/verify-email-change",
       "/auth/resend-verification",
-      "/auth/totp/token", 
-      "/auth/totp/token/cookie", 
-      "/auth/google/token", 
-      "/oauth2/**", 
+      "/auth/email-otp/token",
+      "/auth/totp/token",
+      "/auth/totp/token/cookie",
+      "/auth/google/token",
+      "/oauth2/**",
       "https://accounts.google.com/o/oauth2/**",
-      "/oauth2/**" , 
+      "/oauth2/**",
       "/o/oauth2**",
-      "/login/oauth2/**", 
-      "/protected/**", 
-      "/google/token" 
+      "/login/oauth2/**",
+      "/protected/**",
+      "/google/token"
   };
 
-  private final String[] COOKIES_ENDPOINTS = { 
-      "/auth/token/cookie", 
-      "/auth/logout/cookie", 
+  private final String[] COOKIES_ENDPOINTS = {
+      "/auth/token/cookie",
+      "/auth/logout/cookie",
       "/auth/refresh/cookie",
-      "/auth/totp/token/cookie"
+      "/auth/totp/token/cookie",
+      "/auth/email-otp/token/cookie"
   };
   // @Autowired
   // private CustomJwtDecoder customJwtDecoder;
@@ -77,40 +80,59 @@ private final String[] PUBLIC_ENDPOINTS = {
   @Autowired
   private JwtTokenFilter jwtTokenFilter;
 
-    @Bean
+  @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
     httpSecurity
         // Add security context configuration to preserve the context
         .securityContext(context -> context
             .requireExplicitSave(false)) // This ensures context is automatically saved
-        
+
         // Add your JWT filter
         .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
-        
+
         // Configure session management to be stateless but preserve context
         .sessionManagement(session -> session
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
+
         // Your existing request authorization
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
             .requestMatchers(HttpMethod.POST, COOKIES_ENDPOINTS).permitAll()
             .anyRequest().authenticated())
-            
+
         // Either remove or modify OAuth2 resource server to not process JWT tokens
         // that are handled by your custom filter
         .oauth2Login(oauth2 -> oauth2
             .defaultSuccessUrl(clientRedirectUrl, true)
             .failureUrl("/login?error"))
-            
+
+        // Add custom exception handling to prevent redirect for API calls
+        .exceptionHandling(exceptions -> exceptions
+            .authenticationEntryPoint((request, response, authException) -> {
+              // Check if it's an API call or an /auth/* endpoint
+              if (request.getRequestURI().contains("/auth/introspect") ||
+                  request.getRequestURI().contains("/auth/refresh") ||
+                  request.getHeader("Accept") != null &&
+                      request.getHeader("Accept").contains("application/json")) {
+
+                response.setStatus(401);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"unauthorized\",\"message\":\"" +
+                    authException.getMessage() + "\"}");
+              } else {
+                // For browser requests, redirect to OAuth login
+                response.sendRedirect("/oauth2/authorization/google");
+              }
+            }))
+
         // Comment out or modify this to not override your filter's authentication
         // .oauth2ResourceServer(oauth2 -> oauth2
-        //     .jwt(jwt -> jwt
-        //         .decoder(customJwtDecoder)
-        //         .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-        //     .authenticationEntryPoint(new JwtAuthenticationEntryPoint()))
-        
+        // .jwt(jwt -> jwt
+        // .decoder(customJwtDecoder)
+        // .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+        // .authenticationEntryPoint(new JwtAuthenticationEntryPoint()))
+
         .csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()));
 

@@ -7,6 +7,7 @@ import com.database.study.dto.response.*;
 import com.database.study.security.GoogleTokenValidation;
 import com.database.study.service.AuthenticationService;
 import com.database.study.service.CookieService;
+import com.database.study.exception.AppException;
 import com.nimbusds.jose.JOSEException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,6 +29,51 @@ public class AuthenticationController {
   GoogleTokenValidation googleTokenValidationService;
   CookieService cookieService;
 
+  // New initial authentication endpoint that checks for 2FA requirements
+  @PostMapping("/initAuthentication")
+  public ApiResponse<AuthenticationInitResponse> initiateAuthentication(@RequestBody AuthenticationRequest request) {
+    var result = authenticationService.initiateAuthentication(request);
+    return ApiResponse.<AuthenticationInitResponse>builder()
+        .result(result)
+        .build();
+  }
+
+  // Email OTP authentication endpoint
+  @PostMapping("/email-otp/token")
+  public ApiResponse<AuthenticationResponse> authenticateWithEmailOtp(
+      @RequestBody EmailOtpAuthenticationRequest request) {
+    var result = authenticationService.authenticateWithEmailOtp(request);
+    return ApiResponse.<AuthenticationResponse>builder()
+        .result(result)
+        .build();
+  }
+
+  // Email OTP authentication with cookies endpoint
+  @PostMapping("/email-otp/token/cookie")
+  public ApiResponse<AuthenticationResponse> authenticateWithEmailOtpAndCookies(
+      @RequestBody EmailOtpAuthenticationRequest request,
+      HttpServletResponse response) {
+
+    // First authenticate with Email OTP
+    var authResult = authenticationService.authenticateWithEmailOtp(request);
+
+    // Then set refresh token cookie if authentication successful
+    if (authResult.isAuthenticated()) {
+      cookieService.createRefreshTokenCookie(response, authResult.getRefreshToken());
+
+      // Don't return the refresh token in the response body when using cookies
+      return ApiResponse.<AuthenticationResponse>builder()
+          .result(AuthenticationResponse.builder()
+              .token(authResult.getToken())
+              .authenticated(true)
+              .build())
+          .build();
+    }
+
+    return ApiResponse.<AuthenticationResponse>builder()
+        .result(authResult)
+        .build();
+  }
 
   // Authenticate user and generate token
   @PostMapping("/token")
@@ -40,12 +86,19 @@ public class AuthenticationController {
 
   // Introspect token
   @PostMapping("/introspect")
-  public ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
-      throws JOSEException, ParseException {
-    var result = authenticationService.introspect(request);
-    return ApiResponse.<IntrospectResponse>builder()
-        .result(result)
-        .build();
+  public ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request) {
+    try {
+      var result = authenticationService.introspect(request);
+      return ApiResponse.<IntrospectResponse>builder()
+          .result(result)
+          .build();
+    } catch (Exception e) {
+      // Log error but return a valid response with valid=false instead of throwing
+      return ApiResponse.<IntrospectResponse>builder()
+          .result(IntrospectResponse.builder().valid(false).build())
+          .message("Token validation failed")
+          .build();
+    }
   }
 
   @PostMapping("/refreshToken")
@@ -75,10 +128,10 @@ public class AuthenticationController {
   public ApiResponse<Void> forgotPassword(@RequestBody ForgotPasswordRequest request) {
     return authenticationService.initiatePasswordReset(request);
   }
-  
+
   @PostMapping("/reset-password-with-token")
   public ApiResponse<Void> resetPasswordWithToken(@RequestBody VerifyResetTokenRequest request) {
-      return authenticationService.resetPasswordWithToken(request);
+    return authenticationService.resetPasswordWithToken(request);
   }
 
   @PostMapping("/register")
@@ -101,17 +154,17 @@ public class AuthenticationController {
     return authenticationService.verifyEmailChange(request);
   }
 
-@PostMapping("/totp/token")
-public ApiResponse<AuthenticationResponse> authenticateWithTotp(@RequestBody TotpAuthenticationRequest request) {
+  @PostMapping("/totp/token")
+  public ApiResponse<AuthenticationResponse> authenticateWithTotp(@RequestBody TotpAuthenticationRequest request) {
     var result = authenticationService.authenticateWithTotp(request);
     return ApiResponse.<AuthenticationResponse>builder()
         .result(result)
         .build();
-}
+  }
 
   @PostMapping("/totp/token/cookie")
   public ApiResponse<AuthenticationResponse> authenticateWithTotpAndCookies(
-          @RequestBody TotpAuthenticationRequest request,
+      @RequestBody TotpAuthenticationRequest request,
       HttpServletResponse response) {
 
     // First authenticate with TOTP
@@ -137,7 +190,7 @@ public ApiResponse<AuthenticationResponse> authenticateWithTotp(@RequestBody Tot
 
   @PostMapping("/resend-verification")
   public ApiResponse<Void> resendVerification(@RequestBody ResendVerificationRequest request) {
-      return authenticationService.resendVerificationEmail(request);
+    return authenticationService.resendVerificationEmail(request);
   }
 
   // Validate Google ID token
@@ -155,33 +208,46 @@ public ApiResponse<AuthenticationResponse> authenticateWithTotp(@RequestBody Tot
   // Cookie-based authentication endpoints
   @PostMapping("/token/cookie")
   public ApiResponse<AuthenticationResponse> authenticateWithCookies(
-          @RequestBody AuthenticationRequest request,
-          HttpServletResponse response) {
-      
-      var result = authenticationService.authenticateWithCookies(request, response);
-      
-      return ApiResponse.<AuthenticationResponse>builder()
-          .result(result)
-          .build();
+      @RequestBody AuthenticationRequest request,
+      HttpServletResponse response) {
+
+    var result = authenticationService.authenticateWithCookies(request, response);
+
+    return ApiResponse.<AuthenticationResponse>builder()
+        .result(result)
+        .build();
   }
 
   @PostMapping("/refresh/cookie")
   public ApiResponse<RefreshTokenResponse> refreshTokenFromCookie(
-          HttpServletRequest request,
-          HttpServletResponse response) {
-      
+      HttpServletRequest request,
+      HttpServletResponse response) {
+    try {
       var result = authenticationService.refreshTokenFromCookie(request, response);
-      
       return ApiResponse.<RefreshTokenResponse>builder()
           .result(result)
           .build();
+    } catch (AppException e) {
+      // Return error response with 401 status but don't redirect
+      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      return ApiResponse.<RefreshTokenResponse>builder()
+          .message(e.getMessage())
+          .code(e.getErrorCode().getCode())
+          .build();
+    } catch (Exception e) {
+      // Return generic error response
+      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      return ApiResponse.<RefreshTokenResponse>builder()
+          .message("Invalid or expired refresh token")
+          .build();
+    }
   }
 
   @PostMapping("/logout/cookie")
   public ApiResponse<Void> logoutWithCookies(
-          HttpServletRequest request,
-          HttpServletResponse response) {
-      
-      return authenticationService.logoutWithCookies(request, response);
+      HttpServletRequest request,
+      HttpServletResponse response) {
+
+    return authenticationService.logoutWithCookies(request, response);
   }
 }
