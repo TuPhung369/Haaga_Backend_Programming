@@ -3,7 +3,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
+  useMemo
 } from "react";
 import {
   Layout,
@@ -14,20 +14,20 @@ import {
   Tooltip,
   Select,
   InputRef,
-  notification,
+  notification
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import {
   Calendar as BigCalendar,
   momentLocalizer,
-  CalendarProps,
+  CalendarProps
 } from "react-big-calendar";
 import moment from "moment";
 import { COLORS } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
 import { setEvents } from "../store/userSlice";
 import withDragAndDrop, {
-  EventInteractionArgs,
+  EventInteractionArgs
 } from "react-big-calendar/lib/addons/dragAndDrop";
 import { CalendarEvent, RootState } from "../type/types";
 import {
@@ -35,7 +35,7 @@ import {
   createEvent,
   updateEvent,
   updateEventSeries,
-  deleteEvent,
+  deleteEvent
 } from "../services/calendarService";
 
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -54,6 +54,7 @@ const { Option } = Select;
 const CalendarPage: React.FC = () => {
   const localizer = momentLocalizer(moment);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [eventDetails, setEventDetails] = useState({
     id: "",
     seriesId: "",
@@ -62,12 +63,12 @@ const CalendarPage: React.FC = () => {
     end: "",
     description: "",
     color: COLORS[0],
-    repeat: "none" as "none" | "daily" | "weekly" | "monthly" | "yearly",
+    repeat: "none" as "none" | "daily" | "weekly" | "monthly" | "yearly"
   });
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: moment().startOf("month").toDate(),
-    end: moment().endOf("month").toDate(),
+    end: moment().endOf("month").toDate()
   });
 
   const { events = [] } = useSelector((state: RootState) => state.user);
@@ -88,7 +89,7 @@ const CalendarPage: React.FC = () => {
       notification.error({
         message: "Failed to Fetch Events",
         description:
-          "An error occurred while loading your events. Please try again later.",
+          "An error occurred while loading your events. Please try again later."
       });
       dispatch(setEvents([]));
     }
@@ -142,7 +143,7 @@ const CalendarPage: React.FC = () => {
           start: originalStart.toDate(),
           end: originalEnd.toDate(),
           date: originalStart.toDate(),
-          seriesId: event.seriesId || undefined,
+          seriesId: event.seriesId || undefined
         });
       }
       return instances;
@@ -164,7 +165,7 @@ const CalendarPage: React.FC = () => {
           seriesId: event.seriesId,
           start: currentStart.toDate(),
           end: currentEnd.toDate(),
-          date: currentStart.toDate(),
+          date: currentStart.toDate()
         });
       }
 
@@ -188,30 +189,47 @@ const CalendarPage: React.FC = () => {
     return instances;
   };
 
+  const handleRangeChange = useCallback(
+    (range: Date[] | { start: Date; end: Date }) => {
+      let start: Date, end: Date;
+      if (Array.isArray(range)) {
+        // Handle array of dates (agenda view)
+        start = range[0];
+        end = range[range.length - 1];
+      } else {
+        // Handle object with start/end (day, week, month view)
+        start = moment(range.start).startOf("day").toDate();
+        end = moment(range.end).endOf("day").toDate();
+      }
+
+      // Ensure we have a sufficient range for day view
+      const rangeStart = moment(start);
+      const rangeEnd = moment(end);
+
+      // If the range is less than a day, extend it to full day
+      if (rangeEnd.diff(rangeStart, "hours") < 24) {
+        start = rangeStart.startOf("day").toDate();
+        end = rangeStart.endOf("day").toDate();
+      }
+
+      setDateRange({ start, end });
+    },
+    []
+  );
+
   const computedDisplayEvents = useMemo(() => {
+    // Extend the range slightly to ensure we catch all events
+    const extendedStart = moment(dateRange.start).subtract(1, "day").toDate();
+    const extendedEnd = moment(dateRange.end).add(1, "day").toDate();
+
     return userEvents.flatMap((event) =>
-      generateEventInstances(event, dateRange.start, dateRange.end)
+      generateEventInstances(event, extendedStart, extendedEnd)
     );
   }, [userEvents, dateRange]);
 
   useEffect(() => {
     setDisplayEvents(computedDisplayEvents);
   }, [computedDisplayEvents]);
-
-  const handleRangeChange = useCallback(
-    (range: Date[] | { start: Date; end: Date }) => {
-      let start: Date, end: Date;
-      if (Array.isArray(range)) {
-        start = range[0];
-        end = range[range.length - 1];
-      } else {
-        start = range.start;
-        end = range.end;
-      }
-      setDateRange({ start, end });
-    },
-    []
-  );
 
   const handleDeleteEvent = async () => {
     try {
@@ -220,22 +238,26 @@ const CalendarPage: React.FC = () => {
       setIsModalVisible(false);
       notification.success({
         message: "Event Deleted",
-        description: "The event has been successfully deleted.",
+        description: "The event has been successfully deleted."
       });
     } catch (error) {
       handleServiceError(error);
       notification.error({
         message: "Failed to Fetch Events",
         description:
-          "An error occurred while loading your events. Please try again later.",
+          "An error occurred while loading your events. Please try again later."
       });
     }
   };
 
   const handleAddOrUpdateEvent = async () => {
+    if (isSaving) return; // Prevent multiple submissions
+
     const startDate = new Date(eventDetails.start);
     const endDate = new Date(eventDetails.end);
     const eventId = eventDetails.id || "";
+
+    setIsSaving(true); // Start loading state
 
     const newEvent: Omit<CalendarEvent, "id" | "createdAt"> = {
       seriesId:
@@ -251,7 +273,7 @@ const CalendarPage: React.FC = () => {
       userId,
       exceptions: eventDetails.id
         ? events.find((e) => e.id === eventDetails.id)?.exceptions || []
-        : [],
+        : []
     };
 
     try {
@@ -278,8 +300,9 @@ const CalendarPage: React.FC = () => {
               setIsModalVisible(false);
               notification.success({
                 message: "Series Updated",
-                description: "All events in the series have been updated.",
+                description: "All events in the series have been updated."
               });
+              setIsSaving(false); // Reset loading state
             },
             onCancel: async () => {
               await updateEvent(eventId, newEvent, token);
@@ -287,9 +310,10 @@ const CalendarPage: React.FC = () => {
               setIsModalVisible(false);
               notification.success({
                 message: "Event Updated",
-                description: "The event has been successfully updated.",
+                description: "The event has been successfully updated."
               });
-            },
+              setIsSaving(false); // Reset loading state
+            }
           });
         } else {
           await updateEvent(eventId, newEvent, token);
@@ -297,7 +321,7 @@ const CalendarPage: React.FC = () => {
           setIsModalVisible(false);
           notification.success({
             message: "Event Updated",
-            description: "The event has been successfully updated.",
+            description: "The event has been successfully updated."
           });
         }
       } else {
@@ -306,28 +330,29 @@ const CalendarPage: React.FC = () => {
         setIsModalVisible(false);
         notification.success({
           message: "Event Created",
-          description: "The event has been successfully created.",
+          description: "The event has been successfully created."
         });
       }
     } catch (error) {
-      handleServiceError(error); // Centralized error handling
+      handleServiceError(error);
       notification.error({
         message: "Failed to Save Event",
         description:
-          "An error occurred while saving the event. Please try again.",
+          "An error occurred while saving the event. Please try again."
+      });
+    } finally {
+      setIsSaving(false); // Reset loading state
+      setEventDetails({
+        id: "",
+        seriesId: "",
+        title: "",
+        start: "",
+        end: "",
+        description: "",
+        color: COLORS[0],
+        repeat: "none"
       });
     }
-
-    setEventDetails({
-      id: "",
-      seriesId: "",
-      title: "",
-      start: "",
-      end: "",
-      description: "",
-      color: COLORS[0],
-      repeat: "none",
-    });
   };
 
   const handleInputChange = (
@@ -350,6 +375,26 @@ const CalendarPage: React.FC = () => {
     const { event, start, end } = args;
     const seriesId = event.seriesId || event.id;
     const isRecurring = event.repeat !== "none";
+
+    // Calculate the duration of the original event
+    const originalStart = moment(event.start);
+    const originalEnd = moment(event.end);
+    const duration = originalEnd.diff(originalStart, "minutes");
+
+    // Create new times with timezone handling
+    const newStart = moment(start).format("YYYY-MM-DDTHH:mm:ss");
+    const newEnd = end
+      ? moment(end).format("YYYY-MM-DDTHH:mm:ss")
+      : moment(start).add(duration, "minutes").format("YYYY-MM-DDTHH:mm:ss");
+
+    // Debug logging
+    console.log("Drop Operation:", {
+      originalStart: originalStart.format("YYYY-MM-DD HH:mm:ss"),
+      originalEnd: originalEnd.format("YYYY-MM-DD HH:mm:ss"),
+      newStart: newStart,
+      newEnd: newEnd,
+      duration: duration
+    });
 
     try {
       if (isRecurring) {
@@ -374,63 +419,60 @@ const CalendarPage: React.FC = () => {
               ...event,
               id: "", // Let server generate ID
               seriesId: undefined,
-              start: new Date(start).toISOString(),
-              end: new Date(end).toISOString(),
-              date: new Date(start).toISOString(),
+              start: newStart,
+              end: newEnd,
+              date: newStart,
               repeat: "none",
-              color: distinctColor,
+              color: distinctColor
             };
 
             await createEvent(newException, token);
             const updatedMasterEvent = {
               ...masterEvent,
-              exceptions: [
-                ...(masterEvent.exceptions || []),
-                { originalStart },
-              ],
+              exceptions: [...(masterEvent.exceptions || []), { originalStart }]
             };
             await updateEvent(masterEvent.id, updatedMasterEvent, token);
             await fetchAndUpdateEvents();
             notification.success({
               message: "Event Updated",
-              description: "The event instance has been updated.",
+              description: "The event instance has been updated."
             });
           },
           onCancel: async () => {
             const updatedEvent = {
               ...event,
-              start: new Date(start).toISOString(),
-              end: new Date(end).toISOString(),
-              date: new Date(start).toISOString(),
+              start: newStart,
+              end: newEnd,
+              date: newStart
             };
             await updateEventSeries(seriesId, updatedEvent, token);
             await fetchAndUpdateEvents();
             notification.success({
               message: "Series Updated",
-              description: "All events in the series have been updated.",
+              description: "All events in the series have been updated."
             });
-          },
+          }
         });
       } else {
         const updatedEvent = {
           ...event,
-          start: new Date(start).toISOString(),
-          end: new Date(end).toISOString(),
-          date: new Date(start).toISOString(),
+          start: newStart,
+          end: newEnd,
+          date: newStart
         };
         await updateEvent(event.id, updatedEvent, token);
         await fetchAndUpdateEvents();
         notification.success({
           message: "Event Moved",
-          description: "The event has been successfully moved.",
+          description: "The event has been successfully moved."
         });
       }
     } catch (error) {
-      handleServiceError(error); // Centralized error handling
+      handleServiceError(error);
       notification.error({
         message: "Failed to Move Event",
         description:
-          "An error occurred while moving the event. Please try again.",
+          "An error occurred while moving the event. Please try again."
       });
     }
   };
@@ -442,6 +484,23 @@ const CalendarPage: React.FC = () => {
     const seriesId = event.seriesId || event.id;
     const isRecurring = event.repeat !== "none";
 
+    // Use timezone-aware moment objects
+    const newStart = start
+      ? moment(start).format("YYYY-MM-DDTHH:mm:ss")
+      : moment(event.start).format("YYYY-MM-DDTHH:mm:ss");
+    const newEnd = moment(end).format("YYYY-MM-DDTHH:mm:ss");
+
+    // Debug logging
+    console.log("Resize Operation:", {
+      originalStart: moment(event.start).format("YYYY-MM-DD HH:mm:ss"),
+      originalEnd: moment(event.end).format("YYYY-MM-DD HH:mm:ss"),
+      newStart: newStart,
+      newEnd: newEnd,
+      durationChange:
+        moment(newEnd).diff(moment(newStart), "minutes") -
+        moment(event.end).diff(moment(event.start), "minutes")
+    });
+
     try {
       if (isRecurring) {
         Modal.confirm({
@@ -451,60 +510,73 @@ const CalendarPage: React.FC = () => {
           okText: "This event only",
           cancelText: "All events",
           onOk: async () => {
+            const masterEvent = events.find(
+              (evt) => evt.seriesId === seriesId && evt.repeat !== "none"
+            );
+            if (!masterEvent) return;
+
+            const instanceStart = moment(event.start);
+            const originalStart = instanceStart.toISOString();
             const distinctColor = getDistinctColor(event.color || COLORS[0]);
 
             const newException: CalendarEvent = {
               ...event,
               id: "", // Let server generate ID
               seriesId: undefined,
-              start: new Date(start).toISOString(),
-              end: new Date(end).toISOString(),
-              date: new Date(start).toISOString(),
+              start: newStart,
+              end: newEnd,
+              date: newStart,
               repeat: "none",
-              color: distinctColor,
+              color: distinctColor
             };
+
             await createEvent(newException, token);
+            const updatedMasterEvent = {
+              ...masterEvent,
+              exceptions: [...(masterEvent.exceptions || []), { originalStart }]
+            };
+            await updateEvent(masterEvent.id, updatedMasterEvent, token);
             await fetchAndUpdateEvents();
             notification.success({
               message: "Event Resized",
-              description: "The event instance has been resized.",
+              description: "The event instance has been resized."
             });
           },
           onCancel: async () => {
             const updatedEvent = {
               ...event,
-              start: new Date(start).toISOString(),
-              end: new Date(end).toISOString(),
-              date: new Date(start).toISOString(),
+              start: newStart,
+              end: newEnd,
+              date: newStart
             };
             await updateEventSeries(seriesId, updatedEvent, token);
             await fetchAndUpdateEvents();
             notification.success({
               message: "Series Resized",
-              description: "All events in the series have been resized.",
+              description: "All events in the series have been resized."
             });
-          },
+          }
         });
       } else {
         const updatedEvent = {
           ...event,
-          start: new Date(start).toISOString(),
-          end: new Date(end).toISOString(),
-          date: new Date(start).toISOString(),
+          start: newStart,
+          end: newEnd,
+          date: newStart
         };
         await updateEvent(event.id, updatedEvent, token);
         await fetchAndUpdateEvents();
         notification.success({
           message: "Event Resized",
-          description: "The event has been successfully resized.",
+          description: "The event has been successfully resized."
         });
       }
     } catch (error) {
-      handleServiceError(error); // Centralized error handling
+      handleServiceError(error);
       notification.error({
         message: "Failed to Resize Event",
         description:
-          "An error occurred while resizing the event. Please try again.",
+          "An error occurred while resizing the event. Please try again."
       });
     }
   };
@@ -518,8 +590,8 @@ const CalendarPage: React.FC = () => {
         backgroundColor,
         borderRadius: "5px",
         color: invertColorWithContrast(backgroundColor),
-        border: "none",
-      },
+        border: "none"
+      }
     };
   };
 
@@ -532,7 +604,7 @@ const CalendarPage: React.FC = () => {
               style={{
                 color: COLORS[12],
                 fontWeight: "bold",
-                fontSize: "16px",
+                fontSize: "16px"
               }}
             >
               {event.title}
@@ -571,7 +643,7 @@ const CalendarPage: React.FC = () => {
           end: adjustedEnd.format("YYYY-MM-DDTHH:mm"),
           description: originalEvent.description || "",
           color: originalEvent.color || COLORS[0],
-          repeat: originalEvent.repeat || "none",
+          repeat: originalEvent.repeat || "none"
         });
       }
     } else {
@@ -583,7 +655,7 @@ const CalendarPage: React.FC = () => {
         end: defaultEnd.format("YYYY-MM-DDTHH:mm"),
         description: "",
         color: getRandomColor(),
-        repeat: "none",
+        repeat: "none"
       });
     }
     setIsModalVisible(true);
@@ -593,7 +665,7 @@ const CalendarPage: React.FC = () => {
     <Layout style={{ minHeight: "100vh" }}>
       <Content
         style={{
-          minHeight: "85vh",
+          minHeight: "85vh"
         }}
       >
         <div
@@ -601,7 +673,7 @@ const CalendarPage: React.FC = () => {
             padding: "24px",
             background: COLORS[12],
             minHeight: "85vh",
-            minWidth: 900,
+            minWidth: 900
           }}
         >
           <Button
@@ -630,12 +702,22 @@ const CalendarPage: React.FC = () => {
             tooltipAccessor={null}
             onRangeChange={handleRangeChange}
             defaultView="month"
+            min={moment().startOf("day").set("hour", 7).toDate()} // Start at 7 AM
+            max={moment().endOf("day").set("hour", 22).toDate()} // End at 10 PM
+            step={30} // 30 minute intervals
+            timeslots={2} // Show 2 slots per step (15 minute divisions)
+            dayLayoutAlgorithm="no-overlap" // Improves day/week view layout
+            longPressThreshold={10} // Make drag operations more responsive
           />
 
           <Modal
             title={eventDetails.id ? "Edit Event" : "Add Event"}
             open={isModalVisible}
-            onCancel={() => setIsModalVisible(false)}
+            onCancel={() => {
+              if (!isSaving) {
+                setIsModalVisible(false);
+              }
+            }}
             onOk={handleAddOrUpdateEvent}
             afterClose={() => {
               if (inputRef.current) inputRef.current.blur();
@@ -648,23 +730,30 @@ const CalendarPage: React.FC = () => {
                     key="delete"
                     onClick={handleDeleteEvent}
                     style={{ marginRight: 8 }}
+                    disabled={isSaving}
                   >
                     Delete
                   </Button>
                 )}
                 <div className="flex space-x-2">
-                  <Button key="cancel" onClick={() => setIsModalVisible(false)}>
+                  <Button
+                    key="cancel"
+                    onClick={() => setIsModalVisible(false)}
+                    disabled={isSaving}
+                  >
                     Cancel
                   </Button>
                   <Button
                     key="submit"
                     type="primary"
                     onClick={handleAddOrUpdateEvent}
+                    loading={isSaving}
+                    disabled={isSaving}
                   >
                     {eventDetails.id ? "Update" : "Save"}
                   </Button>
                 </div>
-              </div>,
+              </div>
             ]}
           >
             <Form layout="vertical">
@@ -733,7 +822,7 @@ const CalendarPage: React.FC = () => {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: invertColorWithContrast(color),
+                          color: invertColorWithContrast(color)
                         }}
                       >
                         {color}
