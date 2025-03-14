@@ -259,6 +259,26 @@ const CalendarPage: React.FC = () => {
         white-space: nowrap;
       }
       
+      /* Ẩn time range mặc định trong Week view */
+      .rbc-time-view .rbc-event .rbc-event-label {
+        display: none !important;
+      }
+      
+      /* Tùy chỉnh hiển thị event trong Week view */
+      .rbc-time-view .rbc-event {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+      }
+      
+      /* Tùy chỉnh nội dung event trong Week view */
+      .rbc-time-view .rbc-event-content {
+        width: 100% !important;
+        text-align: center !important;
+        line-height: 1.2 !important;
+      }
+      
       /* Responsive font size cho event dựa vào kích thước */
       .rbc-event.rbc-event-allday .rbc-event-content,
       .rbc-event.rbc-event-continues-prior .rbc-event-content,
@@ -696,7 +716,16 @@ const CalendarPage: React.FC = () => {
           }}
         >
           <div
-            style={{ fontWeight: "bold", fontSize: "12px", lineHeight: "1.2" }}
+            style={{
+              width: "100%",
+              textAlign: "center",
+              fontWeight: "bold",
+              fontSize: "12px",
+              lineHeight: "1.2",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }}
           >
             {event.title}
           </div>
@@ -756,6 +785,10 @@ const CalendarPage: React.FC = () => {
       return `${moment(start).format("HH:mm")} - ${moment(end).format(
         "HH:mm"
       )}`;
+    },
+    // Tùy chỉnh định dạng hiển thị event trong time slot
+    eventTimeRangeFormat: () => {
+      return ""; // Trả về chuỗi rỗng để không hiển thị time range
     }
   };
 
