@@ -769,7 +769,7 @@ const CalendarPage: React.FC = () => {
               marginBottom: "2px"
             }}
           >
-            {event.title}
+            {event.title} {" - "}{" "}
             <span style={{ fontSize: "11px" }}>{event.description || ""}</span>
           </div>
         </div>
