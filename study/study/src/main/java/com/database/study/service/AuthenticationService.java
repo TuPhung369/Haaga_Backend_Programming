@@ -247,20 +247,89 @@ public class AuthenticationService implements AuthenticationUtilities {
         .build();
   }
 
-  @Transactional
+  @Transactional(noRollbackFor = AppException.class)
   public AuthenticationResponse authenticateWithTotp(TotpAuthenticationRequest request,
       HttpServletRequest httpRequest) {
     try {
       // 1. First authenticate username and password
       User user = userRepository.findByUsername(request.getUsername())
-          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+      // Check if the user is already blocked
+      if (user.isBlock()) {
+        log.warn("User is blocked and cannot log in: {}", user.getUsername());
+        throw new AppException(ErrorCode.ACCOUNT_LOCKED,
+            "Account locked for security reasons")
+            .addExtraInfo("remainingAttempts", 0);
+      }
+
+      // Store the initial timeTried value to avoid double counting
+      // IMPORTANT: We use this flag to track if we've already incremented timeTried
+      // in this transaction
+      // This prevents the counter from increasing by 2 for each failed attempt (once
+      // for password, once for TOTP)
+      final int initialTimeTried = user.getTimeTried();
+      boolean failedAttemptRecorded = false;
+
+      log.warn("DEBUG: Initial timeTried for user {} in DB: {}", user.getUsername(), initialTimeTried);
 
       boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
       if (!authenticated) {
-        // Track failed attempt
-        securityMonitoringService.trackFailedAttempt(request.getUsername(), user.getEmail(),
-            httpRequest, SecurityMonitoringService.AUTH_TYPE_TOTP);
-        throw new AppException(ErrorCode.PASSWORD_MISMATCH);
+        // Increment timeTried by exactly 1
+        user.setTimeTried(initialTimeTried + 1);
+        failedAttemptRecorded = true;
+
+        log.warn("DEBUG: Password mismatch. Setting timeTried to {} for user {}",
+            user.getTimeTried(), user.getUsername());
+
+        // Check if max attempts reached - use ACCOUNT_LOCKED error
+        if (user.getTimeTried() >= maxFailedAttempts) {
+          log.warn("User {} has been blocked after {} failed login attempts", user.getUsername(), user.getTimeTried());
+          user.setBlock(true);
+
+          // Save updated user - Force a flush to ensure it's saved immediately
+          User savedUser = userRepository.saveAndFlush(user);
+          log.warn("DEBUG: After password check - User saved with timeTried={}, isBlocked={}",
+              savedUser.getTimeTried(), savedUser.isBlock());
+
+          // We can now safely call securityMonitoringService since we've fixed the double
+          // increment issue
+          if (httpRequest != null) {
+            securityMonitoringService.trackFailedAttempt(request.getUsername(), user.getEmail(),
+                httpRequest, SecurityMonitoringService.AUTH_TYPE_TOTP);
+          }
+
+          // Return ACCOUNT_LOCKED error instead of PASSWORD_MISMATCH
+          throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons")
+              .addExtraInfo("remainingAttempts", 0);
+        }
+
+        // Calculate remaining attempts
+        int remainingAttempts = Math.max(0, maxFailedAttempts - user.getTimeTried());
+
+        // Save updated user - Force a flush to ensure it's saved immediately
+        User savedUser = userRepository.saveAndFlush(user);
+        log.warn("DEBUG: After password check - User saved with timeTried={}, isBlocked={}",
+            savedUser.getTimeTried(), savedUser.isBlock());
+
+        // We can now safely call securityMonitoringService since we've fixed the double
+        // increment issue
+        if (httpRequest != null) {
+          log.warn("DEBUG: Before calling securityMonitoringService after password check - timeTried={}",
+              user.getTimeTried());
+          securityMonitoringService.trackFailedAttempt(request.getUsername(), user.getEmail(),
+              httpRequest, SecurityMonitoringService.AUTH_TYPE_TOTP);
+
+          // Check the user again after this call
+          User afterSecurityCheckUser = userRepository.findByUsername(request.getUsername()).orElse(null);
+          if (afterSecurityCheckUser != null) {
+            log.warn("DEBUG: After securityMonitoringService was called - timeTried in DB now={}",
+                afterSecurityCheckUser.getTimeTried());
+          }
+        }
+
+        throw new AppException(ErrorCode.PASSWORD_MISMATCH)
+            .addExtraInfo("remainingAttempts", remainingAttempts);
       }
 
       if (!user.isActive()) {
@@ -279,18 +348,84 @@ public class AuthenticationService implements AuthenticationUtilities {
           throw new AppException(ErrorCode.TOTP_REQUIRED);
         }
 
+        // Re-fetch the user to ensure we have the most up-to-date timeTried value
+        User refreshedUser = userRepository.findByUsername(request.getUsername()).orElse(user);
+        log.warn("DEBUG: Before TOTP validation - Current timeTried in DB: {}", refreshedUser.getTimeTried());
+
+        // Use the current value from the database
+        final int currentTimeTried = refreshedUser.getTimeTried();
+
         // Verify the TOTP code
         boolean validTotp = totpService.validateCode(user.getUsername(), totpCode);
         if (!validTotp) {
-          // Track failed attempt for invalid TOTP
-          securityMonitoringService.trackFailedAttempt(request.getUsername(), user.getEmail(),
-              httpRequest, SecurityMonitoringService.AUTH_TYPE_TOTP);
-          throw new AppException(ErrorCode.TOTP_INVALID);
+          // Only increment timeTried directly and skip the SecurityMonitoringService
+          refreshedUser.setTimeTried(currentTimeTried + 1);
+          failedAttemptRecorded = true;
+
+          log.warn("DEBUG: Invalid TOTP code. Setting timeTried to {} for user {}",
+              refreshedUser.getTimeTried(), refreshedUser.getUsername());
+
+          // Check if max attempts reached - use ACCOUNT_LOCKED error if blocked
+          if (refreshedUser.getTimeTried() >= maxFailedAttempts) {
+            log.warn("User {} has been blocked after {} failed TOTP attempts",
+                refreshedUser.getUsername(), refreshedUser.getTimeTried());
+            refreshedUser.setBlock(true);
+
+            // Save updated user - Force a flush to ensure it's saved immediately
+            User savedUser = userRepository.saveAndFlush(refreshedUser);
+            log.warn("DEBUG: After TOTP check - User saved with timeTried={}, isBlocked={}",
+                savedUser.getTimeTried(), savedUser.isBlock());
+
+            // We can now safely call securityMonitoringService since we've fixed the double
+            // increment issue
+            if (httpRequest != null) {
+              securityMonitoringService.trackFailedAttempt(request.getUsername(), refreshedUser.getEmail(),
+                  httpRequest, SecurityMonitoringService.AUTH_TYPE_TOTP);
+            }
+
+            // Return ACCOUNT_LOCKED error instead of TOTP_INVALID
+            throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons")
+                .addExtraInfo("remainingAttempts", 0);
+          }
+
+          // Calculate remaining attempts
+          int remainingAttempts = Math.max(0, maxFailedAttempts - refreshedUser.getTimeTried());
+
+          // Save updated user - Force a flush to ensure it's saved immediately
+          User savedUser = userRepository.saveAndFlush(refreshedUser);
+          log.warn("DEBUG: After TOTP check - User saved with timeTried={}, isBlocked={}",
+              savedUser.getTimeTried(), savedUser.isBlock());
+
+          // We can now safely call securityMonitoringService since we've fixed the double
+          // increment issue
+          if (httpRequest != null) {
+            log.warn("DEBUG: Before calling securityMonitoringService after TOTP check - timeTried={}",
+                refreshedUser.getTimeTried());
+            securityMonitoringService.trackFailedAttempt(request.getUsername(), refreshedUser.getEmail(),
+                httpRequest, SecurityMonitoringService.AUTH_TYPE_TOTP);
+
+            // Check the user again after this call
+            User afterSecurityCheckUser = userRepository.findByUsername(request.getUsername()).orElse(null);
+            if (afterSecurityCheckUser != null) {
+              log.warn("DEBUG: After securityMonitoringService was called - timeTried in DB now={}",
+                  afterSecurityCheckUser.getTimeTried());
+            }
+          }
+
+          throw new AppException(ErrorCode.TOTP_INVALID, "Invalid verification code. Please try again.")
+              .addExtraInfo("remainingAttempts", remainingAttempts);
         }
       }
 
       // Reset failed attempts on successful authentication
-      securityMonitoringService.resetFailedAttempts(request.getUsername(), user.getEmail(), httpRequest);
+      user.setTimeTried(0);
+      user.setBlock(false);
+      userRepository.saveAndFlush(user);
+      log.warn("DEBUG: Authentication successful - Reset timeTried and isBlock for user {}", user.getUsername());
+
+      if (httpRequest != null) {
+        securityMonitoringService.resetFailedAttempts(request.getUsername(), user.getEmail(), httpRequest);
+      }
 
       // 4. Check for existing tokens instead of always creating new ones
       Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
@@ -372,7 +507,7 @@ public class AuthenticationService implements AuthenticationUtilities {
   /**
    * Legacy method for backward compatibility
    */
-  @Transactional
+  @Transactional(noRollbackFor = AppException.class)
   public AuthenticationResponse authenticateWithTotp(TotpAuthenticationRequest request) {
     // Create a dummy HttpServletRequest for backward compatibility
     return authenticateWithTotp(request, null);
@@ -1831,7 +1966,7 @@ public class AuthenticationService implements AuthenticationUtilities {
           .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
       if (securityMonitoringService.isBlocked(user.getUsername(), user.getEmail(), null)) {
-        throw new AppException(ErrorCode.ACCOUNT_LOCKED);
+        throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons");
       }
 
       // 1. Authenticate the user

@@ -65,14 +65,26 @@ public class SecurityMonitoringService {
     int attempts = counter.incrementAndGet();
     log.info("Failed {} attempt #{} for user: {}, IP: {}", authenticationType, attempts, username, ipAddress);
 
-    // Also update the user's timeTried in the database
+    // Also update the user's timeTried in the database - but SKIP for TOTP
+    // authentication
+    // since it's already handled in AuthenticationService
+    boolean isTotpAuth = authenticationType.equals(AUTH_TYPE_TOTP);
     User user = userRepository.findByUsername(username).orElse(null);
     if (user != null) {
-      user.setTimeTried(user.getTimeTried() + 1);
+      if (!isTotpAuth) {
+        // Only increment the counter for non-TOTP authentication
+        int oldCount = user.getTimeTried();
+        user.setTimeTried(oldCount + 1);
+        log.warn("DEBUG: SecurityMonitoringService - Incrementing timeTried from {} to {} for user {}",
+            oldCount, user.getTimeTried(), username);
+      } else {
+        log.warn("DEBUG: SecurityMonitoringService - SKIPPING timeTried increment for TOTP auth. Current value: {}",
+            user.getTimeTried());
+      }
 
       // If max attempts reached, block the user
       if (user.getTimeTried() >= maxFailedAttempts) {
-        log.warn("User {} blocked due to too many failed attempts", username);
+        log.warn("User {} blocked due to too many failed attempts - Account locked for security reasons", username);
         user.setBlock(true);
 
         // Revoke all active tokens for this user
@@ -80,6 +92,14 @@ public class SecurityMonitoringService {
       }
 
       userRepository.save(user);
+
+      // Debug log the final saved value
+      User savedUser = userRepository.findByUsername(username).orElse(null);
+      if (savedUser != null) {
+        log.warn("DEBUG: SecurityMonitoringService - After save, timeTried in DB is now: {} for user {}",
+            savedUser.getTimeTried(), username);
+      }
+
       return user.isBlock();
     }
 

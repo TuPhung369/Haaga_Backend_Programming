@@ -164,10 +164,19 @@ public class AuthenticationController {
   public ApiResponse<AuthenticationResponse> authenticateWithTotp(
       @RequestBody TotpAuthenticationRequest request,
       HttpServletRequest httpRequest) {
-    var result = authenticationService.authenticateWithTotp(request, httpRequest);
-    return ApiResponse.<AuthenticationResponse>builder()
-        .result(result)
-        .build();
+    try {
+      var result = authenticationService.authenticateWithTotp(request, httpRequest);
+      return ApiResponse.<AuthenticationResponse>builder()
+          .result(result)
+          .build();
+    } catch (AppException e) {
+      // Return error response with the appropriate status
+      return ApiResponse.<AuthenticationResponse>builder()
+          .code(e.getErrorCode().getCode())
+          .message(e.getMessage())
+          .metadata(e.getAllExtraInfo()) // Include remaining attempts and other extra info
+          .build();
+    }
   }
 
   @PostMapping("/totp/token/cookie")
@@ -175,26 +184,34 @@ public class AuthenticationController {
       @RequestBody TotpAuthenticationRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
+    try {
+      // First authenticate with TOTP
+      var authResult = authenticationService.authenticateWithTotp(request, httpRequest);
 
-    // First authenticate with TOTP
-    var authResult = authenticationService.authenticateWithTotp(request, httpRequest);
+      // Then set refresh token cookie if authentication successful
+      if (authResult.isAuthenticated()) {
+        cookieService.createRefreshTokenCookie(httpResponse, authResult.getRefreshToken());
 
-    // Then set refresh token cookie if authentication successful
-    if (authResult.isAuthenticated()) {
-      cookieService.createRefreshTokenCookie(httpResponse, authResult.getRefreshToken());
+        // Don't return the refresh token in the response body when using cookies
+        return ApiResponse.<AuthenticationResponse>builder()
+            .result(AuthenticationResponse.builder()
+                .token(authResult.getToken())
+                .authenticated(true)
+                .build())
+            .build();
+      }
 
-      // Don't return the refresh token in the response body when using cookies
       return ApiResponse.<AuthenticationResponse>builder()
-          .result(AuthenticationResponse.builder()
-              .token(authResult.getToken())
-              .authenticated(true)
-              .build())
+          .result(authResult)
+          .build();
+    } catch (AppException e) {
+      // Return error response with the appropriate status
+      return ApiResponse.<AuthenticationResponse>builder()
+          .code(e.getErrorCode().getCode())
+          .message(e.getMessage())
+          .metadata(e.getAllExtraInfo()) // Include remaining attempts and other extra info
           .build();
     }
-
-    return ApiResponse.<AuthenticationResponse>builder()
-        .result(authResult)
-        .build();
   }
 
   @PostMapping("/resend-verification")
