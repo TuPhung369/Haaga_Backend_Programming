@@ -269,7 +269,6 @@ public class AuthenticationService implements AuthenticationUtilities {
       // This prevents the counter from increasing by 2 for each failed attempt (once
       // for password, once for TOTP)
       final int initialTimeTried = user.getTimeTried();
-      boolean failedAttemptRecorded = false;
 
       log.warn("DEBUG: Initial timeTried for user {} in DB: {}", user.getUsername(), initialTimeTried);
 
