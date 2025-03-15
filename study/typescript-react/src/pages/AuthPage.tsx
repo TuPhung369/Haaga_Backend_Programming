@@ -47,6 +47,7 @@ const AuthPage: React.FC = () => {
   const [showEmailOtpAuth, setShowEmailOtpAuth] = useState<boolean>(false);
   const [totpUsername, setTotpUsername] = useState<string>("");
   const [totpPassword, setTotpPassword] = useState<string>("");
+  const [isAccountLocked, setIsAccountLocked] = useState<boolean>(false);
 
   // Use our new field errors hook instead of manual error handling
   const { fieldErrors, setFieldError, clearFieldError, clearAllFieldErrors } =
@@ -89,6 +90,7 @@ const AuthPage: React.FC = () => {
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
     setLoginError(null);
+    setIsAccountLocked(false); // Reset account locked state when switching modes
     clearAllFieldErrors(); // Clear all field errors when toggling mode
   };
 
@@ -98,6 +100,7 @@ const AuthPage: React.FC = () => {
     password: string;
   }) => {
     setLoginError(null);
+    setIsAccountLocked(false); // Reset account locked state
     clearAllFieldErrors();
     setIsLoading(true);
 
@@ -153,9 +156,54 @@ const AuthPage: React.FC = () => {
         }
       }
     } catch (error: unknown) {
-      // Display a generic error for login failures
-      setLoginError("Invalid username or password. Please try again.");
       console.error("Login error:", error);
+
+      // Check for account locked error
+      // Handle different error formats
+      let errorMessage = "Authentication failed";
+      let errorCode = "";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+
+        // Try to extract error code
+        if ((error as any).errorCode) {
+          errorCode = (error as any).errorCode;
+        } else if ((error as any).response?.data?.errorCode) {
+          errorCode = (error as any).response.data.errorCode;
+        } else if ((error as any).originalError?.response?.data?.errorCode) {
+          errorCode = (error as any).originalError.response.data.errorCode;
+        }
+      }
+
+      // Log detailed error info for debugging
+      console.log("Error message:", errorMessage);
+      console.log("Error code:", errorCode);
+
+      // Check if account is locked
+      const isLocked =
+        errorCode === "ACCOUNT_LOCKED" ||
+        errorMessage.includes("locked") ||
+        errorMessage.includes("blocked") ||
+        ((error as any).response?.data?.message &&
+          ((error as any).response.data.message.includes("locked") ||
+            (error as any).response.data.message.includes("blocked")));
+
+      if (isLocked) {
+        setIsAccountLocked(true);
+        setLoginError(
+          "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance."
+        );
+
+        notification.error({
+          message: "Account Locked",
+          description:
+            "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance."
+        });
+      } else {
+        // Display a generic error for login failures
+        setLoginError("Invalid username or password. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -648,6 +696,34 @@ const AuthPage: React.FC = () => {
                     <div className="error-message">{loginError}</div>
                   )}
 
+                  {isAccountLocked && (
+                    <div
+                      style={{
+                        color: "red",
+                        marginBottom: 16,
+                        textAlign: "center",
+                        padding: "10px",
+                        border: "1px solid #ffbdbd",
+                        backgroundColor: "#fff2f2",
+                        borderRadius: "4px"
+                      }}
+                    >
+                      <p style={{ fontWeight: "bold", margin: 0 }}>
+                        Account Locked
+                      </p>
+                      <p style={{ margin: "5px 0 0 0" }}>
+                        Your account has been locked due to multiple failed
+                        authentication attempts.
+                      </p>
+                      <p style={{ margin: "5px 0 0 0", fontWeight: "bold" }}>
+                        Please contact the administrator for assistance.
+                      </p>
+                      <p style={{ margin: "5px 0 0 0", fontSize: "0.9em" }}>
+                        Email: tuphung0107@gmail.com
+                      </p>
+                    </div>
+                  )}
+
                   <Form.Item>
                     <div className="forgot-password">
                       <Button type="link" onClick={handleForgotPassword}>
@@ -662,7 +738,7 @@ const AuthPage: React.FC = () => {
                       htmlType="submit"
                       className="auth-button"
                       loading={isLoading}
-                      disabled={isLoading}
+                      disabled={isLoading || isAccountLocked}
                     >
                       Login
                     </Button>
@@ -706,4 +782,3 @@ const AuthPage: React.FC = () => {
 };
 
 export default AuthPage;
-
