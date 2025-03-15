@@ -269,6 +269,7 @@ public class AuthenticationService implements AuthenticationUtilities {
       // This prevents the counter from increasing by 2 for each failed attempt (once
       // for password, once for TOTP)
       final int initialTimeTried = user.getTimeTried();
+      boolean failedAttemptRecorded = false;
 
       log.warn("DEBUG: Initial timeTried for user {} in DB: {}", user.getUsername(), initialTimeTried);
 
@@ -1893,8 +1894,14 @@ public class AuthenticationService implements AuthenticationUtilities {
 
       log.warn("Invalid email OTP provided for user: {} \t Currently at {} failed attempts",
           request.getUsername(), user.getTimeTried());
-      throw new AppException("Invalid email verification code. Please check and try again.")
-          .addExtraInfo("remainingAttempts", remainingAttempts);
+
+      if (remainingAttempts == 0) {
+        throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons")
+            .addExtraInfo("remainingAttempts", remainingAttempts);
+      } else {
+        throw new AppException("Invalid email verification code. Please check and try again.")
+            .addExtraInfo("remainingAttempts", remainingAttempts);
+      }
     }
 
     // We only get here if OTP matched, so matchedToken is guaranteed to be non-null
@@ -2307,8 +2314,14 @@ public class AuthenticationService implements AuthenticationUtilities {
 
       log.warn("Invalid email OTP provided for user: {} \t Currently at {} failed attempts",
           request.getUsername(), user.getTimeTried());
-      throw new AppException("Invalid email verification code. Please check and try again.")
-          .addExtraInfo("remainingAttempts", remainingAttempts);
+
+      if (remainingAttempts == 0) {
+        throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons")
+            .addExtraInfo("remainingAttempts", remainingAttempts);
+      } else {
+        throw new AppException("Invalid email verification code. Please check and try again.")
+            .addExtraInfo("remainingAttempts", remainingAttempts);
+      }
     }
 
     // We only get here if OTP matched, so matchedToken is guaranteed to be non-null

@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { Form, Input, Button, Typography, Card, notification } from "antd";
-import { MailOutlined } from "@ant-design/icons";
-import { authenticateWithEmailOtpAndCookies } from "../services/authService";
+import React, { useState, useEffect, useRef } from "react";
+import { Form, Button, Typography, Card, notification } from "antd";
+import { MailOutlined, LockOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { setAuthData } from "../store/authSlice";
 import { useNavigate } from "react-router-dom";
-import LoadingState from "./LoadingState";
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
-import { ServiceError } from "../services/baseService";
+import { motion } from "framer-motion";
+import axios from "axios";
 
 const { Title, Text } = Typography;
 
@@ -19,39 +18,166 @@ interface EmailOtpAuthComponentProps {
   onAuthenticated: () => void;
 }
 
-// Define API error response types
-interface ApiErrorResponse {
-  response?: {
-    data?: {
-      message?: string;
-      errorCode?: string;
-      remainingAttempts?: number;
-      extraInfo?: {
-        remainingAttempts?: number;
-      };
-      timestamp?: string;
-    };
-    status?: number;
-  };
-  message?: string;
-  status?: number;
-  field?: string;
-  errorType?: string;
-  originalError?: unknown;
-  remainingAttempts?: number;
+interface CustomVerificationCodeInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
-interface AxiosErrorType {
-  response?: {
-    data?: Record<string, unknown>;
-    status?: number;
-  };
-  message?: string;
-  code?: string;
-  status?: number;
-}
+const CustomVerificationCodeInput: React.FC<
+  CustomVerificationCodeInputProps
+> = ({ value, onChange, disabled = false, style }) => {
+  const [codeArray, setCodeArray] = useState<string[]>(Array(6).fill(""));
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-const MAX_ATTEMPTS = 3; // Số lần thử tối đa - chỉ sử dụng để hiển thị UI
+  useEffect(() => {
+    // Auto focus first input on mount
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+  }, []);
+
+  useEffect(() => {
+    const newCodeArray = value
+      .split("")
+      .concat(Array(6 - value.length).fill(""));
+    setCodeArray(newCodeArray.slice(0, 6));
+  }, [value]);
+
+  const handleInputChange = (index: number, newValue: string) => {
+    if (newValue.length > 1) return;
+    if (!/^[0-9]*$/.test(newValue)) return;
+
+    const newCodeArray = [...codeArray];
+    newCodeArray[index] = newValue;
+    setCodeArray(newCodeArray);
+
+    const newCode = newCodeArray.join("");
+    onChange(newCode);
+
+    // Move to next input if value is entered
+    if (newValue && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Backspace" && !codeArray[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "");
+    if (pastedData.length > 0) {
+      const newCodeArray = pastedData
+        .split("")
+        .concat(Array(6 - pastedData.length).fill(""))
+        .slice(0, 6);
+      setCodeArray(newCodeArray);
+      onChange(newCodeArray.join(""));
+      // Focus last input after paste
+      inputRefs.current[5]?.focus();
+    }
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        gap: "12px",
+        ...style
+      }}
+    >
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          style={{
+            position: "relative",
+            width: "52px",
+            height: "64px"
+          }}
+        >
+          <input
+            ref={(el) => (inputRefs.current[index] = el)}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={codeArray[index]}
+            onChange={(e) => handleInputChange(index, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            onPaste={handlePaste}
+            disabled={disabled}
+            style={{
+              width: "100%",
+              height: "100%",
+              fontSize: "28px",
+              fontWeight: "600",
+              textAlign: "center",
+              border: `2px solid ${disabled ? "#d9d9d9" : "#e6e6e6"}`,
+              borderRadius: "12px",
+              background: disabled ? "#f5f5f5" : COLORS[12],
+              color: COLORS[13],
+              outline: "none",
+              caretColor: COLORS[9],
+              transition: "all 0.3s ease",
+              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+              cursor: disabled ? "not-allowed" : "text"
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = COLORS[12];
+              e.target.style.boxShadow = `0 0 0 2px ${COLORS[12]}40`;
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = disabled ? "#d9d9d9" : "#e6e6e6";
+              e.target.style.boxShadow = "0 2px 6px rgba(0, 0, 0, 0.1)";
+            }}
+          />
+          {/* Hiệu ứng focus */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "-2px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "0",
+              height: "2px",
+              background: COLORS[12],
+              transition: "width 0.3s ease"
+            }}
+          />
+          {/* Hiển thị số đã nhập */}
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              fontSize: "28px",
+              fontWeight: "600",
+              color: disabled ? "#999" : COLORS[5],
+              pointerEvents: "none"
+            }}
+          >
+            {codeArray[index]}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const MAX_ATTEMPTS = 3;
 
 const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
   username,
@@ -66,15 +192,13 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
     null
   );
   const [isAccountLocked, setIsAccountLocked] = useState<boolean>(false);
-  const [isAdminMode, setIsAdminMode] = useState<boolean>(false); // State để kiểm tra có đang ở chế độ admin không
+  const [isAdminMode, setIsAdminMode] = useState<boolean>(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Bật chế độ admin (chỉ dành cho mục đích demo, trong thực tế cần xác thực admin)
   const enableAdminMode = () => {
     const adminPassword = prompt("Enter admin password:");
-    // Demo: admin password là 'admin123'
     if (adminPassword === "admin123") {
       setIsAdminMode(true);
       notification.success({
@@ -89,7 +213,6 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
     }
   };
 
-  // Hàm để admin mở khóa tài khoản (trong thực tế, đây sẽ là API call đến BE)
   const handleAdminUnlock = () => {
     if (!isAdminMode) {
       notification.error({
@@ -100,9 +223,6 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
     }
 
     try {
-      // TODO: Trong thực tế, đây sẽ là API call đến BE để mở khóa tài khoản
-      // Ví dụ: await adminService.unlockAccount(username);
-
       setIsAccountLocked(false);
       setRemainingAttempts(MAX_ATTEMPTS);
       notification.success({
@@ -119,26 +239,12 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
     }
   };
 
-  // Kiểm tra trạng thái khóa ban đầu thông qua API
-  useEffect(() => {
-    // Trong thực tế, đây sẽ là một API call để kiểm tra trạng thái tài khoản
-    // Ví dụ: checkAccountStatus(username).then(status => {
-    //   setIsAccountLocked(status.isBlocked);
-    //   setRemainingAttempts(MAX_ATTEMPTS - status.attemptTried);
-    // })
-
-    // Hiện tại, mô phỏng việc kiểm tra từ response của API
-    setIsAccountLocked(false);
-    setRemainingAttempts(MAX_ATTEMPTS);
-  }, [username]);
-
   const handleOtpSubmit = async () => {
-    if (!otpCode) {
-      setError("Please enter the verification code sent to your email");
+    if (!otpCode || otpCode.length !== 6) {
+      setError("Please enter a valid 6-digit code");
       return;
     }
 
-    // Kiểm tra nếu tài khoản đã bị khóa
     if (isAccountLocked) {
       notification.error({
         message: "Account Locked",
@@ -152,364 +258,502 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
     setIsSubmitting(true);
 
     try {
-      const response = await authenticateWithEmailOtpAndCookies({
-        username,
-        password,
-        otpCode
-      });
+      // Tự thực hiện request thay vì sử dụng service để có thể bắt response dễ dàng hơn
+      const API_BASE_URI = import.meta.env.VITE_API_BASE_URI || "";
+      const result = await axios.post(
+        `${API_BASE_URI}/auth/email-otp/token/cookie`,
+        {
+          username,
+          password,
+          otpCode
+        },
+        {
+          validateStatus: () => true, // Luôn trả về response, không throw exception
+          withCredentials: true
+        }
+      );
 
-      if (response && response.result && response.result.token) {
+      console.log("Direct API response:", result);
+
+      // Kiểm tra nếu request thành công
+      if (result.status === 200 && result.data?.result?.token) {
         // Đăng nhập thành công
         dispatch(
           setAuthData({
-            token: response.result.token,
+            token: result.data.result.token,
             isAuthenticated: true,
             loginSocial: false
           })
         );
-        setupTokenRefresh(response.result.token);
+        setupTokenRefresh(result.data.result.token);
         notification.success({
           message: "Success",
           description: "Email verification successful!"
         });
         onAuthenticated();
         navigate("/");
-      } else {
-        throw new Error("Invalid response format from server");
+        return;
       }
-    } catch (error: unknown) {
-      console.error("OTP authentication error:", error);
 
-      // Debug: Log the full error object to console
-      console.log("Full error object:", JSON.stringify(error, null, 2));
-
-      // Kiểm tra error object
-      const apiError = error as ApiErrorResponse;
-
-      // Hiển thị toàn bộ cấu trúc lỗi để debug
-      console.log("Error structure:", {
-        directError: apiError,
-        responseData: apiError.response?.data,
-        originalError: apiError.originalError,
-        status:
-          apiError.response?.status ||
-          (apiError.originalError as AxiosErrorType)?.status
-      });
-
-      // Trích xuất thông tin từ nhiều vị trí khác nhau trong response
-      let responseData;
+      // Xử lý response lỗi
+      const responseData = result.data;
       let attemptsLeft: number | null = null;
       let accountLocked = false;
-      let errorHttpStatus: number | undefined;
+      let errorMessage = "Authentication failed";
 
-      // Kiểm tra status code 403 từ nhiều nguồn khác nhau
-      if (apiError.response?.status === 403) {
-        accountLocked = true;
-        errorHttpStatus = 403;
-      } else if (
-        apiError.originalError &&
-        typeof apiError.originalError === "object"
-      ) {
+      console.log("Error response data:", responseData);
+
+      // Kiểm tra response để lấy thông tin
+      if (responseData) {
+        // Lấy message từ response
+        if (responseData.message) {
+          errorMessage = responseData.message;
+          console.log("Error message from response:", errorMessage);
+        }
+
+        // Kiểm tra remaining attempts từ cả hai nơi
+        if (responseData.remainingAttempts !== undefined) {
+          attemptsLeft = responseData.remainingAttempts;
+          console.log("Remaining attempts from direct property:", attemptsLeft);
+        } else if (responseData.extraInfo?.remainingAttempts !== undefined) {
+          attemptsLeft = responseData.extraInfo.remainingAttempts;
+          console.log("Remaining attempts from extraInfo:", attemptsLeft);
+        }
+
+        // Kiểm tra account locked
         if (
-          "status" in apiError.originalError &&
-          apiError.originalError.status === 403
+          responseData.errorCode === "ACCOUNT_BLOCKED" ||
+          responseData.errorCode === "ACCOUNT_LOCKED" ||
+          (errorMessage &&
+            (errorMessage.includes("locked") ||
+              errorMessage.includes("blocked"))) ||
+          attemptsLeft === 0
         ) {
           accountLocked = true;
-          errorHttpStatus = 403;
+          console.log("Account is locked based on response");
         }
       }
 
-      // Kiểm tra nếu error là ServiceError, trích xuất remainingAttempts từ đó
-      if (
-        error instanceof ServiceError &&
-        error.getRemainingAttempts() !== undefined
-      ) {
-        attemptsLeft = error.getRemainingAttempts() ?? null;
-        console.log(
-          "Extracted remainingAttempts from ServiceError:",
-          attemptsLeft
-        );
-      }
-
-      // Truy cập dữ liệu từ error.originalError?.originalError?.response?.data (cấu trúc lỗi từ Axios)
-      if (
-        apiError.originalError &&
-        typeof apiError.originalError === "object" &&
-        "originalError" in apiError.originalError
-      ) {
-        const axiosError = apiError.originalError
-          .originalError as AxiosErrorType;
-        if (axiosError && axiosError.response && axiosError.response.data) {
-          responseData = axiosError.response.data;
-          console.log(
-            "Found responseData in nested originalError:",
-            responseData
-          );
-
-          // Extract remainingAttempts từ response data nếu có
-          if (responseData && typeof responseData === "object") {
-            if (
-              "remainingAttempts" in responseData &&
-              responseData.remainingAttempts !== undefined
-            ) {
-              attemptsLeft = responseData.remainingAttempts as number;
-            } else if (
-              "extraInfo" in responseData &&
-              responseData.extraInfo &&
-              typeof responseData.extraInfo === "object" &&
-              "remainingAttempts" in responseData.extraInfo &&
-              responseData.extraInfo.remainingAttempts !== undefined
-            ) {
-              attemptsLeft = responseData.extraInfo.remainingAttempts as number;
-            }
-
-            // Kiểm tra xem có phải tài khoản bị khóa không
-            if (
-              responseData.errorCode === "ACCOUNT_BLOCKED" ||
-              responseData.errorCode === "ACCOUNT_LOCKED" ||
-              responseData.code === "ACCOUNT_LOCKED" ||
-              (responseData.message &&
-                (responseData.message.includes("locked") ||
-                  responseData.message.includes("blocked")))
-            ) {
-              accountLocked = true;
-            }
-          }
-        }
-      }
-
-      // Nếu không tìm thấy từ trên, thử tìm từ apiError.response?.data
-      if (!responseData && apiError.response?.data) {
-        responseData = apiError.response.data;
-        console.log("Using direct responseData:", responseData);
-
-        // Kiểm tra xem responseData có chứa thông tin về khóa tài khoản không
-        if (responseData && typeof responseData === "object") {
-          if (
-            responseData.errorCode === "ACCOUNT_BLOCKED" ||
-            responseData.errorCode === "ACCOUNT_LOCKED" ||
-            responseData.code === "ACCOUNT_LOCKED" ||
-            (responseData.message &&
-              (responseData.message.includes("locked") ||
-                responseData.message.includes("blocked")))
-          ) {
-            accountLocked = true;
-          }
-        }
-      }
-
-      console.log("Response data:", responseData);
-      console.log("Attempts left:", attemptsLeft);
-      console.log("Is account locked:", accountLocked);
-      console.log("HTTP Status:", errorHttpStatus);
-
-      // Cập nhật UI dựa trên thông tin từ BE
+      // Cập nhật state dựa trên response
       if (attemptsLeft !== null) {
         setRemainingAttempts(attemptsLeft);
+        console.log("Setting remaining attempts to:", attemptsLeft);
       }
 
-      // Cập nhật trạng thái khóa từ BE
       if (accountLocked) {
         setIsAccountLocked(true);
       }
 
-      // Thiết lập thông báo lỗi từ BE
-      let message = "Authentication failed";
-      if (
-        typeof apiError.response?.data?.message === "string" &&
-        apiError.response.data.message.trim()
-      ) {
-        message = apiError.response.data.message;
-      } else if (
-        responseData &&
-        typeof responseData === "object" &&
-        "message" in responseData &&
-        typeof responseData.message === "string"
-      ) {
-        message = responseData.message;
-      } else if (typeof apiError.message === "string") {
-        message = apiError.message;
-      }
+      setError(errorMessage);
 
-      console.log("Error message:", message);
-      setError(message);
-
-      // Ưu tiên xử lý tài khoản bị khóa
-      if (accountLocked || errorHttpStatus === 403) {
-        const lockMessage =
-          "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance.";
-
+      // Hiển thị thông báo phù hợp
+      if (accountLocked) {
         notification.error({
           message: "Account Locked",
-          description: lockMessage
+          description:
+            "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance."
         });
-
-        setError(lockMessage);
-        setIsAccountLocked(true);
-      }
-      // Hiển thị thông báo về số lần thử còn lại
-      else if (attemptsLeft !== null && attemptsLeft > 0) {
-        const remainingNum = Number(attemptsLeft);
+      } else if (attemptsLeft !== null && attemptsLeft > 0) {
         const message = `Invalid verification code. You have ${attemptsLeft} attempt${
-          remainingNum === 1 ? "" : "s"
+          attemptsLeft === 1 ? "" : "s"
         } remaining before your account is locked.`;
         notification.warning({
           message: "Invalid Code",
           description: message
         });
         setError(message);
-      }
-      // Hiển thị thông báo lỗi chung
-      else {
+      } else {
         notification.error({
           message: "Verification Error",
-          description: message
+          description: errorMessage
         });
       }
+    } catch (error) {
+      console.error("OTP authentication error:", error);
+
+      // Xử lý trường hợp lỗi mạng hoặc lỗi khác
+      setError("Network error or server unavailable. Please try again later.");
+
+      notification.error({
+        message: "Connection Error",
+        description:
+          "Could not connect to the authentication server. Please try again later."
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
       style={{
+        minHeight: "100vh",
+        background: "linear-gradient(145deg, #2E2E2E 0%, #1A1A1A 100%)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        minHeight: "100vh",
-        backgroundColor: "#f0f2f5"
+        padding: "20px",
+        position: "relative",
+        overflow: "hidden"
       }}
     >
-      {isSubmitting && <LoadingState tip="Verifying..." fullscreen={true} />}
+      <div
+        style={{
+          position: "absolute",
+          top: "-100px",
+          left: "-100px",
+          width: "300px",
+          height: "300px",
+          background:
+            "radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent)",
+          pointerEvents: "none"
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-150px",
+          right: "-150px",
+          width: "400px",
+          height: "400px",
+          background:
+            "radial-gradient(circle, rgba(255, 255, 255, 0.15), transparent)",
+          pointerEvents: "none"
+        }}
+      />
+
+      {isSubmitting && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.85)",
+            zIndex: 1000,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "column",
+            gap: "20px"
+          }}
+        >
+          <motion.div
+            animate={{
+              rotate: 360,
+              scale: [1, 1.2, 1]
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: 1.5,
+              ease: "easeInOut"
+            }}
+            style={{
+              width: "60px",
+              height: "60px",
+              border: `4px solid ${COLORS[12]}`,
+              borderTop: "4px solid transparent",
+              borderRadius: "50%"
+            }}
+          />
+          <Text style={{ color: "#fff", fontSize: "16px" }}>Verifying...</Text>
+        </motion.div>
+      )}
 
       <Card
         style={{
-          width: 400,
-          boxShadow: "0 6px 16px rgba(0, 0, 0, 0.1)",
-          borderRadius: "10px"
+          width: 450,
+          maxWidth: "95%",
+          background: "rgba(255, 255, 255, 0.95)",
+          borderRadius: "20px",
+          boxShadow:
+            "0 12px 40px rgba(0, 0, 0, 0.2), 0 0 20px rgba(255, 255, 255, 0.1)",
+          border: "none",
+          padding: "20px",
+          position: "relative",
+          overflow: "hidden"
         }}
       >
-        <Title level={3} style={{ textAlign: "center", color: COLORS[12] }}>
-          Email Verification
-        </Title>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: "20px",
+            border: "2px solid transparent",
+            background: `linear-gradient(45deg, ${COLORS[12]}, ${COLORS[10]})`,
+            zIndex: -1
+          }}
+        />
 
-        <Text
-          style={{ display: "block", marginBottom: 20, textAlign: "center" }}
-        >
-          Please enter the verification code sent to your email
-        </Text>
+        <div style={{ textAlign: "center", marginBottom: 30 }}>
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, ${COLORS[12]} 0%, ${COLORS[10]} 100%)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+              boxShadow: "0 6px 20px rgba(0, 0, 0, 0.3)"
+            }}
+          >
+            <MailOutlined style={{ fontSize: 36, color: "#fff" }} />
+          </motion.div>
+
+          <Title
+            level={3}
+            style={{
+              color: COLORS[9],
+              margin: 0,
+              fontSize: 28,
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 700,
+              letterSpacing: "0.5px"
+            }}
+          >
+            Email Verification
+          </Title>
+          <Text
+            style={{
+              display: "block",
+              marginTop: 10,
+              color: "#666",
+              fontSize: 16,
+              fontFamily: "'Inter', sans-serif"
+            }}
+          >
+            Please enter the verification code sent to your email
+          </Text>
+        </div>
 
         <Form layout="vertical" onFinish={handleOtpSubmit}>
           <Form.Item>
-            <Input
-              prefix={<MailOutlined />}
-              size="large"
-              placeholder="Enter 6-digit code"
+            <CustomVerificationCodeInput
               value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value)}
-              maxLength={6}
-              autoFocus
-              style={{
-                textAlign: "center",
-                letterSpacing: "8px",
-                fontWeight: "bold"
-              }}
+              onChange={setOtpCode}
               disabled={isAccountLocked}
             />
           </Form.Item>
 
           {error && (
-            <div
-              style={{ color: "red", marginBottom: 16, textAlign: "center" }}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                color: "#ff4d4f",
+                marginBottom: 16,
+                textAlign: "center",
+                padding: "12px 15px",
+                background: "linear-gradient(90deg, #fff2f0, #ffe6e6)",
+                borderRadius: "10px",
+                border: "1px solid #ffccc7",
+                boxShadow: "0 4px 10px rgba(255, 77, 79, 0.1)",
+                fontFamily: "'Inter', sans-serif"
+              }}
             >
               {error}
-            </div>
+            </motion.div>
           )}
 
           {remainingAttempts !== null &&
             !error?.includes(`${remainingAttempts} attempt`) &&
             !isAccountLocked && (
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 style={{
-                  color: "orange",
+                  color: "#fa8c16",
                   marginBottom: 16,
-                  textAlign: "center"
+                  textAlign: "center",
+                  padding: "12px 15px",
+                  background: "linear-gradient(90deg, #fffbe6, #fff1b8)",
+                  borderRadius: "10px",
+                  border: "1px solid #ffe58f",
+                  boxShadow: "0 4px 10px rgba(250, 140, 22, 0.1)",
+                  fontFamily: "'Inter', sans-serif"
                 }}
               >
                 You have {remainingAttempts} attempt
                 {remainingAttempts === 1 ? "" : "s"} remaining before your
                 account is locked.
-              </div>
+              </motion.div>
             )}
 
           {isAccountLocked && (
-            <div
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               style={{
-                color: "red",
                 marginBottom: 16,
                 textAlign: "center",
-                padding: "10px",
-                border: "1px solid #ffbdbd",
-                backgroundColor: "#fff2f2",
-                borderRadius: "4px"
+                padding: "20px",
+                background: "linear-gradient(90deg, #fff2f0, #ffe6e6)",
+                borderRadius: "12px",
+                border: "1px solid #ffccc7",
+                boxShadow: "0 4px 10px rgba(255, 77, 79, 0.1)"
               }}
             >
-              <p style={{ fontWeight: "bold", margin: 0 }}>Account Locked</p>
-              <p style={{ margin: "5px 0 0 0" }}>
-                Your account has been locked due to multiple failed
-                authentication attempts.
-              </p>
-              <p style={{ margin: "5px 0 0 0", fontWeight: "bold" }}>
-                Please contact the administrator for assistance.
-              </p>
-              <p style={{ margin: "5px 0 0 0", fontSize: "0.9em" }}>
-                Email: tuphung0107@gmail.com
-              </p>
+              <div
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: "50%",
+                  background: "#ff4d4f",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 15px",
+                  boxShadow: "0 4px 10px rgba(255, 77, 79, 0.2)"
+                }}
+              >
+                <LockOutlined style={{ fontSize: 24, color: "#fff" }} />
+              </div>
+              <Title
+                level={4}
+                style={{
+                  color: "#ff4d4f",
+                  margin: "0 0 10px",
+                  fontFamily: "'Poppins', sans-serif"
+                }}
+              >
+                Account Locked
+              </Title>
+              <Text
+                style={{
+                  color: "#666",
+                  display: "block",
+                  marginBottom: 10,
+                  fontFamily: "'Inter', sans-serif"
+                }}
+              >
+                Your account has been locked due to multiple failed attempts.
+              </Text>
+              <Text
+                strong
+                style={{
+                  color: "#666",
+                  display: "block",
+                  marginBottom: 5,
+                  fontFamily: "'Inter', sans-serif"
+                }}
+              >
+                Contact the administrator:
+              </Text>
+              <a
+                href="mailto:tuphung0107@gmail.com"
+                style={{ color: COLORS[8], fontWeight: 600, fontSize: 16 }}
+              >
+                tuphung0107@gmail.com
+              </a>
 
-              {/* Admin controls - chỉ hiển thị khi ở chế độ admin */}
               {isAdminMode && (
                 <Button
                   type="primary"
                   danger
-                  style={{ marginTop: 10 }}
+                  style={{
+                    marginTop: 15,
+                    borderRadius: "8px",
+                    height: "40px",
+                    fontFamily: "'Inter', sans-serif",
+                    fontWeight: 600,
+                    background: "linear-gradient(45deg, #ff4d4f, #ff7875)",
+                    border: "none",
+                    boxShadow: "0 4px 10px rgba(255, 77, 79, 0.3)"
+                  }}
                   onClick={handleAdminUnlock}
                 >
-                  Admin: Unlock Account
+                  Unlock Account
                 </Button>
               )}
-            </div>
+            </motion.div>
           )}
 
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              style={{ width: "100%", marginBottom: 10 }}
-              disabled={isAccountLocked}
-            >
-              Verify
-            </Button>
+          <Form.Item style={{ marginBottom: 10, marginTop: 24 }}>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                style={{
+                  width: "100%",
+                  height: "50px",
+                  borderRadius: "12px",
+                  fontSize: "17px",
+                  fontWeight: 600,
+                  fontFamily: "'Inter', sans-serif",
+                  marginBottom: 16,
+                  background: isAccountLocked
+                    ? "#d9d9d9"
+                    : `linear-gradient(45deg, ${COLORS[12]}, ${COLORS[10]})`,
+                  border: "none",
+                  boxShadow: "0 6px 15px rgba(0, 0, 0, 0.2)",
+                  transition: "all 0.3s ease"
+                }}
+                disabled={isAccountLocked || !otpCode || otpCode.length !== 6}
+              >
+                Verify Code
+              </Button>
+            </motion.div>
 
-            <Button onClick={onBack} style={{ width: "100%" }}>
-              Back to Login
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={onBack}
+                style={{
+                  width: "100%",
+                  height: "50px",
+                  borderRadius: "12px",
+                  fontSize: "17px",
+                  fontWeight: 600,
+                  fontFamily: "'Inter', sans-serif",
+                  border: `2px solid ${COLORS[12]}`,
+                  color: COLORS[5],
+                  background: "transparent",
+                  boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
+                  transition: "all 0.3s ease"
+                }}
+              >
+                Back to Login
+              </Button>
+            </motion.div>
           </Form.Item>
         </Form>
 
-        {/* Admin button - nhấn để hiện prompt nhập mật khẩu admin */}
-        <div style={{ textAlign: "center", marginTop: 20 }}>
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: 20,
+            borderTop: "1px solid #f0f0f0",
+            paddingTop: 20
+          }}
+        >
           <Button
             type="link"
             size="small"
             onClick={enableAdminMode}
-            style={{ fontSize: "0.8em", color: "#d9d9d9" }}
+            style={{
+              fontSize: "14px",
+              color: isAdminMode ? COLORS[12] : "#d9d9d9",
+              fontFamily: "'Inter', sans-serif",
+              transition: "all 0.3s ease"
+            }}
           >
             {isAdminMode ? "Admin Mode Enabled" : "Admin"}
           </Button>
         </div>
       </Card>
-    </div>
+    </motion.div>
   );
 };
 
