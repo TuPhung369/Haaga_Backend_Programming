@@ -248,6 +248,8 @@ export interface User {
   email: string;
   roles: Role[];
   active?: boolean;
+  isBlock?: boolean;
+  timeTried?: number;
   totpSecurity?: {
     enabled: boolean;
     deviceName?: string;

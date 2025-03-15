@@ -51,98 +51,7 @@ interface AxiosErrorType {
   status?: number;
 }
 
-const LOCK_STORAGE_KEY = "locked_accounts";
-const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 phút (tính bằng ms)
-
-// Hàm kiểm tra xem username có đang bị khóa không
-const isUserLocked = (username: string): boolean => {
-  try {
-    const lockedAccountsStr = localStorage.getItem(LOCK_STORAGE_KEY);
-    if (!lockedAccountsStr) return false;
-
-    const lockedAccounts = JSON.parse(lockedAccountsStr);
-    const accountData = lockedAccounts[username];
-
-    if (!accountData) return false;
-
-    // Kiểm tra xem khóa đã hết hạn chưa
-    const lockExpiry = accountData.expiresAt;
-    const now = Date.now();
-
-    if (now > lockExpiry) {
-      // Khóa đã hết hạn, xóa khỏi localStorage
-      unlockUser(username);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error checking lock status:", error);
-    return false;
-  }
-};
-
-// Hàm để khóa một username
-const lockUser = (username: string): void => {
-  try {
-    const now = Date.now();
-    const expiresAt = now + LOCK_DURATION_MS;
-
-    let lockedAccounts = {};
-    const lockedAccountsStr = localStorage.getItem(LOCK_STORAGE_KEY);
-
-    if (lockedAccountsStr) {
-      lockedAccounts = JSON.parse(lockedAccountsStr);
-    }
-
-    lockedAccounts[username] = {
-      lockedAt: now,
-      expiresAt: expiresAt
-    };
-
-    localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(lockedAccounts));
-  } catch (error) {
-    console.error("Error locking user:", error);
-  }
-};
-
-// Hàm để mở khóa username
-const unlockUser = (username: string): void => {
-  try {
-    const lockedAccountsStr = localStorage.getItem(LOCK_STORAGE_KEY);
-    if (!lockedAccountsStr) return;
-
-    const lockedAccounts = JSON.parse(lockedAccountsStr);
-
-    if (lockedAccounts[username]) {
-      delete lockedAccounts[username];
-      localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(lockedAccounts));
-    }
-  } catch (error) {
-    console.error("Error unlocking user:", error);
-  }
-};
-
-// Hàm để lấy thời gian còn lại (ms) trước khi tài khoản được mở khóa
-const getLockRemainingTime = (username: string): number => {
-  try {
-    const lockedAccountsStr = localStorage.getItem(LOCK_STORAGE_KEY);
-    if (!lockedAccountsStr) return 0;
-
-    const lockedAccounts = JSON.parse(lockedAccountsStr);
-    const accountData = lockedAccounts[username];
-
-    if (!accountData) return 0;
-
-    const lockExpiry = accountData.expiresAt;
-    const now = Date.now();
-
-    return Math.max(0, lockExpiry - now);
-  } catch (error) {
-    console.error("Error getting lock remaining time:", error);
-    return 0;
-  }
-};
+const MAX_ATTEMPTS = 3; // Số lần thử tối đa - chỉ sử dụng để hiển thị UI
 
 const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
   username,
@@ -157,54 +66,70 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
     null
   );
   const [isAccountLocked, setIsAccountLocked] = useState<boolean>(false);
+  const [isAdminMode, setIsAdminMode] = useState<boolean>(false); // State để kiểm tra có đang ở chế độ admin không
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Kiểm tra trạng thái khóa khi component khởi tạo
-  useEffect(() => {
-    // Hàm để cập nhật lỗi hiển thị với thời gian còn lại
-    const updateLockErrorMessage = () => {
-      if (isUserLocked(username)) {
-        const remainingTime = getLockRemainingTime(username);
+  // Bật chế độ admin (chỉ dành cho mục đích demo, trong thực tế cần xác thực admin)
+  const enableAdminMode = () => {
+    const adminPassword = prompt("Enter admin password:");
+    // Demo: admin password là 'admin123'
+    if (adminPassword === "admin123") {
+      setIsAdminMode(true);
+      notification.success({
+        message: "Admin Mode Enabled",
+        description: "You can now unlock accounts."
+      });
+    } else {
+      notification.error({
+        message: "Authentication Failed",
+        description: "Incorrect admin password."
+      });
+    }
+  };
 
-        if (remainingTime <= 0) {
-          // Đã hết thời gian khóa
-          setIsAccountLocked(false);
-          setError(null);
-          return false;
-        } else {
-          // Vẫn còn thời gian khóa
-          const minutes = Math.ceil(remainingTime / 60000);
-          setError(
-            `Account locked: Too many failed attempts. Please try again in ${minutes} minute(s).`
-          );
-          return true;
-        }
-      }
-      return false;
-    };
-
-    // Kiểm tra trạng thái khóa khi khởi tạo
-    const locked = updateLockErrorMessage();
-    setIsAccountLocked(locked);
-
-    // Thiết lập timer nếu tài khoản đang bị khóa
-    let timer: ReturnType<typeof setInterval> | null = null;
-
-    if (locked) {
-      timer = setInterval(() => {
-        // Nếu không còn bị khóa nữa thì xóa timer
-        if (!updateLockErrorMessage()) {
-          if (timer) clearInterval(timer);
-        }
-      }, 60000); // Cập nhật mỗi phút
+  // Hàm để admin mở khóa tài khoản (trong thực tế, đây sẽ là API call đến BE)
+  const handleAdminUnlock = () => {
+    if (!isAdminMode) {
+      notification.error({
+        message: "Permission Denied",
+        description: "You must be in admin mode to unlock accounts."
+      });
+      return;
     }
 
-    // Cleanup
-    return () => {
-      if (timer) clearInterval(timer);
-    };
+    try {
+      // TODO: Trong thực tế, đây sẽ là API call đến BE để mở khóa tài khoản
+      // Ví dụ: await adminService.unlockAccount(username);
+
+      setIsAccountLocked(false);
+      setRemainingAttempts(MAX_ATTEMPTS);
+      notification.success({
+        message: "Account Unlocked",
+        description: `The account ${username} has been successfully unlocked.`
+      });
+      setError(null);
+    } catch (err) {
+      console.error("Error unlocking account:", err);
+      notification.error({
+        message: "Error",
+        description: "Failed to unlock the account. Please try again."
+      });
+    }
+  };
+
+  // Kiểm tra trạng thái khóa ban đầu thông qua API
+  useEffect(() => {
+    // Trong thực tế, đây sẽ là một API call để kiểm tra trạng thái tài khoản
+    // Ví dụ: checkAccountStatus(username).then(status => {
+    //   setIsAccountLocked(status.isBlocked);
+    //   setRemainingAttempts(MAX_ATTEMPTS - status.attemptTried);
+    // })
+
+    // Hiện tại, mô phỏng việc kiểm tra từ response của API
+    setIsAccountLocked(false);
+    setRemainingAttempts(MAX_ATTEMPTS);
   }, [username]);
 
   const handleOtpSubmit = async () => {
@@ -215,38 +140,15 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
 
     // Kiểm tra nếu tài khoản đã bị khóa
     if (isAccountLocked) {
-      const remainingTime = getLockRemainingTime(username);
-      const minutes = Math.ceil(remainingTime / 60000);
-
       notification.error({
         message: "Account Locked",
-        description: `Your account has been temporarily locked due to too many failed attempts. Please try again in ${minutes} minute(s).`
+        description:
+          "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance."
       });
-      return;
-    }
-
-    // Kiểm tra nếu số lần thử còn lại là 0, ngăn việc gọi API
-    if (remainingAttempts !== null && remainingAttempts <= 0) {
-      // Khóa tài khoản
-      lockUser(username);
-      setIsAccountLocked(true);
-
-      const remainingTime = getLockRemainingTime(username);
-      const minutes = Math.ceil(remainingTime / 60000);
-
-      notification.error({
-        message: "Account Locked",
-        description: `Your account has been temporarily locked due to too many failed attempts. Please try again in ${minutes} minute(s).`
-      });
-
-      setError(
-        `Account locked: Too many failed attempts. Please try again in ${minutes} minute(s).`
-      );
       return;
     }
 
     setError(null);
-    setRemainingAttempts(null);
     setIsSubmitting(true);
 
     try {
@@ -257,6 +159,7 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
       });
 
       if (response && response.result && response.result.token) {
+        // Đăng nhập thành công
         dispatch(
           setAuthData({
             token: response.result.token,
@@ -400,9 +303,17 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
       console.log("Is account locked:", accountLocked);
       console.log("HTTP Status:", errorHttpStatus);
 
-      setRemainingAttempts(attemptsLeft);
+      // Cập nhật UI dựa trên thông tin từ BE
+      if (attemptsLeft !== null) {
+        setRemainingAttempts(attemptsLeft);
+      }
 
-      // Thiết lập lỗi và số lần thử còn lại
+      // Cập nhật trạng thái khóa từ BE
+      if (accountLocked) {
+        setIsAccountLocked(true);
+      }
+
+      // Thiết lập thông báo lỗi từ BE
       let message = "Authentication failed";
       if (
         typeof apiError.response?.data?.message === "string" &&
@@ -421,68 +332,35 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
       }
 
       console.log("Error message:", message);
-
       setError(message);
-      if (attemptsLeft !== null) {
-        setRemainingAttempts(attemptsLeft);
-      }
 
-      // Ưu tiên xử lý tài khoản bị khóa dựa trên nhiều dấu hiệu
-      if (
-        accountLocked ||
-        errorHttpStatus === 403 ||
-        (attemptsLeft !== null && attemptsLeft <= 0)
-      ) {
-        // Khóa tài khoản trong localStorage
-        lockUser(username);
-        setIsAccountLocked(true);
-
-        const remainingTime = getLockRemainingTime(username);
-        const minutes = Math.ceil(remainingTime / 60000);
-
-        const lockMessage = `Your account has been temporarily locked due to too many failed attempts. Please try again in ${minutes} minute(s).`;
+      // Ưu tiên xử lý tài khoản bị khóa
+      if (accountLocked || errorHttpStatus === 403) {
+        const lockMessage =
+          "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance.";
 
         notification.error({
           message: "Account Locked",
           description: lockMessage
         });
 
-        setError(
-          `Account locked: Too many failed attempts. Please try again in ${minutes} minute(s).`
-        );
+        setError(lockMessage);
+        setIsAccountLocked(true);
       }
-      // Kiểm tra nếu có thông tin về số lần thử còn lại
-      else if (attemptsLeft !== null) {
+      // Hiển thị thông báo về số lần thử còn lại
+      else if (attemptsLeft !== null && attemptsLeft > 0) {
         const remainingNum = Number(attemptsLeft);
         const message = `Invalid verification code. You have ${attemptsLeft} attempt${
           remainingNum === 1 ? "" : "s"
-        } remaining before your account is temporarily locked.`;
+        } remaining before your account is locked.`;
         notification.warning({
           message: "Invalid Code",
           description: message
         });
         setError(message);
       }
-      // Hiển thị thông báo lỗi tùy theo tình huống
-      else if (
-        message.toLowerCase().includes("invalid") ||
-        message.includes("Invalid email verification") ||
-        message.includes("verification code")
-      ) {
-        // Sử dụng số lần thử còn lại từ API nếu có, mặc định là 3 nếu không có
-        const remaining = attemptsLeft !== null ? attemptsLeft : 3;
-        setRemainingAttempts(remaining);
-
-        const remainingNum = Number(remaining);
-        const warningMessage = `${message} You have ${remaining} attempt${
-          remainingNum === 1 ? "" : "s"
-        } remaining before your account is temporarily locked.`;
-
-        notification.warning({
-          message: "Invalid Code",
-          description: warningMessage
-        });
-      } else {
+      // Hiển thị thông báo lỗi chung
+      else {
         notification.error({
           message: "Verification Error",
           description: message
@@ -537,6 +415,7 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
                 letterSpacing: "8px",
                 fontWeight: "bold"
               }}
+              disabled={isAccountLocked}
             />
           </Form.Item>
 
@@ -549,7 +428,8 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
           )}
 
           {remainingAttempts !== null &&
-            !error?.includes(`${remainingAttempts} attempt`) && (
+            !error?.includes(`${remainingAttempts} attempt`) &&
+            !isAccountLocked && (
               <div
                 style={{
                   color: "orange",
@@ -557,8 +437,9 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
                   textAlign: "center"
                 }}
               >
-                You have {remainingAttempts} attempt(s) remaining before your
-                account is temporarily locked.
+                You have {remainingAttempts} attempt
+                {remainingAttempts === 1 ? "" : "s"} remaining before your
+                account is locked.
               </div>
             )}
 
@@ -574,15 +455,29 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
                 borderRadius: "4px"
               }}
             >
-              <p style={{ fontWeight: "bold", margin: 0 }}>
-                Account Temporarily Locked
-              </p>
+              <p style={{ fontWeight: "bold", margin: 0 }}>Account Locked</p>
               <p style={{ margin: "5px 0 0 0" }}>
-                Due to multiple failed attempts, your account has been locked.
-                {error && error.includes("minute")
-                  ? ` ${error.substring(error.indexOf("Please"))}`
-                  : " Please try again later."}
+                Your account has been locked due to multiple failed
+                authentication attempts.
               </p>
+              <p style={{ margin: "5px 0 0 0", fontWeight: "bold" }}>
+                Please contact the administrator for assistance.
+              </p>
+              <p style={{ margin: "5px 0 0 0", fontSize: "0.9em" }}>
+                Email: tuphung0107@gmail.com
+              </p>
+
+              {/* Admin controls - chỉ hiển thị khi ở chế độ admin */}
+              {isAdminMode && (
+                <Button
+                  type="primary"
+                  danger
+                  style={{ marginTop: 10 }}
+                  onClick={handleAdminUnlock}
+                >
+                  Admin: Unlock Account
+                </Button>
+              )}
             </div>
           )}
 
@@ -601,10 +496,21 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
             </Button>
           </Form.Item>
         </Form>
+
+        {/* Admin button - nhấn để hiện prompt nhập mật khẩu admin */}
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <Button
+            type="link"
+            size="small"
+            onClick={enableAdminMode}
+            style={{ fontSize: "0.8em", color: "#d9d9d9" }}
+          >
+            {isAdminMode ? "Admin Mode Enabled" : "Admin"}
+          </Button>
+        </div>
       </Card>
     </div>
   );
 };
 
 export default EmailOtpAuthComponent;
-

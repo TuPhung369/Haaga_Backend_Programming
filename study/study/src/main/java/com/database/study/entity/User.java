@@ -30,9 +30,15 @@ public class User {
   @Builder.Default
   boolean active = false;
 
+  @Column(nullable = false)
+  @Builder.Default
+  boolean isBlock = false;
+
+  @Column(nullable = false)
+  @Builder.Default
+  int timeTried = 0;
+
   @ManyToMany(fetch = FetchType.EAGER)
-  @JoinTable(name = "user_roles",
-      joinColumns = @JoinColumn(name = "user_id"),
-                inverseJoinColumns = @JoinColumn(name = "role_id"))
+  @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
   Set<Role> roles;
 }

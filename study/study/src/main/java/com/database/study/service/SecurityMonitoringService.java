@@ -1,18 +1,15 @@
 package com.database.study.service;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.database.study.entity.BlockList;
-import com.database.study.repository.BlockListRepository;
+import com.database.study.entity.User;
+import com.database.study.repository.UserRepository;
 import com.database.study.repository.ActiveTokenRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +35,7 @@ public class SecurityMonitoringService {
   private int blockDurationMinutes;
 
   @Autowired
-  private BlockListRepository blockListRepository;
+  private UserRepository userRepository;
 
   @Autowired
   private ActiveTokenRepository activeTokenRepository;
@@ -48,74 +45,61 @@ public class SecurityMonitoringService {
    * 
    * @param username           Username
    * @param email              Email address (can be null)
-   * @param request            HTTP request for IP tracking
-   * @param authenticationType Type of authentication being performed (LOGIN,
-   *                           PASSWORD_RESET, etc.)
-   * @return true if the user should be blocked due to too many failed attempts
+   * @param request            HTTP request
+   * @param authenticationType Type of authentication (login, password reset,
+   *                           etc.)
+   * @return true if user is now blocked, false otherwise
    */
   @Transactional
   public boolean trackFailedAttempt(String username, String email, HttpServletRequest request,
       String authenticationType) {
+
     String ipAddress = getClientIp(request);
-    log.info("Tracking failed authentication attempt for username: {}, email: {}, IP: {}, type: {}",
-        username, email, ipAddress, authenticationType);
+    String cacheKey = generateCacheKey(username, email, ipAddress);
 
-    // Check if already blocked
-    if (isBlocked(username, email, ipAddress)) {
-      log.warn("Attempt from already blocked user/IP: {}/{}/{}", username, email, ipAddress);
-      return true;
-    }
+    // Get or create counter from cache
+    FailedAttemptsCounter counter = failedAttemptsCache.computeIfAbsent(cacheKey,
+        k -> new FailedAttemptsCounter(username, email, ipAddress, authenticationType));
 
-    // Generate cache key that includes the authentication type
-    // This ensures different authentication methods don't affect each other
-    String cacheKey = generateCacheKey(username, email, ipAddress) + "_" + authenticationType;
-    log.debug("Generated cache key: {}", cacheKey);
-
-    // Get or create counter
-    FailedAttemptsCounter counter = failedAttemptsCache.computeIfAbsent(
-        cacheKey,
-        k -> {
-          log.debug("Creating new failed attempts counter for key: {}", k);
-          return new FailedAttemptsCounter(username, email, ipAddress, authenticationType);
-        });
-
-    // Increment counter
+    // Increment attempt counter
     int attempts = counter.incrementAndGet();
-    log.info("Failed attempts for {}: {} of {} (max)", cacheKey, attempts, maxFailedAttempts);
+    log.info("Failed {} attempt #{} for user: {}, IP: {}", authenticationType, attempts, username, ipAddress);
 
-    // Log all active cache entries for this user for debugging
-    logActiveCacheEntries(username);
+    // Also update the user's timeTried in the database
+    User user = userRepository.findByUsername(username).orElse(null);
+    if (user != null) {
+      user.setTimeTried(user.getTimeTried() + 1);
 
-    // If max attempts reached, block the user/IP
-    if (attempts >= maxFailedAttempts) {
-      log.warn("Max failed attempts ({}) reached for {}, adding to block list", maxFailedAttempts, cacheKey);
-      try {
-        addToBlockList(counter);
-        log.info("Successfully added to block list: {}", cacheKey);
-      } catch (Exception e) {
-        log.error("Error adding to block list: {}", e.getMessage(), e);
+      // If max attempts reached, block the user
+      if (user.getTimeTried() >= maxFailedAttempts) {
+        log.warn("User {} blocked due to too many failed attempts", username);
+        user.setBlock(true);
+
+        // Revoke all active tokens for this user
+        revokeActiveTokens(username);
       }
 
-      // Remove from cache
-      failedAttemptsCache.remove(cacheKey);
+      userRepository.save(user);
+      return user.isBlock();
+    }
+
+    // If attempts >= max and user exists in DB, block them
+    if (attempts >= maxFailedAttempts) {
+      log.warn("Account with username {} may be under attack. Max failed attempts reached.", username);
+      // Log active cache entries for debugging
+      logActiveCacheEntries(username);
       return true;
-    } else {
-      log.debug("User not blocked yet. Current attempts: {}/{}", attempts, maxFailedAttempts);
     }
 
     return false;
   }
 
-  // Helper method to log all active cache entries for a username
   private void logActiveCacheEntries(String username) {
-    if (username == null || username.isEmpty()) {
-      return;
-    }
-
-    log.debug("Active cache entries for user {}:", username);
+    // Debug logging to show all cache entries for this user
     failedAttemptsCache.forEach((key, value) -> {
       if (key.contains(username)) {
-        log.debug("  {} -> attempts: {}", key, value.getAttempts());
+        log.debug("Active cache entry: key={}, attempts={}, type={}",
+            key, value.getAttempts(), value.getAuthenticationType());
       }
     });
   }
@@ -123,114 +107,35 @@ public class SecurityMonitoringService {
   /**
    * Reset failed attempts counter on successful authentication
    */
+  @Transactional
   public void resetFailedAttempts(String username, String email, HttpServletRequest request) {
     String ipAddress = getClientIp(request);
+    String cacheKey = generateCacheKey(username, email, ipAddress);
+    failedAttemptsCache.remove(cacheKey);
+    log.info("Reset failed attempts counter for user: {}", username);
 
-    // Generate base key without auth type
-    String baseKey = generateCacheKey(username, email, ipAddress);
-    log.info("Resetting failed attempts for base key: {}", baseKey);
-
-    // Remove all counter entries for this user/email/IP regardless of auth type
-    failedAttemptsCache.entrySet().removeIf(entry -> entry.getKey().startsWith(baseKey));
-
-    log.info("Reset all failed attempts counters for: {}", baseKey);
+    // Also reset the user's timeTried in the database
+    User user = userRepository.findByUsername(username).orElse(null);
+    if (user != null) {
+      user.setTimeTried(0);
+      user.setBlock(false);
+      userRepository.save(user);
+    }
   }
 
   /**
-   * Check if a user/email/IP is currently blocked
+   * Check if a user is blocked
    */
   public boolean isBlocked(String username, String email, String ipAddress) {
-    if (username == null && email == null && ipAddress == null) {
-      return false;
+    // Check the user's isBlock status in the database
+    User user = userRepository.findByUsername(username)
+        .orElseGet(() -> userRepository.findByEmail(email).orElse(null));
+
+    if (user != null) {
+      return user.isBlock();
     }
 
-    return blockListRepository.isBlocked(
-        username != null ? username : "",
-        email != null ? email : "",
-        ipAddress != null ? ipAddress : "",
-        LocalDateTime.now());
-  }
-
-  /**
-   * Add a user to the block list
-   */
-  @Transactional
-  public void addToBlockList(FailedAttemptsCounter counter) {
-    log.warn("Adding to block list: {}", counter);
-
-    LocalDateTime now = LocalDateTime.now();
-    LocalDateTime expiresAt = now.plusMinutes(blockDurationMinutes);
-
-    // Nếu đã có bản ghi đang active cho user/email này, hãy update nó thay vì tạo
-    // mới
-    List<BlockList> existingBlocks = new ArrayList<>();
-
-    if (counter.getUsername() != null && !counter.getUsername().isEmpty()) {
-      existingBlocks.addAll(findActiveBlocksByUsername(counter.getUsername(), now));
-    }
-
-    if (counter.getEmail() != null && !counter.getEmail().isEmpty()) {
-      existingBlocks.addAll(findActiveBlocksByEmail(counter.getEmail(), now));
-    }
-
-    if (counter.getIpAddress() != null && !counter.getIpAddress().isEmpty()) {
-      existingBlocks.addAll(findActiveBlocksByIpAddress(counter.getIpAddress(), now));
-    }
-
-    BlockList blockEntry;
-
-    if (!existingBlocks.isEmpty()) {
-      // Update existing block
-      blockEntry = existingBlocks.get(0);
-      blockEntry.setFailedAttempts(blockEntry.getFailedAttempts() + counter.getAttempts());
-      blockEntry.setReason("Too many failed " + counter.getAuthenticationType() + " attempts");
-      blockEntry.setBlockedTime(now);
-      blockEntry.setExpiresAt(expiresAt);
-      log.info("Updating existing block for: {}", counter.getUsername());
-    } else {
-      // Create new block
-      blockEntry = BlockList.builder()
-          .username(counter.getUsername())
-          .email(counter.getEmail())
-          .ipAddress(counter.getIpAddress())
-          .reason("Too many failed " + counter.getAuthenticationType() + " attempts")
-          .failedAttempts(counter.getAttempts())
-          .verificationType(counter.getAuthenticationType())
-          .blockedTime(now)
-          .expiresAt(expiresAt)
-          .build();
-      log.info("Creating new block for: {}", counter.getUsername());
-    }
-
-    BlockList savedBlock = blockListRepository.save(blockEntry);
-    log.info("Block saved successfully with ID: {}, expires at: {}", savedBlock.getId(), savedBlock.getExpiresAt());
-
-    // Revoke active tokens for this user
-    if (counter.getUsername() != null && !counter.getUsername().isEmpty()) {
-      log.info("Revoking active tokens for blocked user: {}", counter.getUsername());
-      revokeActiveTokens(counter.getUsername());
-    }
-  }
-
-  /**
-   * Find active blocks by username
-   */
-  private List<BlockList> findActiveBlocksByUsername(String username, LocalDateTime now) {
-    return blockListRepository.findActiveBlocksByUsername(username, now);
-  }
-
-  /**
-   * Find active blocks by email
-   */
-  private List<BlockList> findActiveBlocksByEmail(String email, LocalDateTime now) {
-    return blockListRepository.findActiveBlocksByEmail(email, now);
-  }
-
-  /**
-   * Find active blocks by IP address
-   */
-  private List<BlockList> findActiveBlocksByIpAddress(String ipAddress, LocalDateTime now) {
-    return blockListRepository.findActiveBlocksByIpAddress(ipAddress, now);
+    return false;
   }
 
   /**
@@ -238,31 +143,35 @@ public class SecurityMonitoringService {
    */
   @Transactional
   public void revokeActiveTokens(String username) {
-    if (username != null && !username.isEmpty()) {
-      activeTokenRepository.deleteByUsername(username);
-      log.info("Deleted all active tokens for user: {}", username);
-    }
+    log.info("Revoking all active tokens for user: {}", username);
+    activeTokenRepository.deleteByUsername(username);
   }
 
   /**
-   * Generate a unique cache key for a user/email/IP combination
+   * Generate a unique cache key for tracking attempts
    */
   private String generateCacheKey(String username, String email, String ipAddress) {
-    StringBuilder key = new StringBuilder();
+    StringBuilder keyBuilder = new StringBuilder();
+
     if (username != null && !username.isEmpty()) {
-      key.append("user:").append(username);
+      keyBuilder.append("u:").append(username);
     }
+
     if (email != null && !email.isEmpty()) {
-      if (key.length() > 0)
-        key.append("_");
-      key.append("email:").append(email);
+      if (keyBuilder.length() > 0) {
+        keyBuilder.append("_");
+      }
+      keyBuilder.append("e:").append(email);
     }
+
     if (ipAddress != null && !ipAddress.isEmpty()) {
-      if (key.length() > 0)
-        key.append("_");
-      key.append("ip:").append(ipAddress);
+      if (keyBuilder.length() > 0) {
+        keyBuilder.append("_");
+      }
+      keyBuilder.append("ip:").append(ipAddress);
     }
-    return key.toString();
+
+    return keyBuilder.toString();
   }
 
   /**
@@ -270,31 +179,27 @@ public class SecurityMonitoringService {
    */
   private String getClientIp(HttpServletRequest request) {
     if (request == null) {
-      return null;
+      return "unknown";
     }
 
-    String ip = request.getHeader("X-Forwarded-For");
-    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-      ip = request.getHeader("Proxy-Client-IP");
-    }
-    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-      ip = request.getHeader("WL-Proxy-Client-IP");
-    }
-    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-      ip = request.getRemoteAddr();
+    String xForwardedFor = request.getHeader("X-Forwarded-For");
+    if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+      // X-Forwarded-For can contain multiple IPs (client, proxies)
+      // The first one is the original client IP
+      String[] ips = xForwardedFor.split(",");
+      return ips[0].trim();
     }
 
-    // In case of multiple IPs (X-Forwarded-For can contain multiple IPs), get the
-    // first one
-    if (ip != null && ip.contains(",")) {
-      ip = ip.split(",")[0].trim();
+    String xRealIp = request.getHeader("X-Real-IP");
+    if (xRealIp != null && !xRealIp.isEmpty()) {
+      return xRealIp;
     }
 
-    return ip;
+    return request.getRemoteAddr();
   }
 
   /**
-   * Helper class to track failed attempts
+   * Class to track failed authentication attempts
    */
   private static class FailedAttemptsCounter {
     private final String username;
@@ -315,14 +220,17 @@ public class SecurityMonitoringService {
       return ++attempts;
     }
 
+    @SuppressWarnings("unused")
     public String getUsername() {
       return username;
     }
 
+    @SuppressWarnings("unused")
     public String getEmail() {
       return email;
     }
 
+    @SuppressWarnings("unused")
     public String getIpAddress() {
       return ipAddress;
     }
@@ -337,92 +245,73 @@ public class SecurityMonitoringService {
 
     @Override
     public String toString() {
-      return String.format("FailedAttemptsCounter[username=%s, email=%s, ip=%s, type=%s, attempts=%d]",
-          username, email, ipAddress, authenticationType, attempts);
+      return "FailedAttemptsCounter{" +
+          "username='" + username + '\'' +
+          ", email='" + email + '\'' +
+          ", ipAddress='" + ipAddress + '\'' +
+          ", attempts=" + attempts +
+          ", type=" + authenticationType +
+          '}';
     }
   }
 
-  /**
-   * Get max failed attempts allowed based on configuration
-   */
   public int getMaxFailedAttempts() {
     return maxFailedAttempts;
   }
 
   /**
-   * Get current failed attempts count for a user or IP with specific
-   * authentication type
-   * 
-   * @param username           Username (can be null)
-   * @param email              Email (can be null)
-   * @param ipAddress          IP address (can be null)
-   * @param authenticationType Type of authentication (can be null, then will find
-   *                           max attempts across all types)
-   * @return Current count of failed attempts, or 0 if no attempts recorded
+   * Get current failed attempts count
    */
   public int getCurrentFailedAttempts(String username, String email, String ipAddress, String authenticationType) {
-    String baseKey = generateCacheKey(username, email, ipAddress);
+    String cacheKey = generateCacheKey(username, email, ipAddress);
+    FailedAttemptsCounter counter = failedAttemptsCache.get(cacheKey);
 
-    if (authenticationType != null) {
-      // If authentication type is specified, get that specific counter
-      String specificKey = baseKey + "_" + authenticationType;
-      FailedAttemptsCounter counter = failedAttemptsCache.get(specificKey);
-      int attempts = counter != null ? counter.getAttempts() : 0;
-      log.debug("Current failed attempts for {} with auth type {}: {}", baseKey, authenticationType, attempts);
-      return attempts;
-    } else {
-      // If no authentication type is specified, find the counter with the maximum
-      // attempts
-      int maxAttempts = 0;
-      for (Map.Entry<String, FailedAttemptsCounter> entry : failedAttemptsCache.entrySet()) {
-        if (entry.getKey().startsWith(baseKey + "_")) {
-          maxAttempts = Math.max(maxAttempts, entry.getValue().getAttempts());
-        }
-      }
-      log.debug("Maximum failed attempts across all auth types for {}: {}", baseKey, maxAttempts);
-      return maxAttempts;
+    if (counter != null && counter.getAuthenticationType().equals(authenticationType)) {
+      return counter.getAttempts();
     }
+
+    // If not in cache, check the database
+    User user = userRepository.findByUsername(username)
+        .orElseGet(() -> userRepository.findByEmail(email).orElse(null));
+
+    if (user != null) {
+      return user.getTimeTried();
+    }
+
+    return 0;
   }
 
   /**
-   * Get current failed attempts count for a user or IP across all auth types
-   * 
-   * @param username  Username (can be null)
-   * @param email     Email (can be null)
-   * @param ipAddress IP address (can be null)
-   * @return Current count of failed attempts, or 0 if no attempts recorded
+   * Get current failed attempts count regardless of authentication type
    */
   public int getCurrentFailedAttempts(String username, String email, String ipAddress) {
-    return getCurrentFailedAttempts(username, email, ipAddress, null);
+    // Check the database first
+    User user = userRepository.findByUsername(username)
+        .orElseGet(() -> userRepository.findByEmail(email).orElse(null));
+
+    if (user != null) {
+      return user.getTimeTried();
+    }
+
+    return 0;
   }
 
   /**
-   * Get remaining attempts before blocking for a specific authentication type
-   * 
-   * @param username           Username (can be null)
-   * @param email              Email (can be null)
-   * @param ipAddress          IP address (can be null)
-   * @param authenticationType The type of authentication (EMAIL_OTP, LOGIN, etc.)
-   * @return Number of attempts remaining before the account is blocked
+   * Get remaining attempts before account is blocked
    */
   public int getRemainingAttempts(String username, String email, String ipAddress, String authenticationType) {
     int currentAttempts = getCurrentFailedAttempts(username, email, ipAddress, authenticationType);
-    int remaining = Math.max(0, maxFailedAttempts - currentAttempts);
-    log.debug("Remaining attempts for {}/{}/{} with auth type {}: {}",
-        username, email, ipAddress, authenticationType, remaining);
-    return remaining;
+    int remaining = maxFailedAttempts - currentAttempts;
+    return Math.max(0, remaining);
   }
 
   /**
-   * Get remaining attempts before blocking across all authentication types
-   * 
-   * @param username  Username (can be null)
-   * @param email     Email (can be null)
-   * @param ipAddress IP address (can be null)
-   * @return Minimum number of attempts remaining before the account is blocked
-   *         for any auth type
+   * Get remaining attempts before account is blocked regardless of authentication
+   * type
    */
   public int getRemainingAttempts(String username, String email, String ipAddress) {
-    return getRemainingAttempts(username, email, ipAddress, null);
+    int currentAttempts = getCurrentFailedAttempts(username, email, ipAddress);
+    int remaining = maxFailedAttempts - currentAttempts;
+    return Math.max(0, remaining);
   }
 }

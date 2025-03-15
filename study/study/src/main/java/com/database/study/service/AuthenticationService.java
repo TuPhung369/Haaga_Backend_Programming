@@ -6,7 +6,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.authentication.BadCredentialsException;
 
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.request.EmailChangeRequest;
@@ -87,32 +86,36 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import com.database.study.interfaces.AuthenticationUtilities;
+import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class AuthenticationService implements AuthenticationUtilities {
-  UserRepository userRepository;
-  PasswordEncoder passwordEncoder;
-  RoleRepository roleRepository;
-  UserMapper userMapper;
-  ActiveTokenRepository activeTokenRepository;
-  EmailService emailService;
-  PasswordResetTokenRepository passwordResetTokenRepository;
-  EmailVerificationTokenRepository emailVerificationTokenRepository;
-  EmailChangeTokenRepository emailChangeTokenRepository;
-  EncryptionService encryptionService;
-  TokenSecurity tokenSecurity;
-  CookieService cookieService;
-  JwtUtils jwtUtils;
-  TotpService totpService;
+  final UserRepository userRepository;
+  final PasswordEncoder passwordEncoder;
+  final RoleRepository roleRepository;
+  final UserMapper userMapper;
+  final ActiveTokenRepository activeTokenRepository;
+  final EmailService emailService;
+  final PasswordResetTokenRepository passwordResetTokenRepository;
+  final EmailVerificationTokenRepository emailVerificationTokenRepository;
+  final EmailChangeTokenRepository emailChangeTokenRepository;
+  final EncryptionService encryptionService;
+  final TokenSecurity tokenSecurity;
+  final CookieService cookieService;
+  final JwtUtils jwtUtils;
+  final TotpService totpService;
 
   @Autowired
   private SecurityMonitoringService securityMonitoringService;
 
   static final long TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes
   static final long REFRESH_TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  @Value("${security.max-failed-attempts:3}")
+  private int maxFailedAttempts;
 
   @Transactional
   public AuthenticationResponse authenticate(AuthenticationRequest request, boolean rememberMe,
@@ -1696,118 +1699,120 @@ public class AuthenticationService implements AuthenticationUtilities {
    * @param request OTP authentication request
    * @return Authentication response
    */
-  @Transactional
+  @Transactional(noRollbackFor = AppException.class)
   public AuthenticationResponse authenticateWithEmailOtp(EmailOtpAuthenticationRequest request,
       HttpServletRequest httpRequest) {
-    log.info("Authenticating user with email OTP: {}", request.getUsername());
-    try {
-      // Verify the username and password
-      AuthenticationRequest authRequest = new AuthenticationRequest();
-      authRequest.setUsername(request.getUsername());
-      authRequest.setPassword(request.getPassword());
+    log.info("Authenticating user with email OTP: {} \t ", request.getUsername());
 
-      // Check if user exists
-      User user = userRepository.findByUsername(request.getUsername())
-          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    // Get the user
+    User user = userRepository.findByUsername(request.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-      // Verify credentials
-      if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-        throw new AppException(ErrorCode.INVALID_CREDENTIALS);
-      }
-
-      if (!user.isActive()) {
-        log.warn("Attempt to authenticate inactive user: {}", user.getUsername());
-        throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
-      }
-
-      // Check if user is blocked
-      if (securityMonitoringService.isBlocked(user.getUsername(), user.getEmail(), null)) {
-        log.warn("Login attempt for blocked user: {}", user.getUsername());
-        var exception = new AppException(ErrorCode.ACCOUNT_LOCKED);
-        exception.setCode("ACCOUNT_LOCKED");
-        throw exception;
-      }
-
-      // Find valid password reset tokens (used for email OTP)
-      // Adapt this to match your actual method in PasswordResetTokenRepository
-      List<PasswordResetToken> validTokens = passwordResetTokenRepository.findAllByUsernameAndExpiryDateAfter(
-          user.getUsername(), LocalDateTime.now());
-
-      log.debug("Found {} valid tokens for user {}", validTokens.size(), user.getUsername());
-      if (validTokens.isEmpty()) {
-        log.warn("No valid email OTP found for user: {}", user.getUsername());
-        throw new AppException("No valid verification code found. Please request a new code.");
-      }
-
-      boolean otpMatched = false;
-      for (PasswordResetToken token : validTokens) {
-        if (token.getOtp() != null && token.getOtp().equals(request.getOtpCode())) {
-          log.info("Valid email OTP provided for user: {}", user.getUsername());
-          token.setUsed(true);
-          passwordResetTokenRepository.save(token);
-          otpMatched = true;
-          break;
-        }
-      }
-
-      if (!otpMatched) {
-        log.warn("Invalid email OTP provided for user: {}", user.getUsername());
-
-        // Track failed attempt and get attempts left before locking
-        boolean isBlocked = securityMonitoringService.trackFailedAttempt(
-            user.getUsername(), user.getEmail(), httpRequest, SecurityMonitoringService.AUTH_TYPE_EMAIL_OTP);
-
-        if (isBlocked) {
-          log.warn("User {} blocked after too many failed email OTP attempts", user.getUsername());
-          var exception = new AppException(ErrorCode.ACCOUNT_LOCKED);
-          exception.setCode("ACCOUNT_LOCKED");
-          throw exception;
-        } else {
-          // Get remaining attempts
-          int remainingAttempts = securityMonitoringService.getRemainingAttempts(
-              user.getUsername(), user.getEmail(), null);
-
-          // Throw exception with remaining attempts info
-          var exception = new AppException("Invalid email verification code. Please check and try again.");
-          exception.addExtraInfo("remainingAttempts", remainingAttempts);
-          throw exception;
-        }
-      }
-
-      // Reset failed attempts on successful authentication
-      securityMonitoringService.resetFailedAttempts(user.getUsername(), user.getEmail(), httpRequest);
-
-      // Generate token pair for the authenticated user
-      String jwtId = UUID.randomUUID().toString();
-      String accessToken = generateToken(user, jwtId);
-      String refreshToken = generateRefreshToken(user, jwtId);
-
-      // Save the refresh token in the ActiveToken repository
-      ActiveToken activeToken = ActiveToken.builder()
-          .username(user.getUsername())
-          .refreshToken(refreshToken)
-          .token(accessToken)
-          .id(jwtId)
-          .expiryTime(extractTokenExpiry(accessToken))
-          .expiryRefreshTime(extractTokenExpiry(refreshToken))
-          .description("Email OTP authentication at " + new Date())
-          .build();
-
-      activeTokenRepository.save(activeToken);
-
-      log.info("Email OTP authentication successful for user: {}", user.getUsername());
-      return AuthenticationResponse.builder()
-          .token(accessToken)
-          .refreshToken(refreshToken)
-          .authenticated(true)
-          .build();
-    } catch (AppException e) {
-      log.error("Email OTP authentication failed: {}", e.getMessage());
-      throw e;
-    } catch (Exception e) {
-      log.error("Unexpected error during email OTP authentication", e);
-      throw new AppException("Authentication failed: " + e.getMessage());
+    // Check if the user is already blocked
+    if (user.isBlock()) {
+      log.warn("User is blocked and cannot log in: {}", user.getUsername());
+      throw new AppException(ErrorCode.ACCOUNT_LOCKED,
+          "Your account has been temporarily blocked due to too many failed login attempts")
+          .addExtraInfo("remainingAttempts", 0);
     }
+
+    // Get the most recent OTP for this user
+    List<PasswordResetToken> validTokens = passwordResetTokenRepository.findAllByUsernameAndExpiryDateAfter(
+        user.getUsername(), LocalDateTime.now());
+
+    if (validTokens.isEmpty()) {
+      log.warn("No valid email OTP found for user: {}", user.getUsername());
+      throw new AppException("No valid verification code found. Please request a new one");
+    }
+
+    // Find matching OTP
+    boolean otpMatched = false;
+    PasswordResetToken matchedToken = null;
+
+    for (PasswordResetToken token : validTokens) {
+      if (token.getOtp() != null && token.getOtp().equals(request.getOtpCode())) {
+        matchedToken = token;
+        otpMatched = true;
+        break;
+      }
+    }
+
+    // Check if OTP is correct
+    if (!otpMatched) {
+      // Increment the failed attempts counter directly on the user entity
+      int oldCount = user.getTimeTried();
+      user.setTimeTried(user.getTimeTried() + 1);
+      log.info("Incrementing timeTried from {} to {} for user {}", oldCount, user.getTimeTried(), user.getUsername());
+
+      // Check if max attempts reached
+      if (user.getTimeTried() >= maxFailedAttempts) {
+        log.warn("User {} has been blocked after {} failed login attempts", user.getUsername(), user.getTimeTried());
+        user.setBlock(true);
+      }
+
+      // Explicitly save and flush the user entity to ensure changes are committed
+      User savedUser = userRepository.saveAndFlush(user);
+      log.info("User saved with timeTried={}, isBlocked={}", savedUser.getTimeTried(), savedUser.isBlock());
+
+      // Calculate remaining attempts
+      int remainingAttempts = Math.max(0, maxFailedAttempts - user.getTimeTried());
+
+      log.warn("Invalid email OTP provided for user: {} \t Currently at {} failed attempts",
+          request.getUsername(), user.getTimeTried());
+      throw new AppException("Invalid email verification code. Please check and try again.")
+          .addExtraInfo("remainingAttempts", remainingAttempts);
+    }
+
+    // We only get here if OTP matched, so matchedToken is guaranteed to be non-null
+    assert matchedToken != null : "matchedToken should not be null here";
+
+    // Mark OTP as used
+    if (matchedToken != null) {
+      matchedToken.setUsed(true); // Use matchedToken safely here
+    } else {
+      // Handle the case where matchedToken is null
+      // For example, you can log an error or throw an exception
+      throw new IllegalStateException("matchedToken is null");
+    }
+
+    passwordResetTokenRepository.save(matchedToken);
+
+    // Reset failed attempts counter on successful authentication
+    user.setTimeTried(0);
+    user.setBlock(false);
+    userRepository.save(user);
+
+    // Generate token pair for the authenticated user
+    String jwtId = UUID.randomUUID().toString();
+    String accessToken = generateToken(user, jwtId);
+    String refreshToken = generateRefreshToken(user, jwtId);
+
+    // Save the refresh token in the ActiveToken repository
+    ActiveToken activeToken = ActiveToken.builder()
+        .username(user.getUsername())
+        .refreshToken(refreshToken)
+        .token(accessToken)
+        .id(jwtId)
+        .expiryTime(extractTokenExpiry(accessToken))
+        .expiryRefreshTime(extractTokenExpiry(refreshToken))
+        .description("Email OTP authentication at " + new Date())
+        .build();
+
+    activeTokenRepository.save(activeToken);
+
+    // Set cookie if needed
+    if (httpRequest != null) {
+      // Reset security monitoring counter
+      securityMonitoringService.resetFailedAttempts(
+          user.getUsername(), user.getEmail(), httpRequest);
+    }
+
+    log.info("Email OTP authentication successful for user: {}", user.getUsername());
+    return AuthenticationResponse.builder()
+        .token(accessToken)
+        .refreshToken(refreshToken)
+        .authenticated(true)
+        .build();
   }
 
   /**
@@ -2109,158 +2114,151 @@ public class AuthenticationService implements AuthenticationUtilities {
     }
   }
 
-  @Transactional
+  @Transactional(noRollbackFor = AppException.class)
   public AuthenticationResponse authenticateWithEmailOtp(EmailOtpAuthenticationRequest request) {
-    log.info("Authenticating user with email OTP: {}", request.getUsername());
-    try {
-      // Verify username and password first
-      User user = userRepository.findByUsername(request.getUsername())
-          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    log.info("Authenticating user with email OTP: {} \t ", request.getUsername());
 
-      if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-        log.warn("Invalid credentials for user: {}", request.getUsername());
-        throw new AppException(ErrorCode.INVALID_CREDENTIALS);
-      }
+    // Get the user
+    User user = userRepository.findByUsername(request.getUsername())
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-      if (!user.isActive()) {
-        log.warn("Attempt to authenticate inactive user: {}", user.getUsername());
-        throw new AppException(ErrorCode.INACTIVE_USER);
-      }
-
-      // Check if user is blocked
-      if (securityMonitoringService.isBlocked(user.getUsername(), user.getEmail(), null)) {
-        log.warn("Login attempt for blocked user: {}", user.getUsername());
-        AppException exception = new AppException(ErrorCode.ACCOUNT_BLOCKED);
-        exception.setCode("ACCOUNT_LOCKED");
-        throw exception;
-      }
-
-      // Verify email OTP
-      List<PasswordResetToken> tokens = passwordResetTokenRepository.findAllByUsernameAndExpiryDateAfter(
-          user.getUsername(), LocalDateTime.now());
-
-      log.debug("Found {} valid tokens for user {}", tokens.size(), user.getUsername());
-      if (tokens.isEmpty()) {
-        log.warn("No valid email OTP found for user: {}", user.getUsername());
-        throw new AppException("No valid verification code found. Please request a new code.");
-      }
-
-      boolean otpMatched = false;
-      for (PasswordResetToken token : tokens) {
-        if (token.getOtp() != null && token.getOtp().equals(request.getOtpCode())) {
-          log.info("Valid email OTP provided for user: {}", user.getUsername());
-          token.setUsed(true);
-          passwordResetTokenRepository.save(token);
-          otpMatched = true;
-          break;
-        }
-      }
-
-      if (!otpMatched) {
-        log.warn("Invalid email OTP provided for user: {}", user.getUsername());
-
-        // Track failed attempt and get attempts left before locking
-        boolean isBlocked = securityMonitoringService.trackFailedAttempt(
-            user.getUsername(), user.getEmail(), null, SecurityMonitoringService.AUTH_TYPE_EMAIL_OTP);
-
-        if (isBlocked) {
-          log.warn("User {} blocked after too many failed email OTP attempts", user.getUsername());
-          AppException exception = new AppException(ErrorCode.ACCOUNT_BLOCKED);
-          exception.setCode("ACCOUNT_LOCKED");
-          throw exception;
-        } else {
-          // Get remaining attempts specifically for EMAIL_OTP authentication
-          int remainingAttempts = securityMonitoringService.getRemainingAttempts(
-              user.getUsername(), user.getEmail(), null, SecurityMonitoringService.AUTH_TYPE_EMAIL_OTP);
-
-          // Always log the remaining attempts for debugging
-          log.debug("Remaining EMAIL_OTP attempts for user {}: {}", user.getUsername(), remainingAttempts);
-
-          // Throw exception with remaining attempts info
-          AppException exception = new AppException("Invalid email verification code. Please check and try again.");
-          exception.addExtraInfo("remainingAttempts", remainingAttempts);
-          throw exception;
-        }
-      }
-
-      // Reset failed attempts on successful authentication
-      securityMonitoringService.resetFailedAttempts(user.getUsername(), user.getEmail(), null);
-
-      // Check for existing tokens instead of always creating new ones
-      Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
-
-      if (existingTokenOpt.isPresent()) {
-        ActiveToken existingToken = existingTokenOpt.get();
-        Date currentTime = new Date();
-
-        // If access token is still valid, reuse it
-        if (existingToken.getExpiryTime().after(currentTime)) {
-          log.info("Reusing existing valid token for user: {}", user.getUsername());
-
-          return AuthenticationResponse.builder()
-              .token(existingToken.getToken())
-              .refreshToken(existingToken.getRefreshToken())
-              .authenticated(true)
-              .build();
-        }
-        // If access token expired but refresh token is valid, create new access token
-        else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
-          log.info(
-              "Access token expired but refresh token valid. Generating new access token for user with EmailOTP: {}",
-              user.getUsername());
-
-          String plainNewAccessToken = generateToken(user, existingToken.getId());
-          Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
-
-          // Update only access token, keep refresh token
-          existingToken.setToken(plainNewAccessToken);
-          existingToken.setExpiryTime(newExpiryTime);
-          existingToken.setDescription("Updated with Email OTP at " + new Date());
-
-          activeTokenRepository.save(existingToken);
-
-          return AuthenticationResponse.builder()
-              .token(plainNewAccessToken)
-              .refreshToken(existingToken.getRefreshToken())
-              .authenticated(true)
-              .build();
-        }
-      }
-
-      // Generate new token pair only if no valid tokens exist
-      String jwtId = UUID.randomUUID().toString();
-      String accessToken = generateToken(user, jwtId);
-      String refreshToken = generateRefreshToken(user, jwtId);
-
-      // Save the refresh token in the ActiveToken repository
-      ActiveToken activeToken = ActiveToken.builder()
-          .username(user.getUsername())
-          .refreshToken(refreshToken)
-          .token(accessToken)
-          .id(jwtId)
-          .expiryTime(extractTokenExpiry(accessToken))
-          .expiryRefreshTime(extractTokenExpiry(refreshToken))
-          .description("Email OTP authentication at " + new Date())
-          .build();
-
-      activeTokenRepository.save(activeToken);
-
-      log.info("Email OTP authentication successful for user: {}", user.getUsername());
-      return AuthenticationResponse.builder()
-          .token(accessToken)
-          .refreshToken(refreshToken)
-          .authenticated(true)
-          .build();
-    } catch (BadCredentialsException e) {
-      log.error("Bad credentials for user: {}", request.getUsername());
-      throw new AppException(ErrorCode.INVALID_CREDENTIALS);
-    } catch (AppException e) {
-      log.error("Authentication failed for user {}: {}", request.getUsername(), e.getMessage());
-      throw e;
-    } catch (Exception e) {
-      log.error("Unknown error during email OTP authentication", e);
-      throw new AppException("Authentication failed: " + e.getMessage());
+    // Check if the user is already blocked
+    if (user.isBlock()) {
+      log.warn("User is blocked and cannot log in: {}", user.getUsername());
+      throw new AppException(ErrorCode.ACCOUNT_LOCKED,
+          "Your account has been temporarily blocked due to too many failed login attempts")
+          .addExtraInfo("remainingAttempts", 0);
     }
+
+    // Get valid OTPs for this user
+    List<PasswordResetToken> validTokens = passwordResetTokenRepository.findAllByUsernameAndExpiryDateAfter(
+        user.getUsername(), LocalDateTime.now());
+
+    if (validTokens.isEmpty()) {
+      log.warn("No valid email OTP found for user: {}", user.getUsername());
+      throw new AppException("No valid verification code found. Please request a new one");
+    }
+
+    // Find matching OTP
+    boolean otpMatched = false;
+    PasswordResetToken matchedToken = null;
+
+    for (PasswordResetToken token : validTokens) {
+      if (token.getOtp() != null && token.getOtp().equals(request.getOtpCode())) {
+        matchedToken = token;
+        otpMatched = true;
+        break;
+      }
+    }
+
+    // Check if OTP is correct
+    if (!otpMatched) {
+      // Increment the failed attempts counter directly on the user entity
+      int oldCount = user.getTimeTried();
+      user.setTimeTried(user.getTimeTried() + 1);
+      log.info("Incrementing timeTried from {} to {} for user {}", oldCount, user.getTimeTried(), user.getUsername());
+
+      // Check if max attempts reached
+      if (user.getTimeTried() >= maxFailedAttempts) {
+        log.warn("User {} has been blocked after {} failed login attempts", user.getUsername(), user.getTimeTried());
+        user.setBlock(true);
+      }
+
+      // Explicitly save and flush the user entity to ensure changes are committed
+      User savedUser = userRepository.saveAndFlush(user);
+      log.info("User saved with timeTried={}, isBlocked={}", savedUser.getTimeTried(), savedUser.isBlock());
+
+      // Calculate remaining attempts
+      int remainingAttempts = Math.max(0, maxFailedAttempts - user.getTimeTried());
+
+      log.warn("Invalid email OTP provided for user: {} \t Currently at {} failed attempts",
+          request.getUsername(), user.getTimeTried());
+      throw new AppException("Invalid email verification code. Please check and try again.")
+          .addExtraInfo("remainingAttempts", remainingAttempts);
+    }
+
+    // We only get here if OTP matched, so matchedToken is guaranteed to be non-null
+    assert matchedToken != null : "matchedToken should not be null here";
+
+    // Mark OTP as used
+    if (matchedToken != null) {
+      matchedToken.setUsed(true); // Use matchedToken safely here
+    } else {
+      // Handle the case where matchedToken is null
+      // For example, you can log an error or throw an exception
+      throw new IllegalStateException("matchedToken is null");
+    }
+    passwordResetTokenRepository.save(matchedToken);
+
+    // Reset failed attempts counter on successful authentication
+    user.setTimeTried(0);
+    user.setBlock(false);
+    userRepository.save(user);
+
+    // Check for existing tokens instead of always creating new ones
+    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+
+    if (existingTokenOpt.isPresent()) {
+      ActiveToken existingToken = existingTokenOpt.get();
+      Date currentTime = new Date();
+
+      // If access token is still valid, reuse it
+      if (existingToken.getExpiryTime().after(currentTime)) {
+        log.info("Reusing existing valid token for user: {}", user.getUsername());
+
+        return AuthenticationResponse.builder()
+            .token(existingToken.getToken())
+            .refreshToken(existingToken.getRefreshToken())
+            .authenticated(true)
+            .build();
+      }
+      // If access token expired but refresh token is valid, create new access token
+      else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+        log.info("Access token expired but refresh token valid. Generating new access token for user: {}",
+            user.getUsername());
+
+        String plainNewAccessToken = generateToken(user, existingToken.getId());
+        Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+
+        // Update only access token, keep refresh token
+        existingToken.setToken(plainNewAccessToken);
+        existingToken.setExpiryTime(newExpiryTime);
+        existingToken.setDescription("Refreshed at " + new Date());
+
+        activeTokenRepository.save(existingToken);
+
+        return AuthenticationResponse.builder()
+            .token(plainNewAccessToken)
+            .refreshToken(existingToken.getRefreshToken())
+            .authenticated(true)
+            .build();
+      }
+    }
+
+    // Generate new token pair only if no valid tokens exist
+    String jwtId = UUID.randomUUID().toString();
+    String accessToken = generateToken(user, jwtId);
+    String refreshToken = generateRefreshToken(user, jwtId);
+
+    // Save the refresh token in the ActiveToken repository
+    ActiveToken activeToken = ActiveToken.builder()
+        .username(user.getUsername())
+        .refreshToken(refreshToken)
+        .token(accessToken)
+        .id(jwtId)
+        .expiryTime(extractTokenExpiry(accessToken))
+        .expiryRefreshTime(extractTokenExpiry(refreshToken))
+        .description("Email OTP authentication at " + new Date())
+        .build();
+
+    activeTokenRepository.save(activeToken);
+
+    log.info("Email OTP authentication successful for user: {}", user.getUsername());
+    return AuthenticationResponse.builder()
+        .token(accessToken)
+        .refreshToken(refreshToken)
+        .authenticated(true)
+        .build();
   }
 
 }
