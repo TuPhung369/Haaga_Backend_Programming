@@ -1,5 +1,5 @@
 // src/services/baseService.ts
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { CustomErrorData } from "../type/types";
 
 // Define a more specific response data type matching server error format
@@ -16,20 +16,6 @@ interface ErrorResponseData {
   };
   [key: string]: unknown;
 }
-
-// Define what the interceptor adds to error objects
-interface InterceptorErrorData {
-  isHandled?: boolean;
-  originalError?: unknown;
-  field?: string;
-  message?: string;
-  errorCode?: number;
-}
-
-// Combined type for axios response data that might include interceptor data
-interface EnhancedErrorResponseData
-  extends ErrorResponseData,
-  InterceptorErrorData { }
 
 // Error type mapping based on server's error codes
 export enum ErrorType {
@@ -110,11 +96,11 @@ export const handleServiceError = (error: unknown): never => {
     console.log("Handle API error response:", responseData);
 
     // Determine error type and extract field errors
-    let field = undefined;
+    let field: string | undefined = undefined;
     let errorType = ErrorType.UNKNOWN;
     let errorMessage = "An unexpected error occurred";
-    let errorCode = undefined;
-    let remainingAttempts = undefined;
+    let errorCode: string | undefined = undefined;
+    let remainingAttempts: number | undefined = undefined;
 
     if (
       typeof responseData === "object" &&
@@ -182,7 +168,7 @@ export const handleServiceError = (error: unknown): never => {
     const serviceError = new ServiceError(
       customError.message || "An unexpected error occurred",
       {
-        code: customError.errorCode,
+        code: String(customError.errorCode),
         field: customError.field,
         originalError: customError.originalError,
         isHandled: customError.isHandled,

@@ -32,7 +32,7 @@ public class User {
 
   @Column(nullable = false)
   @Builder.Default
-  boolean isBlock = false;
+  boolean block = false;
 
   @Column(nullable = false)
   @Builder.Default

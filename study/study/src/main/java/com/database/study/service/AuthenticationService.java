@@ -269,7 +269,6 @@ public class AuthenticationService implements AuthenticationUtilities {
       // This prevents the counter from increasing by 2 for each failed attempt (once
       // for password, once for TOTP)
       final int initialTimeTried = user.getTimeTried();
-      boolean failedAttemptRecorded = false;
 
       log.warn("DEBUG: Initial timeTried for user {} in DB: {}", user.getUsername(), initialTimeTried);
 
@@ -277,7 +276,6 @@ public class AuthenticationService implements AuthenticationUtilities {
       if (!authenticated) {
         // Increment timeTried by exactly 1
         user.setTimeTried(initialTimeTried + 1);
-        failedAttemptRecorded = true;
 
         log.warn("DEBUG: Password mismatch. Setting timeTried to {} for user {}",
             user.getTimeTried(), user.getUsername());
@@ -360,7 +358,6 @@ public class AuthenticationService implements AuthenticationUtilities {
         if (!validTotp) {
           // Only increment timeTried directly and skip the SecurityMonitoringService
           refreshedUser.setTimeTried(currentTimeTried + 1);
-          failedAttemptRecorded = true;
 
           log.warn("DEBUG: Invalid TOTP code. Setting timeTried to {} for user {}",
               refreshedUser.getTimeTried(), refreshedUser.getUsername());

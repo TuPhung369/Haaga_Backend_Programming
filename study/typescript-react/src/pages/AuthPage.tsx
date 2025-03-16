@@ -31,6 +31,7 @@ import { FcGoogle } from "react-icons/fc";
 import LoadingState from "../components/LoadingState";
 import TotpAuthComponent from "../components/TotpAuthComponent";
 import EmailOtpAuthComponent from "../components/EmailOtpAuthComponent";
+import { COLORS } from "../utils/constant";
 
 const { Title, Text } = Typography;
 
@@ -692,7 +693,7 @@ const AuthPage: React.FC = () => {
                     />
                   </Form.Item>
 
-                  {loginError && (
+                  {loginError && !isAccountLocked && (
                     <div className="error-message">{loginError}</div>
                   )}
 
@@ -715,10 +716,21 @@ const AuthPage: React.FC = () => {
                         Your account has been locked due to multiple failed
                         authentication attempts.
                       </p>
-                      <p style={{ margin: "5px 0 0 0", fontWeight: "bold" }}>
+                      <p
+                        style={{
+                          margin: "5px 0 0 0",
+                          fontWeight: "bold"
+                        }}
+                      >
                         Please contact the administrator for assistance.
                       </p>
-                      <p style={{ margin: "5px 0 0 0", fontSize: "0.9em" }}>
+                      <p
+                        style={{
+                          margin: "5px 0 0 0",
+                          fontSize: "0.9em",
+                          color: COLORS[3]
+                        }}
+                      >
                         Email: tuphung0107@gmail.com
                       </p>
                     </div>

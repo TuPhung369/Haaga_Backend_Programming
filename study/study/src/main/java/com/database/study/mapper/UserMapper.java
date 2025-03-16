@@ -41,6 +41,8 @@ public interface UserMapper {
   @Mapping(target = "id", ignore = true) // ID is typically auto-generated
   @Mapping(target = "email", source = "email") // Map email explicitly
   @Mapping(target = "password", source = "password") // Explicitly map password
+  @Mapping(target = "block", constant = "false") // Default value for isBlock
+  @Mapping(target = "timeTried", constant = "0") // Default value for timeTried
   User toUser(UserCreationRequest request);
 
   @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRolesToRoleResponse")
@@ -53,6 +55,8 @@ public interface UserMapper {
   @Mapping(target = "roles", ignore = true)
   @Mapping(target = "password", source = "lastname")
   @Mapping(target = "active", source = "active")
+  @Mapping(target = "block", constant = "false") // Default value for isBlock
+  @Mapping(target = "timeTried", constant = "0") // Default value for timeTried
   User toUser(UserResponse response);
 
   // Convert roles to string set for mapping if needed
@@ -66,5 +70,7 @@ public interface UserMapper {
   // Updates an existing user entity with request data, ignoring the 'id' field
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
+  @Mapping(target = "block", ignore = true) // Preserve existing isBlock value
+  @Mapping(target = "timeTried", ignore = true) // Preserve existing timeTried value
   void updateUser(@MappingTarget User user, UserCreationRequest request);
 }
