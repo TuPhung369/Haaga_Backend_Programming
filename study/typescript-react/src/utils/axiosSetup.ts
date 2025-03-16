@@ -201,7 +201,7 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
               originalError: error,
               errorCode,
               errorType: ErrorType.CONFLICT,
-              isHandled: true, // QUAN TRỌNG: Đánh dấu đã xử lý notification
+              isHandled: true,
             };
 
             return Promise.reject(customError);

@@ -33,6 +33,24 @@ import TotpAuthComponent from "../components/TotpAuthComponent";
 import EmailOtpAuthComponent from "../components/EmailOtpAuthComponent";
 import { COLORS } from "../utils/constant";
 
+// Define error response interface based on your API structure
+interface ErrorResponseData {
+  message?: string;
+  errorCode?: string;
+  data?: {
+    message?: string;
+    errorCode?: string;
+  };
+}
+
+// Define HTTP error interface
+interface HttpErrorResponse {
+  response?: {
+    data?: ErrorResponseData;
+    status?: number;
+  };
+}
+
 const { Title, Text } = Typography;
 
 const AuthPage: React.FC = () => {
@@ -168,12 +186,38 @@ const AuthPage: React.FC = () => {
         errorMessage = error.message;
 
         // Try to extract error code
-        if ((error as any).errorCode) {
-          errorCode = (error as any).errorCode;
-        } else if ((error as any).response?.data?.errorCode) {
-          errorCode = (error as any).response.data.errorCode;
-        } else if ((error as any).originalError?.response?.data?.errorCode) {
-          errorCode = (error as any).originalError.response.data.errorCode;
+        if (error instanceof ServiceError && error.errorCode) {
+          errorCode = error.errorCode || "";
+        } else if (
+          typeof error === "object" &&
+          error !== null &&
+          "response" in error &&
+          error.response &&
+          typeof error.response === "object" &&
+          "data" in error.response &&
+          error.response.data &&
+          typeof error.response.data === "object" &&
+          "errorCode" in error.response.data
+        ) {
+          const httpError = error as HttpErrorResponse;
+          errorCode = httpError.response?.data?.errorCode || "";
+        } else if (
+          error instanceof ServiceError &&
+          error.originalError &&
+          typeof error.originalError === "object" &&
+          error.originalError !== null
+        ) {
+          try {
+            const originalError = error.originalError as HttpErrorResponse;
+            if (
+              originalError.response?.data?.errorCode &&
+              typeof originalError.response.data.errorCode === "string"
+            ) {
+              errorCode = originalError.response.data.errorCode;
+            }
+          } catch (e) {
+            console.error("Error extracting errorCode from originalError", e);
+          }
         }
       }
 
@@ -185,12 +229,28 @@ const AuthPage: React.FC = () => {
       const isLocked =
         errorCode === "ACCOUNT_LOCKED" ||
         errorMessage.includes("locked") ||
-        errorMessage.includes("blocked") ||
-        ((error as any).response?.data?.message &&
-          ((error as any).response.data.message.includes("locked") ||
-            (error as any).response.data.message.includes("blocked")));
+        errorMessage.includes("blocked");
 
-      if (isLocked) {
+      // Additional check for locked/blocked message in response
+      let responseHasLockedMessage = false;
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        error.response &&
+        typeof error.response === "object" &&
+        "data" in error.response &&
+        error.response.data &&
+        typeof error.response.data === "object" &&
+        "message" in error.response.data &&
+        typeof error.response.data.message === "string"
+      ) {
+        responseHasLockedMessage =
+          error.response.data.message.includes("locked") ||
+          error.response.data.message.includes("blocked");
+      }
+
+      if (isLocked || responseHasLockedMessage) {
         setIsAccountLocked(true);
         setLoginError(
           "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance."
