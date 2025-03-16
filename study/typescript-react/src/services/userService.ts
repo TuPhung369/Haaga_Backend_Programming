@@ -1,13 +1,17 @@
 import apiClient from "./authService";
 import { handleServiceError } from "./baseService";
 import { UserResponse, UsersResponse, ValidationInput } from "../type/types";
+import { getRecaptchaToken, addRecaptchaTokenToData } from "../utils/recaptchaUtils";
 
 export const createUser = async (
   userData: ValidationInput,
   token: string
 ): Promise<UserResponse> => {
   try {
-    const response = await apiClient.post<UserResponse>("/users", userData, {
+    // Sử dụng utility để thêm token reCAPTCHA
+    const dataWithRecaptcha = addRecaptchaTokenToData(userData);
+
+    const response = await apiClient.post<UserResponse>("/users", dataWithRecaptcha, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -67,12 +71,18 @@ export const getUserById = async (
 export const updateUser = async (
   userId: string,
   userData: Partial<ValidationInput>,
-  token: string
+  token: string,
+  recaptchaToken?: string
 ): Promise<UserResponse> => {
   try {
+    // Ưu tiên sử dụng token được truyền vào, nếu không có thì lấy từ global store
+    const dataWithRecaptcha = recaptchaToken
+      ? { ...userData, recaptchaToken }
+      : addRecaptchaTokenToData(userData);
+
     const response = await apiClient.put<UserResponse>(
       `/users/${userId}`,
-      userData,
+      dataWithRecaptcha,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -89,12 +99,18 @@ export const updateUser = async (
 export const updateMyInfo = async (
   userId: string,
   userData: Partial<ValidationInput>, // Partial allows partial updates
-  token: string
+  token: string,
+  recaptchaToken?: string
 ): Promise<UserResponse> => {
   try {
+    // Ưu tiên sử dụng token được truyền vào, nếu không có thì lấy từ global store
+    const dataWithRecaptcha = recaptchaToken
+      ? { ...userData, recaptchaToken }
+      : addRecaptchaTokenToData(userData);
+
     const response = await apiClient.put<UserResponse>(
       `/users/updateMyInfo/${userId}`,
-      userData,
+      dataWithRecaptcha,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -113,11 +129,15 @@ export const deleteUser = async (
   token: string
 ): Promise<UserResponse> => {
   try {
-    const response = await apiClient.delete<UserResponse>(`/users/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // Thêm token reCAPTCHA vào request delete
+    const response = await apiClient.delete<UserResponse>(
+      `/users/${userId}?recaptchaToken=${encodeURIComponent(getRecaptchaToken())}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error deleting user:", error);

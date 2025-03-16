@@ -9,7 +9,6 @@ import com.database.study.exception.AppException;
 import com.database.study.repository.EmailVerificationTokenRepository;
 import com.database.study.repository.UserRepository;
 import com.database.study.service.AuthenticationService;
-import com.database.study.service.ReCaptchaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
@@ -31,7 +30,6 @@ import java.util.Optional;
 public class DevController {
 
   private final AuthenticationService authenticationService;
-  private final ReCaptchaService reCaptchaService;
   private final UserRepository userRepository;
   private final EmailVerificationTokenRepository emailVerificationTokenRepository;
 

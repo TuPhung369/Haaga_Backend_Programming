@@ -4,7 +4,7 @@ import {
   getMyInfo,
   deleteUser,
   updateUser,
-  createUser,
+  createUser
 } from "../services/userService";
 import { handleServiceError } from "../services/baseService"; // Add this import
 // Move styled-components creation outside of component
@@ -19,13 +19,13 @@ import {
   Form,
   Input,
   Select,
-  notification,
+  notification
 } from "antd";
 import {
   UserAddOutlined,
   EditOutlined,
   DeleteOutlined,
-  SearchOutlined,
+  SearchOutlined
 } from "@ant-design/icons";
 import validateInput from "../utils/validateInput";
 import { COLORS } from "../utils/constant";
@@ -36,10 +36,11 @@ import {
   setAllUsers,
   invalidateUserInfo,
   invalidateRoles,
-  invalidateUsers,
+  invalidateUsers
 } from "../store/userSlice";
 import { AxiosError } from "axios";
 import { User, Role, RootState, ExtendApiError } from "../type/types";
+import ReCaptchaV3 from "../components/ReCaptchaV3";
 
 const { confirm } = Modal;
 const { Content } = Layout;
@@ -121,15 +122,18 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
     allUsers,
     isUserInfoInvalidated,
     isRolesInvalidated,
-    isUsersInvalidated,
+    isUsersInvalidated
   } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
+
+  // Thêm state để lưu token reCAPTCHA
+  const [recaptchaToken, setRecaptchaToken] = useState<string>("");
 
   const openNotificationWithIcon = useCallback(
     (type: "success" | "error", message: string, description: string) => {
       api[type]({
         message,
-        description,
+        description
       });
     },
     [api]
@@ -168,9 +172,9 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
             permissions: role.permissions?.map((permission) => ({
               name: permission.name,
               description: permission.description,
-              color: permission.color,
-            })),
-          })),
+              color: permission.color
+            }))
+          }))
         }));
         dispatch(setAllUsers(allUsersData));
       } else {
@@ -188,7 +192,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
       setNotificationMessage({
         type: "error",
         message: "Fetch Failed",
-        description: "Error fetching all users. Please try again later.",
+        description: "Error fetching all users. Please try again later."
       });
     }
   }, [token, dispatch, isUsersInvalidated, allUsers]);
@@ -213,7 +217,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
       setNotificationMessage({
         type: "error",
         message: "Fetch Failed",
-        description: "Error fetching user info. Please try again later.",
+        description: "Error fetching user info. Please try again later."
       });
     }
   }, [token, dispatch, isUserInfoInvalidated, userInfo]);
@@ -233,8 +237,8 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
           permissions: role.permissions?.map((permission) => ({
             name: permission.name,
             description: permission.description,
-            color: permission.color,
-          })),
+            color: permission.color
+          }))
         }));
         dispatch(setRoles(allRolesData));
       } else {
@@ -252,7 +256,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
       setNotificationMessage({
         type: "error",
         message: "Fetch Failed",
-        description: "Error fetching all roles. Please try again later.",
+        description: "Error fetching all roles. Please try again later."
       });
     }
   }, [token, dispatch, isRolesInvalidated, roles]);
@@ -298,7 +302,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
       setNotificationMessage({
         type: "success",
         message: "Success",
-        description: "User has been successfully deleted.",
+        description: "User has been successfully deleted."
       });
     } catch (error) {
       handleServiceError(error);
@@ -309,7 +313,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         message: "Delete Failed",
         description:
           axiosError.response?.data?.message ||
-          "There was an error deleting the user.",
+          "There was an error deleting the user."
       });
     }
   };
@@ -326,7 +330,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
       },
       onCancel() {
         console.log("Cancel");
-      },
+      }
     });
   };
 
@@ -343,7 +347,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         lastname: user.lastname || "",
         dob: user.dob || "",
         email: user.email || "",
-        roles: user.roles?.map((role) => role.name) || [],
+        roles: user.roles?.map((role) => role.name) || []
       });
     } else {
       console.error("User not found for ID:", id);
@@ -360,7 +364,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
       lastname: "",
       dob: "",
       email: "",
-      roles: [],
+      roles: []
     });
   };
 
@@ -373,16 +377,30 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
         firstname: values.firstname,
         lastname: values.lastname,
         dob: values.dob,
-        email: values.email,
+        email: values.email
       });
 
       if (Object.keys(errors).length > 0) {
         form.setFields(
           Object.keys(errors).map((key) => ({
             name: key,
-            errors: [errors[key]],
+            errors: [errors[key]]
           }))
         );
+        return;
+      }
+
+      // Kiểm tra recaptchaToken
+      const isDevelopment = import.meta.env.MODE === "development";
+      const recaptchaSiteKeyV3 = import.meta.env.VITE_RECAPTCHA_SITE_KEY_V3;
+      const isTestKey =
+        recaptchaSiteKeyV3 === "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
+
+      if (!isDevelopment && !isTestKey && !recaptchaToken) {
+        notification.error({
+          message: "Verification Required",
+          description: "Please wait for reCAPTCHA verification to complete."
+        });
         return;
       }
 
@@ -396,14 +414,15 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
           setNotificationMessage({
             type: "success",
             message: "Success",
-            description: "User has been successfully created.",
+            description: "User has been successfully created."
           });
         } else if (isModeIdUpdate && selectedUserId) {
           if (selectedUserId) {
             if (!token) {
               throw new Error("Token is null");
             } else {
-              await updateUser(selectedUserId, values, token);
+              // Thêm recaptchaToken vào lời gọi API
+              await updateUser(selectedUserId, values, token, recaptchaToken);
             }
           } else {
             throw new Error("Selected user ID is null");
@@ -411,7 +430,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
           setNotificationMessage({
             type: "success",
             message: "Success",
-            description: "User has been successfully updated.",
+            description: "User has been successfully updated."
           });
         }
         dispatch(invalidateUsers());
@@ -434,7 +453,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
           message: "Update Failed",
           description:
             axiosError.response?.data?.message ||
-            "An error occurred while updating the user.",
+            "An error occurred while updating the user."
         });
       }
     } catch (validationError) {
@@ -465,7 +484,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   const handleSearchInputChange = (dataIndex: keyof User, value: string) => {
     setSearchText((prev) => ({
       ...prev,
-      [dataIndex]: value,
+      [dataIndex]: value
     }));
   };
 
@@ -479,7 +498,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
           onChange={(e) => handleSearchInputChange(dataIndex, e.target.value)}
           style={{
             width: 200,
-            margin: 4,
+            margin: 4
           }}
           allowClear={true}
         />
@@ -488,7 +507,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
     filterIcon: () => (
       <SearchOutlined
         style={{
-          color: searchText[dataIndex] ? COLORS[14] : undefined,
+          color: searchText[dataIndex] ? COLORS[14] : undefined
         }}
       />
     ),
@@ -503,7 +522,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
             if (input) input.focus();
           }, 100);
         }
-      },
+      }
     },
     render: (text: string) => {
       const searchValue = searchText[dataIndex] || "";
@@ -529,7 +548,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
           {afterStr}
         </span>
       );
-    },
+    }
   });
 
   const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
@@ -540,6 +559,11 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
       <Content style={{ margin: "0", ...style }}>
         <UserListStyle>
           {contextHolder}
+          <ReCaptchaV3
+            sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY_V3}
+            action="update_user"
+            onVerify={(token) => setRecaptchaToken(token)}
+          />
           <Modal
             title={isModeNew ? "Add New User" : "Edit User Information"}
             open={isModalVisible}
@@ -551,7 +575,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
                 name="username"
                 label="Username"
                 rules={[
-                  { required: true, message: "Please input the username!" },
+                  { required: true, message: "Please input the username!" }
                 ]}
               >
                 <Input
@@ -564,7 +588,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
                     if (!isModeNew) setIsDisabled(false);
                   }}
                   style={{
-                    cursor: !isModeNew && isDisabled ? "not-allowed" : "text",
+                    cursor: !isModeNew && isDisabled ? "not-allowed" : "text"
                   }}
                 />
               </Form.Item>
@@ -572,7 +596,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
                 name="password"
                 label="Password"
                 rules={[
-                  { required: true, message: "Please input the password!" },
+                  { required: true, message: "Please input the password!" }
                 ]}
               >
                 <Input.Password />
@@ -582,7 +606,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
                 label="Email"
                 rules={[
                   { required: true, message: "Please input the email!" },
-                  { type: "email", message: "Please enter a valid email!" },
+                  { type: "email", message: "Please enter a valid email!" }
                 ]}
               >
                 <Input />
@@ -591,7 +615,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
                 name="firstname"
                 label="First Name"
                 rules={[
-                  { required: true, message: "Please input the first name!" },
+                  { required: true, message: "Please input the first name!" }
                 ]}
               >
                 <Input />
@@ -600,7 +624,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
                 name="lastname"
                 label="Last Name"
                 rules={[
-                  { required: true, message: "Please input the last name!" },
+                  { required: true, message: "Please input the last name!" }
                 ]}
               >
                 <Input />
@@ -611,8 +635,8 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
                 rules={[
                   {
                     required: true,
-                    message: "Please input the date of birth!",
-                  },
+                    message: "Please input the date of birth!"
+                  }
                 ]}
               >
                 <Input />
@@ -742,7 +766,7 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
                         record.roles.flatMap((role) =>
                           role.permissions?.map((permission) => permission.name)
                         )
-                      ),
+                      )
                     ].map((permName) => {
                       const permission = record.roles
                         .flatMap((role) => role.permissions)
@@ -805,4 +829,3 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
 };
 
 export default UserListPage;
-

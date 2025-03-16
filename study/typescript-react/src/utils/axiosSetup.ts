@@ -2,6 +2,7 @@
 import axios, { AxiosInstance } from "axios";
 import { notification } from "antd";
 import { ErrorType } from "../services/baseService";
+import { getRecaptchaToken, isDevEnvironment } from "./recaptchaUtils";
 
 // Define the type for our custom error rejection data
 interface CustomErrorData {
@@ -21,6 +22,48 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
   // Request interceptor
   axiosInstance.interceptors.request.use(
     function (config) {
+      // Tự động thêm reCAPTCHA token cho các request POST, PUT, PATCH, DELETE
+      const mutationMethods = ["post", "put", "patch", "delete"];
+
+      if (config.method && mutationMethods.includes(config.method.toLowerCase())) {
+        const recaptchaToken = getRecaptchaToken();
+
+        // Với DELETE không có body, thêm token vào URL
+        if (config.method.toLowerCase() === 'delete') {
+          const separator = config.url?.includes('?') ? '&' : '?';
+          config.url = `${config.url}${separator}recaptchaToken=${encodeURIComponent(recaptchaToken)}`;
+        }
+        // Với các phương thức khác, thêm vào body
+        else if (config.data) {
+          if (typeof config.data === 'string') {
+            try {
+              const data = JSON.parse(config.data);
+              // Chỉ thêm nếu chưa có
+              if (!data.recaptchaToken) {
+                data.recaptchaToken = recaptchaToken;
+                config.data = JSON.stringify(data);
+              }
+            } catch (e) {
+              // Nếu không phải JSON hợp lệ, bỏ qua
+              console.warn('Unable to add reCAPTCHA token to non-JSON data');
+            }
+          } else {
+            // Chỉ thêm nếu chưa có
+            if (!config.data.recaptchaToken) {
+              config.data.recaptchaToken = recaptchaToken;
+            }
+          }
+        } else {
+          // Nếu không có data, tạo mới
+          config.data = { recaptchaToken };
+        }
+
+        // Log trong môi trường development
+        if (isDevEnvironment()) {
+          console.log(`Automatically added reCAPTCHA token to ${config.method.toUpperCase()} request: ${config.url}`);
+        }
+      }
+
       return config;
     },
     function (error) {
@@ -83,6 +126,23 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
 
           // Validation errors (400)
           if (status === 400) {
+            // Thêm kiểm tra đặc biệt cho lỗi RECAPTCHA_REQUIRED
+            if (data?.message === "RECAPTCHA_REQUIRED" || errorCode === 4000) {
+              const customError: CustomErrorData = {
+                isHandled: false,
+                message: "ReCAPTCHA verification required. Please try again.",
+                originalError: error,
+                errorCode,
+                errorType: ErrorType.VALIDATION,
+              };
+              notification.error({
+                message: "Verification Required",
+                description: "ReCAPTCHA verification failed. Please refresh the page and try again.",
+                key: "recaptcha-error",
+              });
+              return Promise.reject(customError);
+            }
+
             // Special handling for password mismatch
             if (errorCode === 4009) {
               const customError: CustomErrorData = {

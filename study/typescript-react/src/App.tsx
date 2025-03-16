@@ -8,10 +8,13 @@ import {
   Route,
   Routes,
   useNavigate,
-  useLocation,
+  useLocation
 } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Layout } from "antd";
+import { Provider } from "react-redux";
+import store from "./store/store";
+import RecaptchaProvider from "./components/RecaptchaProvider";
 
 // Import the new AuthPage component
 import AuthPage from "./pages/AuthPage";
@@ -31,7 +34,7 @@ import HeaderCustom from "./components/HeaderCustom";
 import Sidebar from "./components/Sidebar";
 import {
   introspectToken,
-  refreshTokenFromCookie,
+  refreshTokenFromCookie
 } from "./services/authService";
 import { clearAuthData, setAuthData } from "./store/authSlice";
 import { resetAllData } from "./store/resetActions";
@@ -84,7 +87,7 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
                 setAuthData({
                   token: refreshResponse.result.token,
                   isAuthenticated: true,
-                  loginSocial: false,
+                  loginSocial: false
                 })
               );
               setupTokenRefresh(refreshResponse.result.token);
@@ -141,7 +144,7 @@ const MainLayout = ({ children }: { children: ReactNode }) => {
           style={{
             padding: isKanbanRoute ? 0 : "24px",
             height: "calc(100vh - 64px - 70px)",
-            overflow: "auto",
+            overflow: "auto"
           }}
         >
           {children}
@@ -152,7 +155,7 @@ const MainLayout = ({ children }: { children: ReactNode }) => {
           textAlign: "center",
           background: "white",
           height: "70px",
-          padding: "24px",
+          padding: "24px"
         }}
       >
         The Application ©2024 Created by Tu Phung
@@ -171,40 +174,58 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <Router>
-      <Routes>
-        {/* Use our new AuthPage component for login */}
-        <Route path="/login" element={<AuthPage />} />
-        <Route path="/reset-password" element={<ResetPasswordComponent />} />
-        <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
-        <Route path="/oauths/redirect" element={<OAuth2RedirectHandler />} />
-        <Route path="/verify-email" element={<EmailVerificationComponent />} />
-        <Route
-          path="*"
-          element={
-            <AuthWrapper>
-              <MainLayout>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/userList" element={<UserListPage />} />
-                  <Route path="/roles" element={<RolesPage />} />
-                  <Route path="/permissions" element={<PermissionsPage />} />
-                  <Route path="/statistics" element={<StatisticPage />} />
-                  <Route path="/calendar" element={<CalendarPage />} />
-                  <Route path="/kanban" element={<KanbanPage />} />
-                  <Route
-                    path="/adminDashBoard"
-                    element={<AdminDashBoardPage />}
-                  />
-                </Routes>
-              </MainLayout>
-            </AuthWrapper>
-          }
-        />
-      </Routes>
-    </Router>
+    <Provider store={store}>
+      <RecaptchaProvider>
+        <Router>
+          <Routes>
+            {/* Use our new AuthPage component for login */}
+            <Route path="/login" element={<AuthPage />} />
+            <Route
+              path="/reset-password"
+              element={<ResetPasswordComponent />}
+            />
+            <Route
+              path="/forgot-password"
+              element={<ForgotPasswordComponent />}
+            />
+            <Route
+              path="/oauths/redirect"
+              element={<OAuth2RedirectHandler />}
+            />
+            <Route
+              path="/verify-email"
+              element={<EmailVerificationComponent />}
+            />
+            <Route
+              path="*"
+              element={
+                <AuthWrapper>
+                  <MainLayout>
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/userList" element={<UserListPage />} />
+                      <Route path="/roles" element={<RolesPage />} />
+                      <Route
+                        path="/permissions"
+                        element={<PermissionsPage />}
+                      />
+                      <Route path="/statistics" element={<StatisticPage />} />
+                      <Route path="/calendar" element={<CalendarPage />} />
+                      <Route path="/kanban" element={<KanbanPage />} />
+                      <Route
+                        path="/adminDashBoard"
+                        element={<AdminDashBoardPage />}
+                      />
+                    </Routes>
+                  </MainLayout>
+                </AuthWrapper>
+              }
+            />
+          </Routes>
+        </Router>
+      </RecaptchaProvider>
+    </Provider>
   );
 };
 
 export default App;
-

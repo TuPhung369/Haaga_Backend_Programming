@@ -110,6 +110,12 @@ const ReCaptchaV3: React.FC<ReCaptchaV3Props> = ({
               .then((token) => {
                 if (token) {
                   onVerify(token);
+                  fetch(`/api/verify-recaptcha?token=${token}`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                      console.log("reCAPTCHA score:", data.score);
+                      // data.score là giá trị từ 0.0 đến 1.0
+                    });
                 } else {
                   console.warn("reCAPTCHA returned null token");
                   // Fall back to fake token
