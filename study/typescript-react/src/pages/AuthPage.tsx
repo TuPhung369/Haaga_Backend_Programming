@@ -32,6 +32,7 @@ import LoadingState from "../components/LoadingState";
 import TotpAuthComponent from "../components/TotpAuthComponent";
 import EmailOtpAuthComponent from "../components/EmailOtpAuthComponent";
 import { COLORS } from "../utils/constant";
+import ReCaptchaV3 from "../components/ReCaptchaV3";
 
 // Define error response interface based on your API structure
 interface ErrorResponseData {
@@ -97,6 +98,18 @@ const AuthPage: React.FC = () => {
   // OAuth settings
   const oauth2ClientId = import.meta.env.VITE_OAUTH2_CLIENT_ID;
   const oauth2RedirectUri = import.meta.env.VITE_OAUTH2_REDIRECT_URI;
+
+  // Add new state variables for reCAPTCHA
+  const [recaptchaV3Token, setRecaptchaV3Token] = useState<string>("");
+
+  // Get reCAPTCHA site keys from environment
+  const recaptchaSiteKeyV3 = import.meta.env.VITE_RECAPTCHA_SITE_KEY_V3;
+
+  // Check if we're in development mode
+  const isDevelopment = import.meta.env.MODE === "development";
+  // Check if we're using test key
+  const isUsingTestKey =
+    recaptchaSiteKeyV3 === "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -270,9 +283,29 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  // Handle registration - Updated to only show one notification
+  // Handle registration - Updated to only use reCAPTCHA V3
   const handleRegister = async () => {
     clearAllFieldErrors();
+
+    // Use existing environment flags instead of creating a new one
+    if (isDevelopment || isUsingTestKey) {
+      // In development mode, log extra info about the token
+      console.log("Registration in development mode with token details:", {
+        tokenLength: recaptchaV3Token?.length || 0,
+        tokenPrefix: recaptchaV3Token?.substring(0, 10) + "...",
+        isDevelopment,
+        isUsingTestKey
+      });
+    } else {
+      // In production, ensure we have a real V3 token
+      if (!recaptchaV3Token) {
+        notification.error({
+          message: "Verification Required",
+          description: "Please wait for reCAPTCHA verification to complete."
+        });
+        return;
+      }
+    }
 
     const userData: ValidationInput = {
       username: registerValues.username,
@@ -283,7 +316,8 @@ const AuthPage: React.FC = () => {
         ? registerValues.dob.format("YYYY-MM-DD")
         : undefined,
       email: registerValues.email,
-      roles: ["USER"]
+      roles: ["USER"],
+      recaptchaToken: recaptchaV3Token
     };
 
     if (registerValues.password !== registerValues.confirmPassword) {
@@ -315,6 +349,7 @@ const AuthPage: React.FC = () => {
       });
     } else if (error) {
       console.log("Register error:", error); // Debugging
+
       if (error instanceof ServiceError) {
         if (error.field) {
           setFieldError(error.field, error.message || "Invalid input");
@@ -441,6 +476,20 @@ const AuthPage: React.FC = () => {
       />
     );
   }
+
+  // Simplified renderCaptcha method - only ReCaptchaV3
+  const renderCaptcha = () => {
+    return (
+      <>
+        {/* Invisible v3 reCAPTCHA */}
+        <ReCaptchaV3
+          sitekey={recaptchaSiteKeyV3}
+          action="register"
+          onVerify={(token) => setRecaptchaV3Token(token)}
+        />
+      </>
+    );
+  };
 
   return (
     <>
@@ -681,6 +730,9 @@ const AuthPage: React.FC = () => {
                       allowClear={false}
                     />
                   </Form.Item>
+
+                  {renderCaptcha()}
+
                   <Form.Item>
                     <Button
                       type="primary"

@@ -28,6 +28,22 @@ const apiClient = axios.create({
 
 setupAxiosInterceptors(apiClient);
 
+const mockApiClient = axios.create({
+  baseURL: API_BASE_URI,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,
+});
+
+// Tạo một interceptor cho mockApiClient để thay đổi request URL
+mockApiClient.interceptors.request.use(function (config) {
+  if (config.url) {
+    config.url = config.url.replace(/^\//, '/_dev_/');
+  }
+  return config;
+});
+
 export const requestEmailChangeCode = async (
   request: EmailChangeRequest
 ): Promise<GenericResponse> => {
@@ -224,6 +240,33 @@ export const registerUser = async (
   userData: ValidationInput
 ): Promise<GenericResponse> => {
   try {
+    // Check if we're in development mode
+    // const isDevelopment = import.meta.env.MODE === 'development';
+
+    // // For development, log token info
+    // if (isDevelopment) {
+    //   console.log('Register request in DEV mode:', {
+    //     hasV3Token: !!userData.recaptchaToken,
+    //     tokenPrefix: userData.recaptchaToken?.substring(0, 10) + '...'
+    //   });
+
+    //   try {
+    //     // First try the development endpoint if we're in dev mode
+    //     console.log('Attempting registration via development endpoint...');
+    //     const response = await mockApiClient.post<GenericResponse>(
+    //       "/auth/register",
+    //       userData
+    //     );
+    //     console.log('Development endpoint registration successful!');
+    //     return response.data;
+    //   } catch (devError) {
+    //     // If development endpoint fails, log and continue to standard endpoint
+    //     console.error('Development endpoint failed:', devError);
+    //     console.log('Falling back to standard endpoint...');
+    //   }
+    // }
+
+    // Use the regular API client as fallback or for production
     const response = await apiClient.post<GenericResponse>(
       "/auth/register",
       userData
@@ -241,6 +284,20 @@ export const verifyEmail = async (
   token: string
 ): Promise<GenericResponse> => {
   try {
+    // Check if we're in development mode
+    // const isDevelopment = import.meta.env.MODE === 'development';
+
+    // if (isDevelopment) {
+    //   console.log('Verify email request in DEV mode:', {
+    //     username,
+    //     token
+    //   });
+
+    //   // Skip the development endpoint since the standard endpoint is working correctly
+    //   console.log('Using standard endpoint for email verification...');
+    // }
+
+    // Always use the regular API client for email verification
     const response = await apiClient.post<GenericResponse>(
       "/auth/verify-email",
       {

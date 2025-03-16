@@ -107,6 +107,7 @@ public class AuthenticationService implements AuthenticationUtilities {
   final CookieService cookieService;
   final JwtUtils jwtUtils;
   final TotpService totpService;
+  final ReCaptchaService reCaptchaService;
 
   @Autowired
   private SecurityMonitoringService securityMonitoringService;
@@ -957,6 +958,24 @@ public class AuthenticationService implements AuthenticationUtilities {
     log.info("Processing registration request for username: {}, email: {}", request.getUsername(), request.getEmail());
 
     try {
+      // Validate reCAPTCHA tokens
+      if (request.getRecaptchaToken() == null || request.getRecaptchaToken().isEmpty()) {
+        log.warn("reCAPTCHA token missing for registration request: {}", request.getUsername());
+        throw new AppException(ErrorCode.RECAPTCHA_REQUIRED);
+      }
+
+      log.info("Validating reCAPTCHA for registration of user: {}", request.getUsername());
+      boolean recaptchaValid = reCaptchaService.validateHybrid(
+          request.getRecaptchaToken(),
+          request.getRecaptchaV2Token());
+
+      if (!recaptchaValid) {
+        log.warn("reCAPTCHA validation failed for registration request: {}", request.getUsername());
+        throw new AppException(ErrorCode.RECAPTCHA_VALIDATION_FAILED);
+      }
+
+      log.info("reCAPTCHA validation successful for user: {}", request.getUsername());
+
       // Check if username exists
       log.info("Checking if username exists: {}", request.getUsername());
       if (userRepository.existsByUsername(request.getUsername())) {

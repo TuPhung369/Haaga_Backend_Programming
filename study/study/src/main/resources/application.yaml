@@ -70,6 +70,14 @@ security:
     enabled: true
     max-requests-per-second: 10
 
+# reCAPTCHA Configuration
+recaptcha:
+  secret:
+    v3: ${RECAPTCHA_SECRET_V3:2fl9V3Xl0ks5yX9DGuVHRV1H6ld9F0OjhrYhP7QvxqJrB/1OLKJHpPoMxSBcUe3EEC6hq0kseMfUQlhK2w2yQA==}
+    v2: ${RECAPTCHA_SECRET_V2:2fl9V3Xl0ks5yX9dGuVHRV1H6ld9F01jhrYhP7QvxqJrB/1OLKJHpPoMxSBcUe3EEC6hq0kseMfUQlhK2w2yQA==}
+  verification.url: https://www.google.com/recaptcha/api/siteverify
+  score.threshold: 0.5
+
 cleanup:
   cron:
     expression: "0 0 2 * * ?" # 2AM every day
@@ -85,5 +93,4 @@ logging:
     "[org.springframework.security.oauth2]": ERROR
     "[org.springframework.web.cors]": DEBUG
     "[com.database.study.service.SecurityMonitoringService]": DEBUG # Thêm debug logging cho SecurityMonitoringService
-
 

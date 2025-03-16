@@ -49,4 +49,10 @@ public class UserCreationRequest {
   List<String> roles;
 
   Boolean active;
+
+  @NotBlank(message = "RECAPTCHA_REQUIRED")
+  String recaptchaToken;
+
+  // This field is used when v3 score is too low and we need to show v2
+  String recaptchaV2Token;
 }

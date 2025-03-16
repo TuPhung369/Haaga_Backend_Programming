@@ -15,13 +15,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(scanBasePackages = { "com.database.study" })
 public class StudyApplication {
 
-    // Giữ trạng thái giữa các context khác nhau
     private static final AtomicBoolean hasLogged = new AtomicBoolean(false);
 
     public static void main(String[] args) {
-        // Kiểm tra thread hiện tại
         String currentThread = Thread.currentThread().getName();
-        
+
         // Chỉ tiếp tục thực thi nếu chưa log hoặc nếu đây là thread restartedMain
         if (hasLogged.compareAndSet(false, true) || "restartedMain".equals(currentThread)) {
             try {
@@ -39,7 +37,7 @@ public class StudyApplication {
 
                 // Get the active profile (default to "dev" if not set)
                 String activeProfile = System.getProperty("spring.profiles.active", "dev");
-                
+
                 // Chỉ log từ một thread
                 if ("restartedMain".equals(currentThread)) {
                     log.info("Active profile detected: {}", activeProfile);
@@ -59,14 +57,9 @@ public class StudyApplication {
 
                 // Start the Spring Boot application
                 SpringApplication application = new SpringApplication(StudyApplication.class);
-                
-                // Vô hiệu hóa banner để giảm log
+
                 application.setBannerMode(Banner.Mode.OFF);
-                
-                // Vô hiệu hóa log khởi động
                 application.setLogStartupInfo(false);
-                
-                // Chạy ứng dụng
                 application.run(args);
             } catch (Exception e) {
                 if (e.getClass().getName().contains("SilentExitException")) {
@@ -91,11 +84,14 @@ public class StudyApplication {
         String emailServerPort = dotenv.get("EMAIL_SERVER_PORT");
         String encryptionKey = dotenv.get("ENCRYPTION_KEY");
         String jwtKey = dotenv.get("JWT_KEY");
+        String recaptchaSecretV3 = dotenv.get("RECAPTCHA_SECRET_V3");
+        String recaptchaSecretV2 = dotenv.get("RECAPTCHA_SECRET_V2");
 
         // Validate required variables for dev profile
         if (dbUrlDev == null || dbUsernameDev == null || dbPasswordDev == null ||
-            oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
-            log.error("Missing required DEV environment variables. Required: DB_URL_DEV, DB_USERNAME_DEV, DB_PASSWORD_DEV, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
+                oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
+            log.error(
+                    "Missing required DEV environment variables. Required: DB_URL_DEV, DB_USERNAME_DEV, DB_PASSWORD_DEV, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
             System.err.println("Missing required DEV environment variables.");
             return;
         }
@@ -113,6 +109,8 @@ public class StudyApplication {
         setSystemProperty("EMAIL_SERVER_PORT", emailServerPort);
         setSystemProperty("ENCRYPTION_KEY", encryptionKey);
         setSystemProperty("JWT_KEY", jwtKey);
+        setSystemProperty("RECAPTCHA_SECRET_V3", recaptchaSecretV3);
+        setSystemProperty("RECAPTCHA_SECRET_V2", recaptchaSecretV2);
 
         // Optional variables
         setSystemProperty("BASE_URL", dotenv.get("BASE_URL"));
@@ -136,8 +134,9 @@ public class StudyApplication {
         String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
 
         if (dbUrlGoogle == null || dbUsernameGoogle == null || dbPasswordGoogle == null ||
-            oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
-            log.error("Missing required GOOGLE environment variables. Required: DB_URL_GOOGLE, DB_USERNAME_GOOGLE, DB_PASSWORD_GOOGLE, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
+                oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
+            log.error(
+                    "Missing required GOOGLE environment variables. Required: DB_URL_GOOGLE, DB_USERNAME_GOOGLE, DB_PASSWORD_GOOGLE, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
             return;
         }
 
@@ -160,8 +159,9 @@ public class StudyApplication {
         String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
 
         if (dbUrlAws == null || dbUsernameAws == null || dbPasswordAws == null ||
-            oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
-            log.error("Missing required AWS environment variables. Required: DB_URL_AWS, DB_USERNAME_AWS, DB_PASSWORD_AWS, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
+                oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
+            log.error(
+                    "Missing required AWS environment variables. Required: DB_URL_AWS, DB_USERNAME_AWS, DB_PASSWORD_AWS, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_REDIRECT_URI");
             return;
         }
 

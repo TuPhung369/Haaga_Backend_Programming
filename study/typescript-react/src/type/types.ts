@@ -62,6 +62,8 @@ export interface ValidationInput {
   dob?: string | Date; // Can be string or Date
   roles?: string[]; // Array of strings for roles
   email?: string;
+  recaptchaToken?: string; // reCAPTCHA v3 token
+  recaptchaV2Token?: string; // reCAPTCHA v2 token (when needed)
 }
 
 // Error type for validation results

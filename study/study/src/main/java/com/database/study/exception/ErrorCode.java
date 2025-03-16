@@ -105,7 +105,13 @@ public enum ErrorCode {
         NOT_FOUND(4025, "Resource not found", HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()),
         ACCOUNT_BLOCKED(4026, "Account blocked for security reasons", HttpStatus.FORBIDDEN, "403",
-                        ENUMS.Severity.HIGH.name());
+                        ENUMS.Severity.HIGH.name()),
+        // reCAPTCHA error code
+        RECAPTCHA_VALIDATION_FAILED(4032, "reCAPTCHA verification failed. Please try again.", HttpStatus.FORBIDDEN,
+                        "403",
+                        ENUMS.Severity.MEDIUM.name()),
+        RECAPTCHA_REQUIRED(4033, "reCAPTCHA verification is required.", HttpStatus.BAD_REQUEST, "400",
+                        ENUMS.Severity.MEDIUM.name());
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
                 this.code = code;

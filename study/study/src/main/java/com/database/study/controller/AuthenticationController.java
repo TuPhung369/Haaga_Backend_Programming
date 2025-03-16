@@ -12,6 +12,8 @@ import com.nimbusds.jose.JOSEException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.util.Map;
@@ -28,6 +30,7 @@ public class AuthenticationController {
   AuthenticationService authenticationService;
   GoogleTokenValidation googleTokenValidationService;
   CookieService cookieService;
+  private static final Logger log = LoggerFactory.getLogger(AuthenticationController.class);
 
   // New initial authentication endpoint that checks for 2FA requirements
   @PostMapping("/initAuthentication")
@@ -142,7 +145,21 @@ public class AuthenticationController {
 
   @PostMapping("/register")
   public ApiResponse<Void> register(@RequestBody UserCreationRequest request) {
-    return authenticationService.register(request);
+    try {
+      log.info("Received registration request for username: {}, email: {}",
+          request.getUsername(), request.getEmail());
+      log.info("Registration request contains reCAPTCHA token: {}",
+          request.getRecaptchaToken() != null
+              ? request.getRecaptchaToken().substring(0, Math.min(10, request.getRecaptchaToken().length())) + "..."
+              : "null");
+
+      ApiResponse<Void> response = authenticationService.register(request);
+      log.info("Registration completed successfully for username: {}", request.getUsername());
+      return response;
+    } catch (Exception e) {
+      log.error("Error processing registration request", e);
+      throw e;
+    }
   }
 
   @PostMapping("/verify-email")

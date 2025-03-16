@@ -64,7 +64,10 @@ public class SecurityConfig {
       "/o/oauth2**",
       "/login/oauth2/**",
       "/protected/**",
-      "/google/token"
+      "/google/token",
+
+      // Development mode endpoints - allow all _dev_ prefixed paths
+      "/_dev_/**"
   };
 
   private final String[] COOKIES_ENDPOINTS = {
