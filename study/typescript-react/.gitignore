@@ -1,24 +1,74 @@
+# Global ignore (áp dụng cho cả React & Spring Boot)
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+turbo-debug.log*
+vite-error.log*
+vercel*.log*
+hs_err_pid*.log # JVM crash logs
 
-node_modules
-dist
-dist-ssr
-*.local
+# Env files
+*.env*
+**/*.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+local.properties # Spring Boot local config
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# OS files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
+
+# Common dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+out/
+.vite/
+.cache/
+coverage/
+
+# Editor directories
+.vscode/
+.idea/
+*.iws
+*.iml
+*.ipr
+.idea/**/workspace.xml
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# React-specific ignore
+/public/*.cache
+.eslintcache
+.parcel-cache/
+.storybook/
+storybook-static/
+.next/
+out/
+.vite/
+
+# Spring Boot-specific ignore
+/target/
+/bin/
+/build/
+/BOOT-INF/
+/.m2/
+/.gradle/
+/.mvn/
+spring.log

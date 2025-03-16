@@ -1,58 +1,74 @@
-HELP.md
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# Global ignore (áp dụng cho cả React & Spring Boot)
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-*.env
-**/*.env
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+turbo-debug.log*
+vite-error.log*
+vercel*.log*
+hs_err_pid*.log # JVM crash logs
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-
-# misc
-.DS_Store
+# Env files
+*.env*
+**/*.env*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+local.properties # Spring Boot local config
 
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# OS files
+.DS_Store
+Thumbs.db
 
+# Common dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+out/
+.vite/
+.cache/
+coverage/
+
+# Editor directories
+.vscode/
+.idea/
+*.iws
+*.iml
+*.ipr
+.idea/**/workspace.xml
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# React-specific ignore
+/public/*.cache
+.eslintcache
+.parcel-cache/
+.storybook/
+storybook-static/
+.next/
+out/
+.vite/
+
+# Spring Boot-specific ignore
+/target/
+/bin/
+/build/
+/BOOT-INF/
+/.m2/
+/.gradle/
+/.mvn/
+spring.log
