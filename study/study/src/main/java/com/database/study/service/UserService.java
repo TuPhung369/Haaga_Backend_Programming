@@ -51,7 +51,6 @@ public class UserService {
   TotpService totpService;
   TotpSecretRepository totpSecretRepository;
 
-
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
   // match EXACTLY the permission name or ROLE_ADMIN also)
   public List<UserResponse> getUsers() {
@@ -64,9 +63,9 @@ public class UserService {
     String username = request.getUsername().trim();
     request.setUsername(username);
     if (userRepository.existsByUsernameIgnoreCase(username)) {
-        log.warn("Attempted to create account with existing username: {}", username);
-        throw new AppException(ErrorCode.USER_EXISTS)
-            .addMetadata("field", "username");
+      log.warn("Attempted to create account with existing username: {}", username);
+      throw new AppException(ErrorCode.USER_EXISTS)
+          .addMetadata("field", "username");
     }
 
     User user = userMapper.toUser(request);
@@ -91,34 +90,34 @@ public class UserService {
     return userMapper.toUserResponse(user);
   }
 
-public UserResponse getMyInfo() {
-  String name = SecurityContextHolder.getContext().getAuthentication().getName();
-  User user = userRepository.findByUsername(name)
-      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-  
-  UserResponse userResponse = userMapper.toUserResponse(user);
-  
-  // Add TOTP security information
-  enrichUserResponseWithTotpInfo(userResponse);
-  
-  return userResponse;
-}
+  public UserResponse getMyInfo() {
+    String name = SecurityContextHolder.getContext().getAuthentication().getName();
+    User user = userRepository.findByUsername(name)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-@PostAuthorize("hasRole('ADMIN')")
-public UserResponse getUserById(UUID userId) {
-  User user = userRepository.findById(userId)
-      .orElseThrow(() -> {
-        log.error("User with ID {} not found", userId);
-        throw new AppException(ErrorCode.USER_NOT_FOUND);
-      });
-  
-  UserResponse userResponse = userMapper.toUserResponse(user);
-  
-  // Add TOTP security information
-  enrichUserResponseWithTotpInfo(userResponse);
-  
-  return userResponse;
-}
+    UserResponse userResponse = userMapper.toUserResponse(user);
+
+    // Add TOTP security information
+    enrichUserResponseWithTotpInfo(userResponse);
+
+    return userResponse;
+  }
+
+  @PostAuthorize("hasRole('ADMIN')")
+  public UserResponse getUserById(UUID userId) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> {
+          log.error("User with ID {} not found", userId);
+          throw new AppException(ErrorCode.USER_NOT_FOUND);
+        });
+
+    UserResponse userResponse = userMapper.toUserResponse(user);
+
+    // Add TOTP security information
+    enrichUserResponseWithTotpInfo(userResponse);
+
+    return userResponse;
+  }
 
   @PreAuthorize("hasRole('ADMIN') || hasRole('MANAGER')")
   @Transactional
@@ -146,6 +145,7 @@ public UserResponse getUserById(UUID userId) {
     return userMapper.toUserResponse(updatedUser);
   }
 
+  @Transactional
   public UserResponse updateMyInfo(UUID userId, UserCreationRequest request) {
     User existingUser = userRepository.findById(userId)
         .orElseThrow(() -> {
@@ -153,8 +153,18 @@ public UserResponse getUserById(UUID userId) {
           throw new AppException(ErrorCode.USER_NOT_FOUND);
         });
 
+    // Verify current password
+    if (!passwordEncoder.matches(request.getCurrentPassword(), existingUser.getPassword())) {
+      log.warn("Invalid current password for user: {}", existingUser.getUsername());
+      throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+    }
+
     userMapper.updateUser(existingUser, request);
-    existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+
+    // Only update password if a new one is provided
+    if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+      existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+    }
 
     // Update roles
     List<String> roles = request.getRoles();
@@ -170,82 +180,82 @@ public UserResponse getUserById(UUID userId) {
     return userMapper.toUserResponse(updatedUser);
   }
 
-   @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
-    @Transactional
-    public void deleteUser(UUID userId) {
-        // Find user first to get username before deletion
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        
-        String username = user.getUsername();
-        log.info("Deleting user with ID: {} and username: {}", userId, username);
-        
-        try {
-            // Delete all tokens related to user
-            try {
-                // Delete email verification tokens
-                emailVerificationTokenRepository.deleteByUsername(username);
-                log.info("Deleted email verification tokens for user: {}", username);
-            } catch (Exception e) {
-                log.error("Error deleting email verification tokens for user: {}", username, e);
-            }
-            
-            try {
-                // Delete invalidated tokens
-                invalidatedTokenRepository.deleteByUsername(username);
-                log.info("Deleted invalidated tokens for user: {}", username);
-            } catch (Exception e) {
-                log.error("Error deleting invalidated tokens for user: {}", username, e);
-            }
-            
-            // Delete user relationships
-            userRepository.deleteUserRolesByUserId(userId);
-            eventRepository.deleteByUserId(userId);
-            kanbanBoardRepository.deleteBoardsByUserId(userId);
-            
-            // Finally delete the user
-            userRepository.deleteById(userId);
-            log.info("Successfully deleted user with ID: {} and username: {}", userId, username);
-        } catch (Exception e) {
-            log.error("Error during user deletion process for user ID: {}", userId, e);
-            throw new AppException(ErrorCode.GENERAL_EXCEPTION);
-        }
-    }
-  
-    /**
-     * Delete a user by username (alternative method)
-     */
-    @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
-    @Transactional
-    public void deleteUserByUsername(String username) {
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-        
-        deleteUser(user.getId());
-    }
+  @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
+  @Transactional
+  public void deleteUser(UUID userId) {
+    // Find user first to get username before deletion
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-    private void enrichUserResponseWithTotpInfo(UserResponse userResponse) {
-      boolean totpEnabled = totpService.isTotpEnabled(userResponse.getUsername());
+    String username = user.getUsername();
+    log.info("Deleting user with ID: {} and username: {}", userId, username);
 
-      if (totpEnabled) {
-        totpSecretRepository.findByUsernameAndActive(userResponse.getUsername(), true)
-            .ifPresent(totpSecret -> {
-              UserResponse.TotpSecurityInfo totpInfo = UserResponse.TotpSecurityInfo.builder()
-                  .enabled(true)
-                  .deviceName(totpSecret.getDeviceName())
-                  .enabledDate(totpSecret.getCreatedAt().toLocalDate())
-                  .deviceId(totpSecret.getId())
-                  .createdAt(totpSecret.getCreatedAt())
-                  .build();
-
-              userResponse.setTotpSecurity(totpInfo);
-            });
-      } else {
-        userResponse.setTotpSecurity(
-            UserResponse.TotpSecurityInfo.builder()
-                .enabled(false)
-                .build());
+    try {
+      // Delete all tokens related to user
+      try {
+        // Delete email verification tokens
+        emailVerificationTokenRepository.deleteByUsername(username);
+        log.info("Deleted email verification tokens for user: {}", username);
+      } catch (Exception e) {
+        log.error("Error deleting email verification tokens for user: {}", username, e);
       }
+
+      try {
+        // Delete invalidated tokens
+        invalidatedTokenRepository.deleteByUsername(username);
+        log.info("Deleted invalidated tokens for user: {}", username);
+      } catch (Exception e) {
+        log.error("Error deleting invalidated tokens for user: {}", username, e);
+      }
+
+      // Delete user relationships
+      userRepository.deleteUserRolesByUserId(userId);
+      eventRepository.deleteByUserId(userId);
+      kanbanBoardRepository.deleteBoardsByUserId(userId);
+
+      // Finally delete the user
+      userRepository.deleteById(userId);
+      log.info("Successfully deleted user with ID: {} and username: {}", userId, username);
+    } catch (Exception e) {
+      log.error("Error during user deletion process for user ID: {}", userId, e);
+      throw new AppException(ErrorCode.GENERAL_EXCEPTION);
     }
-  
+  }
+
+  /**
+   * Delete a user by username (alternative method)
+   */
+  @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
+  @Transactional
+  public void deleteUserByUsername(String username) {
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+    deleteUser(user.getId());
+  }
+
+  private void enrichUserResponseWithTotpInfo(UserResponse userResponse) {
+    boolean totpEnabled = totpService.isTotpEnabled(userResponse.getUsername());
+
+    if (totpEnabled) {
+      totpSecretRepository.findByUsernameAndActive(userResponse.getUsername(), true)
+          .ifPresent(totpSecret -> {
+            UserResponse.TotpSecurityInfo totpInfo = UserResponse.TotpSecurityInfo.builder()
+                .enabled(true)
+                .deviceName(totpSecret.getDeviceName())
+                .enabledDate(totpSecret.getCreatedAt().toLocalDate())
+                .deviceId(totpSecret.getId())
+                .createdAt(totpSecret.getCreatedAt())
+                .build();
+
+            userResponse.setTotpSecurity(totpInfo);
+          });
+    } else {
+      userResponse.setTotpSecurity(
+          UserResponse.TotpSecurityInfo.builder()
+              .enabled(false)
+              .build());
+    }
+  }
+
 }

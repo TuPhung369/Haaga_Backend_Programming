@@ -75,7 +75,6 @@ export const updateUser = async (
   recaptchaToken?: string
 ): Promise<UserResponse> => {
   try {
-    // Ưu tiên sử dụng token được truyền vào, nếu không có thì lấy từ global store
     const dataWithRecaptcha = recaptchaToken
       ? { ...userData, recaptchaToken }
       : addRecaptchaTokenToData(userData);
@@ -98,12 +97,11 @@ export const updateUser = async (
 
 export const updateMyInfo = async (
   userId: string,
-  userData: Partial<ValidationInput>, // Partial allows partial updates
+  userData: Partial<ValidationInput>,
   token: string,
   recaptchaToken?: string
 ): Promise<UserResponse> => {
   try {
-    // Ưu tiên sử dụng token được truyền vào, nếu không có thì lấy từ global store
     const dataWithRecaptcha = recaptchaToken
       ? { ...userData, recaptchaToken }
       : addRecaptchaTokenToData(userData);

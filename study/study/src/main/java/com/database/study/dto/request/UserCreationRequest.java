@@ -34,6 +34,9 @@ public class UserCreationRequest {
   @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()\\-_=+{};:,<.>])[A-Za-z\\d!@#$%^&*()\\-_=+{};:,<.>]{8,}$", message = "PASSWORD_VALIDATION")
   String password;
 
+  @NotBlank(message = "CURRENT_PASSWORD_NOT_BLANK")
+  String currentPassword;
+
   @NotBlank(message = "FIRSTNAME_NOT_BLANK")
   String firstname;
 

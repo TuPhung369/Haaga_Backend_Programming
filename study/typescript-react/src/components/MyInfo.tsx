@@ -492,11 +492,6 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     }
   }, [notificationMessage, openNotification]);
 
-  const getHighestRole = (roles) => {
-    if (roles.includes("ADMIN")) return "ADMIN";
-    if (roles.includes("MANAGER")) return "MANAGER";
-    return "USER";
-  };
   const fetchMyInfo = useCallback(async () => {
     if (!token || !isAuthenticated) return;
 
@@ -668,7 +663,6 @@ const MyInfo: React.FC<MyInfoProps> = () => {
 
   const handleVerifyAndChangeEmail = async () => {
     try {
-
       // Handle TOTP verification
       if (userInfo?.totpSecurity?.enabled && isTotpVerification) {
         if (!totpCode || totpCode.length !== 6) {
@@ -1075,82 +1069,61 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     try {
       const values = await form.validateFields();
 
-      // Check for role escalation if user info exists
-      if (userInfo) {
-        const currentHighestRole = getHighestRole(
-          userInfo.roles.map((role) => role.name)
-        );
-        const newHighestRole = getHighestRole(values.roles || []);
-
-        // Prevent role escalation
-        if (
-          currentHighestRole === "USER" &&
-          (newHighestRole === "ADMIN" || newHighestRole === "MANAGER")
-        ) {
-          setNotificationMessage({
-            type: "error",
-            message: "Permission Denied",
-            description: "You don't have permission to escalate your role."
-          });
-          return;
-        }
-      }
-
-      const errors = validateInput({
-        username: values.username,
-        password: values.password,
-        firstname: values.firstname,
-        lastname: values.lastname,
-        dob: values.dob
-        // Skip email validation as it's handled separately
-      });
-
-      if (Object.keys(errors).length > 0) {
-        form.setFields(
-          Object.keys(errors).map((key) => ({
-            name: key,
-            errors: [errors[key]]
-          }))
-        );
+      // Check for current password
+      if (!values.currentPassword) {
+        setNotificationMessage({
+          type: "error",
+          message: "Password Required",
+          description: "Current password is required to update profile."
+        });
         return;
       }
 
-      if (userInfo) {
-        // Show loading state
-        setIsUpdatingInfo(true);
+      setIsUpdatingInfo(true);
 
-        // Create a copy of values without email
-        const updateValues = { ...values };
+      // Prepare data for update
+      const updateValues = {
+        ...values,
+        // Don't send empty password
+        password: values.password || undefined
+      };
 
-        if (!token) {
-          throw new Error("Token is invalid");
-        }
-        const response = await updateMyInfo(userInfo.id, updateValues, token);
-        dispatch(invalidateUserInfo());
-        if (response && response.result) {
-          const updatedUser = response.result;
-          dispatch(
-            setAllUsers(
-              allUsers.map((user) =>
-                user.id === updatedUser.id ? updatedUser : user
-              )
-            )
-          );
-        }
-
-        setNotificationMessage({
-          type: "success",
-          message: "Success",
-          description: "User information updated successfully."
-        });
-
-        // Delay closing the modal to show success state
-        setTimeout(() => {
-          setIsModalVisible(false);
-          if (onUpdateSuccess) onUpdateSuccess();
-          setIsUpdatingInfo(false);
-        }, 1000);
+      if (!token) {
+        throw new Error("Token is invalid");
       }
+
+      const response = await updateMyInfo(
+        userInfo?.id || "",
+        updateValues,
+        token
+      );
+      dispatch(invalidateUserInfo());
+
+      if (response && response.result) {
+        const updatedUser = response.result;
+        dispatch(
+          setAllUsers(
+            allUsers.map((user) =>
+              user.id === updatedUser.id ? updatedUser : user
+            )
+          )
+        );
+      }
+
+      setNotificationMessage({
+        type: "success",
+        message: "Success",
+        description: "User information updated successfully."
+      });
+
+      // Delay closing the modal to show success state
+      setTimeout(() => {
+        setIsModalVisible(false);
+        // reset form after update
+        form.resetFields();
+        if (onUpdateSuccess) onUpdateSuccess();
+        setIsUpdatingInfo(false);
+      }, 1000);
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
       console.error("Error updating user:", axiosError.response?.data?.message);
@@ -1263,12 +1236,17 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             <Input disabled />
           </Form.Item>
           <Form.Item
-            name="password"
-            label="Password"
-            rules={[{ required: true, message: "Please input the password!" }]}
+            name="currentPassword"
+            label="Current Password"
+            rules={[
+              { required: true, message: "Please input your current password!" }
+            ]}
           >
             <div style={{ display: "flex", alignItems: "center" }}>
-              <Input.Password disabled value="********" style={{ flex: 1 }} />
+              <Input.Password
+                placeholder="Enter your current password"
+                style={{ flex: 1 }}
+              />
               {!loginSocial && (
                 <Button
                   type="link"
@@ -1290,7 +1268,11 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             rules={[{ required: true, message: "Please input the email!" }]}
           >
             <div style={{ display: "flex", alignItems: "center" }}>
-              <Input disabled style={{ flex: 1 }} />
+              <Input
+                disabled
+                value={userInfo?.email || ""}
+                style={{ flex: 1 }}
+              />
               {!loginSocial && (
                 <Button
                   type="link"
@@ -1584,45 +1566,26 @@ const MyInfo: React.FC<MyInfoProps> = () => {
               {isPasswordChangeModalVisible &&
                 passwordChangeForm.getFieldValue("newPassword") && (
                   <div
-                    className="password-strength"
-                    style={{ marginTop: "8px" }}
+                    className="strength-bar"
+                    style={{ display: "flex", marginBottom: "4px" }}
                   >
-                    <div
-                      className="strength-bar"
-                      style={{ display: "flex", marginBottom: "4px" }}
-                    >
-                      {[1, 2, 3, 4, 5, 6].map((i) => {
-                        const { strength, color } = calculatePasswordStrength(
-                          passwordChangeForm.getFieldValue("newPassword")
-                        );
-                        return (
-                          <div
-                            key={i}
-                            style={{
-                              flex: 1,
-                              height: "4px",
-                              backgroundColor:
-                                i <= strength ? color : "#f0f0f0",
-                              marginRight: i < 6 ? "2px" : 0,
-                              borderRadius: "2px"
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                    <Text
-                      style={{
-                        color: calculatePasswordStrength(
-                          passwordChangeForm.getFieldValue("newPassword")
-                        ).color
-                      }}
-                    >
-                      {
-                        calculatePasswordStrength(
-                          passwordChangeForm.getFieldValue("newPassword")
-                        ).text
-                      }
-                    </Text>
+                    {[1, 2, 3, 4, 5, 6].map((i) => {
+                      const { strength, color } = calculatePasswordStrength(
+                        passwordChangeForm.getFieldValue("newPassword")
+                      );
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            flex: 1,
+                            height: "4px",
+                            backgroundColor: i <= strength ? color : "#f0f0f0",
+                            marginRight: i < 6 ? "2px" : 0,
+                            borderRadius: "2px"
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 )}
             </div>
