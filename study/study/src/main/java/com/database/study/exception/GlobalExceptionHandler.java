@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
       status = HttpStatus.FORBIDDEN;
     } else if (ex.getErrorCode() == ErrorCode.NOT_FOUND || ex.getErrorCode() == ErrorCode.RESOURCE_NOT_FOUND) {
       status = HttpStatus.NOT_FOUND;
-    } else if (ex.getErrorCode() == ErrorCode.ACCOUNT_LOCKED || ex.getErrorCode() == ErrorCode.ACCOUNT_BLOCKED) {
+    } else if (ex.getErrorCode() == ErrorCode.ACCOUNT_BLOCKED || ex.getErrorCode() == ErrorCode.ACCOUNT_BLOCKED) {
       status = HttpStatus.FORBIDDEN;
     }
 

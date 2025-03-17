@@ -134,6 +134,24 @@ public class UserService {
     // Update roles
     List<String> roles = request.getRoles();
     if (roles != null && !roles.isEmpty()) {
+      // Get current authenticated user's role
+      String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+      User currentUser = userRepository.findByUsername(currentUsername)
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+      boolean isAdmin = currentUser.getRoles().stream()
+          .anyMatch(role -> role.getName().equals("ADMIN"));
+
+      // Validate roles based on authenticated user's role
+      if (!isAdmin) {
+        // For MANAGER, restrict assigning ADMIN role
+        if (roles.contains("ADMIN")) {
+          log.warn("User with MANAGER role attempted to assign ADMIN role: {}", currentUsername);
+          throw new AppException(ErrorCode.UNAUTHORIZED_ROLE_ASSIGNMENT)
+              .addMetadata("field", "roles");
+        }
+      }
+
       Set<Role> roleEntities = roles.stream()
           .map(roleName -> roleRepository.findByName(roleName)
               .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))

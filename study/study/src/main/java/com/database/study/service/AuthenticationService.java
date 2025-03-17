@@ -257,7 +257,7 @@ public class AuthenticationService implements AuthenticationUtilities {
       // Check if the user is already blocked
       if (user.isBlock()) {
         log.warn("User is blocked and cannot log in: {}", user.getUsername());
-        throw new AppException(ErrorCode.ACCOUNT_LOCKED,
+        throw new AppException(ErrorCode.ACCOUNT_BLOCKED,
             "Account locked for security reasons")
             .addExtraInfo("remainingAttempts", 0);
       }
@@ -279,7 +279,7 @@ public class AuthenticationService implements AuthenticationUtilities {
         log.warn("DEBUG: Password mismatch. Setting timeTried to {} for user {}",
             user.getTimeTried(), user.getUsername());
 
-        // Check if max attempts reached - use ACCOUNT_LOCKED error
+        // Check if max attempts reached - use ACCOUNT_BLOCKED error
         if (user.getTimeTried() >= maxFailedAttempts) {
           log.warn("User {} has been blocked after {} failed login attempts", user.getUsername(), user.getTimeTried());
           user.setBlock(true);
@@ -296,8 +296,8 @@ public class AuthenticationService implements AuthenticationUtilities {
                 httpRequest, SecurityMonitoringService.AUTH_TYPE_TOTP);
           }
 
-          // Return ACCOUNT_LOCKED error instead of PASSWORD_MISMATCH
-          throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons")
+          // Return ACCOUNT_BLOCKED error instead of PASSWORD_MISMATCH
+          throw new AppException(ErrorCode.ACCOUNT_BLOCKED, "Account locked for security reasons")
               .addExtraInfo("remainingAttempts", 0);
         }
 
@@ -361,7 +361,7 @@ public class AuthenticationService implements AuthenticationUtilities {
           log.warn("DEBUG: Invalid TOTP code. Setting timeTried to {} for user {}",
               refreshedUser.getTimeTried(), refreshedUser.getUsername());
 
-          // Check if max attempts reached - use ACCOUNT_LOCKED error if blocked
+          // Check if max attempts reached - use ACCOUNT_BLOCKED error if blocked
           if (refreshedUser.getTimeTried() >= maxFailedAttempts) {
             log.warn("User {} has been blocked after {} failed TOTP attempts",
                 refreshedUser.getUsername(), refreshedUser.getTimeTried());
@@ -379,8 +379,8 @@ public class AuthenticationService implements AuthenticationUtilities {
                   httpRequest, SecurityMonitoringService.AUTH_TYPE_TOTP);
             }
 
-            // Return ACCOUNT_LOCKED error instead of TOTP_INVALID
-            throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons")
+            // Return ACCOUNT_BLOCKED error instead of TOTP_INVALID
+            throw new AppException(ErrorCode.ACCOUNT_BLOCKED, "Account locked for security reasons")
                 .addExtraInfo("remainingAttempts", 0);
           }
 
@@ -1869,7 +1869,7 @@ public class AuthenticationService implements AuthenticationUtilities {
     // Check if the user is already blocked
     if (user.isBlock()) {
       log.warn("User is blocked and cannot log in: {}", user.getUsername());
-      throw new AppException(ErrorCode.ACCOUNT_LOCKED,
+      throw new AppException(ErrorCode.ACCOUNT_BLOCKED,
           "Your account has been temporarily blocked due to too many failed login attempts")
           .addExtraInfo("remainingAttempts", 0);
     }
@@ -1919,7 +1919,7 @@ public class AuthenticationService implements AuthenticationUtilities {
           request.getUsername(), user.getTimeTried());
 
       if (remainingAttempts == 0) {
-        throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons")
+        throw new AppException(ErrorCode.ACCOUNT_BLOCKED, "Account locked for security reasons")
             .addExtraInfo("remainingAttempts", remainingAttempts);
       } else {
         throw new AppException("Invalid email verification code. Please check and try again.")
@@ -1988,7 +1988,7 @@ public class AuthenticationService implements AuthenticationUtilities {
           .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
       if (securityMonitoringService.isBlocked(user.getUsername(), user.getEmail(), null)) {
-        throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons");
+        throw new AppException(ErrorCode.ACCOUNT_BLOCKED, "Account locked for security reasons");
       }
 
       // 1. Authenticate the user
@@ -2166,7 +2166,7 @@ public class AuthenticationService implements AuthenticationUtilities {
       // Before checking the token, see if the user is blocked
       User user = userRepository.findByUsername(username).orElse(null);
       if (user != null && securityMonitoringService.isBlocked(username, user.getEmail(), null)) {
-        throw new AppException(ErrorCode.ACCOUNT_LOCKED);
+        throw new AppException(ErrorCode.ACCOUNT_BLOCKED);
       }
 
       // Check if the token is in the active token table
@@ -2246,7 +2246,7 @@ public class AuthenticationService implements AuthenticationUtilities {
       log.error("Error authenticating with refresh token: {}", e.getMessage());
 
       // Track failed attempt if we know the username
-      if (username != null && e.getErrorCode() != ErrorCode.ACCOUNT_LOCKED) {
+      if (username != null && e.getErrorCode() != ErrorCode.ACCOUNT_BLOCKED) {
         User user = userRepository.findByUsername(username).orElse(null);
         if (user != null) {
           securityMonitoringService.trackFailedAttempt(username, user.getEmail(),
@@ -2272,7 +2272,7 @@ public class AuthenticationService implements AuthenticationUtilities {
     // Check if the user is already blocked
     if (user.isBlock()) {
       log.warn("User is blocked and cannot log in: {}", user.getUsername());
-      throw new AppException(ErrorCode.ACCOUNT_LOCKED,
+      throw new AppException(ErrorCode.ACCOUNT_BLOCKED,
           "Your account has been temporarily blocked due to too many failed login attempts")
           .addExtraInfo("remainingAttempts", 0);
     }
@@ -2322,7 +2322,7 @@ public class AuthenticationService implements AuthenticationUtilities {
           request.getUsername(), user.getTimeTried());
 
       if (remainingAttempts == 0) {
-        throw new AppException(ErrorCode.ACCOUNT_LOCKED, "Account locked for security reasons")
+        throw new AppException(ErrorCode.ACCOUNT_BLOCKED, "Account locked for security reasons")
             .addExtraInfo("remainingAttempts", remainingAttempts);
       } else {
         throw new AppException("Invalid email verification code. Please check and try again.")
