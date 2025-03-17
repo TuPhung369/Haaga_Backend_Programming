@@ -5,12 +5,14 @@ import com.database.study.dto.response.PermissionResponse;
 import com.database.study.dto.response.RoleResponse;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.entity.Role;
+import com.database.study.entity.TotpSecurity;
 import com.database.study.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
+
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,18 +39,48 @@ public interface UserMapper {
         .collect(Collectors.toSet());
   }
 
+  // Method to map TotpSecurity entity to TotpSecurityInfo DTO
+  @Named("mapTotpSecurityToInfo")
+  default UserResponse.TotpSecurityInfo mapTotpSecurityToInfo(TotpSecurity totpSecurity) {
+    if (totpSecurity == null) {
+      return null;
+    }
+    return UserResponse.TotpSecurityInfo.builder()
+        .enabled(totpSecurity.isEnabled())
+        .deviceName("Authenticator App") // Default device name
+        .enabledDate(totpSecurity.getSetupDate() != null ? totpSecurity.getSetupDate().toLocalDate() : null)
+        .deviceId(totpSecurity.getId())
+        .createdAt(totpSecurity.getSetupDate())
+        .build();
+  }
+
+  // Method to map TotpSecurityInfo DTO to TotpSecurity entity
+  @Named("mapTotpSecurityInfoToEntity")
+  default TotpSecurity mapTotpSecurityInfoToEntity(UserResponse.TotpSecurityInfo totpSecurityInfo) {
+    if (totpSecurityInfo == null) {
+      return null;
+    }
+    return TotpSecurity.builder()
+        .enabled(totpSecurityInfo.isEnabled())
+        .id(totpSecurityInfo.getDeviceId())
+        .setupDate(totpSecurityInfo.getCreatedAt())
+        .verified(true) // Default to true when coming from response
+        .build();
+  }
+
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   @Mapping(target = "id", ignore = true) // ID is typically auto-generated
   @Mapping(target = "email", source = "email") // Map email explicitly
   @Mapping(target = "password", source = "password") // Explicitly map password
   @Mapping(target = "block", constant = "false") // Default value for isBlock
   @Mapping(target = "timeTried", constant = "0") // Default value for timeTried
+  @Mapping(target = "totpSecurity", ignore = true) // Ignore totpSecurity, set manually if needed
   User toUser(UserCreationRequest request);
 
   @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRolesToRoleResponse")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "active", source = "active")
-  @Mapping(target = "totpSecurity", ignore = true)
+  @Mapping(target = "totpSecurity", source = "totpSecurity", qualifiedByName = "mapTotpSecurityToInfo")
   UserResponse toUserResponse(User user);
 
   // New Method: Convert UserResponse back to User
@@ -57,6 +89,7 @@ public interface UserMapper {
   @Mapping(target = "active", source = "active")
   @Mapping(target = "block", constant = "false") // Default value for isBlock
   @Mapping(target = "timeTried", constant = "0") // Default value for timeTried
+  @Mapping(target = "totpSecurity", source = "totpSecurity", qualifiedByName = "mapTotpSecurityInfoToEntity")
   User toUser(UserResponse response);
 
   // Convert roles to string set for mapping if needed
@@ -72,5 +105,6 @@ public interface UserMapper {
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   @Mapping(target = "block", ignore = true) // Preserve existing isBlock value
   @Mapping(target = "timeTried", ignore = true) // Preserve existing timeTried value
+  @Mapping(target = "totpSecurity", ignore = true) // Preserve existing totpSecurity
   void updateUser(@MappingTarget User user, UserCreationRequest request);
 }

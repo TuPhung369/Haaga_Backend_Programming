@@ -41,4 +41,15 @@ public class User {
   @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
   Set<Role> roles;
+
+  @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+  private TotpSecurity totpSecurity;
+
+  public TotpSecurity getTotpSecurity() {
+    return totpSecurity;
+  }
+
+  public void setTotpSecurity(TotpSecurity totpSecurity) {
+    this.totpSecurity = totpSecurity;
+  }
 }

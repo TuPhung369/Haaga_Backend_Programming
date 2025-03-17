@@ -8,6 +8,7 @@ import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
 import { motion } from "framer-motion";
 import axios from "axios";
+import { authenticateWithTotpAndCookies } from "../services/authService";
 
 const { Title, Text } = Typography;
 
@@ -258,30 +259,23 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
     setIsSubmitting(true);
 
     try {
-      const API_BASE_URI = import.meta.env.VITE_API_BASE_URI || "";
-      const result = await axios.post(
-        `${API_BASE_URI}/auth/totp/token`,
-        {
-          username,
-          password,
-          totpCode
-        },
-        {
-          validateStatus: () => true
-        }
+      const result = await authenticateWithTotpAndCookies(
+        username,
+        password,
+        totpCode
       );
 
-      console.log("Direct API response:", result);
+      console.log("TOTP authentication response:", result);
 
-      if (result.status === 200 && result.data?.result?.token) {
+      if (result && result.result?.token) {
         dispatch(
           setAuthData({
-            token: result.data.result.token,
+            token: result.result.token,
             isAuthenticated: true,
             loginSocial: false
           })
         );
-        setupTokenRefresh(result.data.result.token);
+        setupTokenRefresh(result.result.token);
         notification.success({
           message: "Success",
           description: "2FA verification successful!"
@@ -291,17 +285,22 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
         return;
       }
 
-      const responseData = result.data;
+      // Handle unexpected response format
+      setError("Authentication failed. Please try again.");
+    } catch (error: any) {
+      console.error("TOTP auth error:", error);
+
       let attemptsLeft: number | null = null;
       let accountLocked = false;
       let errorMessage = "Authentication failed";
 
-      console.log("Error response data:", responseData);
+      // Check if it's a ServiceError or has response.data
+      if (error.response && error.response.data) {
+        const responseData = error.response.data;
+        console.log("Error response data:", responseData);
 
-      if (responseData) {
         if (responseData.message) {
           errorMessage = responseData.message;
-          console.log("Error message from response:", errorMessage);
         }
 
         if (
@@ -312,7 +311,6 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
               errorMessage.includes("blocked")))
         ) {
           accountLocked = true;
-          console.log("Account is locked based on response data");
         }
 
         if (
@@ -321,16 +319,19 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
           typeof responseData.metadata.remainingAttempts === "number"
         ) {
           attemptsLeft = responseData.metadata.remainingAttempts;
-          console.log("Found remainingAttempts in metadata:", attemptsLeft);
-
           if (attemptsLeft === 0) {
             accountLocked = true;
           }
         }
+      } else if (error.message) {
+        errorMessage = error.message;
+        if (
+          errorMessage.includes("locked") ||
+          errorMessage.includes("blocked")
+        ) {
+          accountLocked = true;
+        }
       }
-
-      console.log("Final remaining attempts:", attemptsLeft);
-      console.log("Is account locked:", accountLocked);
 
       setError(errorMessage);
 
@@ -340,40 +341,17 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
 
       if (accountLocked) {
         setIsAccountLocked(true);
-      }
-
-      if (accountLocked) {
         notification.error({
           message: "Account Locked",
           description:
             "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance."
         });
-      } else if (attemptsLeft !== null && attemptsLeft > 0) {
-        const attemptsMessage = `Invalid verification code. You have ${attemptsLeft} attempt${
-          attemptsLeft === 1 ? "" : "s"
-        } remaining before your account is locked.`;
-
-        notification.warning({
-          message: "Invalid Code",
-          description: attemptsMessage
-        });
-
-        setError(attemptsMessage);
       } else {
         notification.error({
-          message: "Verification Error",
+          message: "Verification Failed",
           description: errorMessage
         });
       }
-    } catch (error) {
-      console.error("TOTP authentication error:", error);
-      setError("Network error or server unavailable. Please try again later.");
-
-      notification.error({
-        message: "Connection Error",
-        description:
-          "Could not connect to the authentication server. Please try again later."
-      });
     } finally {
       setIsSubmitting(false);
     }

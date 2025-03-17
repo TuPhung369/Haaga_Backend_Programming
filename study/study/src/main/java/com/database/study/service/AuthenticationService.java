@@ -22,6 +22,7 @@ import com.database.study.dto.request.VerifyEmailRequest;
 import com.database.study.dto.request.IntrospectRequest;
 import com.database.study.dto.request.RefreshTokenRequest;
 import com.database.study.dto.request.ResendVerificationRequest;
+import com.database.study.dto.request.PasswordChangeRequest;
 import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.AuthenticationInitResponse;
 import com.database.study.dto.response.AuthenticationResponse;
@@ -160,9 +161,6 @@ public class AuthenticationService implements AuthenticationUtilities {
     User user = userRepository.findByUsername(username)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-    // Delete expired tokens
-    // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    // activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
     // Define longer expiry for OAuth tokens
     final long OAUTH_TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes for OAuth tokens
 
@@ -579,10 +577,6 @@ public class AuthenticationService implements AuthenticationUtilities {
       throw new AppException(ErrorCode.ACCOUNT_NOT_VERIFIED);
     }
 
-    // Clean up expired tokens
-    // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    // activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
-
     // Check for existing tokens
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
 
@@ -618,8 +612,6 @@ public class AuthenticationService implements AuthenticationUtilities {
             .authenticated(true)
             .build();
       }
-      // Do not delete token here if it has expired; let it be cleaned up by scheduled
-      // task
     }
 
     // Create new tokens only if no valid token exists
@@ -671,10 +663,6 @@ public class AuthenticationService implements AuthenticationUtilities {
     User user = userRepository.findByUsername(username)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-    // Clean up expired tokens
-    // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
-    // activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
-
     // Check for existing tokens
     Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
 
@@ -709,7 +697,6 @@ public class AuthenticationService implements AuthenticationUtilities {
             .authenticated(true)
             .build();
       }
-      // Do not delete token here if it has expired
     }
 
     // Create new tokens only if no valid token exists
@@ -1244,46 +1231,89 @@ public class AuthenticationService implements AuthenticationUtilities {
 
   @Transactional
   public ApiResponse<Void> verifyEmailChange(VerifyEmailChangeRequest request) {
-    // Find the token
-    EmailChangeToken token = emailChangeTokenRepository.findByToken(request.getVerificationCode())
-        .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+    if (request.isUseTotp()) {
+      User user = userRepository.findById(UUID.fromString(request.getUserId()))
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-    // Validate token belongs to the right user
-    if (!token.getUserId().equals(request.getUserId())) {
-      throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+      boolean totpEnabled = user.getTotpSecurity() != null && user.getTotpSecurity().isEnabled();
+      boolean totpSecretExists = totpService.isTotpEnabled(user.getUsername());
+
+      if (!totpEnabled && !totpSecretExists) {
+        throw new AppException(ErrorCode.TOTP_REQUIRED);
+      }
+
+      boolean isTotpValid = totpService.verifyCode(user.getUsername(), request.getVerificationCode());
+      if (!isTotpValid) {
+        throw new AppException(ErrorCode.TOTP_INVALID);
+      }
+
+      String currentEmail = user.getEmail();
+      user.setEmail(request.getNewEmail());
+      User savedUser = userRepository.save(user);
+      log.info("User email updated to: {}", savedUser.getEmail());
+
+      // Ghi log sự kiện bảo mật
+      log.info("Security event: Email changed using TOTP verification for user {}", user.getUsername());
+
+      // Cập nhật token descriptions nếu cần
+      updateEmailTokenDescriptions(user, currentEmail, request.getNewEmail());
+
+      return ApiResponse.<Void>builder()
+          .message("Your email has been successfully updated.")
+          .build();
+    } else {
+      // Xác thực bằng email token
+      EmailChangeToken token = emailChangeTokenRepository.findByToken(request.getVerificationCode())
+          .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+      // Validate token belongs to the right user
+      if (!token.getUserId().equals(request.getUserId())) {
+        throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+      }
+
+      // Check new email matches
+      if (!token.getNewEmail().equals(request.getNewEmail())) {
+        throw new AppException(ErrorCode.INVALID_REQUEST);
+      }
+
+      // Check if token is expired
+      if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+        emailChangeTokenRepository.delete(token);
+        throw new AppException(ErrorCode.INVALID_TOKEN);
+      }
+
+      // Check if token has already been used
+      if (token.isUsed()) {
+        throw new AppException(ErrorCode.INVALID_TOKEN);
+      }
+
+      // Update the user's email
+      User user = userRepository.findById(UUID.fromString(request.getUserId()))
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+      // Get current email from token before updating
+      String currentEmail = token.getCurrentEmail();
+
+      user.setEmail(request.getNewEmail());
+      User savedUser = userRepository.save(user);
+      log.info("User email updated to: {}", savedUser.getEmail());
+
+      // Mark token as used
+      token.setUsed(true);
+      emailChangeTokenRepository.save(token);
+
+      log.info("Security event: Email changed using email verification for user {}", user.getUsername());
+
+      updateEmailTokenDescriptions(user, currentEmail, request.getNewEmail());
+
+      return ApiResponse.<Void>builder()
+          .message("Your email has been successfully updated.")
+          .build();
     }
+  }
 
-    // Check new email matches
-    if (!token.getNewEmail().equals(request.getNewEmail())) {
-      throw new AppException(ErrorCode.INVALID_REQUEST);
-    }
-
-    // Check if token is expired
-    if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
-      emailChangeTokenRepository.delete(token);
-      throw new AppException(ErrorCode.INVALID_TOKEN);
-    }
-
-    // Check if token has already been used
-    if (token.isUsed()) {
-      throw new AppException(ErrorCode.INVALID_TOKEN);
-    }
-
-    // Update the user's email
-    User user = userRepository.findById(UUID.fromString(request.getUserId()))
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-
-    // Get current email from token before updating
-    String currentEmail = token.getCurrentEmail();
-
-    user.setEmail(request.getNewEmail());
-    User savedUser = userRepository.save(user);
-    log.info("User email updated to: {}", savedUser.getEmail());
-
-    // Mark token as used
-    token.setUsed(true);
-    emailChangeTokenRepository.save(token);
-
+  // Helper method to update token descriptions when email changes
+  private void updateEmailTokenDescriptions(User user, String oldEmail, String newEmail) {
     // Get all active tokens for this user
     List<ActiveToken> userTokens = activeTokenRepository.findAllByUsername(user.getUsername());
 
@@ -1291,19 +1321,15 @@ public class AuthenticationService implements AuthenticationUtilities {
     for (ActiveToken activeToken : userTokens) {
       // Option: update token description if it contains the email
       if (activeToken.getDescription() != null &&
-          activeToken.getDescription().contains(currentEmail)) {
+          activeToken.getDescription().contains(oldEmail)) {
         activeToken.setDescription(
             activeToken.getDescription().replace(
-                currentEmail, request.getNewEmail()));
+                oldEmail, newEmail));
         activeTokenRepository.save(activeToken);
       }
     }
 
     log.info("Updated tokens for user {} after email change", user.getUsername());
-
-    return ApiResponse.<Void>builder()
-        .message("Your email has been successfully updated.")
-        .build();
   }
 
   @Transactional
@@ -1799,13 +1825,6 @@ public class AuthenticationService implements AuthenticationUtilities {
     }
   }
 
-  /**
-   * Generate and send an email OTP for authentication
-   * 
-   * @param user User entity
-   * @return Generated OTP code (for testing purposes, in production we might not
-   *         return this)
-   */
   @Transactional
   public String generateAndSendEmailOtp(User user) {
     // Generate a random 6-digit OTP
@@ -1834,22 +1853,10 @@ public class AuthenticationService implements AuthenticationUtilities {
     return otp;
   }
 
-  /**
-   * Check if user has TOTP enabled
-   * 
-   * @param username Username
-   * @return true if TOTP is enabled
-   */
   public boolean isTotpEnabled(String username) {
     return totpService.isTotpEnabled(username);
   }
 
-  /**
-   * Verify email OTP for authentication
-   * 
-   * @param request OTP authentication request
-   * @return Authentication response
-   */
   @Transactional(noRollbackFor = AppException.class)
   public AuthenticationResponse authenticateWithEmailOtp(EmailOtpAuthenticationRequest request,
       HttpServletRequest httpRequest) {
@@ -1972,13 +1979,6 @@ public class AuthenticationService implements AuthenticationUtilities {
         .build();
   }
 
-  /**
-   * Initiate OTP-based authentication
-   * 
-   * @param request Authentication request
-   * @return AuthenticationInitResponse containing information about whether TOTP
-   *         or email OTP is required
-   */
   @Transactional
   public AuthenticationInitResponse initiateAuthentication(AuthenticationRequest request,
       HttpServletRequest httpRequest) {
@@ -2037,13 +2037,6 @@ public class AuthenticationService implements AuthenticationUtilities {
     }
   }
 
-  /**
-   * Complete the authentication process after successful validation
-   * 
-   * @param user       Authenticated user
-   * @param rememberMe Whether to use extended expiry for tokens
-   * @return Authentication response with tokens
-   */
   private AuthenticationResponse completeAuthentication(User user, boolean rememberMe) {
     log.info("Completing authentication for user: {}", user.getUsername());
 
@@ -2135,9 +2128,6 @@ public class AuthenticationService implements AuthenticationUtilities {
         .build();
   }
 
-  /**
-   * Authenticate with refresh token
-   */
   @Transactional
   public AuthenticationResponse authenticateWithRefreshToken(String refreshToken, HttpServletRequest httpRequest) {
     String username = null;
@@ -2422,6 +2412,96 @@ public class AuthenticationService implements AuthenticationUtilities {
         .refreshToken(refreshToken)
         .authenticated(true)
         .build();
+  }
+
+  @Transactional
+  public ApiResponse<Void> changePassword(PasswordChangeRequest request) {
+    try {
+      // 1. Find user by ID
+      User user = userRepository.findById(UUID.fromString(request.getUserId()))
+          .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+      // 2. Verify the current password
+      if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+        throw new AppException(ErrorCode.PASSWORD_MISMATCH, "Current password is incorrect");
+      }
+
+      // 3. Validate new password complexity
+      String newPassword = request.getNewPassword();
+      if (newPassword == null || newPassword.length() < 8) {
+        throw new AppException(ErrorCode.PASSWORD_MIN_LENGTH, "Password must be at least 8 characters long");
+      }
+
+      // Validate password complexity using regex pattern
+      // Must contain at least: 1 uppercase, 1 lowercase, 1 digit, and 1 special
+      // character
+      String passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()\\-_=+{};:,<.>])[A-Za-z\\d!@#$%^&*()\\-_=+{};:,<.>]{8,}$";
+      if (!newPassword.matches(passwordPattern)) {
+        throw new AppException(ErrorCode.PASSWORD_VALIDATION,
+            "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
+      }
+
+      // 4. Check if new password is the same as current password
+      if (passwordEncoder.matches(newPassword, user.getPassword())) {
+        throw new AppException(ErrorCode.INVALID_OPERATION, "New password cannot be the same as the current password");
+      }
+
+      // 5. Verify the code based on verification method
+      if (request.isUseTotp()) {
+        // TOTP verification
+        boolean isTotpValid = totpService.verifyCode(
+            user.getUsername(),
+            request.getVerificationCode());
+
+        if (!isTotpValid) {
+          throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid TOTP code");
+        }
+      } else {
+        // Email verification
+        Optional<EmailVerificationToken> tokenOpt = emailVerificationTokenRepository
+            .findByToken(request.getVerificationCode());
+
+        if (tokenOpt.isEmpty() || !tokenOpt.get().getUsername().equals(user.getUsername())) {
+          throw new AppException(ErrorCode.INVALID_TOKEN, "Invalid verification code");
+        }
+
+        EmailVerificationToken verificationToken = tokenOpt.get();
+        LocalDateTime expiryDate = verificationToken.getExpiryDate();
+        if (expiryDate.isBefore(LocalDateTime.now())) {
+          throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED, "Verification code has expired");
+        }
+
+        // Remove the used verification code
+        emailVerificationTokenRepository.delete(verificationToken);
+      }
+
+      // 6. Update the password
+      user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+      userRepository.save(user);
+
+      // 7. Audit the password change
+      log.info("Password changed successfully for user: {}", user.getUsername());
+
+      return ApiResponse.<Void>builder()
+          .code(200)
+          .message("Password successfully changed")
+          .build();
+
+    } catch (AppException e) {
+      // Log the error for security monitoring
+      try {
+        User user = userRepository.findById(UUID.fromString(request.getUserId())).orElse(null);
+        log.warn("Password change failed for user: {}, reason: {}",
+            user != null ? user.getUsername() : "unknown_user",
+            e.getMessage());
+      } catch (Exception ex) {
+        log.error("Error logging password change failure", ex);
+      }
+      throw e;
+    } catch (Exception e) {
+      log.error("Error changing password: ", e);
+      throw new AppException(ErrorCode.GENERAL_EXCEPTION, "Error changing password");
+    }
   }
 
 }

@@ -140,7 +140,7 @@ public class EncryptionService {
                 // Decode from Base64
                 byte[] decodedToken = Base64.getDecoder().decode(sanitizedToken);
 
-                // Extract salt, IV and ciphertext
+                // Extract salt, IV and cipher text
                 ByteBuffer byteBuffer = ByteBuffer.wrap(decodedToken);
 
                 // Read salt length
@@ -154,7 +154,6 @@ public class EncryptionService {
                 byte[] iv = new byte[GCM_IV_LENGTH];
                 byteBuffer.get(iv);
 
-                // Read ciphertext
                 byte[] cipherText = new byte[byteBuffer.remaining()];
                 byteBuffer.get(cipherText);
 
@@ -172,7 +171,7 @@ public class EncryptionService {
                 log.debug("Token successfully decrypted");
                 return new String(decryptedToken, StandardCharsets.UTF_8);
             } catch (IllegalArgumentException e) {
-                log.error("Base64 decoding error: {}", e.getMessage());
+                log.debug("Base64 decoding error: {}", e.getMessage());
                 // If this isn't a valid Base64 token, it might be a plain JWT
                 if (encryptedToken.contains(".") && encryptedToken.split("\\.").length == 3) {
                     log.info("Token appears to be a plain JWT, returning as is");
@@ -280,7 +279,6 @@ public class EncryptionService {
                 }
                 return hash;
             } catch (NoSuchAlgorithmException ex) {
-                // Nếu SHA-256 cũng không tồn tại, ném RuntimeException
                 throw new RuntimeException("Cannot derive key using fallback: " + ex.getMessage(), ex);
             }
         } catch (InvalidKeySpecException e) {

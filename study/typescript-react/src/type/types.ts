@@ -178,6 +178,7 @@ export interface EmailVerificationRequest {
   newEmail: string;
   verificationCode: string;
   token: string;
+  useTotp?: boolean;
 }
 export interface UserState {
   userInfo: User | null;
@@ -250,7 +251,7 @@ export interface User {
   email: string;
   roles: Role[];
   active?: boolean;
-  isBlock?: boolean;
+  block?: boolean;
   timeTried?: number;
   totpSecurity?: {
     enabled: boolean;

@@ -19,7 +19,7 @@ const RecaptchaProvider: React.FC<RecaptchaProviderProps> = ({ children }) => {
 
   // Log môi trường trong development để kiểm tra
   if (isDevEnvironment()) {
-    console.log("RecaptchaProvider chạy trong môi trường development");
+    console.log("RecaptchaProvider running in development environment");
   }
 
   return (

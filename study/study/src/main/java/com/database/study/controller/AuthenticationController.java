@@ -31,6 +31,7 @@ public class AuthenticationController {
   GoogleTokenValidation googleTokenValidationService;
   CookieService cookieService;
   private static final Logger log = LoggerFactory.getLogger(AuthenticationController.class);
+  private static final Logger logger = LoggerFactory.getLogger(AuthenticationController.class);
 
   // New initial authentication endpoint that checks for 2FA requirements
   @PostMapping("/initAuthentication")
@@ -174,7 +175,20 @@ public class AuthenticationController {
 
   @PostMapping("/verify-email-change")
   public ApiResponse<Void> verifyEmailChange(@RequestBody VerifyEmailChangeRequest request) {
-    return authenticationService.verifyEmailChange(request);
+    // Log the incoming request
+    logger.info("Received request to verify email change: {}", request);
+
+    ApiResponse<Void> response = authenticationService.verifyEmailChange(request);
+
+    // Log the response
+    logger.info("Response from verifyEmailChange: {}", response);
+
+    return response;
+  }
+
+  @PostMapping("/change-password")
+  public ApiResponse<Void> changePassword(@RequestBody PasswordChangeRequest request) {
+    return authenticationService.changePassword(request);
   }
 
   @PostMapping("/totp/token")

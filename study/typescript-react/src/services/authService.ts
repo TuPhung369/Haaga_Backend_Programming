@@ -16,6 +16,16 @@ import {
 } from "../type/types";
 import store from "../store/store";
 
+// Define PasswordChangeRequest interface
+interface PasswordChangeRequest {
+  userId: string;
+  currentPassword: string;
+  newPassword: string;
+  verificationCode: string;
+  token: string;
+  useTotp?: boolean;
+}
+
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 
 const apiClient = axios.create({
@@ -80,6 +90,32 @@ export const verifyEmailChange = async (
     return response.data;
   } catch (error) {
     console.error("Error verifying email change:", error);
+    throw handleServiceError(error);
+  }
+};
+
+export const verifyPasswordChange = async (
+  request: PasswordChangeRequest
+): Promise<GenericResponse> => {
+  try {
+    const response = await apiClient.post<GenericResponse>(
+      "/auth/change-password",
+      {
+        userId: request.userId,
+        currentPassword: request.currentPassword,
+        newPassword: request.newPassword,
+        verificationCode: request.verificationCode,
+        useTotp: request.useTotp || false
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${request.token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error changing password:", error);
     throw handleServiceError(error);
   }
 };
@@ -152,12 +188,15 @@ export const authenticateWithTotp = async (
  * Authenticates a user with username, password and TOTP code using cookies
  */
 export const authenticateWithTotpAndCookies = async (
-  request: TotpAuthenticationRequest
+  username: string,
+  password: string,
+  totpCode: string
 ): Promise<AuthResponse> => {
   try {
     const response = await apiClient.post<AuthResponse>(
       "/auth/totp/token/cookie",
-      request
+      { username, password, totpCode },
+      { withCredentials: true }
     );
     return response.data;
   } catch (error) {
@@ -484,12 +523,15 @@ export const authenticateWithEmailOtp = async (
  * Authenticates a user with username, password and Email OTP code using cookies
  */
 export const authenticateWithEmailOtpAndCookies = async (
-  request: EmailOtpAuthenticationRequest
+  username: string,
+  password: string,
+  otpCode: string
 ): Promise<AuthResponse> => {
   try {
     const response = await apiClient.post<AuthResponse>(
       "/auth/email-otp/token/cookie",
-      request
+      { username, password, otpCode },
+      { withCredentials: true }
     );
     return response.data;
   } catch (error) {

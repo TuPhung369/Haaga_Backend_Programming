@@ -8,6 +8,7 @@ import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
 import { motion } from "framer-motion";
 import axios from "axios";
+import { authenticateWithEmailOtpAndCookies } from "../services/authService";
 
 const { Title, Text } = Typography;
 
@@ -269,7 +270,7 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
         },
         {
           validateStatus: () => true, // Luôn trả về response, không throw exception
-          withCredentials: true
+          withCredentials: true // Ensure this is true for cookie handling
         }
       );
 

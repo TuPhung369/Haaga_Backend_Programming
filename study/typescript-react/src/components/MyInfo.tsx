@@ -12,7 +12,8 @@ import {
   Divider,
   Typography,
   Result,
-  Skeleton
+  Skeleton,
+  Tooltip
 } from "antd";
 import {
   EditOutlined,
@@ -22,7 +23,8 @@ import {
   VerifiedOutlined,
   UserOutlined,
   DownOutlined,
-  RightOutlined
+  RightOutlined,
+  QuestionCircleOutlined
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -36,7 +38,8 @@ import { getMyInfo, updateMyInfo } from "../services/userService";
 import { handleServiceError } from "../services/baseService";
 import {
   verifyEmailChange,
-  requestEmailChangeCode
+  requestEmailChangeCode,
+  verifyPasswordChange
 } from "../services/authService";
 import validateInput from "../utils/validateInput";
 import { AxiosError } from "axios";
@@ -49,6 +52,40 @@ import TotpManagementComponent from "./TotpManagementComponent";
 
 const { Option } = Select;
 const { Text, Title } = Typography;
+
+// Add this new function to calculate password strength
+const calculatePasswordStrength = (
+  password: string
+): { strength: number; text: string; color: string } => {
+  if (!password) return { strength: 0, text: "No password", color: "#ff4d4f" };
+
+  let strength = 0;
+
+  // Length check
+  if (password.length >= 8) strength += 1;
+  if (password.length >= 12) strength += 1;
+
+  // Character type checks
+  if (/[A-Z]/.test(password)) strength += 1;
+  if (/[a-z]/.test(password)) strength += 1;
+  if (/\d/.test(password)) strength += 1;
+  if (/[!@#$%^&*()\-_=+{};:,<.>]/.test(password)) strength += 1;
+
+  let text = "Weak";
+  let color = "#ff4d4f"; // Red - danger
+
+  if (strength >= 4) {
+    text = "Moderate";
+    color = "#faad14"; // Warning
+  }
+
+  if (strength >= 6) {
+    text = "Strong";
+    color = "#52c41a"; // Success
+  }
+
+  return { strength, text, color };
+};
 
 // Styled components
 const MyInfoStyle = styled.div`
@@ -357,6 +394,8 @@ const MyInfo: React.FC<MyInfoProps> = () => {
   const [isUpdatingInfo, setIsUpdatingInfo] = useState(false);
   const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isTotpVerification, setIsTotpVerification] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
 
   // Redux
   const { token, loginSocial, isAuthenticated } = useSelector(
@@ -522,6 +561,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     setCodeSent(false);
     setVerificationCode("");
     setVerificationError(false);
+    setIsTotpVerification(userInfo?.totpSecurity?.enabled || false);
   };
 
   const handleRequestVerificationCode = async () => {
@@ -534,6 +574,14 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         });
         return;
       }
+
+      // If TOTP is enabled, we skip sending email verification code
+      if (userInfo?.totpSecurity?.enabled) {
+        setIsTotpVerification(true);
+        setCodeSent(true);
+        return;
+      }
+
       const values = await emailChangeForm.validateFields([
         "newEmail",
         "currentPassword"
@@ -620,82 +668,139 @@ const MyInfo: React.FC<MyInfoProps> = () => {
 
   const handleVerifyAndChangeEmail = async () => {
     try {
-      if (!verificationCode || verificationCode.length !== 6) {
-        setNotificationMessage({
-          type: "error",
-          message: "Invalid Code",
-          description: "Please enter the 6-digit verification code"
-        });
-        return;
-      }
 
-      setIsVerifying(true);
-      setVerificationError(false);
+      // Handle TOTP verification
+      if (userInfo?.totpSecurity?.enabled && isTotpVerification) {
+        if (!totpCode || totpCode.length !== 6) {
+          setNotificationMessage({
+            type: "error",
+            message: "Invalid Code",
+            description: "Please enter the 6-digit TOTP code"
+          });
+          return;
+        }
 
-      const values = await emailChangeForm.validateFields();
+        setIsVerifying(true);
+        setVerificationError(false);
 
-      // Call API to verify code and change email
-      await verifyEmailChange({
-        userId: userInfo?.id || "",
-        newEmail: values.newEmail,
-        verificationCode,
-        token: token!
-      });
+        // Add TOTP verification here
+        // For now, we'll just simulate success
+        const values = await emailChangeForm.validateFields();
 
-      if (userInfo && userInfo.id) {
-        // Create updated user info with new email (ensuring all required User properties)
-        const updatedUserInfo: User = {
-          ...userInfo,
-          email: values.newEmail
-        };
-
-        // Directly update the user info in Redux store
-        dispatch(setUserInfo(updatedUserInfo));
-
-        // Also update in the allUsers array if needed
-        if (allUsers.length > 0) {
-          const updatedAllUsers = allUsers.map((user) => {
-            if (user.id === userInfo.id) {
-              return {
-                ...user,
-                email: values.newEmail
-              };
-            }
-            return user;
+        // Proceed with email change after TOTP verified
+        try {
+          // Call API to change email after TOTP verification
+          await verifyEmailChange({
+            userId: userInfo?.id || "",
+            newEmail: values.newEmail,
+            verificationCode: totpCode,
+            token: token!,
+            useTotp: userInfo?.totpSecurity?.enabled || false
           });
 
-          dispatch(setAllUsers(updatedAllUsers));
+          if (userInfo && userInfo.id) {
+            // Create updated user info with new email (ensuring all required User properties)
+            const updatedUserInfo: User = {
+              ...userInfo,
+              email: values.newEmail
+            };
+
+            // Directly update the user info in Redux store
+            dispatch(setUserInfo(updatedUserInfo));
+
+            // Also update in the allUsers array if needed
+            if (allUsers.length > 0) {
+              const updatedAllUsers = allUsers.map((user) => {
+                if (user.id === userInfo.id) {
+                  return {
+                    ...user,
+                    email: values.newEmail
+                  };
+                }
+                return user;
+              });
+
+              dispatch(setAllUsers(updatedAllUsers));
+            }
+            // We keep isVerifying true for the LoadingState to show minimum time
+            setTimeout(() => {
+              setIsVerifying(false);
+            }, 1000);
+          }
+
+          // Mark for refetch on next navigation (optional if direct update works)
+          dispatch(invalidateUserInfo());
+
+          setNotificationMessage({
+            type: "success",
+            message: "Email Updated",
+            description: "Your email has been successfully updated."
+          });
+
+          // Delay closing the modal to show success state
+          setTimeout(() => {
+            setIsEmailChangeModalVisible(false);
+            if (onUpdateSuccess) onUpdateSuccess();
+          }, 1000);
+        } catch (error) {
+          const axiosError = error as AxiosError<ExtendApiError>;
+          setVerificationError(true);
+
+          // Check for token invalidation errors
+          if (
+            axiosError.response?.status === 401 &&
+            axiosError.response?.data?.message?.includes("Token")
+          ) {
+            setNotificationMessage({
+              type: "error",
+              message: "Verification Code Expired",
+              description:
+                "Your verification code has expired or been invalidated. Please request a new code."
+            });
+            // Reset the verification state to allow requesting a new code
+            setTimeout(() => {
+              setCodeSent(false);
+              setVerificationCode("");
+              setTotpCode("");
+            }, 2000);
+          } else {
+            setNotificationMessage({
+              type: "error",
+              message: "Verification Failed",
+              description:
+                axiosError.response?.data?.message || "Failed to verify code"
+            });
+          }
+          setIsVerifying(false);
         }
+      } else {
+        // Original email code verification
+        console.log("Using verification code:", verificationCode);
+
+        const values = await emailChangeForm.validateFields();
+        // Call API to verify code and change email
+        await verifyEmailChange({
+          userId: userInfo?.id || "",
+          newEmail: values.newEmail,
+          verificationCode,
+          token: token!,
+          useTotp: userInfo?.totpSecurity?.enabled || false
+        });
+
+        console.log("Email successfully updated to:", values.newEmail);
       }
-
-      // Mark for refetch on next navigation (optional if direct update works)
-      dispatch(invalidateUserInfo());
-
-      setNotificationMessage({
-        type: "success",
-        message: "Email Updated",
-        description: "Your email has been successfully updated."
-      });
-
-      // Delay closing the modal to show success state
-      setTimeout(() => {
-        setIsEmailChangeModalVisible(false);
-        if (onUpdateSuccess) onUpdateSuccess();
-      }, 1000);
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
       setVerificationError(true);
+
+      // Log the error response for debugging
+      console.error("Error verifying email change:", axiosError.response?.data);
       setNotificationMessage({
         type: "error",
         message: "Verification Failed",
         description:
           axiosError.response?.data?.message || "Failed to verify code"
       });
-    } finally {
-      // We keep isVerifying true for the LoadingState to show minimum time
-      setTimeout(() => {
-        setIsVerifying(false);
-      }, 1000);
     }
   };
 
@@ -705,6 +810,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     setCodeSent(false);
     setVerificationCode("");
     setVerificationError(false);
+    setIsTotpVerification(userInfo?.totpSecurity?.enabled || false);
   };
 
   const handleRequestPasswordVerificationCode = async () => {
@@ -717,6 +823,14 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         });
         return;
       }
+
+      // If TOTP is enabled, we skip sending email verification code
+      if (userInfo?.totpSecurity?.enabled) {
+        setIsTotpVerification(true);
+        setCodeSent(true);
+        return;
+      }
+
       const values = await passwordChangeForm.validateFields([
         "currentPassword",
         "newPassword",
@@ -803,47 +917,144 @@ const MyInfo: React.FC<MyInfoProps> = () => {
 
   const handleVerifyAndChangePassword = async () => {
     try {
-      if (!verificationCode || verificationCode.length !== 6) {
-        setNotificationMessage({
-          type: "error",
-          message: "Invalid Code",
-          description: "Please enter the 6-digit verification code"
-        });
-        return;
+      // Handle TOTP verification
+      if (userInfo?.totpSecurity?.enabled && isTotpVerification) {
+        if (!totpCode || totpCode.length !== 6) {
+          setNotificationMessage({
+            type: "error",
+            message: "Invalid Code",
+            description: "Please enter the 6-digit TOTP code"
+          });
+          return;
+        }
+
+        setIsVerifying(true);
+        setVerificationError(false);
+
+        // Get form values for password change
+        const values = await passwordChangeForm.validateFields();
+
+        try {
+          // Make actual API call to change password with TOTP verification
+          await verifyPasswordChange({
+            userId: userInfo?.id || "",
+            currentPassword: values.currentPassword,
+            newPassword: values.newPassword,
+            verificationCode: totpCode,
+            token: token!,
+            useTotp: userInfo?.totpSecurity?.enabled || false
+          });
+
+          setNotificationMessage({
+            type: "success",
+            message: "Password Updated",
+            description: "Your password has been successfully updated."
+          });
+
+          // Close modal and update info
+          setTimeout(() => {
+            setIsPasswordChangeModalVisible(false);
+            if (onUpdateSuccess) onUpdateSuccess();
+          }, 1000);
+        } catch (error) {
+          const axiosError = error as AxiosError<ExtendApiError>;
+          setVerificationError(true);
+
+          // Check for token invalidation errors
+          if (
+            axiosError.response?.status === 401 &&
+            axiosError.response?.data?.message?.includes("Token")
+          ) {
+            setNotificationMessage({
+              type: "error",
+              message: "Verification Code Expired",
+              description:
+                "Your verification code has expired or been invalidated. Please request a new code."
+            });
+            // Reset the verification state to allow requesting a new code
+            setTimeout(() => {
+              setCodeSent(false);
+              setTotpCode("");
+            }, 2000);
+          } else {
+            setNotificationMessage({
+              type: "error",
+              message: "Verification Failed",
+              description:
+                axiosError.response?.data?.message || "Failed to verify code"
+            });
+          }
+          setIsVerifying(false);
+        }
+      } else {
+        // Original email code verification
+        if (!verificationCode || verificationCode.length !== 6) {
+          setNotificationMessage({
+            type: "error",
+            message: "Invalid Code",
+            description: "Please enter the 6-digit verification code"
+          });
+          return;
+        }
+
+        setIsVerifying(true);
+        setVerificationError(false);
+
+        // Get form values for password change
+        const values = await passwordChangeForm.validateFields();
+
+        try {
+          // Make actual API call to verify code and change password
+          await verifyPasswordChange({
+            userId: userInfo?.id || "",
+            currentPassword: values.currentPassword,
+            newPassword: values.newPassword,
+            verificationCode,
+            token: token!,
+            useTotp: userInfo?.totpSecurity?.enabled || false
+          });
+
+          setNotificationMessage({
+            type: "success",
+            message: "Password Updated",
+            description: "Your password has been successfully updated."
+          });
+
+          // Close modal and update info
+          setTimeout(() => {
+            setIsPasswordChangeModalVisible(false);
+            if (onUpdateSuccess) onUpdateSuccess();
+          }, 1000);
+        } catch (error) {
+          const axiosError = error as AxiosError<ExtendApiError>;
+          setVerificationError(true);
+
+          // Check for token invalidation errors
+          if (
+            axiosError.response?.status === 401 &&
+            axiosError.response?.data?.message?.includes("Token")
+          ) {
+            setNotificationMessage({
+              type: "error",
+              message: "Verification Code Expired",
+              description:
+                "Your verification code has expired or been invalidated. Please request a new code."
+            });
+            // Reset the verification state to allow requesting a new code
+            setTimeout(() => {
+              setCodeSent(false);
+              setVerificationCode("");
+            }, 2000);
+          } else {
+            setNotificationMessage({
+              type: "error",
+              message: "Verification Failed",
+              description:
+                axiosError.response?.data?.message || "Failed to verify code"
+            });
+          }
+        }
       }
-
-      setIsVerifying(true);
-      setVerificationError(false);
-
-      // Get values but don't store in unused variable
-      await passwordChangeForm.validateFields();
-
-      // Call API to verify code and change password
-      // This would need to be implemented in your backend
-      // For now, we're just simulating success
-
-      // Example API call would look like:
-      /*
-      await verifyPasswordChange({
-        userId: userInfo?.id || "",
-        newPassword: values.newPassword,
-        verificationCode,
-        token: token!,
-      });
-      */
-
-      // For demo, let's simulate a successful password change
-      setTimeout(() => {
-        setNotificationMessage({
-          type: "success",
-          message: "Password Updated",
-          description: "Your password has been successfully updated."
-        });
-
-        setIsPasswordChangeModalVisible(false);
-        if (onUpdateSuccess) onUpdateSuccess();
-        setIsVerifying(false);
-      }, 2000);
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
       setVerificationError(true);
@@ -853,7 +1064,10 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         description:
           axiosError.response?.data?.message || "Failed to verify code"
       });
-      setIsVerifying(false);
+    } finally {
+      setTimeout(() => {
+        setIsVerifying(false);
+      }, 1000);
     }
   };
 
@@ -1155,7 +1369,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         maskClosable={!isRequestingCode && !isVerifying}
         closable={!isRequestingCode && !isVerifying}
       >
-        <Form form={emailChangeForm} layout="vertical">
+        <Form form={emailChangeForm} layout="vertical" name="emailChangeForm">
           <Form.Item
             name="newEmail"
             label="New Email Address"
@@ -1197,22 +1411,60 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                 disabled={isRequestingCode}
                 block
               >
-                Request Verification Code
+                {userInfo?.totpSecurity?.enabled
+                  ? "Continue with TOTP Verification"
+                  : "Request Verification Code"}
               </Button>
             </Form.Item>
           ) : (
             <>
               <Divider />
 
-              <VerificationCodeInput
-                value={verificationCode}
-                onChange={setVerificationCode}
-                onResendCode={handleResendVerificationCode}
-                isSubmitting={isVerifying}
-                isError={verificationError}
-                autoFocus={true}
-                resendCooldown={60}
-              />
+              {isTotpVerification ? (
+                // TOTP verification UI
+                <>
+                  <div style={{ marginBottom: "16px" }}>
+                    <Typography.Title level={5}>
+                      TOTP Verification
+                    </Typography.Title>
+                    <Typography.Text>
+                      Enter the 6-digit code from your authenticator app
+                    </Typography.Text>
+                  </div>
+
+                  <Form.Item
+                    name="totpCode"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please enter your TOTP code"
+                      },
+                      { len: 6, message: "TOTP code must be 6 digits" }
+                    ]}
+                  >
+                    <Input
+                      placeholder="Enter 6-digit TOTP code"
+                      maxLength={6}
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value)}
+                      disabled={isVerifying}
+                      style={{ width: "100%", marginBottom: "16px" }}
+                      autoFocus
+                    />
+                  </Form.Item>
+                </>
+              ) : (
+                // Email OTP verification UI
+                <VerificationCodeInput
+                  value={verificationCode}
+                  onChange={setVerificationCode}
+                  onResendCode={handleResendVerificationCode}
+                  isSubmitting={isVerifying}
+                  isError={verificationError}
+                  autoFocus={true}
+                  resendCooldown={60}
+                />
+              )}
 
               <Form.Item>
                 <Space
@@ -1222,6 +1474,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                     onClick={() => {
                       setCodeSent(false);
                       setVerificationCode("");
+                      setTotpCode("");
                       setVerificationError(false);
                     }}
                     disabled={isVerifying || isRequestingCode}
@@ -1232,7 +1485,9 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                     type="primary"
                     onClick={handleVerifyAndChangeEmail}
                     disabled={
-                      verificationCode.length !== 6 ||
+                      (isTotpVerification
+                        ? totpCode.length !== 6
+                        : verificationCode.length !== 6) ||
                       isVerifying ||
                       isRequestingCode
                     }
@@ -1256,7 +1511,11 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         maskClosable={!isRequestingCode && !isVerifying}
         closable={!isRequestingCode && !isVerifying}
       >
-        <Form form={passwordChangeForm} layout="vertical">
+        <Form
+          form={passwordChangeForm}
+          layout="vertical"
+          name="passwordChangeForm"
+        >
           <Form.Item
             name="currentPassword"
             label="Current Password"
@@ -1273,22 +1532,107 @@ const MyInfo: React.FC<MyInfoProps> = () => {
 
           <Form.Item
             name="newPassword"
-            label="New Password"
+            label={
+              <span>
+                New Password
+                <Tooltip
+                  title={
+                    <div>
+                      <p>Password must contain:</p>
+                      <ul style={{ paddingLeft: "20px", margin: "5px 0" }}>
+                        <li>At least 8 characters</li>
+                        <li>At least one uppercase letter (A-Z)</li>
+                        <li>At least one lowercase letter (a-z)</li>
+                        <li>At least one number (0-9)</li>
+                        <li>At least one special character</li>
+                      </ul>
+                    </div>
+                  }
+                >
+                  <span style={{ marginLeft: "4px" }}>
+                    <QuestionCircleOutlined />
+                  </span>
+                </Tooltip>
+              </span>
+            }
             rules={[
               { required: true, message: "Please enter your new password" },
-              { min: 8, message: "Password must be at least 8 characters" }
+              { min: 8, message: "Password must be at least 8 characters" },
+              {
+                pattern:
+                  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+{};:,<.>])[A-Za-z\d!@#$%^&*()\-_=+{};:,<.>]{8,}$/,
+                message:
+                  "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+              }
             ]}
+            hasFeedback
           >
-            <Input.Password
-              placeholder="Enter your new password"
-              disabled={codeSent || isRequestingCode || isVerifying}
-              prefix={<KeyOutlined />}
-            />
+            <div className="password-input-container">
+              <Input.Password
+                placeholder="Enter your new password"
+                disabled={codeSent || isRequestingCode || isVerifying}
+                prefix={<KeyOutlined />}
+                onChange={() => {
+                  passwordChangeForm.validateFields(["newPassword"]);
+
+                  // Also update confirmPassword validation if it has a value
+                  if (passwordChangeForm.getFieldValue("confirmPassword")) {
+                    passwordChangeForm.validateFields(["confirmPassword"]);
+                  }
+                }}
+              />
+              {isPasswordChangeModalVisible &&
+                passwordChangeForm.getFieldValue("newPassword") && (
+                  <div
+                    className="password-strength"
+                    style={{ marginTop: "8px" }}
+                  >
+                    <div
+                      className="strength-bar"
+                      style={{ display: "flex", marginBottom: "4px" }}
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((i) => {
+                        const { strength, color } = calculatePasswordStrength(
+                          passwordChangeForm.getFieldValue("newPassword")
+                        );
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              flex: 1,
+                              height: "4px",
+                              backgroundColor:
+                                i <= strength ? color : "#f0f0f0",
+                              marginRight: i < 6 ? "2px" : 0,
+                              borderRadius: "2px"
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                    <Text
+                      style={{
+                        color: calculatePasswordStrength(
+                          passwordChangeForm.getFieldValue("newPassword")
+                        ).color
+                      }}
+                    >
+                      {
+                        calculatePasswordStrength(
+                          passwordChangeForm.getFieldValue("newPassword")
+                        ).text
+                      }
+                    </Text>
+                  </div>
+                )}
+            </div>
           </Form.Item>
 
           <Form.Item
             name="confirmPassword"
             label="Confirm New Password"
+            dependencies={["newPassword"]}
+            hasFeedback
             rules={[
               { required: true, message: "Please confirm your new password" },
               ({ getFieldValue }) => ({
@@ -1319,22 +1663,60 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                 disabled={isRequestingCode}
                 block
               >
-                Request Verification Code
+                {userInfo?.totpSecurity?.enabled
+                  ? "Continue with TOTP Verification"
+                  : "Request Verification Code"}
               </Button>
             </Form.Item>
           ) : (
             <>
               <Divider />
 
-              <VerificationCodeInput
-                value={verificationCode}
-                onChange={setVerificationCode}
-                onResendCode={handleResendPasswordVerificationCode}
-                isSubmitting={isVerifying}
-                isError={verificationError}
-                autoFocus={true}
-                resendCooldown={60}
-              />
+              {isTotpVerification ? (
+                // TOTP verification UI
+                <>
+                  <div style={{ marginBottom: "16px" }}>
+                    <Typography.Title level={5}>
+                      TOTP Verification
+                    </Typography.Title>
+                    <Typography.Text>
+                      Enter the 6-digit code from your authenticator app
+                    </Typography.Text>
+                  </div>
+
+                  <Form.Item
+                    name="totpCode"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please enter your TOTP code"
+                      },
+                      { len: 6, message: "TOTP code must be 6 digits" }
+                    ]}
+                  >
+                    <Input
+                      placeholder="Enter 6-digit TOTP code"
+                      maxLength={6}
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value)}
+                      disabled={isVerifying}
+                      style={{ width: "100%", marginBottom: "16px" }}
+                      autoFocus
+                    />
+                  </Form.Item>
+                </>
+              ) : (
+                // Email OTP verification UI
+                <VerificationCodeInput
+                  value={verificationCode}
+                  onChange={setVerificationCode}
+                  onResendCode={handleResendPasswordVerificationCode}
+                  isSubmitting={isVerifying}
+                  isError={verificationError}
+                  autoFocus={true}
+                  resendCooldown={60}
+                />
+              )}
 
               <Form.Item>
                 <Space
@@ -1344,6 +1726,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                     onClick={() => {
                       setCodeSent(false);
                       setVerificationCode("");
+                      setTotpCode("");
                       setVerificationError(false);
                     }}
                     disabled={isVerifying || isRequestingCode}
@@ -1354,7 +1737,9 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                     type="primary"
                     onClick={handleVerifyAndChangePassword}
                     disabled={
-                      verificationCode.length !== 6 ||
+                      (isTotpVerification
+                        ? totpCode.length !== 6
+                        : verificationCode.length !== 6) ||
                       isVerifying ||
                       isRequestingCode
                     }
