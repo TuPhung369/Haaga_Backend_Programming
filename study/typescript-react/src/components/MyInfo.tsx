@@ -1169,7 +1169,6 @@ const MyInfo: React.FC<MyInfoProps> = () => {
       return (
         <>
           <LoadingCard />
-          <LoadingCard />
         </>
       );
     }

@@ -13,7 +13,7 @@ import {
   Alert,
   notification,
   Input,
-  Form,
+  Form
 } from "antd";
 import {
   SecurityScanOutlined,
@@ -27,14 +27,14 @@ import {
   DownOutlined,
   QuestionCircleOutlined,
   KeyOutlined,
-  MailOutlined,
+  MailOutlined
 } from "@ant-design/icons";
 import {
   getTotpDevices,
   deactivateTotpDevice,
   regenerateBackupCodes,
   requestAdminReset,
-  TotpDeviceResponse,
+  TotpDeviceResponse
 } from "../services/totpService";
 import { useSelector } from "react-redux";
 import { RootState } from "../type/types";
@@ -148,7 +148,7 @@ interface TotpManagementComponentProps {
 
 const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   onUpdate,
-  totpSecurity,
+  totpSecurity
 }) => {
   const [expanded, setExpanded] = useState<boolean>(false);
   const [devices, setDevices] = useState<TotpDeviceResponse[]>([]);
@@ -180,49 +180,89 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
 
   const { token } = useSelector((state: RootState) => state.auth);
   const { userInfo } = useSelector((state: RootState) => state.user);
+  // Add a ref to track initial load
+  const initialLoadRef = useRef<boolean>(true);
 
-  const fetchTotpData = useCallback(async () => {
-    if (!token) return;
+  // Define a fetchDevices function to be used by multiple methods
+  const fetchDevices = useCallback(
+    async (forceRefresh = false) => {
+      if (!token) return;
 
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
-    try {
-      // Use the value from props instead of making a separate API call
+      // Get TOTP status directly from props
       const isEnabled = totpSecurity?.enabled || false;
       setIsTotpEnabled(isEnabled);
 
       // Only fetch devices if TOTP is enabled
       if (isEnabled) {
-        const devicesResponse = await getTotpDevices(token);
-        setDevices(devicesResponse.result || []);
+        try {
+          // If forceRefresh is true, we'll bypass session storage checks
+          if (forceRefresh) {
+            sessionStorage.removeItem("totpDevicesFetched");
+          }
+
+          const devicesResponse = await getTotpDevices(token);
+          setDevices(devicesResponse.result || []);
+
+          // Mark as fetched in session storage
+          sessionStorage.setItem("totpDevicesFetched", "true");
+        } catch (error) {
+          handleServiceError(error);
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Failed to fetch TOTP devices";
+          setError(errorMessage);
+          notification.error({
+            message: "Error",
+            description: errorMessage
+          });
+        }
       } else {
         setDevices([]);
       }
-    } catch (error) {
-      handleServiceError(error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to fetch TOTP data";
-      setError(errorMessage);
-      notification.error({
-        message: "Error",
-        description: errorMessage,
-      });
-    } finally {
+      setLoading(false);
+    },
+    [token, totpSecurity, setIsTotpEnabled, setDevices, setLoading, setError]
+  );
+
+  // Update state when props change and fetch devices if needed
+  useEffect(() => {
+    // Set TOTP status from props (Redux store)
+    const isEnabled = totpSecurity?.enabled || false;
+    setIsTotpEnabled(isEnabled);
+
+    // Check if TOTP status has changed
+    const previousTotpStatus = sessionStorage.getItem("totpEnabled");
+    if (
+      previousTotpStatus !== null &&
+      previousTotpStatus !== String(isEnabled)
+    ) {
+      // If TOTP status changed, clear the fetched flag to force a refresh
+      sessionStorage.removeItem("totpDevicesFetched");
+    }
+    // Store current TOTP status for future comparison
+    sessionStorage.setItem("totpEnabled", String(isEnabled));
+
+    // Only fetch devices on specific conditions:
+    // 1. When it's the initial load
+    // 2. When TOTP is enabled and we haven't fetched yet
+    const hasFetchedThisSession =
+      sessionStorage.getItem("totpDevicesFetched") === "true";
+
+    if (initialLoadRef.current && isEnabled && !hasFetchedThisSession) {
+      fetchDevices();
+      initialLoadRef.current = false;
+    } else {
+      // If TOTP is disabled, ensure the devices list is empty
+      if (!isEnabled) {
+        setDevices([]);
+      }
       setLoading(false);
     }
-  }, [token, totpSecurity]);
-
-  // Update state when props change
-  useEffect(() => {
-    if (totpSecurity) {
-      setIsTotpEnabled(totpSecurity.enabled);
-    }
-  }, [totpSecurity, setIsTotpEnabled]);
-
-  useEffect(() => {
-    fetchTotpData();
-  }, [fetchTotpData]);
+  }, [totpSecurity, fetchDevices]);
 
   const handleAddDevice = () => {
     setShowSetup(true);
@@ -248,12 +288,6 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   const focusVerificationInput = useCallback(() => {
     // Try immediately
     tryFocus();
-
-    // Try after short delay
-    setTimeout(tryFocus, 100);
-
-    // Try after longer delay
-    setTimeout(tryFocus, 300);
 
     // Try after modal animation should be complete
     setTimeout(tryFocus, 500);
@@ -301,17 +335,18 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
       await deactivateTotpDevice(deviceToDelete, verificationCode, token);
       notification.success({
         message: "Device Removed",
-        description: "2FA device removed successfully.",
+        description: "2FA device removed successfully."
       });
       setShowDeleteVerification(false);
-      fetchTotpData();
+      // Use fetchDevices with forceRefresh=true to ensure we get fresh data
+      await fetchDevices(true);
       if (onUpdate) onUpdate();
     } catch (error) {
       handleServiceError(error);
       setVerificationError(true);
       notification.error({
         message: "Verification Failed",
-        description: "Invalid verification code or an error occurred.",
+        description: "Invalid verification code or an error occurred."
       });
     } finally {
       setIsVerifying(false);
@@ -362,16 +397,18 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
       setBackupCodes(response.result);
       setShowRegenerateVerification(false);
       setShowBackupCodes(true);
+      // Refresh the devices data with forceRefresh=true
+      await fetchDevices(true);
       notification.success({
         message: "Codes Regenerated",
-        description: "New backup codes generated. Save them securely.",
+        description: "New backup codes generated. Save them securely."
       });
     } catch (error) {
       handleServiceError(error);
       setVerificationError(true);
       notification.error({
         message: "Verification Failed",
-        description: "Invalid verification code or an error occurred.",
+        description: "Invalid verification code or an error occurred."
       });
     } finally {
       setIsVerifying(false);
@@ -388,16 +425,18 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
       if (!token) return;
       await requestAdminReset(userInfo.username, adminResetEmail, token);
       setShowAdminResetModal(false);
+      // Refresh devices data with forceRefresh=true
+      await fetchDevices(true);
       notification.success({
         message: "Reset Request Submitted",
         description:
-          "An administrator will review your request and contact you via email.",
+          "An administrator will review your request and contact you via email."
       });
     } catch (error) {
       handleServiceError(error);
       notification.error({
         message: "Request Failed",
-        description: "Failed to submit reset request. Please try again.",
+        description: "Failed to submit reset request. Please try again."
       });
     } finally {
       setIsRequestingReset(false);
@@ -406,7 +445,8 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
 
   const handleSetupComplete = () => {
     setShowSetup(false);
-    fetchTotpData();
+    // Use fetchDevices with forceRefresh=true
+    fetchDevices(true);
     if (onUpdate) onUpdate();
   };
 
@@ -429,7 +469,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
       footer={[
         <Button key="close" onClick={() => setShowBackupCodes(false)}>
           Close
-        </Button>,
+        </Button>
       ]}
       width={400}
     >
@@ -486,7 +526,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
           disabled={verificationCode.length !== 6 || isVerifying}
         >
           Verify & Remove
-        </Button>,
+        </Button>
       ]}
       width={400}
       afterOpenChange={(visible) => {
@@ -563,7 +603,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
           disabled={verificationCode.length !== 6 || isVerifying}
         >
           Verify & Regenerate
-        </Button>,
+        </Button>
       ]}
       width={400}
       afterOpenChange={(visible) => {
@@ -649,7 +689,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
           disabled={!adminResetEmail || isRequestingReset}
         >
           Submit Request
-        </Button>,
+        </Button>
       ]}
       width={400}
       afterOpenChange={(visible) => {
@@ -812,7 +852,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
                           size="small"
                         >
                           Remove
-                        </Button>,
+                        </Button>
                       ]}
                     >
                       <List.Item.Meta
@@ -847,4 +887,3 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
 };
 
 export default TotpManagementComponent;
-
