@@ -19,6 +19,8 @@ const initialState: UserState = {
   isUsersInvalidated: true,
   isPermissionsInvalidated: true,
   isEventsInvalidated: true,
+  loading: false,
+  authError: null,
 };
 
 const userSlice = createSlice({
@@ -44,6 +46,12 @@ const userSlice = createSlice({
     setEvents: (state, action: PayloadAction<CalendarEvent[]>) => {
       state.events = action.payload;
       state.isEventsInvalidated = false;
+    },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    },
+    setAuthError: (state, action: PayloadAction<string | null>) => {
+      state.authError = action.payload;
     },
     invalidateUserInfo: (state) => {
       state.isUserInfoInvalidated = true;
@@ -71,6 +79,8 @@ const userSlice = createSlice({
       state.isUsersInvalidated = true;
       state.isPermissionsInvalidated = true;
       state.isEventsInvalidated = true;
+      state.loading = false;
+      state.authError = null;
     },
     clearUserInfo: (state) => {
       state.userInfo = null;
@@ -84,6 +94,8 @@ export const {
   setAllUsers,
   setPermissions,
   setEvents,
+  setLoading,
+  setAuthError,
   invalidateUserInfo,
   invalidateRoles,
   invalidateUsers,

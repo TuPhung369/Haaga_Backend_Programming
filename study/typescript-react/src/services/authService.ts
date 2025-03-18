@@ -1,5 +1,4 @@
-import axios from "axios";
-import { setupAxiosInterceptors } from "../utils/axiosSetup";
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { handleServiceError } from "./baseService";
 import { TotpAuthenticationRequest } from "./totpService";
 import {
@@ -15,6 +14,8 @@ import {
   EmailOtpAuthenticationRequest,
 } from "../type/types";
 import store from "../store/store";
+import { refreshToken, setupTokenRefresh } from "../utils/tokenRefresh";
+import { notification } from "antd";
 
 // Define PasswordChangeRequest interface
 interface PasswordChangeRequest {
@@ -36,7 +37,77 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-setupAxiosInterceptors(apiClient);
+// Add request interceptor to add authorization header
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = store.getState().auth.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Add response interceptor to handle 401 errors
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Prevent infinite loops - only retry once
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // If it's a 401 and we haven't retried yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // First check if we have a valid auth state
+        const isAuthenticated = store.getState().auth.isAuthenticated;
+
+        // Only try refreshing if we're supposed to be authenticated
+        if (isAuthenticated) {
+          console.log("Detected 401 error, attempting token refresh for authenticated user");
+
+          // Try to refresh the token
+          const refreshResult = await refreshToken();
+
+          // If token refresh was successful
+          if (refreshResult) {
+            // Get new token
+            const newToken = store.getState().auth.token;
+
+            // Log the retry
+            console.log("Token refreshed successfully, retrying original request with new token");
+
+            // Update the Authorization header and retry
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+            return axios(originalRequest);
+          } else {
+            // If refresh failed but we were authenticated, show notification
+            notification.error({
+              message: "Session Expired",
+              description: "Your session has expired. Please log in again.",
+              duration: 0 // Don't auto-dismiss
+            });
+
+            // Return the original error
+            return Promise.reject(error);
+          }
+        }
+      } catch (refreshError) {
+        console.error("Error during token refresh:", refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 const mockApiClient = axios.create({
   baseURL: API_BASE_URI,
@@ -120,22 +191,6 @@ export const verifyPasswordChange = async (
   }
 };
 
-apiClient.interceptors.request.use(
-  function (config) {
-    const { token } = store.getState().auth;
-
-    if (token) {
-      // Use the correct type assertion for headers
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  function (error) {
-    return Promise.reject(error);
-  }
-);
-
 export const authenticateUser = async (
   username: string,
   password: string
@@ -145,9 +200,22 @@ export const authenticateUser = async (
       username,
       password,
     });
+
+    // Extract token information
+    const token = response.data.result.token;
+
+    // Extract expiration if available
+    const expiresIn = response.data.result.expiresIn;
+
+    // Setup token refresh with expiration
+    if (token) {
+      const expiresInMs = expiresIn ? expiresIn * 1000 : undefined;
+      setupTokenRefresh(token, expiresInMs);
+    }
+
     return response.data;
   } catch (error) {
-    console.error("Error authenticating user:", error);
+    console.error("Authentication error:", error);
     throw handleServiceError(error);
   }
 };
@@ -251,26 +319,17 @@ export const introspectToken = async (
 };
 
 // New function to refresh token using cookie
-export const refreshTokenFromCookie = async (): Promise<
-  ApiResponse<RefreshTokenResponse>
-> => {
+export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshTokenResponse>> => {
   try {
-    // console.log("Refresh URL:", `${API_BASE_URI}/auth/refresh/cookie`);
     const response = await apiClient.post<ApiResponse<RefreshTokenResponse>>(
-      "/auth/refresh/cookie"
+      "/auth/refresh",
+      {},
+      { withCredentials: true }
     );
 
-    // Wrap the response in ApiResponse format if it's not already in that format
-    if (response.data && !("result" in response.data)) {
-      return {
-        code: response.status,
-        result: response.data,
-      };
-    }
-
-    return response.data as ApiResponse<RefreshTokenResponse>;
+    return response.data;
   } catch (error) {
-    console.error("Error refreshing token from cookie:", error);
+    console.error("Token refresh error:", error);
     throw handleServiceError(error);
   }
 };

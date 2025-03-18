@@ -1,6 +1,8 @@
 // src/services/baseService.ts
 import { AxiosError } from "axios";
 import { CustomErrorData } from "../type/types";
+import { refreshToken } from "../utils/tokenRefresh";
+import store from "../store/store";
 
 // Define a more specific response data type matching server error format
 interface ErrorResponseData {
@@ -77,6 +79,28 @@ export class ServiceError extends Error {
     return ErrorType.UNKNOWN;
   }
 }
+// Add this function to handle 401 errors
+export const handle401Error = async (error: unknown): Promise<boolean> => {
+  // Check if it's a 401 Unauthorized error
+  if (error instanceof Error && "response" in error && (error as { response?: { status?: number } }).response?.status === 401) {
+    console.log("Detected 401 error, attempting token refresh");
+    try {
+      // Try to refresh the token
+      await refreshToken();
+      const newToken = store.getState().auth.token;
+
+      // If we got a new token, return true to indicate retry is possible
+      if (newToken) {
+        console.log("Token refreshed successfully, retrying request");
+        return true;
+      }
+    } catch (refreshError) {
+      console.error("Failed to refresh token:", refreshError);
+      // Token refresh failed, handle logout or redirect to login page
+    }
+  }
+  return false;
+};
 
 // Common error handler for all services
 export const handleServiceError = (error: unknown): never => {
@@ -158,6 +182,16 @@ export const handleServiceError = (error: unknown): never => {
       httpStatus: axiosError.response?.status,
       remainingAttempts
     });
+
+    // Check if it's an authorization error
+    if (axiosError.response?.status === 401) {
+      console.error("Authentication error occurred:", error);
+      // Attempt to refresh the token in the background
+      handle401Error(error).catch(err =>
+        console.error("Error while handling 401:", err)
+      );
+    }
+
     throw serviceError;
   } else if (
     typeof error === "object" &&

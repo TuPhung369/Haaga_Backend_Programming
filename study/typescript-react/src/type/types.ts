@@ -46,6 +46,7 @@ export interface AuthResponse {
   result: {
     token: string;
     authenticated?: boolean;
+    expiresIn?: number; // Add token expiration time in seconds
   };
 }
 
@@ -92,6 +93,7 @@ export interface RefreshTokenResponse {
   token: string;
   authenticated: boolean;
   refreshed: boolean;
+  expiresIn?: number; // Token expiration time in seconds
 }
 
 export interface GenericResponse {
@@ -193,6 +195,8 @@ export interface UserState {
   isUsersInvalidated: boolean;
   isPermissionsInvalidated: boolean;
   isEventsInvalidated: boolean;
+  loading?: boolean;
+  authError?: string | null;
 }
 export interface CustomErrorData {
   isHandled?: boolean;
