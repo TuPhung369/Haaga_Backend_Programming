@@ -65,6 +65,7 @@ public class SecurityConfig {
       "/login/oauth2/**",
       "/protected/**",
       "/google/token",
+      "/api/chat/**",
 
       // Development mode endpoints - allow all _dev_ prefixed paths
       "/_dev_/**"

@@ -14,6 +14,7 @@ public class AuthenticationRequest {
   String username;
   String password;
   String sessionIdentifier;
+  String recaptchaToken;
 
   public AuthenticationRequest() {
   }

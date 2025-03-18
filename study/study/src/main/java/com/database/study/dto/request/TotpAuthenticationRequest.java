@@ -16,4 +16,5 @@ public class TotpAuthenticationRequest {
     String username;
     String password;
     String totpCode;
+    String recaptchaToken;
 }

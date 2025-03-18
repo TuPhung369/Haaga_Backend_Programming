@@ -17,6 +17,9 @@
     "@antv/react-g": "^2.0.37",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^6.4.8",
     "@popperjs/core": "^2.11.8",
     "@react-oauth/google": "^0.12.1",
     "@reduxjs/toolkit": "^2.5.1",
@@ -44,7 +47,8 @@
     "react-router-dom": "^7.2.0",
     "recharts": "^2.15.1",
     "redux": "^5.0.1",
-    "styled-components": "^6.1.15"
+    "styled-components": "^6.1.15",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",

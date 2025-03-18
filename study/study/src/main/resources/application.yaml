@@ -87,6 +87,9 @@ cleanup:
 totp:
   encryption:
     key: "2fl9V3Xl0ks5yX9dGuVHRV1H6ld9F0OjhrYhP7QvxqJrB/1OLKJHpPoMxSBcUe3EEC6hq0kseMfUQlhK2w2yQA=="
+n8n:
+  webhook:
+    url: http://localhost:5678/webhook/c1784e69-2d89-45fb-b47d-dd13dddcf31e/chat
 logging:
   level:
     root: DEBUG # Global log level

@@ -494,15 +494,6 @@ const CalendarPage: React.FC = () => {
       ? moment(end).format("YYYY-MM-DDTHH:mm:ss")
       : moment(start).add(duration, "minutes").format("YYYY-MM-DDTHH:mm:ss");
 
-    // Debug logging
-    console.log("Drop Operation:", {
-      originalStart: originalStart.format("YYYY-MM-DD HH:mm:ss"),
-      originalEnd: originalEnd.format("YYYY-MM-DD HH:mm:ss"),
-      newStart: newStart,
-      newEnd: newEnd,
-      duration: duration
-    });
-
     try {
       if (isRecurring) {
         Modal.confirm({
@@ -597,17 +588,6 @@ const CalendarPage: React.FC = () => {
       : moment(event.start).format("YYYY-MM-DDTHH:mm:ss");
     const newEnd = moment(end).format("YYYY-MM-DDTHH:mm:ss");
 
-    // Debug logging
-    console.log("Resize Operation:", {
-      originalStart: moment(event.start).format("YYYY-MM-DD HH:mm:ss"),
-      originalEnd: moment(event.end).format("YYYY-MM-DD HH:mm:ss"),
-      newStart: newStart,
-      newEnd: newEnd,
-      durationChange:
-        moment(newEnd).diff(moment(newStart), "minutes") -
-        moment(event.end).diff(moment(event.start), "minutes")
-    });
-
     try {
       if (isRecurring) {
         Modal.confirm({
@@ -628,7 +608,7 @@ const CalendarPage: React.FC = () => {
 
             const newException: CalendarEvent = {
               ...event,
-              id: "", // Let server generate ID
+              id: "",
               seriesId: undefined,
               start: newStart,
               end: newEnd,

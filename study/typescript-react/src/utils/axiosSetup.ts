@@ -22,45 +22,59 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
   // Request interceptor
   axiosInstance.interceptors.request.use(
     function (config) {
-      // Tự động thêm reCAPTCHA token cho các request POST, PUT, PATCH, DELETE
+      // Automatically add reCAPTCHA token for POST, PUT, PATCH, DELETE
       const mutationMethods = ["post", "put", "patch", "delete"];
 
-      if (config.method && mutationMethods.includes(config.method.toLowerCase())) {
-        const recaptchaToken = getRecaptchaToken();
+      // Get the reCAPTCHA token
+      const recaptchaToken = getRecaptchaToken();
 
-        // Với DELETE không có body, thêm token vào URL
-        if (config.method.toLowerCase() === 'delete') {
+      if (config.method) {
+        // For GET requests, add token as query parameter
+        if (config.method.toLowerCase() === 'get') {
           const separator = config.url?.includes('?') ? '&' : '?';
           config.url = `${config.url}${separator}recaptchaToken=${encodeURIComponent(recaptchaToken)}`;
+
+          // Log in development environment
+          if (isDevEnvironment()) {
+            console.log(`Automatically added reCAPTCHA token to GET request: ${config.url}`);
+          }
         }
-        // Với các phương thức khác, thêm vào body
-        else if (config.data) {
-          if (typeof config.data === 'string') {
-            try {
-              const data = JSON.parse(config.data);
-              // Chỉ thêm nếu chưa có
-              if (!data.recaptchaToken) {
-                data.recaptchaToken = recaptchaToken;
-                config.data = JSON.stringify(data);
+        // For mutation methods (POST, PUT, PATCH, DELETE)
+        else if (mutationMethods.includes(config.method.toLowerCase())) {
+          // For DELETE without body, add token to URL
+          if (config.method.toLowerCase() === 'delete') {
+            const separator = config.url?.includes('?') ? '&' : '?';
+            config.url = `${config.url}${separator}recaptchaToken=${encodeURIComponent(recaptchaToken)}`;
+          }
+          // For other methods with body, add to body
+          else if (config.data) {
+            if (typeof config.data === 'string') {
+              try {
+                const data = JSON.parse(config.data);
+                // Only add if not already present
+                if (!data.recaptchaToken) {
+                  data.recaptchaToken = recaptchaToken;
+                  config.data = JSON.stringify(data);
+                }
+              } catch (e) {
+                // If not valid JSON, skip
+                console.warn('Unable to add reCAPTCHA token to non-JSON data');
               }
-            } catch (e) {
-              // Nếu không phải JSON hợp lệ, bỏ qua
-              console.warn('Unable to add reCAPTCHA token to non-JSON data');
+            } else {
+              // Only add if not already present
+              if (!config.data.recaptchaToken) {
+                config.data.recaptchaToken = recaptchaToken;
+              }
             }
           } else {
-            // Chỉ thêm nếu chưa có
-            if (!config.data.recaptchaToken) {
-              config.data.recaptchaToken = recaptchaToken;
-            }
+            // If no data, create new
+            config.data = { recaptchaToken };
           }
-        } else {
-          // Nếu không có data, tạo mới
-          config.data = { recaptchaToken };
-        }
 
-        // Log trong môi trường development
-        if (isDevEnvironment()) {
-          console.log(`Automatically added reCAPTCHA token to ${config.method.toUpperCase()} request: ${config.url}`);
+          // Log in development environment
+          if (isDevEnvironment()) {
+            console.log(`Automatically added reCAPTCHA token to ${config.method.toUpperCase()} request: ${config.url}`);
+          }
         }
       }
 

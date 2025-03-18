@@ -14,6 +14,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   DashboardOutlined,
+  RobotOutlined
 } from "@ant-design/icons";
 
 import { COLORS } from "../utils/constant";
@@ -86,32 +87,38 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       key: "4",
       label: "Permissions",
       path: "/permissions",
-      icon: <LockOutlined />,
+      icon: <LockOutlined />
     },
     {
       key: "5",
       label: "Statistics",
       path: "/statistics",
-      icon: <BarChartOutlined />,
+      icon: <BarChartOutlined />
     },
     {
       key: "6",
       label: "Calendar",
       path: "/calendar",
-      icon: <CalendarOutlined />,
+      icon: <CalendarOutlined />
     },
     {
       key: "7",
       label: "Kanban",
       path: "/kanban",
-      icon: <ProjectOutlined />,
+      icon: <ProjectOutlined />
     },
     {
       key: "8",
       label: "Admin Dashboard",
       path: "/adminDashBoard",
-      icon: <DashboardOutlined />,
+      icon: <DashboardOutlined />
     },
+    {
+      key: "9",
+      label: "AssistantAI",
+      path: "/assistantAI",
+      icon: <RobotOutlined />
+    }
   ];
 
   // Filter menu items based on user roles
@@ -133,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         borderColor: "transparent",
         transition: "width 0.3s ease",
         boxShadow: `2px 0 8px rgba(0,0,0,0.15)`,
-        backgroundColor: COLORS[12], // Using white from COLORS array
+        backgroundColor: COLORS[12] // Using white from COLORS array
       }}
     >
       <div
@@ -143,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           alignItems: "center",
           padding: "12px 16px",
           borderBottom: `1px solid rgba(0,0,0,0.1)`,
-          backgroundColor: COLORS[12], // Using white from COLORS array
+          backgroundColor: COLORS[12] // Using white from COLORS array
         }}
       >
         <div
@@ -154,7 +161,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             transition: "font-size 0.3s",
             overflow: "hidden",
             whiteSpace: "nowrap",
-            color: COLORS[14],
+            color: COLORS[14]
           }}
         >
           TOMBOBAP
@@ -180,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             boxShadow: "none",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         />
       </div>
@@ -191,12 +198,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           filteredMenuItems.find((item) => item.path === location.pathname)
             ?.key ||
             defaultSelectedKey ||
-            "1",
+            "1"
         ]}
         style={{
           height: "calc(100% - 48px)",
           borderRight: 0,
-          transition: "width 0.3s ease",
+          transition: "width 0.3s ease"
         }}
         items={filteredMenuItems.map(({ key, label, path, icon }, index) => ({
           key,
@@ -204,10 +211,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           icon: React.cloneElement(icon, {
             style: {
               color: COLORS[index % COLORS.length],
-              fontSize: collapsed ? "18px" : "16px",
-            },
+              fontSize: collapsed ? "18px" : "16px"
+            }
           }),
-          onClick: () => navigate(path),
+          onClick: () => navigate(path)
         }))}
       />
     </Sider>
@@ -215,4 +222,3 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 };
 
 export default Sidebar;
-

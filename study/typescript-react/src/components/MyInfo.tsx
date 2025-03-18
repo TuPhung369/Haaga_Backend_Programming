@@ -206,6 +206,19 @@ const MyInfoStyle = styled.div`
   }
 `;
 
+// Format date array to string
+const formatDateDisplay = (
+  date: string | number[] | null | undefined
+): string => {
+  if (Array.isArray(date)) {
+    if (date.length < 3) return "Invalid date";
+    return `${date[0]}-${String(date[1]).padStart(2, "0")}-${String(
+      date[2]
+    ).padStart(2, "0")}`;
+  }
+  return date || "Not specified";
+};
+
 // Sub-components
 const PersonalInfoCard = ({ userInfo, onEdit }) => {
   const [expanded, setExpanded] = useState(true); // Start expanded by default
@@ -262,7 +275,7 @@ const PersonalInfoCard = ({ userInfo, onEdit }) => {
 
           <div className="info-item">
             <div className="info-label">Date of Birth</div>
-            <div className="info-value">{userInfo.dob || "Not specified"}</div>
+            <div className="info-value">{formatDateDisplay(userInfo.dob)}</div>
           </div>
 
           <div className="info-item">

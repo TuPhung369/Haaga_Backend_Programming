@@ -103,9 +103,9 @@ export interface CalendarEvent {
   id: string;
   seriesId?: string;
   title: string;
-  start: string | Date;
-  end: string | Date;
-  date: string | Date;
+  start: string | Date | number[];
+  end: string | Date | number[];
+  date: string | Date | number[];
   description?: string;
   color?: string;
   allDay?: boolean;
@@ -113,7 +113,9 @@ export interface CalendarEvent {
   isEventsInvalidated?: boolean;
   userId?: string;
   exceptions?: { originalStart: string }[];
+  createdAt?: string | Date | number[];
 }
+
 export interface TaskKanban {
   id: string;
   title: string;

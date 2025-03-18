@@ -30,6 +30,7 @@ import PermissionsPage from "./pages/PermissionsPage";
 import OAuth2RedirectHandler from "./components/OAuth2RedirectHandler";
 import StatisticPage from "./pages/StatisticPage";
 import AdminDashBoardPage from "./pages/AdminDashBoardPage";
+import AssistantAIPage from "./pages/AssistantAIPage";
 import HeaderCustom from "./components/HeaderCustom";
 import Sidebar from "./components/Sidebar";
 import {
@@ -212,6 +213,10 @@ const App: React.FC = () => {
                       <Route path="/statistics" element={<StatisticPage />} />
                       <Route path="/calendar" element={<CalendarPage />} />
                       <Route path="/kanban" element={<KanbanPage />} />
+                      <Route
+                        path="/assistantAI"
+                        element={<AssistantAIPage />}
+                      />
                       <Route
                         path="/adminDashBoard"
                         element={<AdminDashBoardPage />}

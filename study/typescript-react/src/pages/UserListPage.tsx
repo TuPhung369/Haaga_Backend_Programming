@@ -551,6 +551,22 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
     }
   });
 
+  // Get column search component that excludes the render property
+  const getDobColumnSearchProps = (dataIndex: keyof User) => {
+    const props = getColumnSearchProps(dataIndex);
+    // Remove the render property
+    const { render: _, ...restProps } = props;
+    return restProps;
+  };
+
+  // Format date array to string
+  const formatDateArray = (date: number[]): string => {
+    if (!Array.isArray(date) || date.length < 3) return "";
+    return `${date[0]}-${String(date[1]).padStart(2, "0")}-${String(
+      date[2]
+    ).padStart(2, "0")}`;
+  };
+
   const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
   const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
@@ -722,8 +738,26 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
               title="D.o.B"
               dataIndex="dob"
               key="dob"
-              sorter={(a: User, b: User) => a.dob.localeCompare(b.dob)}
-              {...getColumnSearchProps("dob")}
+              sorter={(a: User, b: User) => {
+                // Handle both string and array formats for sorting
+                const formatDate = (
+                  date: string | number[] | null | undefined
+                ): string => {
+                  if (Array.isArray(date)) {
+                    return formatDateArray(date);
+                  }
+                  return String(date || "");
+                };
+                return formatDate(a.dob).localeCompare(formatDate(b.dob));
+              }}
+              render={(dob) => {
+                // Format the DOB for display
+                if (Array.isArray(dob)) {
+                  return formatDateArray(dob);
+                }
+                return dob;
+              }}
+              {...getDobColumnSearchProps("dob")}
             />
             <Table.Column
               title="Role"

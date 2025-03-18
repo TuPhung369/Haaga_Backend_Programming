@@ -15,7 +15,9 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RefreshTokenRequest {
-  
+
   @NotBlank(message = "Encrypted refresh token is required")
   String token;
+
+  private String recaptchaToken;
 }

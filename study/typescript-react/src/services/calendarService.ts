@@ -26,10 +26,55 @@ export const fetchEventsByUserId = async (
         },
       }
     );
-    return response.data;
+
+    const adjustDateArray = (dateArray: number[] | undefined): string => {
+      if (!dateArray || !Array.isArray(dateArray) || dateArray.length < 5) {
+        return new Date().toISOString();
+      }
+      const [year, month, day, hour, minute, second = 0, nanoseconds = 0] = dateArray;
+      return new Date(year, month - 1, day, hour, minute, second, Math.floor(nanoseconds / 1000000)).toISOString();
+    };
+
+    const adjustedEvents = response.data.result
+      .map((event: CalendarEvent) => {
+        const adjustedStart = typeof event.start === "object" && Array.isArray(event.start)
+          ? adjustDateArray(event.start)
+          : (event.start as string | Date | number[]);
+        const adjustedEnd = typeof event.end === "object" && Array.isArray(event.end)
+          ? adjustDateArray(event.end)
+          : (event.end as string | Date | number[]);
+        const adjustedDate = typeof event.date === "object" && Array.isArray(event.date)
+          ? adjustDateArray(event.date)
+          : (event.date as string | Date | number[]);
+        const adjustedCreatedAt = typeof event.createdAt === "object" && Array.isArray(event.createdAt)
+          ? adjustDateArray(event.createdAt)
+          : (event.createdAt as string | Date | number[] | undefined);
+
+        if (
+          (typeof adjustedStart === "string" || Array.isArray(adjustedStart) || adjustedStart instanceof Date) &&
+          (typeof adjustedEnd === "string" || Array.isArray(adjustedEnd) || adjustedEnd instanceof Date) &&
+          (typeof adjustedDate === "string" || Array.isArray(adjustedDate) || adjustedDate instanceof Date)
+        ) {
+          return {
+            ...event,
+            start: adjustedStart,
+            end: adjustedEnd,
+            date: adjustedDate,
+            createdAt: adjustedCreatedAt,
+          } as CalendarEvent;
+        }
+        console.warn("Skipping invalid event:", event);
+        return null;
+      })
+      .filter((event): event is CalendarEvent => event !== null);
+
+    return {
+      ...response.data,
+      result: adjustedEvents,
+    };
   } catch (error) {
     console.error("Error fetching events:", error);
-    throw handleServiceError(error); // Use centralized error handling
+    throw handleServiceError(error);
   }
 };
 
@@ -114,4 +159,3 @@ export const deleteEvent = async (
     throw handleServiceError(error); // Use centralized error handling
   }
 };
-
