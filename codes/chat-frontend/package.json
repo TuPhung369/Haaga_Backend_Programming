@@ -1,0 +1,14 @@
+{
+  "name": "n8n-chat-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for n8n chat with Ollama",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "http-proxy-middleware": "^2.0.6"
+  }
+}
