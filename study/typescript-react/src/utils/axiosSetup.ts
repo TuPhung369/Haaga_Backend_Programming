@@ -35,9 +35,9 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
           config.url = `${config.url}${separator}recaptchaToken=${encodeURIComponent(recaptchaToken)}`;
 
           // Log in development environment
-          if (isDevEnvironment()) {
-            console.log(`Automatically added reCAPTCHA token to GET request: ${config.url}`);
-          }
+          // if (isDevEnvironment()) {
+          //   console.log(`Automatically added reCAPTCHA token to GET request: ${config.url}`);
+          // }
         }
         // For mutation methods (POST, PUT, PATCH, DELETE)
         else if (mutationMethods.includes(config.method.toLowerCase())) {
@@ -72,9 +72,9 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
           }
 
           // Log in development environment
-          if (isDevEnvironment()) {
-            console.log(`Automatically added reCAPTCHA token to ${config.method.toUpperCase()} request: ${config.url}`);
-          }
+          // if (isDevEnvironment()) {
+          //   console.log(`Automatically added reCAPTCHA token to ${config.method.toUpperCase()} request: ${config.url}`);
+          // }
         }
       }
 

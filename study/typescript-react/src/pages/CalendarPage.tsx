@@ -83,7 +83,13 @@ const CalendarPage: React.FC = () => {
     if (!userId || !token) return;
     try {
       const data = await fetchEventsByUserId(userId, token);
-      dispatch(setEvents(data.result));
+      // Format the events before dispatching
+      const formattedEvents = data.result.map((event: CalendarEvent) => ({
+        ...event,
+        start: moment(event.start).format("YYYY-MM-DDTHH:mm:ss"),
+        end: moment(event.end).format("YYYY-MM-DDTHH:mm:ss")
+      }));
+      dispatch(setEvents(formattedEvents));
     } catch (error) {
       handleServiceError(error);
       notification.error({
@@ -95,7 +101,7 @@ const CalendarPage: React.FC = () => {
     }
   }, [dispatch, userId, token]);
 
-  // Add this piece of code to track the previous userId
+  // Track the previous userId
   const prevUserIdRef = useRef(userId);
 
   useEffect(() => {
@@ -120,7 +126,6 @@ const CalendarPage: React.FC = () => {
   // Tự động cập nhật End Time khi Start Time thay đổi
   useEffect(() => {
     if (eventDetails.start && (!eventDetails.end || eventDetails.id === "")) {
-      // Chỉ cập nhật nếu là sự kiện mới hoặc end time chưa được đặt
       const startMoment = moment(eventDetails.start);
       const endMoment = startMoment.clone().add(30, "minutes");
       setEventDetails((prev) => ({
@@ -165,13 +170,13 @@ const CalendarPage: React.FC = () => {
     const currentStart = originalStart.clone();
     while (currentStart.toDate() <= endRange) {
       const currentEnd = currentStart.clone().add(duration, "minutes");
-      const currentStartISO = currentStart.toISOString();
+      const currentStartFormatted = currentStart.format("YYYY-MM-DDTHH:mm:ss");
       const isExcluded = exceptions.some(
-        (ex) => ex.originalStart === currentStartISO
+        (ex) => ex.originalStart === currentStartFormatted
       );
 
       if (currentEnd.toDate() >= startRange && !isExcluded) {
-        const instanceId = `${event.seriesId}-${currentStartISO}`;
+        const instanceId = `${event.seriesId}-${currentStart.toISOString()}`;
         instances.push({
           ...event,
           id: instanceId,
@@ -206,20 +211,16 @@ const CalendarPage: React.FC = () => {
     (range: Date[] | { start: Date; end: Date }) => {
       let start: Date, end: Date;
       if (Array.isArray(range)) {
-        // Handle array of dates (agenda view)
         start = range[0];
         end = range[range.length - 1];
       } else {
-        // Handle object with start/end (day, week, month view)
         start = moment(range.start).startOf("day").toDate();
         end = moment(range.end).endOf("day").toDate();
       }
 
-      // Ensure we have a sufficient range for day view
       const rangeStart = moment(start);
       const rangeEnd = moment(end);
 
-      // If the range is less than a day, extend it to full day
       if (rangeEnd.diff(rangeStart, "hours") < 24) {
         start = rangeStart.startOf("day").toDate();
         end = rangeStart.endOf("day").toDate();
@@ -231,7 +232,6 @@ const CalendarPage: React.FC = () => {
   );
 
   const computedDisplayEvents = useMemo(() => {
-    // Extend the range slightly to ensure we catch all events
     const extendedStart = moment(dateRange.start).subtract(1, "day").toDate();
     const extendedEnd = moment(dateRange.end).add(1, "day").toDate();
 
@@ -244,9 +244,7 @@ const CalendarPage: React.FC = () => {
     setDisplayEvents(computedDisplayEvents);
   }, [computedDisplayEvents]);
 
-  // Thêm CSS cho Agenda view
   useEffect(() => {
-    // Thêm CSS để chỉnh sửa lại giao diện của Agenda
     const style = document.createElement("style");
     style.textContent = `
       .rbc-agenda-view table.rbc-agenda-table {
@@ -261,8 +259,6 @@ const CalendarPage: React.FC = () => {
       #agenda-header {
         display: none;
       }
-      
-      /* CSS cho Day và Week view */
       .rbc-event {
         padding: 2px 3px !important;
       }
@@ -271,35 +267,25 @@ const CalendarPage: React.FC = () => {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      
-      /* Ẩn time range mặc định trong Week view */
       .rbc-time-view .rbc-event .rbc-event-label {
         display: none !important;
       }
-      
-      /* Tùy chỉnh hiển thị event trong Week view */
       .rbc-time-view .rbc-event {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         text-align: center !important;
       }
-      
-      /* Tùy chỉnh nội dung event trong Week view */
       .rbc-time-view .rbc-event-content {
         width: 100% !important;
         text-align: center !important;
         line-height: 1.2 !important;
       }
-      
-      /* Responsive font size cho event dựa vào kích thước */
       .rbc-event.rbc-event-allday .rbc-event-content,
       .rbc-event.rbc-event-continues-prior .rbc-event-content,
       .rbc-event.rbc-event-continues-after .rbc-event-content {
         font-size: 10px;
       }
-      
-      /* Đảm bảo tooltip hiển thị đúng */
       .ant-tooltip {
         max-width: 300px;
       }
@@ -334,12 +320,11 @@ const CalendarPage: React.FC = () => {
   };
 
   const handleAddOrUpdateEvent = async () => {
-    if (isSaving) return; // Prevent multiple submissions
+    if (isSaving) return;
 
     const startDate = new Date(eventDetails.start);
     const endDate = new Date(eventDetails.end);
 
-    // Validate that end time is not before start time
     if (endDate < startDate) {
       notification.error({
         message: "Invalid Time Range",
@@ -350,9 +335,8 @@ const CalendarPage: React.FC = () => {
 
     const eventId = eventDetails.id || "";
 
-    setIsSaving(true); // Start loading state
+    setIsSaving(true);
 
-    // Sử dụng moment để định dạng ngày giờ đúng với múi giờ địa phương
     const formattedStart = moment(startDate).format("YYYY-MM-DDTHH:mm:ss");
     const formattedEnd = moment(endDate).format("YYYY-MM-DDTHH:mm:ss");
     const formattedDate = moment(startDate).format("YYYY-MM-DDTHH:mm:ss");
@@ -374,7 +358,6 @@ const CalendarPage: React.FC = () => {
         : []
     };
 
-    // Debug log
     console.log("Sending event with times:", {
       localStart: eventDetails.start,
       localEnd: eventDetails.end,
@@ -409,7 +392,7 @@ const CalendarPage: React.FC = () => {
                 message: "Series Updated",
                 description: "All events in the series have been updated."
               });
-              setIsSaving(false); // Reset loading state
+              setIsSaving(false);
             },
             onCancel: async () => {
               await updateEvent(eventId, newEvent, token);
@@ -419,7 +402,7 @@ const CalendarPage: React.FC = () => {
                 message: "Event Updated",
                 description: "The event has been successfully updated."
               });
-              setIsSaving(false); // Reset loading state
+              setIsSaving(false);
             }
           });
         } else {
@@ -448,7 +431,7 @@ const CalendarPage: React.FC = () => {
           "An error occurred while saving the event. Please try again."
       });
     } finally {
-      setIsSaving(false); // Reset loading state
+      setIsSaving(false);
       setEventDetails({
         id: "",
         seriesId: "",
@@ -469,7 +452,6 @@ const CalendarPage: React.FC = () => {
     setEventDetails((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Get a color that is different from the original event color
   const getDistinctColor = (originalColor: string): string => {
     let newColor: string;
     do {
@@ -483,16 +465,18 @@ const CalendarPage: React.FC = () => {
     const seriesId = event.seriesId || event.id;
     const isRecurring = event.repeat !== "none";
 
-    // Calculate the duration of the original event
     const originalStart = moment(event.start);
     const originalEnd = moment(event.end);
     const duration = originalEnd.diff(originalStart, "minutes");
 
-    // Create new times with timezone handling
-    const newStart = moment(start).format("YYYY-MM-DDTHH:mm:ss");
+    const newStart = start
+      ? moment(start).format("YYYY-MM-DDTHH:mm:ss")
+      : moment(event.start).format("YYYY-MM-DDTHH:mm:ss");
     const newEnd = end
       ? moment(end).format("YYYY-MM-DDTHH:mm:ss")
-      : moment(start).add(duration, "minutes").format("YYYY-MM-DDTHH:mm:ss");
+      : moment(newStart, "YYYY-MM-DDTHH:mm:ss")
+          .add(duration, "minutes")
+          .format("YYYY-MM-DDTHH:mm:ss");
 
     try {
       if (isRecurring) {
@@ -506,34 +490,50 @@ const CalendarPage: React.FC = () => {
             const masterEvent = events.find(
               (evt) => evt.seriesId === seriesId && evt.repeat !== "none"
             );
-            if (!masterEvent) return;
+            if (!masterEvent) {
+              notification.error({
+                message: "Error",
+                description: "Master event not found."
+              });
+              return;
+            }
 
-            const instanceStart = moment(event.start);
-            const originalStart = instanceStart.toISOString();
-
+            const instanceStart = moment(event.start).format(
+              "YYYY-MM-DDTHH:mm:ss"
+            );
             const distinctColor = getDistinctColor(event.color || COLORS[0]);
 
-            const newException: CalendarEvent = {
+            const newEvent: Omit<CalendarEvent, "id" | "createdAt"> = {
               ...event,
-              id: "", // Let server generate ID
               seriesId: undefined,
               start: newStart,
               end: newEnd,
               date: newStart,
               repeat: "none",
-              color: distinctColor
+              color: distinctColor,
+              exceptions: []
             };
 
-            await createEvent(newException, token);
             const updatedMasterEvent = {
               ...masterEvent,
-              exceptions: [...(masterEvent.exceptions || []), { originalStart }]
+              exceptions: [
+                ...(masterEvent.exceptions || []),
+                { originalStart: instanceStart }
+              ]
             };
+
+            console.log("Sending new event data:", {
+              newEvent,
+              updatedMasterEvent
+            });
+
+            await createEvent(newEvent, token);
             await updateEvent(masterEvent.id, updatedMasterEvent, token);
             await fetchAndUpdateEvents();
             notification.success({
               message: "Event Updated",
-              description: "The event instance has been updated."
+              description:
+                "The event instance has been moved and removed from the series."
             });
           },
           onCancel: async () => {
@@ -543,6 +543,9 @@ const CalendarPage: React.FC = () => {
               end: newEnd,
               date: newStart
             };
+
+            console.log("Updating series event:", updatedEvent);
+
             await updateEventSeries(seriesId, updatedEvent, token);
             await fetchAndUpdateEvents();
             notification.success({
@@ -558,6 +561,9 @@ const CalendarPage: React.FC = () => {
           end: newEnd,
           date: newStart
         };
+
+        console.log("Updating single event:", updatedEvent);
+
         await updateEvent(event.id, updatedEvent, token);
         await fetchAndUpdateEvents();
         notification.success({
@@ -581,12 +587,18 @@ const CalendarPage: React.FC = () => {
     const { event, start, end } = args;
     const seriesId = event.seriesId || event.id;
     const isRecurring = event.repeat !== "none";
+    const originalStart = moment(event.start);
+    const originalEnd = moment(event.end);
+    const duration = originalEnd.diff(originalStart, "minutes");
 
-    // Use timezone-aware moment objects
     const newStart = start
       ? moment(start).format("YYYY-MM-DDTHH:mm:ss")
       : moment(event.start).format("YYYY-MM-DDTHH:mm:ss");
-    const newEnd = moment(end).format("YYYY-MM-DDTHH:mm:ss");
+    const newEnd = end
+      ? moment(end).format("YYYY-MM-DDTHH:mm:ss")
+      : moment(newStart, "YYYY-MM-DDTHH:mm:ss")
+          .add(duration, "minutes")
+          .format("YYYY-MM-DDTHH:mm:ss");
 
     try {
       if (isRecurring) {
@@ -602,26 +614,36 @@ const CalendarPage: React.FC = () => {
             );
             if (!masterEvent) return;
 
-            const instanceStart = moment(event.start);
-            const originalStart = instanceStart.toISOString();
+            const instanceStart = moment(event.start).format(
+              "YYYY-MM-DDTHH:mm:ss"
+            );
             const distinctColor = getDistinctColor(event.color || COLORS[0]);
 
-            const newException: CalendarEvent = {
+            const newException: Omit<CalendarEvent, "id" | "createdAt"> = {
               ...event,
-              id: "",
               seriesId: undefined,
               start: newStart,
               end: newEnd,
               date: newStart,
               repeat: "none",
-              color: distinctColor
+              color: distinctColor,
+              exceptions: []
             };
 
-            await createEvent(newException, token);
             const updatedMasterEvent = {
               ...masterEvent,
-              exceptions: [...(masterEvent.exceptions || []), { originalStart }]
+              exceptions: [
+                ...(masterEvent.exceptions || []),
+                { originalStart: instanceStart }
+              ]
             };
+
+            console.log("Sending resize event data:", {
+              newException,
+              updatedMasterEvent
+            });
+
+            await createEvent(newException, token);
             await updateEvent(masterEvent.id, updatedMasterEvent, token);
             await fetchAndUpdateEvents();
             notification.success({
@@ -636,6 +658,9 @@ const CalendarPage: React.FC = () => {
               end: newEnd,
               date: newStart
             };
+
+            console.log("Updating series event (resize):", updatedEvent);
+
             await updateEventSeries(seriesId, updatedEvent, token);
             await fetchAndUpdateEvents();
             notification.success({
@@ -651,6 +676,9 @@ const CalendarPage: React.FC = () => {
           end: newEnd,
           date: newStart
         };
+
+        console.log("Updating single event (resize):", updatedEvent);
+
         await updateEvent(event.id, updatedEvent, token);
         await fetchAndUpdateEvents();
         notification.success({
@@ -705,7 +733,6 @@ const CalendarPage: React.FC = () => {
     );
   };
 
-  // Component riêng cho Week view - chỉ hiển thị title
   const weekEvent = ({ event }: { event: CalendarEvent }) => {
     const eventStart = moment(event.start).format("HH:mm");
     const eventEnd = moment(event.end).format("HH:mm");
@@ -751,7 +778,6 @@ const CalendarPage: React.FC = () => {
     );
   };
 
-  // Component riêng cho Day view - hiển thị Title : Description
   const dayEvent = ({ event }: { event: CalendarEvent }) => {
     const eventStart = moment(event.start).format("HH:mm");
     const eventEnd = moment(event.end).format("HH:mm");
@@ -794,7 +820,6 @@ const CalendarPage: React.FC = () => {
     );
   };
 
-  // Custom agenda format
   const formats = {
     agendaDateFormat: "ddd DD/MM",
     agendaTimeFormat: "HH:mm",
@@ -803,13 +828,11 @@ const CalendarPage: React.FC = () => {
         "HH:mm"
       )}`;
     },
-    // Tùy chỉnh định dạng hiển thị event trong time slot
     eventTimeRangeFormat: () => {
-      return ""; // Trả về chuỗi rỗng để không hiển thị time range
+      return "";
     }
   };
 
-  // Custom agenda component with title and description columns
   const AgendaEvent = ({ event }: { event: CalendarEvent }) => (
     <div style={{ display: "flex", width: "100%" }}>
       <span style={{ fontWeight: "bold" }}>
@@ -864,11 +887,7 @@ const CalendarPage: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Content
-        style={{
-          minHeight: "85vh"
-        }}
-      >
+      <Content style={{ minHeight: "85vh" }}>
         <div
           style={{
             padding: "24px",
@@ -887,7 +906,6 @@ const CalendarPage: React.FC = () => {
             Add Event
           </Button>
 
-          {/* Title và Description cho Agenda view */}
           <div
             id="agenda-header"
             style={{
@@ -932,14 +950,13 @@ const CalendarPage: React.FC = () => {
             tooltipAccessor={null}
             onRangeChange={handleRangeChange}
             defaultView="month"
-            min={moment().startOf("day").set("hour", 7).toDate()} // Start at 7 AM
-            max={moment().endOf("day").set("hour", 22).toDate()} // End at 10 PM
-            step={30} // 30 minute intervals
-            timeslots={2} // Show 2 slots per step (15 minute divisions)
-            dayLayoutAlgorithm="no-overlap" // Improves day/week view layout
-            longPressThreshold={10} // Make drag operations more responsive
+            min={moment().startOf("day").set("hour", 7).toDate()}
+            max={moment().endOf("day").set("hour", 22).toDate()}
+            step={30}
+            timeslots={2}
+            dayLayoutAlgorithm="no-overlap"
+            longPressThreshold={10}
             onView={(view) => {
-              // Hiển thị hoặc ẩn header của Agenda
               const agendaHeader = document.getElementById("agenda-header");
               if (agendaHeader) {
                 agendaHeader.style.display =
@@ -1079,4 +1096,3 @@ const CalendarPage: React.FC = () => {
 };
 
 export default CalendarPage;
-
