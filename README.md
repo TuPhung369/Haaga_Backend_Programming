@@ -829,3 +829,23 @@ Giới hạn quyền (Least Privilege).
 Dùng OAuth2 PKCE để bảo vệ quy trình lấy token.
 (Tùy chọn) Dùng mTLS để đảm bảo request từ thiết bị tin cậy.
 💡 Làm theo các cách này, hacker có lấy được access_token cũng vô dụng! 🚀
+
+#### Run Ollama in local by Terminal Keeper
+
+```JSON
+      {
+        "name": "Ollama",
+        "autoExecuteCommands": true,
+        "icon": "terminal",
+        "color": "terminal.ansiMagenta",
+        "shell": "gitbash",
+        "env": {
+          "OLLAMA_HOST": "127.0.0.1:11435"
+        },
+        "commands": [
+          "cd C:/Users/Think/AppData/Local/Programs/Ollama",
+          "C:/Users/Think/AppData/Local/Programs/Ollama/ollama.exe serve"
+        ],
+        "joinOperator": ";"
+      }
+```
