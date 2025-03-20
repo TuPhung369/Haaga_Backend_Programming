@@ -30,7 +30,7 @@
 }
 
 .auth-card {
-  width: 1000px;
+  width: 1100px;
   height: 700px;
   position: relative;
   z-index: 3;
@@ -42,7 +42,7 @@
   transition: all 1s ease-in-out;
   border: 2px solid transparent;
   background-clip: padding-box;
-  position: relative;
+  margin-top:-70px;
 }
 
 /* Update the auth-card::before to create a glowing white/blue border */
@@ -118,55 +118,72 @@
   transition: transform 0.6s ease-in-out;
 }
 
-/* Welcome message and button in the blue section */
 .welcome-title {
-  color: white;
-  margin-bottom: 20px !important;
-  font-weight: 700 !important;
+  color: #2D3748; 
+  font-family: 'Inter', sans-serif; 
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  margin-bottom: 15px !important;
+  letter-spacing: -0.5px;
+  transition: transform 0.3s ease;
 }
-
+.welcome-title:hover {
+  transform: scale(1.1);
+}
 .panel-text {
-  color: white;
-  margin-bottom: 20px;
+  color: #4A5568;
+  font-family: 'Inter', sans-serif;
   font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  opacity: 0.9;
 }
 
-/* Form styles */
 .auth-form {
   width: 100%;
-  max-width: 320px;
-}
-
-.form-title {
-  text-align: center;
-  margin-bottom: 20px !important;
-  color: white;
+  max-width: 400px;
+  margin-bottom: 50px;  
 }
 
 /* Button styles */
 .panel-button {
-  background-color: transparent;
-  color: white;
-  border: 1px solid white;
-  border-radius: 20px;
-  padding: 8px 30px;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #FFCCCB, #ADD8E6);
+  color: #2D3748;
+  border: none;
+  border-radius: 25px;
+  padding: 10px 35px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 
+    3px 3px 8px rgba(0, 0, 0, 0.1),
+    -3px -3px 8px rgba(255, 255, 255, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 
 .panel-button:hover {
-  background-color: white;
-  color: #4285f4;
+  background: linear-gradient(135deg, #FFB6C1, #87CEFA);
+  transform: translateY(-3px);
+  box-shadow: 
+    5px 5px 12px rgba(0, 0, 0, 0.15),
+    -5px -5px 12px rgba(255, 255, 255, 0.4);
+}
+
+.panel-button:active {
+  transform: translateY(1px);
+  box-shadow: 
+    2px 2px 5px rgba(0, 0, 0, 0.1),
+    -2px -2px 5px rgba(255, 255, 255, 0.2);
 }
 
 .auth-button {
   width: 100%;
   border-radius: 20px;
-  height: 50px !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  background: linear-gradient(135deg, #4285f4, #6aa9ff) !important;
-  border: none !important;
+  height: 50px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #003790, #6aa9ff);
+  border: none;
 }
 
 .auth-button:hover {
@@ -177,11 +194,24 @@
 
 /* Mode switching animations */
 .auth-card.login-mode .left-panel {
-  background: linear-gradient(135deg, rgba(66, 133, 244, 0.6), rgba(255, 255, 255, 0.6));
-  border-radius: 0 100px 100px 0;
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.6), rgba(254, 254, 255, 0.6));
+  border-radius: 0px 100px 100px 0px;
   backdrop-filter: blur(5px);
 }
 
+/* Micro-interaction khi hover */
+.auth-card.login-mode .left-panel:hover {
+  transform: translateZ(15px) scale(1.02);
+  box-shadow: 
+    8px 8px 20px rgba(0, 0, 0, 0.15),
+    -8px -8px 20px rgba(255, 255, 255, 0.4);
+}
+.auth-card.login-mode .left-panel:hover {
+  transform: perspective(1000px) rotateY(-8deg) translateX(4px);
+  box-shadow: 
+    -12px -12px 24px rgba(255, 255, 255, 0.7),
+    12px 12px 32px rgba(174, 174, 174, 0.3);
+}
 .auth-card.login-mode .right-panel {
   background-color: transparent;
 }
@@ -192,10 +222,15 @@
 
 .auth-card.register-mode .right-panel {
   background: linear-gradient(135deg, rgba(66, 133, 244, 0.6), rgba(254, 254, 255, 0.6));
-  border-radius: 100px 0 0 100px;
+  border-radius: 100px 0px 0px 100px;
   backdrop-filter: blur(5px);
 }
-
+.auth-card.register-mode .right-panel:hover {
+  transform: perspective(1000px) rotateY(8deg) translateX(-4px);
+  box-shadow: 
+    12px 12px 24px rgba(255, 255, 255, 0.7),
+    -12px -12px 32px rgba(174, 174, 174, 0.3);
+}
 /* Error message styling */
 .error-message {
   color: #ff4d4f;
@@ -306,13 +341,16 @@
 .auth-form .ant-input,
 .auth-form .ant-input-password,
 .auth-form .ant-picker {
-  height: 40px !important;
+  height: 50px !important;
   padding: 12px 15px 12px 40px !important;
   font-size: 16px !important;
   border-radius: 8px !important;
   transition: all 0.3s !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+.auth-form .ant-input-suffix .anticon {
   color: white !important;
 }
 
@@ -327,7 +365,7 @@
 }
 
 /* Style for input hover states */
-.auth-form .ant-input:hover,
+.auth-form .ant-input-affix-wrapper .ant-input:hover,
 .auth-form .ant-input-password:hover,
 .auth-form .ant-picker:hover {
   border-color: #4285f4 !important;
@@ -350,7 +388,7 @@
 
 /* Adjust the input inside the password input */
 .auth-form .ant-input-affix-wrapper .ant-input {
-  height: 48px !important;
+  height: 50px !important;
   padding-left: 28px !important;
   background-color: transparent !important;
   border: none !important;
@@ -358,13 +396,25 @@
 
 /* Style for DatePicker */
 .auth-form .ant-picker {
+  padding-left: 12px !important;
   width: 100% !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
 }
-
-.auth-form .ant-picker-input > input {
+.auth-form .ant-picker .ant-picker-prefix {
   color: white !important;
 }
+.auth-form .ant-picker .ant-picker-prefix svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+.auth-form .ant-picker .ant-picker-input > input {
+  color: white !important;
+  margin-left: 30px !important;
+}
+.auth-form .ant-picker .ant-picker-suffix {
+  display: none;
+}
+
 
 /* Adjust form item spacing for better visual hierarchy */
 .auth-form .ant-form-item {

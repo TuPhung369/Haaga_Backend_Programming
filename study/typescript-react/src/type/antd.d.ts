@@ -13,6 +13,7 @@ declare module "antd" {
     Breadcrumb,
     Button,
     Calendar,
+    CalendarOutlined,
     Card,
     Carousel,
     Cascader,
@@ -84,6 +85,7 @@ declare module "antd" {
   export const Breadcrumb: typeof Breadcrumb;
   export const Button: typeof Button;
   export const Calendar: typeof Calendar;
+  export const CalendarOutlined: typeof CalendarOutlined;
   export const Card: typeof Card;
   export const Carousel: typeof Carousel;
   export const Cascader: typeof Cascader;

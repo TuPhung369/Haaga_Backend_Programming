@@ -18,7 +18,15 @@ import {
 import { useApi } from "../hooks/useApi";
 import { useFieldErrors } from "../hooks/useFieldErrors";
 import { ServiceError } from "../services/baseService";
-import { LockOutlined, UserOutlined, MailOutlined } from "@ant-design/icons";
+import {
+  LockOutlined,
+  KeyOutlined,
+  UserOutlined,
+  MailOutlined,
+  IdcardOutlined,
+  CalendarOutlined,
+  ContactsOutlined
+} from "@ant-design/icons";
 import validateInput from "../utils/validateInput";
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
@@ -529,7 +537,6 @@ const AuthPage: React.FC = () => {
           />
         </div>
 
-
         <div
           className={`auth-card ${
             isLoginMode ? "login-mode" : "register-mode"
@@ -655,7 +662,7 @@ const AuthPage: React.FC = () => {
                     ]}
                   >
                     <Input.Password
-                      prefix={<LockOutlined />}
+                      prefix={<KeyOutlined />}
                       placeholder="Confirm Password"
                       value={registerValues.confirmPassword}
                       onChange={(e) =>
@@ -683,6 +690,7 @@ const AuthPage: React.FC = () => {
                     ]}
                   >
                     <Input
+                      prefix={<ContactsOutlined />}
                       placeholder="First Name"
                       value={registerValues.firstname}
                       onChange={(e) =>
@@ -710,6 +718,7 @@ const AuthPage: React.FC = () => {
                     ]}
                   >
                     <Input
+                      prefix={<IdcardOutlined />}
                       placeholder="Last Name"
                       value={registerValues.lastname}
                       onChange={(e) =>
@@ -739,6 +748,7 @@ const AuthPage: React.FC = () => {
                     ]}
                   >
                     <DatePicker
+                      prefix={<CalendarOutlined />}
                       style={{ width: "100%" }}
                       placeholder="Date of Birth"
                       value={registerValues.dob}
