@@ -31,7 +31,6 @@ import OAuth2RedirectHandler from "./components/OAuth2RedirectHandler";
 import StatisticPage from "./pages/StatisticPage";
 import AdminDashBoardPage from "./pages/AdminDashBoardPage";
 import AssistantAIPage from "./pages/AssistantAIPage";
-import HeaderCustom from "./components/HeaderCustom";
 import Sidebar from "./components/Sidebar";
 import {
   introspectToken,
@@ -43,7 +42,7 @@ import { RootState } from "./type/types";
 import { setupTokenRefresh } from "./utils/tokenRefresh";
 import "./styles/Totp.css";
 
-const { Content, Footer } = Layout;
+const { Content } = Layout;
 
 interface AuthWrapperProps {
   children: ReactNode;
@@ -138,29 +137,18 @@ const MainLayout = ({ children }: { children: ReactNode }) => {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
-      <HeaderCustom />
+      <Sidebar />
       <Layout>
-        <Sidebar />
         <Content
           style={{
             padding: isKanbanRoute ? 0 : "24px",
-            height: "calc(100vh - 64px - 70px)",
+            height: "100vh",
             overflow: "auto"
           }}
         >
           {children}
         </Content>
       </Layout>
-      <Footer
-        style={{
-          textAlign: "center",
-          background: "white",
-          height: "70px",
-          padding: "24px"
-        }}
-      >
-        The Application ©2024 Created by Tu Phung
-      </Footer>
     </Layout>
   );
 };

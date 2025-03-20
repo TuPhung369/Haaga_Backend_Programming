@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Menu, Button } from "antd";
+import { Layout, Menu, Button, Avatar } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RootState } from "../type/types";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import {
   HomeOutlined,
   UserOutlined,
@@ -14,10 +14,19 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   DashboardOutlined,
-  RobotOutlined
+  RobotOutlined,
+  SettingOutlined,
+  BellOutlined,
+  LogoutOutlined,
+  CopyrightOutlined
 } from "@ant-design/icons";
 
 import { COLORS } from "../utils/constant";
+import { resetAllData } from "../store/resetActions";
+import { logoutUserWithCookies } from "../services/authService";
+import { clearTokenRefresh } from "../utils/tokenRefresh";
+import { notification } from "antd";
+
 const { Sider } = Layout;
 
 interface SidebarProps {
@@ -27,6 +36,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const [collapsed, setCollapsed] = useState(() => {
     // Get from localStorage if available
     const savedState = localStorage.getItem("sidebarCollapsed");
@@ -79,6 +89,36 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     setCollapsed(!collapsed);
   };
 
+  const handleLogout = async () => {
+    try {
+      // Clear the refresh timer
+      clearTokenRefresh();
+      // Call cookie-based logout API
+      await logoutUserWithCookies();
+
+      // Clear Redux state
+      dispatch(resetAllData());
+
+      // Navigate to login page
+      navigate("/login");
+
+      notification.success({
+        message: "Logged out successfully!"
+      });
+    } catch (error) {
+      console.error("Error during logout:", error);
+
+      // Still clear Redux state and redirect even if API call fails
+      dispatch(resetAllData());
+      navigate("/login");
+
+      notification.info({
+        message: "Logged out",
+        description: "You have been logged out of the application."
+      });
+    }
+  };
+
   const menuItems = [
     { key: "1", label: "Home", path: "/", icon: <HomeOutlined /> },
     { key: "2", label: "Users", path: "/userList", icon: <UserOutlined /> },
@@ -129,9 +169,53 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     // Only show Admin Dashboard if user has ADMIN role
     return userInfo?.roles?.some((role) => role.name === "ADMIN");
   });
+
+  // Bottom menu items
+  const bottomMenuItems = [
+    {
+      key: "profile",
+      label: "Tom BoBap",
+      icon: (
+        <Avatar
+          size={collapsed ? 24 : 24}
+          icon={<UserOutlined />}
+          style={{ backgroundColor: COLORS[14] }}
+        />
+      ),
+      description: "Developer"
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      icon: <SettingOutlined style={{ color: COLORS[5] }} />
+    },
+    {
+      key: "notifications",
+      label: "Notifications",
+      icon: <BellOutlined style={{ color: COLORS[4] }} />
+    },
+    {
+      key: "logout",
+      label: "Logout",
+      icon: <LogoutOutlined style={{ color: COLORS[1] }} />,
+      onClick: handleLogout
+    },
+    {
+      key: "copyright",
+      label: (
+        <div style={{ fontSize: "11px", lineHeight: "1.2" }}>
+          <div>The Application ©2024</div>
+          <div>Created by Tu Phung</div>
+        </div>
+      ),
+      icon: <CopyrightOutlined style={{ color: COLORS[9] }} />,
+      style: { opacity: 0.7 }
+    }
+  ];
+
   return (
     <Sider
-      width={200}
+      width={250}
       collapsible
       collapsed={collapsed}
       trigger={null}
@@ -140,7 +224,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         borderColor: "transparent",
         transition: "width 0.3s ease",
         boxShadow: `2px 0 8px rgba(0,0,0,0.15)`,
-        backgroundColor: COLORS[12] // Using white from COLORS array
+        backgroundColor: COLORS[12],
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh"
       }}
     >
       <div
@@ -164,7 +251,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             color: COLORS[14]
           }}
         >
-          TOMBOBAP
+          TomBoBap
         </div>
         <Button
           type="text"
@@ -191,6 +278,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           }}
         />
       </div>
+
+      {/* Main menu */}
       <Menu
         mode="inline"
         theme="light"
@@ -201,9 +290,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             "1"
         ]}
         style={{
-          height: "calc(100% - 48px)",
           borderRight: 0,
-          transition: "width 0.3s ease"
+          transition: "width 0.3s ease",
+          flex: 1,
+          overflow: "auto"
         }}
         items={filteredMenuItems.map(({ key, label, path, icon }, index) => ({
           key,
@@ -211,10 +301,40 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           icon: React.cloneElement(icon, {
             style: {
               color: COLORS[index % COLORS.length],
-              fontSize: collapsed ? "18px" : "16px"
+              fontSize: collapsed ? "20px" : "16px"
             }
           }),
           onClick: () => navigate(path)
+        }))}
+      />
+
+      {/* Bottom menu with user profile and actions */}
+      <Menu
+        mode="inline"
+        theme="light"
+        selectable={false}
+        style={{
+          borderTop: "1px solid rgba(0,0,0,0.1)",
+          borderRight: 0
+        }}
+        items={bottomMenuItems.map((item) => ({
+          key: item.key,
+          label: item.label,
+          icon: React.cloneElement(
+            typeof item.icon === "string" ? (
+              <span>{item.icon}</span>
+            ) : (
+              item.icon
+            ),
+            {
+              style: {
+                fontSize: collapsed ? "20px" : "16px",
+                ...(item.icon.props?.style || {})
+              }
+            }
+          ),
+          onClick: item.onClick,
+          style: item.style
         }))}
       />
     </Sider>
