@@ -4,37 +4,83 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f0f2f5;
+  background-color: #000;
   padding: 20px;
-  background-image: url("../assets/loginBG.png");
-  background-size: cover;
-  background-position: center;
   position: relative;
+  overflow: hidden;
 }
 
-.auth-container::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  backdrop-filter: blur(5px);
-  background-color: rgba(255, 255, 255, 0.2);
-  z-index: 0;
+/* Keep the animation definition for reuse with auth-card */
+@keyframes borderPulse {
+  0% {
+    box-shadow: 
+      0 0 20px rgba(255, 255, 255, 0.5),
+      inset 0 0 20px rgba(255, 255, 255, 0.5);
+  }
+  50% {
+    box-shadow: 
+      0 0 40px rgba(255, 255, 255, 0.7),
+      inset 0 0 30px rgba(255, 255, 255, 0.7);
+  }
+  100% {
+    box-shadow: 
+      0 0 20px rgba(255, 255, 255, 0.5),
+      inset 0 0 20px rgba(255, 255, 255, 0.5);
+  }
 }
 
 .auth-card {
   width: 1000px;
   height: 700px;
   position: relative;
-  z-index: 1;
+  z-index: 3;
   overflow: hidden;
   border-radius: 20px;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
   display: flex;
-  background-color: white;
-  transition: all 0.6s ease-in-out;
+  background-color: rgba(0, 0, 0, 0.6);
+  transition: all 1s ease-in-out;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+
+/* Update the auth-card::before to create a glowing white/blue border */
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  border-radius: 22px;
+  box-shadow: 
+    0 0 20px rgba(255, 255, 255, 0.5),
+    inset 0 0 20px rgba(143, 189, 255, 0.5);
+  z-index: -1;
+  animation: borderPulse 4s ease infinite;
+  background: linear-gradient(180deg, 
+    transparent, 
+    rgba(0, 0, 0, 0.9), 
+    rgba(48, 67, 91, 0.8), 
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: borderGlow 6s linear infinite;
+}
+
+/* Add animation for the border glow */
+@keyframes borderGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Panel Styles */
@@ -94,6 +140,7 @@
 .form-title {
   text-align: center;
   margin-bottom: 20px !important;
+  color: white;
 }
 
 /* Button styles */
@@ -118,25 +165,35 @@
   height: 50px !important;
   font-size: 16px !important;
   font-weight: 600 !important;
+  background: linear-gradient(135deg, #4285f4, #6aa9ff) !important;
+  border: none !important;
+}
+
+.auth-button:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(66, 133, 244, 0.3);
 }
 
 /* Mode switching animations */
 .auth-card.login-mode .left-panel {
-  background: linear-gradient(135deg, #4285f4, #6aa9ff);
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.6), rgba(255, 255, 255, 0.6));
   border-radius: 0 100px 100px 0;
+  backdrop-filter: blur(5px);
 }
 
 .auth-card.login-mode .right-panel {
-  background-color: white;
+  background-color: transparent;
 }
 
 .auth-card.register-mode .left-panel {
-  background-color: white;
+  background-color: transparent;
 }
 
 .auth-card.register-mode .right-panel {
-  background: linear-gradient(135deg, #4285f4, #6aa9ff);
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.6), rgba(254, 254, 255, 0.6));
   border-radius: 100px 0 0 100px;
+  backdrop-filter: blur(5px);
 }
 
 /* Error message styling */
@@ -158,10 +215,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: white;
-  color: #444;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
   border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   padding: 12px 20px;
   font-size: 16px;
@@ -187,7 +244,7 @@
 }
 
 .google-login-button:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05);
   transform: translateY(-2px);
 }
 
@@ -226,6 +283,7 @@
 .google-button-text {
   margin-left: 6px;
   letter-spacing: 0.21px;
+  color: white;
 }
 
 /* Animation for button entrance */
@@ -253,6 +311,9 @@
   font-size: 16px !important;
   border-radius: 8px !important;
   transition: all 0.3s !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
 }
 
 /* Style for input focus states */
@@ -276,24 +337,33 @@
 .auth-form .ant-input-prefix {
   margin-right: 10px !important;
   font-size: 18px !important;
-  color: #4f4e4e !important;
+  color: rgba(255, 255, 255, 0.7) !important;
 }
 
 /* Make sure password input has the correct height */
 .auth-form .ant-input-affix-wrapper {
   height: 50px !important;
   padding: 0 15px 0 12px !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Adjust the input inside the password input */
 .auth-form .ant-input-affix-wrapper .ant-input {
   height: 48px !important;
   padding-left: 28px !important;
+  background-color: transparent !important;
+  border: none !important;
 }
 
 /* Style for DatePicker */
 .auth-form .ant-picker {
   width: 100% !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.auth-form .ant-picker-input > input {
+  color: white !important;
 }
 
 /* Adjust form item spacing for better visual hierarchy */
@@ -305,13 +375,13 @@
 .auth-form .ant-form-item-label > label {
   font-size: 15px !important;
   font-weight: 500 !important;
-  color: #333 !important;
+  color: white !important;
 }
 
 /* Adjust placeholder text */
 .auth-form .ant-input::placeholder,
 .auth-form .ant-picker-input > input::placeholder {
-  color: #4f4e4e !important;
+  color: rgba(255, 255, 255, 0.5) !important;
   font-size: 15px !important;
 }
 
@@ -319,6 +389,16 @@
 .auth-form .ant-form-item-explain-error {
   font-size: 14px !important;
   margin-top: 5px !important;
+  color: #ff6b6b !important;
+}
+
+/* Change the text divider color */
+.auth-form .ant-divider {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.auth-form .ant-divider-inner-text {
+  color: rgba(255, 255, 255, 0.6) !important;
 }
 
 /* Ensure proper spacing between form elements */

@@ -33,6 +33,7 @@ import TotpAuthComponent from "../components/TotpAuthComponent";
 import EmailOtpAuthComponent from "../components/EmailOtpAuthComponent";
 import { COLORS } from "../utils/constant";
 import ReCaptchaV3 from "../components/ReCaptchaV3";
+import { SparklesCore } from "../components/SparklesCore";
 
 // Define error response interface based on your API structure
 interface ErrorResponseData {
@@ -505,6 +506,30 @@ const AuthPage: React.FC = () => {
       )}
 
       <div className="auth-container">
+        <div
+          className="sparkles-container"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 0
+          }}
+        >
+          <SparklesCore
+            id="auth-sparkles"
+            background="transparent"
+            minSize={0.6}
+            maxSize={2}
+            particleDensity={150}
+            className="w-full h-full"
+            particleColor="#00e5ff"
+            speed={0.8}
+          />
+        </div>
+
+
         <div
           className={`auth-card ${
             isLoginMode ? "login-mode" : "register-mode"
