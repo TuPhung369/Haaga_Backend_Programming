@@ -92,7 +92,7 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  transition: all 0.6s ease-in-out;
+  transition: transform 0.6s ease-in-out;
 }
 
 .left-panel {
@@ -131,7 +131,7 @@
   transform: scale(1.1);
 }
 .panel-text {
-  color: #4A5568;
+  color: #000000;
   font-family: 'Inter', sans-serif;
   font-size: 16px;
   font-weight: 500;
@@ -147,8 +147,8 @@
 
 /* Button styles */
 .panel-button {
-  background: linear-gradient(135deg, #FFCCCB, #ADD8E6);
-  color: #2D3748;
+  background: linear-gradient(135deg, #888888, #ffffff);
+  color: #333333;
   border: none;
   border-radius: 25px;
   padding: 10px 35px;
@@ -162,55 +162,60 @@
 }
 
 .panel-button:hover {
-  background: linear-gradient(135deg, #FFB6C1, #87CEFA);
+  background: linear-gradient(135deg, #ffffff, #545454) !important;
   transform: translateY(-3px);
-  box-shadow: 
-    5px 5px 12px rgba(0, 0, 0, 0.15),
-    -5px -5px 12px rgba(255, 255, 255, 0.4);
+  color: #000000  !important;
+  border-radius: 25px !important;
 }
 
 .panel-button:active {
-  transform: translateY(1px);
-  box-shadow: 
-    2px 2px 5px rgba(0, 0, 0, 0.1),
-    -2px -2px 5px rgba(255, 255, 255, 0.2);
+  transform: translateY(1px) !important;
+  color: #000000  !important;
 }
 
 .auth-button {
   width: 100%;
-  border-radius: 20px;
+  border-radius: 10px;
   height: 50px;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, #003790, #6aa9ff);
+  background: linear-gradient(135deg, #000000, #b3acac);
   border: none;
+    box-shadow: 
+    3px 3px 8px rgba(0, 0, 0, 0.1),
+    -3px -3px 8px rgba(255, 255, 255, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+.auth-button:hover {
+  background: linear-gradient(135deg, #242424, #d0d0d0) !important;
+  transform: translateY(-3px);
+  box-shadow: 
+    5px 5px 12px rgba(0, 0, 0, 0.15),
+    -5px -5px 12px rgba(98, 98, 98, 0.4) !important;
 }
 
-.auth-button:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 15px rgba(66, 133, 244, 0.3);
-}
 
 /* Mode switching animations */
 .auth-card.login-mode .left-panel {
-  background: linear-gradient(135deg, rgba(66, 133, 244, 0.6), rgba(254, 254, 255, 0.6));
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(254, 254, 255, 0.6));
   border-radius: 0px 100px 100px 0px;
   backdrop-filter: blur(5px);
 }
 
 /* Micro-interaction khi hover */
 .auth-card.login-mode .left-panel:hover {
-  transform: translateZ(15px) scale(1.02);
-  box-shadow: 
-    8px 8px 20px rgba(0, 0, 0, 0.15),
-    -8px -8px 20px rgba(255, 255, 255, 0.4);
-}
-.auth-card.login-mode .left-panel:hover {
   transform: perspective(1000px) rotateY(-8deg) translateX(4px);
   box-shadow: 
     -12px -12px 24px rgba(255, 255, 255, 0.7),
     12px 12px 32px rgba(174, 174, 174, 0.3);
+    border-radius: 0px 100px 100px 0px;
+}
+.auth-card.register-mode .right-panel :hover {
+  transform: perspective(800px) rotateY(-8deg) translateX(4px);
+  box-shadow: 
+    -12px -12px 24px  rgba(255, 255, 255, 0.7),
+    12px 12px 32px rgba(174, 174, 174, 0.3);
+    border-radius: 0px 100px 100px 0px;
 }
 .auth-card.login-mode .right-panel {
   background-color: transparent;
@@ -221,16 +226,34 @@
 }
 
 .auth-card.register-mode .right-panel {
-  background: linear-gradient(135deg, rgba(66, 133, 244, 0.6), rgba(254, 254, 255, 0.6));
-  border-radius: 100px 0px 0px 100px;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(254, 254, 255, 0.6));
+  border-radius: 0px 100px 100px 0px;
   backdrop-filter: blur(5px);
 }
-.auth-card.register-mode .right-panel:hover {
-  transform: perspective(1000px) rotateY(8deg) translateX(-4px);
-  box-shadow: 
-    12px 12px 24px rgba(255, 255, 255, 0.7),
-    -12px -12px 32px rgba(174, 174, 174, 0.3);
+
+.panel {
+  transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
 }
+
+/* Mode login: left-panel ở bên left, right-panel bị đẩy sang right */
+.auth-card.login-mode .left-panel {
+  transform: translateX(0%);
+}
+
+.auth-card.login-mode .right-panel {
+  transform: translateX(0%); 
+}
+
+/* Mode register: left-panel bị đẩy sang left, right-panel về vị trí ban đầu */
+.auth-card.register-mode .left-panel {
+  transform: translateX(100%);
+}
+
+.auth-card.register-mode .right-panel {
+  transform: translateX(-100%);
+}
+
+
 /* Error message styling */
 .error-message {
   color: #ff4d4f;
@@ -238,9 +261,10 @@
   margin-bottom: 15px;
 }
 
-.forgot-password {
-  text-align: right;
+.auth-form .ant-form-item .forgot-password span {
+  text-align: right !important;
   margin-bottom: 10px;
+  color: #ffffff !important;
 }
 
 /* Enhanced Google Login Button */
@@ -354,22 +378,6 @@
   color: white !important;
 }
 
-/* Style for input focus states */
-.auth-form .ant-input:focus,
-.auth-form .ant-input-focused,
-.auth-form .ant-input-password:focus,
-.auth-form .ant-input-affix-wrapper-focused,
-.auth-form .ant-picker-focused {
-  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2) !important;
-  border-color: #4285f4 !important;
-}
-
-/* Style for input hover states */
-.auth-form .ant-input-affix-wrapper .ant-input:hover,
-.auth-form .ant-input-password:hover,
-.auth-form .ant-picker:hover {
-  border-color: #4285f4 !important;
-}
 
 /* Properly align icons */
 .auth-form .ant-input-prefix {
