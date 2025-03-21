@@ -4,28 +4,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #000;
+  background-color: #021b34; /* Deep ocean blue */
   padding: 20px;
   position: relative;
   overflow: hidden;
 }
 
-/* Keep the animation definition for reuse with auth-card */
 @keyframes borderPulse {
   0% {
     box-shadow: 
-      0 0 20px rgba(255, 255, 255, 0.5),
-      inset 0 0 20px rgba(255, 255, 255, 0.5);
+      0 0 20px rgba(0, 128, 255, 0.5),
+      inset 0 0 20px rgba(0, 128, 255, 0.5);
   }
   50% {
     box-shadow: 
-      0 0 40px rgba(255, 255, 255, 0.7),
-      inset 0 0 30px rgba(255, 255, 255, 0.7);
+      0 0 40px rgba(0, 128, 255, 0.7),
+      inset 0 0 30px rgba(0, 128, 255, 0.7);
   }
   100% {
     box-shadow: 
-      0 0 20px rgba(255, 255, 255, 0.5),
-      inset 0 0 20px rgba(255, 255, 255, 0.5);
+      0 0 20px rgba(0, 128, 255, 0.5),
+      inset 0 0 20px rgba(0, 128, 255, 0.5);
   }
 }
 
@@ -38,14 +37,13 @@
   border-radius: 20px;
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
   display: flex;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 51, 102, 0.6); /* Semi-transparent darker blue */
   transition: all 1s ease-in-out;
   border: 2px solid transparent;
   background-clip: padding-box;
-  margin-top:-70px;
+  margin-top: -70px;
 }
 
-/* Update the auth-card::before to create a glowing white/blue border */
 .auth-card::before {
   content: "";
   position: absolute;
@@ -53,24 +51,23 @@
   left: -2px;
   right: -2px;
   bottom: -2px;
-  border: 3px solid rgba(255, 255, 255, 0.8);
+  border: 3px solid rgba(0, 128, 255, 0.8); /* Light blue border */
   border-radius: 22px;
   box-shadow: 
-    0 0 20px rgba(255, 255, 255, 0.5),
-    inset 0 0 20px rgba(143, 189, 255, 0.5);
+    0 0 20px rgba(0, 128, 255, 0.5),
+    inset 0 0 20px rgba(0, 128, 255, 0.5);
   z-index: -1;
   animation: borderPulse 4s ease infinite;
   background: linear-gradient(180deg, 
     transparent, 
-    rgba(0, 0, 0, 0.9), 
-    rgba(48, 67, 91, 0.8), 
+    rgba(0, 51, 102, 0.9), 
+    rgba(0, 128, 255, 0.8), 
     transparent
   );
   background-size: 200% 100%;
   animation: borderGlow 6s linear infinite;
 }
 
-/* Add animation for the border glow */
 @keyframes borderGlow {
   0% {
     background-position: 0% 50%;
@@ -83,7 +80,6 @@
   }
 }
 
-/* Panel Styles */
 .panel {
   position: absolute;
   width: 50%;
@@ -105,7 +101,6 @@
   transition-delay: 0.1s;
 }
 
-/* Styling for the blue section */
 .panel-content {
   display: flex;
   flex-direction: column;
@@ -119,19 +114,21 @@
 }
 
 .welcome-title {
-  color: #2D3748; 
-  font-family: 'Inter', sans-serif; 
+  color: #ffffff !important;
+  font-family: 'Inter', sans-serif;
   font-size: 32px !important;
   font-weight: 800 !important;
   margin-bottom: 15px !important;
-  letter-spacing: -0.5px;
-  transition: transform 0.3s ease;
+  letter-spacing: -0.5px !important;
+  transition: transform 0.3s ease !important;
 }
+
 .welcome-title:hover {
   transform: scale(1.1);
 }
+
 .panel-text {
-  color: #000000;
+  color: #ffffff;
   font-family: 'Inter', sans-serif;
   font-size: 16px;
   font-weight: 500;
@@ -142,13 +139,12 @@
 .auth-form {
   width: 100%;
   max-width: 400px;
-  margin-bottom: 50px;  
+  margin-bottom: 50px;
 }
 
-/* Button styles */
 .panel-button {
-  background: linear-gradient(135deg, #888888, #ffffff);
-  color: #333333;
+  background: linear-gradient(135deg, #0077be, #00aaff); /* Ocean blue gradient */
+  color: #ffffff;
   border: none;
   border-radius: 25px;
   padding: 10px 35px;
@@ -162,15 +158,15 @@
 }
 
 .panel-button:hover {
-  background: linear-gradient(135deg, #ffffff, #545454) !important;
+  background: linear-gradient(135deg, #00aaff, #0077be) !important;
   transform: translateY(-3px);
-  color: #000000  !important;
+  color: #ffffff !important;
   border-radius: 25px !important;
 }
 
 .panel-button:active {
   transform: translateY(1px) !important;
-  color: #000000  !important;
+  color: #ffffff !important;
 }
 
 .auth-button {
@@ -179,44 +175,44 @@
   height: 50px;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, #000000, #b3acac);
+  background: linear-gradient(135deg, #001f3f, #0077be);
   border: none;
-    box-shadow: 
+  box-shadow: 
     3px 3px 8px rgba(0, 0, 0, 0.1),
     -3px -3px 8px rgba(255, 255, 255, 0.3);
   transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
+
 .auth-button:hover {
-  background: linear-gradient(135deg, #242424, #d0d0d0) !important;
+  background: linear-gradient(135deg, #0077be, #001f3f) !important;
   transform: translateY(-3px);
   box-shadow: 
     5px 5px 12px rgba(0, 0, 0, 0.15),
     -5px -5px 12px rgba(98, 98, 98, 0.4) !important;
 }
 
-
-/* Mode switching animations */
 .auth-card.login-mode .left-panel {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(254, 254, 255, 0.6));
+  background: linear-gradient(135deg, #001f3f, #0077be); /* Deep to light blue */
   border-radius: 0px 100px 100px 0px;
   backdrop-filter: blur(5px);
 }
 
-/* Micro-interaction khi hover */
 .auth-card.login-mode .left-panel:hover {
   transform: perspective(1000px) rotateY(-8deg) translateX(4px);
   box-shadow: 
     -12px -12px 24px rgba(255, 255, 255, 0.7),
     12px 12px 32px rgba(174, 174, 174, 0.3);
-    border-radius: 0px 100px 100px 0px;
+  border-radius: 0px 100px 100px 0px;
 }
-.auth-card.register-mode .right-panel :hover {
+
+.auth-card.register-mode .right-panel:hover {
   transform: perspective(800px) rotateY(-8deg) translateX(4px);
   box-shadow: 
-    -12px -12px 24px  rgba(255, 255, 255, 0.7),
+    -12px -12px 24px rgba(255, 255, 255, 0.7),
     12px 12px 32px rgba(174, 174, 174, 0.3);
-    border-radius: 0px 100px 100px 0px;
+  border-radius: 0px 100px 100px 0px;
 }
+
 .auth-card.login-mode .right-panel {
   background-color: transparent;
 }
@@ -226,7 +222,7 @@
 }
 
 .auth-card.register-mode .right-panel {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(254, 254, 255, 0.6));
+  background: linear-gradient(135deg, #001f3f, #0077be); /* Deep to light blue */
   border-radius: 0px 100px 100px 0px;
   backdrop-filter: blur(5px);
 }
@@ -235,26 +231,26 @@
   transition: transform 0.6s ease-in-out, opacity 0.6s ease-in-out;
 }
 
-/* Mode login: left-panel ở bên left, right-panel bị đẩy sang right */
-.auth-card.login-mode .left-panel {
+.auth-card.login-mode .left-panel,
+.auth-card.login-mode .left-panel:hover {
   transform: translateX(0%);
 }
 
-.auth-card.login-mode .right-panel {
-  transform: translateX(0%); 
+.auth-card.login-mode .right-panel,
+.auth-card.login-mode .right-panel:hover {
+  transform: translateX(0%);
 }
 
-/* Mode register: left-panel bị đẩy sang left, right-panel về vị trí ban đầu */
-.auth-card.register-mode .left-panel {
+.auth-card.register-mode .left-panel,
+.auth-card.register-mode .left-panel:hover {
   transform: translateX(100%);
 }
 
-.auth-card.register-mode .right-panel {
+.auth-card.register-mode .right-panel,
+.auth-card.register-mode .right-panel:hover {
   transform: translateX(-100%);
 }
 
-
-/* Error message styling */
 .error-message {
   color: #ff4d4f;
   text-align: center;
@@ -266,15 +262,17 @@
   margin-bottom: 10px;
   color: #ffffff !important;
 }
+.auth-form .form-title {
+  color: #fdfdfd !important;
+}
 
-/* Enhanced Google Login Button */
 .google-login-button {
   width: 100%;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 51, 102, 0.1); /* Light blue background */
   color: white;
   border: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -285,11 +283,10 @@
   position: relative;
   overflow: hidden;
   margin-top: 10px;
-  height: 50px !important; /* Increased height to match other inputs */
+  height: 50px !important;
   cursor: pointer;
 }
 
-/* Google's brand colored border */
 .google-login-button::before {
   content: "";
   position: absolute;
@@ -303,7 +300,7 @@
 }
 
 .google-login-button:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 8px rgba(0, 128, 255, 0.3), 0 0 0 1px rgba(0, 128, 255, 0.5);
   transform: translateY(-2px);
 }
 
@@ -327,7 +324,6 @@
   transform: none;
 }
 
-/* Google icon container */
 .google-icon-wrapper {
   margin-right: 12px;
   display: flex;
@@ -338,14 +334,12 @@
   width: 24px;
 }
 
-/* Button text positioning */
 .google-button-text {
   margin-left: 6px;
   letter-spacing: 0.21px;
   color: white;
 }
 
-/* Animation for button entrance */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -361,7 +355,6 @@
   animation: fadeInUp 0.5s ease-out;
 }
 
-/* Make form inputs larger and more prominent */
 .auth-form .ant-input,
 .auth-form .ant-input-password,
 .auth-form .ant-picker {
@@ -370,31 +363,28 @@
   font-size: 16px !important;
   border-radius: 8px !important;
   transition: all 0.3s !important;
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(0, 128, 255, 0.1) !important;
+  border: 1px solid rgba(0, 128, 255, 0.3) !important;
   color: white !important;
 }
+
 .auth-form .ant-input-suffix .anticon {
   color: white !important;
 }
 
-
-/* Properly align icons */
 .auth-form .ant-input-prefix {
   margin-right: 10px !important;
   font-size: 18px !important;
   color: rgba(255, 255, 255, 0.7) !important;
 }
 
-/* Make sure password input has the correct height */
 .auth-form .ant-input-affix-wrapper {
   height: 50px !important;
   padding: 0 15px 0 12px !important;
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(0, 128, 255, 0.1) !important;
+  border: 1px solid rgba(0, 128, 255, 0.3) !important;
 }
 
-/* Adjust the input inside the password input */
 .auth-form .ant-input-affix-wrapper .ant-input {
   height: 50px !important;
   padding-left: 28px !important;
@@ -402,55 +392,52 @@
   border: none !important;
 }
 
-/* Style for DatePicker */
 .auth-form .ant-picker {
   padding-left: 12px !important;
   width: 100% !important;
-  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-color: rgba(0, 128, 255, 0.1) !important;
 }
+
 .auth-form .ant-picker .ant-picker-prefix {
   color: white !important;
 }
+
 .auth-form .ant-picker .ant-picker-prefix svg {
   width: 18px !important;
   height: 18px !important;
 }
+
 .auth-form .ant-picker .ant-picker-input > input {
   color: white !important;
   margin-left: 30px !important;
 }
+
 .auth-form .ant-picker .ant-picker-suffix {
   display: none;
 }
 
-
-/* Adjust form item spacing for better visual hierarchy */
 .auth-form .ant-form-item {
   margin-bottom: 24px !important;
 }
 
-/* Style for form labels to make them more prominent */
 .auth-form .ant-form-item-label > label {
   font-size: 15px !important;
   font-weight: 500 !important;
   color: white !important;
 }
 
-/* Adjust placeholder text */
 .auth-form .ant-input::placeholder,
 .auth-form .ant-picker-input > input::placeholder {
   color: rgba(255, 255, 255, 0.5) !important;
   font-size: 15px !important;
 }
 
-/* Ensure error messages are clearly visible */
 .auth-form .ant-form-item-explain-error {
   font-size: 14px !important;
   margin-top: 5px !important;
   color: #ff6b6b !important;
 }
 
-/* Change the text divider color */
 .auth-form .ant-divider {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
@@ -459,12 +446,10 @@
   color: rgba(255, 255, 255, 0.6) !important;
 }
 
-/* Ensure proper spacing between form elements */
 .auth-form .ant-form-item:last-child {
   margin-bottom: 0 !important;
 }
 
-/* Responsive adjustments */
 @media screen and (max-width: 900px) {
   .auth-card {
     width: 90%;
@@ -504,7 +489,6 @@
     font-size: 14px;
   }
   
-  /* Adjust input fields for mobile */
   .auth-form .ant-input,
   .auth-form .ant-input-password,
   .auth-form .ant-picker,
