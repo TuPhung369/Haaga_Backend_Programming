@@ -6,6 +6,7 @@
 /* Custom tooltip for menu items when collapsed */
 .ant-layout-sider-collapsed .ant-menu-item {
   position: relative;
+  background-color: transparent !important;
 }
 
 .ant-layout-sider-collapsed .ant-menu-item::after {
@@ -14,7 +15,7 @@
   left: 100%;
   top: 0;
   opacity: 0;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: transparent !important;
   color: white;
   padding: 5px 8px;
   border-radius: 4px;

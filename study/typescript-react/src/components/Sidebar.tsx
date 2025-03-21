@@ -213,6 +213,39 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     }
   ];
 
+  // Define sidebar styles
+  const sidebarStyle = {
+    background: "linear-gradient(180deg, #3554a5 0%, #1a3478 100%)",
+    borderRadius: collapsed ? "0px 0px 0px 0px" : "0px 0px 0px 0px",
+    border: "none",
+    transition: "width 0.3s ease, background 0.3s ease",
+    display: "flex",
+    flexDirection: "column",
+    height: "100vh",
+    overflow: "hidden"
+  };
+
+  // Header styles for the sidebar logo area
+  const headerStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "10px 16px",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+    background: "transparent"
+  };
+
+  // Logo styles
+  const logoStyle = {
+    fontWeight: "bold",
+    fontSize: collapsed ? "24px" : "24px",
+    transition: "font-size 0.3s",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    color: "#ffffff",
+    fontFamily: "'Inter', sans-serif"
+  };
+
   return (
     <Sider
       width={250}
@@ -220,36 +253,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       collapsed={collapsed}
       trigger={null}
       collapsedWidth={64}
-      style={{
-        borderColor: "transparent",
-        transition: "width 0.3s ease",
-        boxShadow: `2px 0 8px rgba(0,0,0,0.15)`,
-        backgroundColor: COLORS[12],
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh"
-      }}
+      style={sidebarStyle}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "12px 16px",
-          borderBottom: `1px solid rgba(0,0,0,0.1)`,
-          backgroundColor: COLORS[12] // Using white from COLORS array
-        }}
-      >
+      <div style={headerStyle}>
         <div
           className={`app-logo ${collapsed ? "collapsed" : ""}`}
-          style={{
-            fontWeight: "bold",
-            fontSize: collapsed ? "0" : "18px",
-            transition: "font-size 0.3s",
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            color: COLORS[14]
-          }}
+          style={logoStyle}
         >
           TomBoBap
         </div>
@@ -269,7 +278,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           onClick={toggleCollapsed}
           className="sidebar-toggle-button"
           style={{
-            backgroundColor: COLORS[12],
+            backgroundColor: "transparent",
             border: "none",
             boxShadow: "none",
             display: "flex",
@@ -282,7 +291,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       {/* Main menu */}
       <Menu
         mode="inline"
-        theme="light"
+        theme="dark"
         selectedKeys={[
           filteredMenuItems.find((item) => item.path === location.pathname)
             ?.key ||
@@ -290,10 +299,11 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             "1"
         ]}
         style={{
-          borderRight: 0,
           transition: "width 0.3s ease",
           flex: 1,
-          overflow: "auto"
+          overflow: "auto",
+          background: "transparent",
+          borderRight: "none"
         }}
         items={filteredMenuItems.map(({ key, label, path, icon }, index) => ({
           key,
@@ -301,7 +311,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           icon: React.cloneElement(icon, {
             style: {
               color: COLORS[index % COLORS.length],
-              fontSize: collapsed ? "20px" : "16px"
+              fontSize: collapsed ? "24px" : "20px"
             }
           }),
           onClick: () => navigate(path)
@@ -311,11 +321,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       {/* Bottom menu with user profile and actions */}
       <Menu
         mode="inline"
-        theme="light"
+        theme="dark"
         selectable={false}
         style={{
-          borderTop: "1px solid rgba(0,0,0,0.1)",
-          borderRight: 0
+          borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRight: 0,
+          background: "transparent"
         }}
         items={bottomMenuItems.map((item) => ({
           key: item.key,
@@ -328,13 +339,13 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             ),
             {
               style: {
-                fontSize: collapsed ? "20px" : "16px",
+                fontSize: collapsed ? "24px" : "20px",
                 ...(item.icon.props?.style || {})
               }
             }
           ),
           onClick: item.onClick,
-          style: item.style
+          style: { ...item.style, color: "#ffffff" }
         }))}
       />
     </Sider>

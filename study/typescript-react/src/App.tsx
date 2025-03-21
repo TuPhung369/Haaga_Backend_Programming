@@ -7,8 +7,7 @@ import {
   BrowserRouter as Router,
   Route,
   Routes,
-  useNavigate,
-  useLocation
+  useNavigate
 } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Layout } from "antd";
@@ -132,22 +131,32 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
 // This must also be used INSIDE the Router context
 const MainLayout = ({ children }: { children: ReactNode }) => {
   // Get current route to apply specific styling
-  const location = useLocation();
-  const isKanbanRoute = location.pathname === "/kanban";
+  //const location = useLocation();
+  //const isKanbanRoute = location.pathname === "/kanban";
+
+  // Content area styling
+  const contentStyle = {
+    padding: "15px",
+    height: "100vh",
+    overflow: "auto",
+    background: "linear-gradient(45deg, #1a3478 0%, #3a7bd5 70%)",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)"
+  };
+
+  // Main layout styling
+  const layoutStyle = {
+    minHeight: "100vh",
+    background: "#182538",
+    display: "flex"
+  };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "whitesmoke" }}>
+    <Layout style={layoutStyle}>
       <Sidebar />
-      <Layout>
-        <Content
-          style={{
-            padding: isKanbanRoute ? 0 : "24px",
-            height: "100vh",
-            overflow: "auto"
-          }}
-        >
-          {children}
-        </Content>
+      <Layout style={{ background: "transparent" }}>
+        <Content style={contentStyle}>{children}</Content>
       </Layout>
     </Layout>
   );
