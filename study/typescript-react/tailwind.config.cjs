@@ -19,12 +19,28 @@ module.exports = {
         poppinsThin: ["Poppins Thin", "sans-serif"],
         poppinsThinItalic: ["Poppins Thin Italic", "sans-serif"],
         poppinsExtraLight: ["Poppins ExtraLight", "sans-serif"],
-        poppinsExtraLightItalic: ["Poppins ExtraLight Italic", "sans-serif"],
+        poppinsExtraLightItalic: ["Poppins ExtraLight Italic", "sans-serif"]
       },
-    },
+      animation: {
+        shine: "shine var(--duration) infinite linear"
+      },
+      keyframes: {
+        shine: {
+          "0%": {
+            "background-position": "0% 0%"
+          },
+          "50%": {
+            "background-position": "100% 100%"
+          },
+          to: {
+            "background-position": "0% 0%"
+          }
+        }
+      }
+    }
   },
   variants: {
-    extend: {},
+    extend: {}
   },
-  plugins: [],
+  plugins: []
 };

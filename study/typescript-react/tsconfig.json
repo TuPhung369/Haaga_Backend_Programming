@@ -5,6 +5,7 @@
       "dom",
       "esnext"
     ],
+    "baseUrl": "./src",
     "module": "esnext",
     "jsx": "react-jsx",
     "typeRoots": [

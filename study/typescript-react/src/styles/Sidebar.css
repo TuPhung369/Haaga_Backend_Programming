@@ -31,7 +31,9 @@
 .ant-layout-sider-collapsed .ant-menu-item:hover::after {
   opacity: 1;
   visibility: visible;
-}/* Responsive adjustments */
+}
+
+/* Responsive adjustments */
 @media (max-width: 1000px) {
   .ant-layout-sider {
     width: 64px !important;
@@ -48,7 +50,9 @@
     min-width: 64px !important;
     flex: 0 0 64px !important;
   }
-}/* Sidebar transition */
+}
+
+/* Sidebar transition */
 .ant-layout-sider {
   transition: width 0.3s cubic-bezier(0.2, 0, 0, 1) !important;
 }
@@ -120,4 +124,43 @@
 .ant-menu-inline .ant-menu-item, 
 .ant-menu-inline .ant-menu-submenu-title {
   transition: all 0.3s ease !important;
+}
+
+/* Đảm bảo Sider không có padding hoặc margin thừa */
+.ant-layout-sider {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items:flex-start;
+  height: 100vh; /* Chiếm toàn bộ chiều cao màn hình */
+}
+
+/* Main menu chiếm phần còn lại của không gian */
+.main-menu {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Bottom menu nằm sát đáy */
+.bottom-menu {
+  margin-top: 500px !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  justify-self: flex-end;
+  align-self: flex-end;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Loại bỏ khoảng trống thừa trong Bottom Menu */
+.bottom-menu .ant-menu-item {
+  margin-bottom: 0 !important;
+  padding-bottom: 8px !important;
+}
+
+/* Đảm bảo mục cuối cùng (Copyright) không có khoảng trống thừa */
+.bottom-menu .ant-menu-item:last-child {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
 }

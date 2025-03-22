@@ -29,6 +29,32 @@ import { notification } from "antd";
 
 const { Sider } = Layout;
 
+// CSS để tăng fontSize của chữ trong menu và align Bottom Menu
+const sidebarMenuStyles = `
+  .ant-menu-item .ant-menu-title-content {
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+
+  .ant-menu-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .ant-menu-item .ant-menu-title-content div {
+    font-size: 14px !important;
+  }
+
+  .ant-menu-item[key="copyright"] .ant-menu-title-content div {
+    font-size: 14px !important;
+  }
+
+  /* Đẩy Bottom Menu xuống dưới cùng */
+  .bottom-menu {
+    margin-top: auto !important;
+  }
+`;
+
 interface SidebarProps {
   defaultSelectedKey?: string;
 }
@@ -38,14 +64,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   const location = useLocation();
   const dispatch = useDispatch();
   const [collapsed, setCollapsed] = useState(() => {
-    // Get from localStorage if available
     const savedState = localStorage.getItem("sidebarCollapsed");
     return savedState ? JSON.parse(savedState) : false;
   });
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const { userInfo } = useSelector((state: RootState) => state.user);
 
-  // Update window width when resized
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
@@ -55,12 +79,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Auto-collapse sidebar on small screens
   useEffect(() => {
     if (windowWidth <= 1000) {
       setCollapsed(true);
     } else {
-      // Only restore previous state if coming from small screen
       if (windowWidth > 1000 && windowWidth - window.innerWidth > 0) {
         const savedState = localStorage.getItem("sidebarCollapsed");
         setCollapsed(savedState ? JSON.parse(savedState) : false);
@@ -68,16 +90,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     }
   }, [windowWidth]);
 
-  // Save to localStorage whenever collapsed state changes
   useEffect(() => {
     localStorage.setItem("sidebarCollapsed", JSON.stringify(collapsed));
   }, [collapsed]);
 
-  // Create CSS variables for colors to use in CSS files
   useEffect(() => {
     const root = document.documentElement;
-
-    // Assign color variables
     root.style.setProperty("--white-color", COLORS[12]);
     root.style.setProperty("--black-color", COLORS[13]);
     root.style.setProperty("--primary-color", COLORS[14]);
@@ -91,27 +109,17 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 
   const handleLogout = async () => {
     try {
-      // Clear the refresh timer
       clearTokenRefresh();
-      // Call cookie-based logout API
       await logoutUserWithCookies();
-
-      // Clear Redux state
       dispatch(resetAllData());
-
-      // Navigate to login page
       navigate("/login");
-
       notification.success({
         message: "Logged out successfully!"
       });
     } catch (error) {
       console.error("Error during logout:", error);
-
-      // Still clear Redux state and redirect even if API call fails
       dispatch(resetAllData());
       navigate("/login");
-
       notification.info({
         message: "Logged out",
         description: "You have been logged out of the application."
@@ -141,12 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       path: "/calendar",
       icon: <CalendarOutlined />
     },
-    {
-      key: "7",
-      label: "Kanban",
-      path: "/kanban",
-      icon: <ProjectOutlined />
-    },
+    { key: "7", label: "Kanban", path: "/kanban", icon: <ProjectOutlined /> },
     {
       key: "8",
       label: "Admin Dashboard",
@@ -161,16 +164,11 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     }
   ];
 
-  // Filter menu items based on user roles
   const filteredMenuItems = menuItems.filter((item) => {
-    // Always show items that are not the Admin Dashboard
     if (item.path !== "/adminDashBoard") return true;
-
-    // Only show Admin Dashboard if user has ADMIN role
     return userInfo?.roles?.some((role) => role.name === "ADMIN");
   });
 
-  // Bottom menu items
   const bottomMenuItems = [
     {
       key: "profile",
@@ -186,12 +184,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     },
     {
       key: "settings",
-      label: "Settings",
+      label: "Setting",
       icon: <SettingOutlined style={{ color: COLORS[5] }} />
     },
     {
-      key: "notifications",
-      label: "Notifications",
+      key: "notification",
+      label: "Notification",
       icon: <BellOutlined style={{ color: COLORS[4] }} />
     },
     {
@@ -213,7 +211,6 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     }
   ];
 
-  // Define sidebar styles
   const sidebarStyle = {
     background: "linear-gradient(180deg, #3554a5 0%, #1a3478 100%)",
     borderRadius: collapsed ? "0px 0px 0px 0px" : "0px 0px 0px 0px",
@@ -222,10 +219,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     display: "flex",
     flexDirection: "column",
     height: "100vh",
-    overflow: "hidden"
+    overflow: "hidden",
+    paddingBottom: 0
   };
 
-  // Header styles for the sidebar logo area
   const headerStyle = {
     display: "flex",
     justifyContent: "space-between",
@@ -235,7 +232,6 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     background: "transparent"
   };
 
-  // Logo styles
   const logoStyle = {
     fontWeight: "bold",
     fontSize: collapsed ? "24px" : "24px",
@@ -247,108 +243,113 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   };
 
   return (
-    <Sider
-      width={250}
-      collapsible
-      collapsed={collapsed}
-      trigger={null}
-      collapsedWidth={64}
-      style={sidebarStyle}
-    >
-      <div style={headerStyle}>
-        <div
-          className={`app-logo ${collapsed ? "collapsed" : ""}`}
-          style={logoStyle}
-        >
-          TomBoBap
+    <>
+      <style>{sidebarMenuStyles}</style>
+      <Sider
+        width={250}
+        collapsible
+        collapsed={collapsed}
+        trigger={null}
+        collapsedWidth={64}
+        style={sidebarStyle}
+      >
+        <div style={headerStyle}>
+          <div
+            className={`app-logo ${collapsed ? "collapsed" : ""}`}
+            style={logoStyle}
+          >
+            TomBoBap
+          </div>
+          <Button
+            type="text"
+            icon={
+              collapsed ? (
+                <MenuUnfoldOutlined
+                  style={{ fontSize: "32px", color: COLORS[8] }}
+                />
+              ) : (
+                <MenuFoldOutlined
+                  style={{ fontSize: "32px", color: COLORS[14] }}
+                />
+              )
+            }
+            onClick={toggleCollapsed}
+            className="sidebar-toggle-button"
+            style={{
+              backgroundColor: "transparent",
+              border: "none",
+              boxShadow: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          />
         </div>
-        <Button
-          type="text"
-          icon={
-            collapsed ? (
-              <MenuUnfoldOutlined
-                style={{ fontSize: "32px", color: COLORS[8] }}
-              />
-            ) : (
-              <MenuFoldOutlined
-                style={{ fontSize: "32px", color: COLORS[14] }}
-              />
-            )
-          }
-          onClick={toggleCollapsed}
-          className="sidebar-toggle-button"
+
+        {/* Main menu */}
+        <Menu
+          className="main-menu"
+          mode="inline"
+          theme="dark"
+          selectedKeys={[
+            filteredMenuItems.find((item) => item.path === location.pathname)
+              ?.key ||
+              defaultSelectedKey ||
+              "1"
+          ]}
           style={{
-            backgroundColor: "transparent",
-            border: "none",
-            boxShadow: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
+            transition: "width 0.3s ease",
+            overflow: "auto",
+            background: "transparent",
+            borderRight: "none"
           }}
-        />
-      </div>
-
-      {/* Main menu */}
-      <Menu
-        mode="inline"
-        theme="dark"
-        selectedKeys={[
-          filteredMenuItems.find((item) => item.path === location.pathname)
-            ?.key ||
-            defaultSelectedKey ||
-            "1"
-        ]}
-        style={{
-          transition: "width 0.3s ease",
-          flex: 1,
-          overflow: "auto",
-          background: "transparent",
-          borderRight: "none"
-        }}
-        items={filteredMenuItems.map(({ key, label, path, icon }, index) => ({
-          key,
-          label,
-          icon: React.cloneElement(icon, {
-            style: {
-              color: COLORS[index % COLORS.length],
-              fontSize: collapsed ? "24px" : "20px"
-            }
-          }),
-          onClick: () => navigate(path)
-        }))}
-      />
-
-      {/* Bottom menu with user profile and actions */}
-      <Menu
-        mode="inline"
-        theme="dark"
-        selectable={false}
-        style={{
-          borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRight: 0,
-          background: "transparent"
-        }}
-        items={bottomMenuItems.map((item) => ({
-          key: item.key,
-          label: item.label,
-          icon: React.cloneElement(
-            typeof item.icon === "string" ? (
-              <span>{item.icon}</span>
-            ) : (
-              item.icon
-            ),
-            {
+          items={filteredMenuItems.map(({ key, label, path, icon }, index) => ({
+            key,
+            label,
+            icon: React.cloneElement(icon, {
               style: {
-                fontSize: collapsed ? "24px" : "20px",
-                ...(item.icon.props?.style || {})
+                color: COLORS[index % COLORS.length],
+                fontSize: collapsed ? "24px" : "20px"
               }
-            }
-          ),
-          onClick: item.onClick,
-          style: { ...item.style, color: "#ffffff" }
-        }))}
-      />
-    </Sider>
+            }),
+            onClick: () => navigate(path)
+          }))}
+        />
+
+        {/* Bottom menu with user profile and actions */}
+        <Menu
+          className="bottom-menu"
+          mode="inline"
+          theme="dark"
+          selectable={false}
+          style={{
+            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRight: 0,
+            background: "transparent",
+            flex: 1
+          }}
+          items={bottomMenuItems.map((item) => ({
+            key: item.key,
+            label: item.label,
+            icon: React.cloneElement(
+              typeof item.icon === "string" ? (
+                <span>{item.icon}</span>
+              ) : (
+                item.icon
+              ),
+              {
+                style: {
+                  fontSize: collapsed ? "24px" : "20px",
+                  ...(item.icon.props?.style || {})
+                }
+              }
+            ),
+            onClick: item.onClick,
+            style: { ...item.style, color: "#ffffff" }
+          }))}
+        />
+      </Sider>
+    </>
   );
 };
 

@@ -1,5 +1,5 @@
 // src/pages/AuthPage.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Form,
@@ -7,8 +7,7 @@ import {
   Button,
   Typography,
   DatePicker,
-  notification,
-  Divider
+  notification
 } from "antd";
 import {
   authenticateUserWithCookies,
@@ -42,6 +41,11 @@ import EmailOtpAuthComponent from "../components/EmailOtpAuthComponent";
 import { COLORS } from "../utils/constant";
 import ReCaptchaV3 from "../components/ReCaptchaV3";
 import { SparklesCore } from "../components/SparklesCore";
+import { GradientButton } from "../components/GradientButton";
+import { SparklesText } from "../components/SparklesText";
+import { ShineBorder } from "../components/ShineBorder";
+import LoginRegisterTitle from "../components/LoginRegisterTitle";
+import { FaFacebook, FaGithub } from "react-icons/fa";
 
 // Define error response interface based on your API structure
 interface ErrorResponseData {
@@ -61,13 +65,15 @@ interface HttpErrorResponse {
   };
 }
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const AuthPage: React.FC = () => {
   // State to control which mode is active (login or register)
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [githubLoading, setGithubLoading] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Added for TOTP
@@ -117,8 +123,6 @@ const AuthPage: React.FC = () => {
   // Check if we're in development mode
   const isDevelopment = import.meta.env.MODE === "development";
   // Check if we're using test key
-  const isUsingTestKey =
-    recaptchaSiteKeyV3 === "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -297,13 +301,12 @@ const AuthPage: React.FC = () => {
     clearAllFieldErrors();
 
     // Use existing environment flags instead of creating a new one
-    if (isDevelopment || isUsingTestKey) {
+    if (isDevelopment) {
       // In development mode, log extra info about the token
       console.log("Registration in development mode with token details:", {
         tokenLength: recaptchaV3Token?.length || 0,
         tokenPrefix: recaptchaV3Token?.substring(0, 10) + "...",
-        isDevelopment,
-        isUsingTestKey
+        isDevelopment
       });
     } else {
       // In production, ensure we have a real V3 token
@@ -389,6 +392,20 @@ const AuthPage: React.FC = () => {
     window.location.href = authorizationUri;
   };
 
+  const handleFacebookLogin = () => {
+    setFacebookLoading(true);
+    const scope = "openid email profile";
+    const responseType = "code";
+    const authorizationUri = `https://www.facebook.com/v18.0/dialog/oauth?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
+    window.location.href = authorizationUri;
+  };
+  const handleGithubLogin = () => {
+    setGithubLoading(true);
+    const scope = "openid email profile";
+    const responseType = "code";
+    const authorizationUri = `https://github.com/login/oauth/authorize?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
+    window.location.href = authorizationUri;
+  };
   // Handle input changes for registration form - Updated to use field errors hook
   const handleInputChange = (
     name: string,
@@ -404,20 +421,6 @@ const AuthPage: React.FC = () => {
   const handleForgotPassword = () => {
     navigate("/forgot-password");
   };
-
-  // Validate password confirmation - Updated to use field errors hook
-  const validatePasswordConfirmation = useCallback(() => {
-    if (registerValues.password !== registerValues.confirmPassword) {
-      setFieldError("confirmPassword", "Passwords do not match");
-    } else {
-      clearFieldError("confirmPassword");
-    }
-  }, [
-    registerValues.password,
-    registerValues.confirmPassword,
-    setFieldError,
-    clearFieldError
-  ]);
 
   // Validate a single field - Updated to use field errors hook
   const validateField = (name: string, value: string | dayjs.Dayjs | null) => {
@@ -439,12 +442,6 @@ const AuthPage: React.FC = () => {
       clearFieldError(name);
     }
   };
-
-  useEffect(() => {
-    if (registerValues.confirmPassword) {
-      validatePasswordConfirmation();
-    }
-  }, [registerValues.confirmPassword, validatePasswordConfirmation]);
 
   // If showing TOTP authentication, render TotpAuthComponent
   if (showTotpAuth) {
@@ -513,6 +510,13 @@ const AuthPage: React.FC = () => {
         <LoadingState tip="Connecting to Google..." fullscreen={true} />
       )}
 
+      {githubLoading && (
+        <LoadingState tip="Connecting to GitHub..." fullscreen={true} />
+      )}
+
+      {facebookLoading && (
+        <LoadingState tip="Connecting to Facebook..." fullscreen={true} />
+      )}
       <div className="auth-container">
         <div
           className="sparkles-container"
@@ -537,404 +541,376 @@ const AuthPage: React.FC = () => {
           />
         </div>
 
-        <div
-          className={`auth-card ${
-            isLoginMode ? "login-mode" : "register-mode"
-          }`}
+        <ShineBorder
+          borderRadius={20}
+          borderWidth={2}
+          duration={10}
+          color={["#00e5ff", "#9E7AFF", "#FE8BBB"]}
+          className="auth-shine-border"
         >
-          {/* Left panel */}
-          <div className="panel left-panel">
-            <div className="panel-content">
-              {isLoginMode ? (
-                <>
-                  <Title level={2} className="welcome-title">
-                    Hello, Welcome!
-                  </Title>
-                  <Text className="panel-text">Don't have an account?</Text>
-                  <Button className="panel-button" onClick={toggleMode}>
-                    Register
-                  </Button>
-                </>
-              ) : (
-                <Form
-                  layout="vertical"
-                  className="auth-form register-form"
-                  onFinish={handleRegister}
-                >
-                  <Title level={3} className="form-title">
-                    Registration
-                  </Title>
-                  <Form.Item
-                    validateStatus={fieldErrors.username ? "error" : ""}
-                    help={fieldErrors.username}
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your username!"
-                      },
-                      {
-                        validator: (_, value) => {
-                          const errors = validateInput({ username: value });
-                          return errors.username
-                            ? Promise.reject(errors.username)
-                            : Promise.resolve();
-                        }
-                      }
-                    ]}
-                  >
-                    <Input
-                      prefix={<UserOutlined />}
-                      placeholder="Username"
-                      value={registerValues.username}
-                      onChange={(e) =>
-                        handleInputChange("username", e.target.value)
-                      }
+          <div
+            className={`auth-card ${
+              isLoginMode ? "login-mode" : "register-mode"
+            }`}
+          >
+            {/* Left panel */}
+            <div className="panel left-panel">
+              <div className="panel-content">
+                {isLoginMode ? (
+                  <>
+                    <SparklesText
+                      text="Welcome Back!"
+                      className="welcome-title"
+                      sparklesCount={8}
+                      colors={{ first: "#9E7AFF", second: "#FE8BBB" }}
+                      shimmer={true}
+                      duration={1.2}
+                      spread={2}
+                      textColor="#9E7AFF"
                     />
-                  </Form.Item>
-                  <Form.Item
-                    validateStatus={fieldErrors.email ? "error" : ""}
-                    help={fieldErrors.email}
-                    rules={[
-                      { required: true, message: "Please input your email!" },
-                      {
-                        validator: (_, value) => {
-                          const errors = validateInput({ email: value });
-                          return errors.email
-                            ? Promise.reject(errors.email)
-                            : Promise.resolve();
-                        }
-                      }
-                    ]}
-                  >
-                    <Input
-                      prefix={<MailOutlined />}
-                      placeholder="Email"
-                      value={registerValues.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    validateStatus={fieldErrors.password ? "error" : ""}
-                    help={fieldErrors.password}
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your password!"
-                      },
-                      {
-                        validator: (_, value) => {
-                          const errors = validateInput({ password: value });
-                          return errors.password
-                            ? Promise.reject(errors.password)
-                            : Promise.resolve();
-                        }
-                      }
-                    ]}
-                  >
-                    <Input.Password
-                      prefix={<LockOutlined />}
-                      placeholder="Password"
-                      value={registerValues.password}
-                      onChange={(e) =>
-                        handleInputChange("password", e.target.value)
-                      }
-                    />
-                  </Form.Item>
 
-                  <Form.Item
-                    validateStatus={fieldErrors.confirmPassword ? "error" : ""}
-                    help={fieldErrors.confirmPassword}
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please confirm your password!"
-                      },
-                      {
-                        validator: (_, value) => {
-                          if (!value || registerValues.password === value) {
-                            return Promise.resolve();
-                          }
-                          return Promise.reject("Passwords do not match!");
-                        }
-                      }
-                    ]}
-                  >
-                    <Input.Password
-                      prefix={<KeyOutlined />}
-                      placeholder="Confirm Password"
-                      value={registerValues.confirmPassword}
-                      onChange={(e) =>
-                        handleInputChange("confirmPassword", e.target.value)
-                      }
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    validateStatus={fieldErrors.firstname ? "error" : ""}
-                    help={fieldErrors.firstname}
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your first name!"
-                      },
-                      {
-                        validator: (_, value) => {
-                          const errors = validateInput({ firstname: value });
-                          return errors.firstname
-                            ? Promise.reject(errors.firstname)
-                            : Promise.resolve();
-                        }
-                      }
-                    ]}
-                  >
-                    <Input
-                      prefix={<ContactsOutlined />}
-                      placeholder="First Name"
-                      value={registerValues.firstname}
-                      onChange={(e) =>
-                        handleInputChange("firstname", e.target.value)
-                      }
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    validateStatus={fieldErrors.lastname ? "error" : ""}
-                    help={fieldErrors.lastname}
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your last name!"
-                      },
-                      {
-                        validator: (_, value) => {
-                          const errors = validateInput({ lastname: value });
-                          return errors.lastname
-                            ? Promise.reject(errors.lastname)
-                            : Promise.resolve();
-                        }
-                      }
-                    ]}
-                  >
-                    <Input
-                      prefix={<IdcardOutlined />}
-                      placeholder="Last Name"
-                      value={registerValues.lastname}
-                      onChange={(e) =>
-                        handleInputChange("lastname", e.target.value)
-                      }
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    validateStatus={fieldErrors.dob ? "error" : ""}
-                    help={fieldErrors.dob}
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please select your date of birth!"
-                      },
-                      {
-                        validator: (_, value) => {
-                          if (!value) return Promise.resolve();
-                          const dobString = value.format("YYYY-MM-DD");
-                          const errors = validateInput({ dob: dobString });
-                          return errors.dob
-                            ? Promise.reject(errors.dob)
-                            : Promise.resolve();
-                        }
-                      }
-                    ]}
-                  >
-                    <DatePicker
-                      prefix={<CalendarOutlined />}
-                      style={{ width: "100%" }}
-                      placeholder="Date of Birth"
-                      value={registerValues.dob}
-                      onChange={(date) => {
-                        if (date) {
-                          setRegisterValues((prev) => ({
-                            ...prev,
-                            dob: date
-                          }));
-                          validateField("dob", date);
-                        }
-                      }}
-                      format="YYYY-MM-DD"
-                      allowClear={false}
-                    />
-                  </Form.Item>
-
-                  {renderCaptcha()}
-
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      className="auth-button"
-                      loading={registerLoading}
-                      disabled={registerLoading}
+                    <Text className="panel-text">Don't have an account?</Text>
+                    <GradientButton
+                      className="panel-register-button"
+                      onClick={toggleMode}
                     >
                       Register
-                    </Button>
-                  </Form.Item>
-                </Form>
-              )}
-            </div>
-          </div>
-
-          {/* Right panel */}
-          <div className="panel right-panel">
-            <div className="panel-content">
-              {isLoginMode ? (
-                <Form
-                  layout="vertical"
-                  className="auth-form login-form"
-                  onFinish={handleLogin}
-                >
-                  <Title level={3} className="form-title">
-                    Login
-                  </Title>
-
-                  <Form.Item
-                    name="username"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your username!"
-                      },
-                      {
-                        validator: (_, value) => {
-                          const errors = validateInput({ username: value });
-                          return errors.username
-                            ? Promise.reject(errors.username)
-                            : Promise.resolve();
-                        }
-                      }
-                    ]}
+                    </GradientButton>
+                  </>
+                ) : (
+                  <Form
+                    layout="vertical"
+                    className="auth-form register-form"
+                    onFinish={handleRegister}
                   >
-                    <Input prefix={<UserOutlined />} placeholder="Username" />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="password"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please input your password!"
-                      },
-                      {
-                        validator: (_, value) => {
-                          const errors = validateInput({ password: value });
-                          return errors.password
-                            ? Promise.reject(errors.password)
-                            : Promise.resolve();
-                        }
-                      }
-                    ]}
-                  >
-                    <Input.Password
-                      prefix={<LockOutlined />}
-                      placeholder="Password"
+                    <LoginRegisterTitle
+                      type="register"
+                      text="Registration"
+                      className="register-title"
                     />
-                  </Form.Item>
 
-                  {loginError && !isAccountLocked && (
-                    <div className="error-message">{loginError}</div>
-                  )}
-
-                  {isAccountLocked && (
-                    <div
-                      style={{
-                        color: "red",
-                        marginBottom: 16,
-                        textAlign: "center",
-                        padding: "10px",
-                        border: "1px solid #ffbdbd",
-                        backgroundColor: "#fff2f2",
-                        borderRadius: "4px"
-                      }}
+                    <Form.Item
+                      required
+                      validateStatus={fieldErrors.username ? "error" : ""}
+                      help={fieldErrors.username}
                     >
-                      <p style={{ fontWeight: "bold", margin: 0 }}>
-                        Account Locked
-                      </p>
-                      <p style={{ margin: "5px 0 0 0" }}>
-                        Your account has been locked due to multiple failed
-                        authentication attempts.
-                      </p>
-                      <p
-                        style={{
-                          margin: "5px 0 0 0",
-                          fontWeight: "bold"
-                        }}
-                      >
-                        Please contact the administrator for assistance.
-                      </p>
-                      <p
-                        style={{
-                          margin: "5px 0 0 0",
-                          fontSize: "0.9em",
-                          color: COLORS[3]
-                        }}
-                      >
-                        Email: tuphung0107@gmail.com
-                      </p>
-                    </div>
-                  )}
+                      <Input
+                        prefix={<UserOutlined />}
+                        placeholder="Username"
+                        value={registerValues.username}
+                        onChange={(e) =>
+                          handleInputChange("username", e.target.value)
+                        }
+                      />
+                    </Form.Item>
 
-                  <Form.Item>
-                    <div className="forgot-password">
-                      <Button type="link" onClick={handleForgotPassword}>
-                        Forgot Password?
+                    <Form.Item
+                      required
+                      validateStatus={fieldErrors.email ? "error" : ""}
+                      help={fieldErrors.email}
+                    >
+                      <Input
+                        prefix={<MailOutlined />}
+                        placeholder="Email"
+                        value={registerValues.email}
+                        onChange={(e) =>
+                          handleInputChange("email", e.target.value)
+                        }
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      required
+                      validateStatus={fieldErrors.password ? "error" : ""}
+                      help={fieldErrors.password}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        placeholder="Password"
+                        value={registerValues.password}
+                        onChange={(e) =>
+                          handleInputChange("password", e.target.value)
+                        }
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      required
+                      validateStatus={
+                        fieldErrors.confirmPassword ? "error" : ""
+                      }
+                      help={fieldErrors.confirmPassword}
+                    >
+                      <Input.Password
+                        prefix={<KeyOutlined />}
+                        placeholder="Confirm Password"
+                        value={registerValues.confirmPassword}
+                        onChange={(e) =>
+                          handleInputChange("confirmPassword", e.target.value)
+                        }
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      required
+                      validateStatus={fieldErrors.firstname ? "error" : ""}
+                      help={fieldErrors.firstname}
+                    >
+                      <Input
+                        prefix={<ContactsOutlined />}
+                        placeholder="First Name"
+                        value={registerValues.firstname}
+                        onChange={(e) =>
+                          handleInputChange("firstname", e.target.value)
+                        }
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      required
+                      validateStatus={fieldErrors.lastname ? "error" : ""}
+                      help={fieldErrors.lastname}
+                    >
+                      <Input
+                        prefix={<IdcardOutlined />}
+                        placeholder="Last Name"
+                        value={registerValues.lastname}
+                        onChange={(e) =>
+                          handleInputChange("lastname", e.target.value)
+                        }
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      required
+                      validateStatus={fieldErrors.dob ? "error" : ""}
+                      help={fieldErrors.dob}
+                    >
+                      <DatePicker
+                        prefix={<CalendarOutlined />}
+                        style={{ width: "100%" }}
+                        placeholder="Date of Birth"
+                        value={registerValues.dob}
+                        onChange={(date: dayjs.Dayjs | null) => {
+                          if (date) {
+                            setRegisterValues((prev) => ({
+                              ...prev,
+                              dob: date
+                            }));
+                            validateField("dob", date);
+                          }
+                        }}
+                        format="YYYY-MM-DD"
+                        allowClear={false}
+                      />
+                    </Form.Item>
+
+                    {renderCaptcha()}
+
+                    <Form.Item>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        className="auth-button"
+                        loading={registerLoading}
+                        disabled={registerLoading}
+                      >
+                        Register
                       </Button>
-                    </div>
-                  </Form.Item>
+                    </Form.Item>
+                  </Form>
+                )}
+              </div>
+            </div>
 
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      className="auth-button"
-                      loading={isLoading}
-                      disabled={isLoading || isAccountLocked}
+            {/* Right panel */}
+            <div className="panel right-panel">
+              <div className="panel-content">
+                {isLoginMode ? (
+                  <Form
+                    layout="vertical"
+                    className="auth-form login-form"
+                    onFinish={handleLogin}
+                  >
+                    <LoginRegisterTitle
+                      type="login"
+                      text="Login Now"
+                      className="login-title"
+                    />
+
+                    <Form.Item
+                      name="username"
+                      rules={[
+                        {
+                          validator: (_, value) => {
+                            if (!value) {
+                              return Promise.reject(
+                                "Please input your username!"
+                              );
+                            }
+
+                            const errors = validateInput({ username: value });
+                            return errors.username
+                              ? Promise.reject(errors.username)
+                              : Promise.resolve();
+                          }
+                        }
+                      ]}
+                    >
+                      <Input prefix={<UserOutlined />} placeholder="Username" />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="password"
+                      rules={[
+                        {
+                          validator: (_, value) => {
+                            if (!value) {
+                              return Promise.reject(
+                                "Please input your password!"
+                              );
+                            }
+
+                            const errors = validateInput({ password: value });
+                            return errors.password
+                              ? Promise.reject(errors.password)
+                              : Promise.resolve();
+                          }
+                        }
+                      ]}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        placeholder="Password"
+                      />
+                    </Form.Item>
+
+                    {loginError && !isAccountLocked && (
+                      <div className="error-message">{loginError}</div>
+                    )}
+
+                    {isAccountLocked && (
+                      <div
+                        style={{
+                          color: "red",
+                          marginBottom: 16,
+                          textAlign: "center",
+                          padding: "10px",
+                          border: "1px solid #ffbdbd",
+                          backgroundColor: "#fff2f2",
+                          borderRadius: "4px"
+                        }}
+                      >
+                        <p style={{ fontWeight: "bold", margin: 0 }}>
+                          Account Locked
+                        </p>
+                        <p style={{ margin: "5px 0 0 0" }}>
+                          Your account has been locked due to multiple failed
+                          authentication attempts.
+                        </p>
+                        <p
+                          style={{
+                            margin: "5px 0 0 0",
+                            fontWeight: "bold"
+                          }}
+                        >
+                          Please contact the administrator for assistance.
+                        </p>
+                        <p
+                          style={{
+                            margin: "5px 0 0 0",
+                            fontSize: "0.9em",
+                            color: COLORS[3]
+                          }}
+                        >
+                          Email: tuphung0107@gmail.com
+                        </p>
+                      </div>
+                    )}
+
+                    <Form.Item>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        className="auth-button"
+                        loading={isLoading}
+                        disabled={isLoading || isAccountLocked}
+                      >
+                        LOGIN
+                      </Button>
+                    </Form.Item>
+
+                    <div className="social-login-container">
+                      {/* GitHub Login Button */}
+                      <button
+                        type="button"
+                        onClick={handleGithubLogin}
+                        className="social-login-button github"
+                        disabled={githubLoading}
+                      >
+                        <span className="icon-wrapper">
+                          <FaGithub size={40} color="#FFFFFF" />
+                        </span>
+                      </button>
+
+                      {/* Google Login Button */}
+                      <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        className="social-login-button google"
+                        disabled={googleLoading}
+                      >
+                        <span className="icon-wrapper">
+                          <FcGoogle size={40} />
+                        </span>
+                      </button>
+
+                      {/* Facebook Login Button */}
+                      <button
+                        type="button"
+                        onClick={handleFacebookLogin}
+                        className="social-login-button facebook"
+                        disabled={facebookLoading}
+                      >
+                        <span className="icon-wrapper">
+                          <FaFacebook size={40} color="#FFFFFF" />
+                        </span>
+                      </button>
+                    </div>
+                    <Form.Item>
+                      <div className="forgot-password">
+                        <Button type="link" onClick={handleForgotPassword}>
+                          <Text type="secondary">Forgot Password?</Text>
+                        </Button>
+                      </div>
+                    </Form.Item>
+                  </Form>
+                ) : (
+                  <>
+                    <SparklesText
+                      text="Welcome Back!"
+                      className="welcome-title"
+                      sparklesCount={8}
+                      colors={{ first: "#9E7AFF", second: "#FE8BBB" }}
+                      shimmer={true}
+                      duration={1.2}
+                      spread={2}
+                      textColor="#9E7AFF"
+                    />
+                    <Text className="panel-text">Already have an account?</Text>
+                    <GradientButton
+                      className="panel-login-button"
+                      onClick={toggleMode}
+                      variant="variant"
                     >
                       Login
-                    </Button>
-                  </Form.Item>
-
-                  <Divider plain>
-                    <Text type="secondary">or</Text>
-                  </Divider>
-
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    className="google-login-button"
-                    disabled={googleLoading}
-                  >
-                    <div className="google-icon-wrapper">
-                      <FcGoogle size={24} />
-                    </div>
-                    <span className="google-button-text">
-                      {googleLoading ? "Connecting..." : "Continue with Google"}
-                    </span>
-                  </button>
-                </Form>
-              ) : (
-                <>
-                  <Title level={2} className="welcome-title">
-                    Welcome Back!
-                  </Title>
-                  <Text className="panel-text">Already have an account?</Text>
-                  <Button className="panel-button" onClick={toggleMode}>
-                    Login
-                  </Button>
-                </>
-              )}
+                    </GradientButton>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </ShineBorder>
       </div>
     </>
   );

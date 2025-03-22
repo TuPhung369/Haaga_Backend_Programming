@@ -145,3 +145,235 @@
   font-style: normal;
 }
 
+@layer base {
+  @property --pos-x {
+    syntax: '<percentage>';
+    initial-value: 20%;
+    inherits: false;
+  }
+
+  @property --pos-y {
+    syntax: '<percentage>';
+    initial-value: 80%;
+    inherits: false;
+  }
+
+  @property --spread-x {
+    syntax: '<percentage>';
+    initial-value: 130%;
+    inherits: false;
+  }
+
+  @property --spread-y {
+    syntax: '<percentage>';
+    initial-value: 150%;
+    inherits: false;
+  }
+
+  @property --color-1 {
+    syntax: '<color>';
+    initial-value: #021B34; /* Deep Ocean Blue */
+    inherits: false;
+  }
+
+  @property --color-2 {
+    syntax: '<color>';
+    initial-value: #1F3F6D; /* Mid Blue */
+    inherits: false;
+  }
+
+  @property --color-3 {
+    syntax: '<color>';
+    initial-value: #2A5A7E; /* Slightly lighter Mid Blue for smoother transition */
+    inherits: false;
+  }
+
+  @property --color-4 {
+    syntax: '<color>';
+    initial-value: #469396; /* Teal/Aqua */
+    inherits: false;
+  }
+
+  @property --color-5 {
+    syntax: '<color>';
+    initial-value: #7AC7C4; /* Light Aqua */
+    inherits: false;
+  }
+
+  @property --border-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: true;
+  }
+
+  @property --border-color-1 {
+    syntax: '<color>';
+    initial-value: hsla(200, 80%, 70%, 0.2); /* Light translucent aqua */
+    inherits: true;
+  }
+
+  @property --border-color-2 {
+    syntax: '<color>';
+    initial-value: hsla(200, 75%, 60%, 0.5); /* Slightly darker translucent aqua */
+    inherits: true;
+  }
+
+  @property --stop-1 {
+    syntax: '<percentage>';
+    initial-value: 0%;
+    inherits: false;
+  }
+
+  @property --stop-2 {
+    syntax: '<percentage>';
+    initial-value: 20%;
+    inherits: false;
+  }
+
+  @property --stop-3 {
+    syntax: '<percentage>';
+    initial-value: 40%;
+    inherits: false;
+  }
+
+  @property --stop-4 {
+    syntax: '<percentage>';
+    initial-value: 70%;
+    inherits: false;
+  }
+
+  @property --stop-5 {
+    syntax: '<percentage>';
+    initial-value: 100%;
+    inherits: false;
+  }
+}
+
+@layer components {
+  @keyframes oceanGlow {
+    0% {
+      box-shadow: 0 0 5px rgba(122, 199, 196, 0.3),
+                  0 0 10px rgba(70, 147, 150, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 10px rgba(122, 199, 196, 0.5),
+                  0 0 20px rgba(70, 147, 150, 0.3);
+    }
+    100% {
+      box-shadow: 0 0 5px rgba(122, 199, 196, 0.3),
+                  0 0 10px rgba(70, 147, 150, 0.2);
+    }
+  }
+
+  .gradient-button {
+    @apply relative appearance-none cursor-pointer;
+    background: radial-gradient(
+      var(--spread-x) var(--spread-y) at var(--pos-x) var(--pos-y),
+      var(--color-1) var(--stop-1),
+      var(--color-2) var(--stop-2),
+      var(--color-3) var(--stop-3),
+      var(--color-4) var(--stop-4),
+      var(--color-5) var(--stop-5)
+    );
+    color: #ffffff;
+    border-radius: 25px;
+    padding: 10px 35px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.1), -3px -3px 8px rgba(255, 255, 255, 0.3);
+    transition:
+      --pos-x 0.5s,
+      --pos-y 0.5s,
+      --spread-x 0.5s,
+      --spread-y 0.5s,
+      --color-1 0.5s,
+      --color-2 0.5s,
+      --color-3 0.5s,
+      --color-4 0.5s,
+      --color-5 0.5s,
+      --border-angle 0.5s,
+      --border-color-1 0.5s,
+      --border-color-2 0.5s,
+      --stop-1 0.5s,
+      --stop-2 0.5s,
+      --stop-3 0.5s,
+      --stop-4 0.5s,
+      --stop-5 0.5s,
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+    animation: oceanGlow 3s infinite ease-in-out;
+  }
+
+  .gradient-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(
+      var(--border-angle),
+      var(--border-color-1),
+      var(--border-color-2)
+    );
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .gradient-button:hover {
+    --pos-x: 50%;
+    --pos-y: 50%;
+    --spread-x: 100%;
+    --spread-y: 100%;
+    --color-1: #021B34; /* Deep Ocean Blue */
+    --color-2: #1F3F6D; /* Mid Blue */
+    --color-3: #2A5A7E; /* Slightly lighter Mid Blue */
+    --color-4: #469396; /* Teal/Aqua */
+    --color-5: #7AC7C4; /* Light Aqua */
+    --border-angle: 360deg;
+    --border-color-1: hsla(200, 80%, 70%, 0.3);
+    --border-color-2: hsla(200, 75%, 60%, 0.8);
+    --stop-1: 0%;
+    --stop-2: 25%;
+    --stop-3: 50%;
+    --stop-4: 75%;
+    --stop-5: 100%;
+    transform: translateY(-3px);
+    box-shadow: 5px 5px 12px rgba(0, 0, 0, 0.15), -5px -5px 12px rgba(98, 98, 98, 0.4);
+  }
+
+  /* .gradient-button-variant remains unchanged as it already matches the theme */
+  .gradient-button-variant {
+    --color-1: #000022;
+    --color-2: #1F3F6D;
+    --color-3: #469396;
+    --color-4: #7AC7C4;
+    --border-angle: 0deg;
+    --border-color-1: hsla(200, 75%, 70%, 0.4);
+    --border-color-2: hsla(200, 50%, 70%, 0.2);
+    animation: oceanGlow 3s infinite ease-in-out;
+  }
+
+  .gradient-button-variant:hover {
+    --pos-x: 50%;
+    --pos-y: 50%;
+    --spread-x: 100%;
+    --spread-y: 100%;
+    --color-1: #021B34; /* Deep Ocean Blue */
+    --color-2: #1F3F6D; /* Mid Blue */
+    --color-3: #2A5A7E; /* Slightly lighter Mid Blue */
+    --color-4: #469396; /* Teal/Aqua */
+    --color-5: #7AC7C4; /* Light Aqua */
+    --stop-1: 0%;
+    --stop-2: 20%;
+    --stop-3: 40%;
+    --stop-4: 80%;
+    --stop-5: 100%;
+    --border-angle: 90deg;
+    --border-color-1: hsla(200, 75%, 70%, 0.5);
+    --border-color-2: hsla(200, 50%, 60%, 0.9);
+    transform: translateY(-3px);
+    box-shadow: 5px 5px 12px rgba(0, 0, 0, 0.15), -5px -5px 12px rgba(98, 98, 98, 0.4);
+  }
+}

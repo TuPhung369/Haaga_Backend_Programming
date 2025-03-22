@@ -58,6 +58,7 @@ export interface AuthError {
 export interface ValidationInput {
   username?: string;
   password?: string;
+  confirmPassword?: string;
   firstname?: string;
   lastname?: string;
   dob?: string | Date; // Can be string or Date
@@ -71,6 +72,7 @@ export interface ValidationInput {
 export interface ValidationErrors {
   username?: string;
   password?: string;
+  confirmPassword?: string;
   firstname?: string;
   lastname?: string;
   dob?: string;

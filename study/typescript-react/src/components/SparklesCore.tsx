@@ -1,8 +1,8 @@
 "use client";
-import React, { useId, useMemo } from "react";
+import React, { useId } from "react";
 import { useEffect, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
-import type { Container, SingleOrMultiple } from "@tsparticles/engine";
+import type { Container } from "@tsparticles/engine";
 import { loadSlim } from "@tsparticles/slim";
 import { motion, useAnimation } from "framer-motion";
 
@@ -19,7 +19,7 @@ type ParticlesProps = {
 };
 
 // Utility function to combine class names
-const cn = (...classes: any[]) => {
+const cn = (...classes: (string | undefined | null | false)[]) => {
   return classes.filter(Boolean).join(" ");
 };
 
@@ -89,7 +89,9 @@ export const SparklesCore = (props: ParticlesProps) => {
                     smooth: 10
                   }
                 },
-                resize: true as any
+                resize: {
+                  enable: true
+                }
               },
               modes: {
                 push: {
@@ -130,19 +132,16 @@ export const SparklesCore = (props: ParticlesProps) => {
               number: {
                 density: {
                   enable: true,
-                  area: 800
+                  width: 1500,
+                  height: 1500
                 },
                 value: particleDensity || 80
               },
               opacity: {
-                value: {
-                  min: 0.1,
-                  max: 0.9
-                },
+                value: { min: 0.1, max: 0.9 },
                 animation: {
                   enable: true,
                   speed: speed || 1,
-                  minimumValue: 0.1,
                   sync: false
                 }
               },
@@ -150,14 +149,10 @@ export const SparklesCore = (props: ParticlesProps) => {
                 type: "circle"
               },
               size: {
-                value: {
-                  min: minSize || 1,
-                  max: maxSize || 3
-                },
+                value: { min: minSize || 1, max: maxSize || 3 },
                 animation: {
                   enable: true,
                   speed: 2,
-                  minimumValue: 0.1,
                   sync: false
                 }
               },

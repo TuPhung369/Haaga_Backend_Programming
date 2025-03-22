@@ -6,6 +6,7 @@ export const validationMessages = {
   PASSWORD_MIN_LENGTH: "Password must be at least 8 characters long.",
   PASSWORD_VALIDATION:
     "Password must contain at least one Uppercase letter, one Lowercase letter, one Number, and one Special character.",
+  PASSWORD_MATCH: "Passwords do not match.",
   FIRSTNAME_NOT_BLANK: "First name cannot be blank.",
   LASTNAME_NOT_BLANK: "Last name cannot be blank.",
   DOB_REQUIRED: "Date of birth is required.",
@@ -37,6 +38,13 @@ const validateInput = (input: ValidationInput): ValidationErrors => {
       errors.password = validationMessages.PASSWORD_MIN_LENGTH;
     } else if (!passwordPattern.test(input.password)) {
       errors.password = validationMessages.PASSWORD_VALIDATION;
+    }
+  }
+
+  // Validate confirm password
+  if (input.confirmPassword !== undefined) {
+    if (!input.confirmPassword || input.confirmPassword !== input.password) {
+      errors.confirmPassword = validationMessages.PASSWORD_MATCH;
     }
   }
 
