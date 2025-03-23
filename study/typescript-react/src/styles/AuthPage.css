@@ -228,11 +228,12 @@
 .spline-robot {
   width: 100%; /* Adjust size as needed */
   height: 100%; /* Adjust size as needed */
-  max-width: 800px; /* Prevent it from getting too large */
-  max-height: 800px; /* Prevent it from getting too large */
+  max-width: 600px; /* Prevent it from getting too large */
+  max-height: 600px; /* Prevent it from getting too large */
   transition: filter 0.3s ease;
   position: absolute;
   bottom: -40px;
+  left: 0px;
   filter: brightness(4);
   color: white !important;
 }

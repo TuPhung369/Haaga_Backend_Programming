@@ -6,10 +6,9 @@ const Spline = lazy(() => import("@splinetool/react-spline"));
 interface SplineSceneProps {
   scene: string;
   className?: string;
-  filterColor?: string;
 }
 
-export function SplineScene({ scene, className, filterColor }: SplineSceneProps) {
+export function SplineScene({ scene, className }: SplineSceneProps) {
   return (
     <Suspense
       fallback={
@@ -20,9 +19,8 @@ export function SplineScene({ scene, className, filterColor }: SplineSceneProps)
     >
       <div
         style={{
-          filter: filterColor ? `hue-rotate(${filterColor})` : undefined,
           width: "100%",
-          height: "100%",
+          height: "100%"
         }}
       >
         <Spline scene={scene} className={className} />

@@ -28,6 +28,7 @@
   background: transparent;
 }
 
+
 .sidebar-header-collapsed {
   justify-content: center;
   align-items: center;
@@ -38,7 +39,7 @@
 }
 
 /* App Logo */
-.app-logo {
+.sidebar-header-title {
   font-weight: bold;
   font-size: 24px;
   transition: all 0.3s ease;
@@ -48,8 +49,11 @@
   font-family: 'Inter', sans-serif;
   opacity: 1;
 }
+.sidebar-header-title:hover {
+  color: var(--primary-color);
+}
 
-.app-logo-collapsed {
+.sidebar-header-title-collapsed {
   width: 0;
   opacity: 0;
   display: none;
@@ -99,14 +103,14 @@
 
 /* Main Menu */
 .main-menu {
-  overflow: auto !important;
+  overflow: hidden !important;
   background: transparent !important;
   border-right: none !important;
   transition: width 0.3s ease !important;
 }
 
 .main-menu-collapsed {
-  overflow: auto !important;
+  overflow: hidden !important;
   background: transparent !important;
   border-right: none !important;
   transition: width 0.3s ease !important;
@@ -114,7 +118,7 @@
 
 /* Bottom Menu */
 .bottom-menu {
-  overflow: auto !important;
+  overflow: hidden !important;
   padding-top: 20px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   background: transparent;
@@ -125,7 +129,7 @@
 }
 
 .bottom-menu-collapsed {
-  overflow: auto !important;
+  overflow: hidden !important;
   padding-top: 20px !important;
   width: 64px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -167,7 +171,35 @@
 .bottom-menu .ant-menu-item,
 .bottom-menu-collapsed .ant-menu-item {
   margin-bottom: 0 !important;
-  padding-bottom: 8px !important;
+}
+
+/* Ensure the default background of ant-menu-item is transparent in collapsed state */
+.main-menu-collapsed .ant-menu-item,
+.bottom-menu-collapsed .ant-menu-item {
+  background-color: transparent !important;
+}
+
+/* Ensure the hover background of ant-menu-item is transparent in collapsed state */
+.main-menu-collapsed .ant-menu-item:hover,
+.bottom-menu-collapsed .ant-menu-item:hover {
+  background-color: transparent !important;
+  color: var(--hover-color) !important; /* Keep the hover color change */
+}
+
+/* Ensure the selected background of ant-menu-item is transparent in collapsed state */
+.main-menu-collapsed .ant-menu-item-selected,
+.bottom-menu-collapsed .ant-menu-item-selected {
+  background-color: transparent !important;
+  border-right: 3px solid var(--primary-color); /* Keep the border for selected state */
+  color: #ffffff !important;
+}
+
+/* Fix the SVG hover rule to ensure it doesn't interfere */
+.bottom-menu-collapsed .ant-menu-item svg:hover,
+.main-menu-collapsed .ant-menu-item svg:hover {
+  transform: scale(1.2);
+  transition: transform 0.3s ease;
+  background-color: transparent !important;
 }
 
 .bottom-menu .ant-menu-item:last-child,
@@ -181,51 +213,6 @@
   padding: 0 10px !important;
   position: relative;
   background-color: transparent !important;
-}
-
-/* Tooltip for Main Menu when collapsed */
-
-.ant-layout-sider-collapsed .main-menu-collapsed .ant-menu-item::after,
-.ant-layout-sider-collapsed .bottom-menu-collapsed .ant-menu-item::after {
-  content: attr(data-menu-title);
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%) translateX(2px);
-  opacity: 0;
-  background-color: rgba(0, 0, 0, 0.85) !important;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-  pointer-events: none;
-  transition: opacity 0.3s;
-  z-index: 1000;
-  visibility: hidden;
-}
-
-/* Add arrow for tooltip */
-.ant-layout-sider-collapsed .main-menu-collapsed .ant-menu-item::before,
-.ant-layout-sider-collapsed .bottom-menu-collapsed .ant-menu-item::before {
-  content: '';
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%) translateX(-4px);
-  opacity: 0;
-  border: 4px solid transparent;
-  border-right-color: rgba(0, 0, 0, 0.85);
-  z-index: 1001;
-  transition: opacity 0.3s;
-  visibility: hidden;
-}
-
-
-.ant-layout-sider-collapsed .ant-menu-item:hover::after,
-.ant-layout-sider-collapsed .ant-menu-item:hover::before {
-  opacity: 1;
-  visibility: visible;
 }
 
 /* Active and Hover States */

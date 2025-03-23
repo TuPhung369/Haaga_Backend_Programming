@@ -568,7 +568,6 @@ const AuthPage: React.FC = () => {
                       <SplineScene
                         scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
                         className="spline-robot"
-                        filterColor="90deg"
                       />
                     </div>
                   </>
@@ -886,7 +885,6 @@ const AuthPage: React.FC = () => {
                       <SplineScene
                         scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
                         className="spline-robot"
-                        filterColor="90deg"
                       />
                     </div>
                   </>
