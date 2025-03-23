@@ -324,7 +324,15 @@ export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshToken
     const response = await apiClient.post<ApiResponse<RefreshTokenResponse>>(
       "/auth/refresh",
       {},
-      { withCredentials: true }
+      {
+        withCredentials: true,
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        timeout: 10000 // 10 second timeout to avoid hanging
+      }
     );
 
     return response.data;

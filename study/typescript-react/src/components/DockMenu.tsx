@@ -152,10 +152,10 @@ function DockTooltip({ children, isHovered }: DockTooltipProps) {
       {isVisible && (
         <motion.div
           className="dock-tooltip"
-          initial={{ opacity: 0, x: 0 }}
-          animate={{ opacity: 1, x: 70 }}
-          exit={{ opacity: 0, x: 0 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.15 }}
         >
           {children}
         </motion.div>

@@ -68,8 +68,16 @@ interface HttpErrorResponse {
 
 const { Text } = Typography;
 
+const ModelList = [
+  "kZDDjO5HuC9GJUM2",
+  "NyQ0ZBDp0dijSlWk",
+  "nOtLYnihQfeOAj-7",
+  "aROe8luBmDcTxkmC"
+];
+
 const AuthPage: React.FC = () => {
-  // State to control which mode is active (login or register)
+  const [splineSceneUrl, setSplineSceneUrl] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<string>("");
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -77,19 +85,15 @@ const AuthPage: React.FC = () => {
   const [facebookLoading, setFacebookLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Added for TOTP
   const [showTotpAuth, setShowTotpAuth] = useState<boolean>(false);
-  // Added for Email OTP
   const [showEmailOtpAuth, setShowEmailOtpAuth] = useState<boolean>(false);
   const [totpUsername, setTotpUsername] = useState<string>("");
   const [totpPassword, setTotpPassword] = useState<string>("");
   const [isAccountLocked, setIsAccountLocked] = useState<boolean>(false);
 
-  // Use our new field errors hook instead of manual error handling
   const { fieldErrors, setFieldError, clearFieldError, clearAllFieldErrors } =
     useFieldErrors();
 
-  // Form data for registration
   const [registerValues, setRegisterValues] = useState({
     username: "",
     email: "",
@@ -100,84 +104,75 @@ const AuthPage: React.FC = () => {
     dob: dayjs("1999-09-09", "YYYY-MM-DD")
   });
 
-  // Use the API hook for registration
   const { execute: executeRegister, loading: registerLoading } =
     useApi(registerUser);
 
-  // Redux hooks
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAuthenticated, token } = useSelector(
     (state: { auth: AuthState }) => state.auth
   );
 
-  // OAuth settings
   const oauth2ClientId = import.meta.env.VITE_OAUTH2_CLIENT_ID;
   const oauth2RedirectUri = import.meta.env.VITE_OAUTH2_REDIRECT_URI;
 
-  // Add new state variables for reCAPTCHA
   const [recaptchaV3Token, setRecaptchaV3Token] = useState<string>("");
 
-  // Get reCAPTCHA site keys from environment
   const recaptchaSiteKeyV3 = import.meta.env.VITE_RECAPTCHA_SITE_KEY_V3;
 
-  // Check if we're in development mode
   const isDevelopment = import.meta.env.MODE === "development";
 
-  // Redirect if already authenticated
+  useEffect(() => {
+    const randomModel = ModelList[Math.floor(Math.random() * ModelList.length)];
+    setSelectedModel(randomModel);
+    setSplineSceneUrl(
+      `https://prod.spline.design/${randomModel}/scene.splinecode`
+    );
+    console.log("randomModel", randomModel);
+  }, []);
   useEffect(() => {
     if (isAuthenticated && token) {
       setTimeout(() => navigate("/"), 100);
     }
   }, [navigate, isAuthenticated, token]);
 
-  // Toggle between login and register modes
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
     setLoginError(null);
-    setIsAccountLocked(false); // Reset account locked state when switching modes
-    clearAllFieldErrors(); // Clear all field errors when toggling mode
+    setIsAccountLocked(false);
+    clearAllFieldErrors();
   };
 
-  // Handle login form submission
   const handleLogin = async (values: {
     username: string;
     password: string;
   }) => {
     setLoginError(null);
-    setIsAccountLocked(false); // Reset account locked state
+    setIsAccountLocked(false);
     clearAllFieldErrors();
     setIsLoading(true);
 
     try {
-      // First, initiate authentication to check if TOTP or Email OTP is required
       const authInitResponse = await initiateAuthentication(
         values.username,
         values.password
       );
 
-      // Store credentials for potential TOTP/Email OTP verification
       setTotpUsername(values.username);
       setTotpPassword(values.password);
 
       if (authInitResponse.requiresTotp) {
-        // Show TOTP authentication screen
         setShowTotpAuth(true);
       } else if (authInitResponse.requiresEmailOtp) {
-        // Show Email OTP authentication screen
         setShowEmailOtpAuth(true);
       } else {
-        // Direct authentication, fall back to the original method
         const data = await authenticateUserWithCookies(
           values.username,
           values.password
         );
 
         if (data && data.result && data.result.token) {
-          // First clear any existing data
           dispatch(resetAllData());
-
-          // Then set the new auth data
           dispatch(
             setAuthData({
               token: data.result.token,
@@ -186,7 +181,6 @@ const AuthPage: React.FC = () => {
             })
           );
 
-          // Set up token refresh
           setupTokenRefresh(data.result.token);
 
           notification.success({
@@ -194,7 +188,6 @@ const AuthPage: React.FC = () => {
             description: "Logged in successfully!"
           });
 
-          // Redirect to home page
           navigate("/");
         } else {
           throw new Error("Invalid response format from server");
@@ -203,14 +196,12 @@ const AuthPage: React.FC = () => {
     } catch (error: unknown) {
       console.error("Login error:", error);
 
-      // Check for account locked error
       let errorMessage = "Authentication failed";
       let errorCode = "";
 
       if (error instanceof Error) {
         errorMessage = error.message;
 
-        // Try to extract error code
         if (error instanceof ServiceError && error.errorCode) {
           errorCode = error.errorCode || "";
         } else if (
@@ -246,11 +237,9 @@ const AuthPage: React.FC = () => {
         }
       }
 
-      // Log detailed error info for debugging
       console.log("Error message:", errorMessage);
       console.log("Error code:", errorCode);
 
-      // Check if account is locked
       const isLocked =
         errorCode === "ACCOUNT_LOCKED" ||
         errorMessage.includes("locked") ||
@@ -286,7 +275,6 @@ const AuthPage: React.FC = () => {
             "Your account has been locked due to too many failed attempts. Please contact the administrator for assistance."
         });
       } else {
-        // Display a generic error for login failures
         setLoginError("Invalid username or password. Please try again.");
       }
     } finally {
@@ -294,7 +282,6 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  // Handle registration
   const handleRegister = async () => {
     clearAllFieldErrors();
 
@@ -378,7 +365,6 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  // Handle Google OAuth
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     const scope = "openid email profile";
@@ -403,7 +389,6 @@ const AuthPage: React.FC = () => {
     window.location.href = authorizationUri;
   };
 
-  // Handle input changes for registration form
   const handleInputChange = (
     name: string,
     value: string | dayjs.Dayjs | null
@@ -413,12 +398,10 @@ const AuthPage: React.FC = () => {
     clearFieldError(name);
   };
 
-  // Handle forgot password
   const handleForgotPassword = () => {
     navigate("/forgot-password");
   };
 
-  // Validate a single field
   const validateField = (name: string, value: string | dayjs.Dayjs | null) => {
     const fieldToValidate: Partial<ValidationInput> = { [name]: value };
 
@@ -435,7 +418,6 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  // If showing TOTP authentication, render TotpAuthComponent
   if (showTotpAuth) {
     return (
       <TotpAuthComponent
@@ -455,7 +437,6 @@ const AuthPage: React.FC = () => {
     );
   }
 
-  // If showing Email OTP authentication, render EmailOtpAuthComponent
   if (showEmailOtpAuth) {
     return (
       <EmailOtpAuthComponent
@@ -475,7 +456,6 @@ const AuthPage: React.FC = () => {
     );
   }
 
-  // Simplified renderCaptcha method
   const renderCaptcha = () => {
     return (
       <>
@@ -490,7 +470,6 @@ const AuthPage: React.FC = () => {
 
   return (
     <>
-      {/* Fullscreen loading states */}
       {isLoading && <LoadingState tip="Signing you in..." fullscreen={true} />}
       {registerLoading && (
         <LoadingState tip="Creating your account..." fullscreen={true} />
@@ -566,8 +545,12 @@ const AuthPage: React.FC = () => {
                     </div>
                     <div className="spline-container">
                       <SplineScene
-                        scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-                        className="spline-robot"
+                        scene={splineSceneUrl}
+                        className={`spline-robot ${
+                          selectedModel === ModelList[0]
+                            ? "model-robot"
+                            : "model-other"
+                        }`}
                       />
                     </div>
                   </>
@@ -883,8 +866,12 @@ const AuthPage: React.FC = () => {
                     </div>
                     <div className="spline-container">
                       <SplineScene
-                        scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-                        className="spline-robot"
+                        scene={splineSceneUrl}
+                        className={`spline-robot ${
+                          selectedModel === ModelList[0]
+                            ? "model-robot"
+                            : "model-other"
+                        }`}
                       />
                     </div>
                   </>

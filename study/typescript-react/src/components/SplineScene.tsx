@@ -6,9 +6,10 @@ const Spline = lazy(() => import("@splinetool/react-spline"));
 interface SplineSceneProps {
   scene: string;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export function SplineScene({ scene, className }: SplineSceneProps) {
+export function SplineScene({ scene, className, style }: SplineSceneProps) {
   return (
     <Suspense
       fallback={
@@ -20,7 +21,8 @@ export function SplineScene({ scene, className }: SplineSceneProps) {
       <div
         style={{
           width: "100%",
-          height: "100%"
+          height: "100%",
+          ...style
         }}
       >
         <Spline scene={scene} className={className} />

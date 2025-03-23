@@ -305,6 +305,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                 key={key}
                 tooltip={label}
                 onClick={() => navigate(path)}
+                className={location.pathname === path ? "dock-item-active" : ""}
               >
                 {React.cloneElement(icon, {
                   style: {
@@ -323,6 +324,11 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                 key={item.key}
                 tooltip={item.tooltip}
                 onClick={item.onClick}
+                className={
+                  item.key === "profile" && location.pathname === "/profile"
+                    ? "dock-item-active"
+                    : ""
+                }
               >
                 {React.cloneElement(
                   typeof item.icon === "string" ? (

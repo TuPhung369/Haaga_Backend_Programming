@@ -107,7 +107,6 @@
   transition: width 0.3s ease !important;
 }
 
-
 /* Bottom Menu */
 .bottom-menu {
   overflow: hidden !important;
@@ -119,7 +118,6 @@
   bottom: 20px;
   transition: width 0.3s ease !important;
 }
-
 
 /* General Menu Styling */
 .ant-menu {
@@ -153,8 +151,6 @@
   margin-bottom: 0 !important;
 }
 
-
-
 .bottom-menu .ant-menu-item:last-child {
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
@@ -170,7 +166,7 @@
 /* Active and Hover States */
 .ant-menu-dark.ant-menu-inline .ant-menu-item-selected {
   background-color: rgba(24, 144, 255, 0.2) !important;
-  border-right: 3px solid var(--primary-color);
+  border-right: 5px solid #FFFFFF;
   color: #ffffff !important;
 }
 
@@ -193,6 +189,112 @@
   transition: all 0.3s ease !important;
 }
 
+
+
+/* Dock Menu Styles */
+.dock-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.dock-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  border-right: 3px solid transparent;
+}
+
+.dock-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Active dock item style */
+.dock-item-active {
+  background-color: transparent !important;
+}
+.dock-item-active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  height: 90%;
+  width: 5px;
+  background-color: #FFFFFF;
+  border-radius: 0px 10px 10px 0px;
+  transform: translate(10px, -50%); 
+}
+
+.dock-tooltip {
+  position: absolute;
+  left: 64px !important;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Show dock menu only when collapsed */
+.ant-layout-sider-collapsed .sidebar-dock-container {
+  display: block;
+}
+
+.sidebar-dock-container {
+  display: none;
+  height: calc(100vh - 70px);
+  overflow: hidden;
+  position: relative;
+}
+
+.main-dock-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 16px;
+  padding-left: 4px;
+  font-size: 28px;
+}
+
+.bottom-dock-container {
+  position: absolute;
+  bottom: 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+  padding-left: 4px;
+  font-size: 28px;
+}
+
+/* Fix for tooltip in collapsed mode */
+.ant-layout-sider-collapsed .dock-tooltip {
+  opacity: 1;
+  visibility: visible;
+  display: block !important;
+  left: 64px !important; 
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 1000px) {
   .ant-layout-sider {
@@ -212,83 +314,9 @@
   }
 }
 
-/* Dock Menu Styles */
-.dock-menu {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  padding: 8px 0;
-}
-
-.dock-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 4px 0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.dock-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  transform: scale(1.2);
-}
-
-.dock-tooltip {
-  position: absolute;
-  left: 68px;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 14px;
-  white-space: nowrap;
-  z-index: 1000;
-  pointer-events: none;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-/* Show dock menu only when collapsed */
-.ant-layout-sider-collapsed .sidebar-dock-container {
-  display: block;
-}
-
-.sidebar-dock-container {
-  display: none;
-  
-  .ant-menu-item-selected {
-    background-color: transparent !important;
-    border-right: 3px solid var(--primary-color);
-  }
-  .main-dock-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 0px;
-    font-size: 28px;
-  }
-
-  .bottom-dock-container {
-    position: absolute;
-    bottom: 16px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 28px;
-  }
-}
-
-
 /* Responsive styles */
 @media (max-width: 768px) {
   .dock-tooltip {
-    display: none;
+    display: none !important;
   }
 }
