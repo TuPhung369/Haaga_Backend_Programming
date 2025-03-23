@@ -88,13 +88,11 @@
   width: 100%;
 }
 
-.sidebar-toggle-button:hover,
-.sidebar-toggle-button-collapsed:hover {
+.sidebar-toggle-button:hover {
   color: var(--primary-color) !important;
 }
 
-.sidebar-toggle-button .anticon,
-.sidebar-toggle-button-collapsed .anticon {
+.sidebar-toggle-button .anticon {
   font-size: 32px;
   display: flex;
   align-items: center;
@@ -109,12 +107,6 @@
   transition: width 0.3s ease !important;
 }
 
-.main-menu-collapsed {
-  overflow: hidden !important;
-  background: transparent !important;
-  border-right: none !important;
-  transition: width 0.3s ease !important;
-}
 
 /* Bottom Menu */
 .bottom-menu {
@@ -128,17 +120,6 @@
   transition: width 0.3s ease !important;
 }
 
-.bottom-menu-collapsed {
-  overflow: hidden !important;
-  padding-top: 20px !important;
-  width: 64px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-  background: transparent !important;
-  border-right: none !important;
-  position: absolute;
-  bottom: 20px;
-  transition: width 0.3s ease !important;
-}
 
 /* General Menu Styling */
 .ant-menu {
@@ -168,42 +149,13 @@
 }
 
 /* Bottom Menu Items */
-.bottom-menu .ant-menu-item,
-.bottom-menu-collapsed .ant-menu-item {
+.bottom-menu .ant-menu-item {
   margin-bottom: 0 !important;
 }
 
-/* Ensure the default background of ant-menu-item is transparent in collapsed state */
-.main-menu-collapsed .ant-menu-item,
-.bottom-menu-collapsed .ant-menu-item {
-  background-color: transparent !important;
-}
 
-/* Ensure the hover background of ant-menu-item is transparent in collapsed state */
-.main-menu-collapsed .ant-menu-item:hover,
-.bottom-menu-collapsed .ant-menu-item:hover {
-  background-color: transparent !important;
-  color: var(--hover-color) !important; /* Keep the hover color change */
-}
 
-/* Ensure the selected background of ant-menu-item is transparent in collapsed state */
-.main-menu-collapsed .ant-menu-item-selected,
-.bottom-menu-collapsed .ant-menu-item-selected {
-  background-color: transparent !important;
-  border-right: 3px solid var(--primary-color); /* Keep the border for selected state */
-  color: #ffffff !important;
-}
-
-/* Fix the SVG hover rule to ensure it doesn't interfere */
-.bottom-menu-collapsed .ant-menu-item svg:hover,
-.main-menu-collapsed .ant-menu-item svg:hover {
-  transform: scale(1.2);
-  transition: transform 0.3s ease;
-  background-color: transparent !important;
-}
-
-.bottom-menu .ant-menu-item:last-child,
-.bottom-menu-collapsed .ant-menu-item:last-child {
+.bottom-menu .ant-menu-item:last-child {
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
 }
@@ -230,9 +182,7 @@
 
 /* Ensure hover works for both main-menu and bottom-menu */
 .main-menu .ant-menu-item:hover,
-.main-menu-collapsed .ant-menu-item:hover,
-.bottom-menu .ant-menu-item:hover,
-.bottom-menu-collapsed .ant-menu-item:hover {
+.bottom-menu .ant-menu-item:hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
   color: var(--hover-color) !important;
 }
@@ -259,5 +209,86 @@
     width: 64px !important;
     min-width: 64px !important;
     flex: 0 0 64px !important;
+  }
+}
+
+/* Dock Menu Styles */
+.dock-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.dock-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dock-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.2);
+}
+
+.dock-tooltip {
+  position: absolute;
+  left: 68px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Show dock menu only when collapsed */
+.ant-layout-sider-collapsed .sidebar-dock-container {
+  display: block;
+}
+
+.sidebar-dock-container {
+  display: none;
+  
+  .ant-menu-item-selected {
+    background-color: transparent !important;
+    border-right: 3px solid var(--primary-color);
+  }
+  .main-dock-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0px;
+    font-size: 28px;
+  }
+
+  .bottom-dock-container {
+    position: absolute;
+    bottom: 16px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 28px;
+  }
+}
+
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .dock-tooltip {
+    display: none;
   }
 }

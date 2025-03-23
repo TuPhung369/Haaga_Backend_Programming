@@ -27,6 +27,7 @@ import { logoutUserWithCookies } from "../services/authService";
 import { clearTokenRefresh } from "../utils/tokenRefresh";
 import { notification } from "antd";
 import "../styles/Sidebar.css";
+import { DockMenu, DockItem } from "./DockMenu";
 
 const { Sider } = Layout;
 
@@ -238,59 +239,108 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         />
       </div>
 
-      {/* Main Menu */}
-      <Menu
-        className={`main-menu${collapsed ? "-collapsed" : ""}`}
-        mode="inline"
-        theme="dark"
-        selectedKeys={[
-          filteredMenuItems.find((item) => item.path === location.pathname)
-            ?.key ||
-            defaultSelectedKey ||
-            "1"
-        ]}
-        items={filteredMenuItems.map(({ key, label, path, icon }, index) => ({
-          key,
-          label,
-          icon: React.cloneElement(icon, {
-            style: {
-              color: COLORS[index % COLORS.length],
-              fontSize: collapsed ? "28px" : "24px"
-            }
-          }),
-          onClick: () => navigate(path),
-          style: { color: "#ffffff" },
-          ...(collapsed && { "data-menu-title": label })
-        }))}
-      />
+      {/* Regular Menu - visible when not collapsed */}
+      {!collapsed && (
+        <>
+          <Menu
+            className="main-menu"
+            mode="inline"
+            theme="dark"
+            selectedKeys={[
+              filteredMenuItems.find((item) => item.path === location.pathname)
+                ?.key ||
+                defaultSelectedKey ||
+                "1"
+            ]}
+            items={filteredMenuItems.map(
+              ({ key, label, path, icon }, index) => ({
+                key,
+                label,
+                icon: React.cloneElement(icon, {
+                  style: {
+                    color: COLORS[index % COLORS.length],
+                    fontSize: "24px"
+                  }
+                }),
+                onClick: () => navigate(path),
+                style: { color: "#ffffff" }
+              })
+            )}
+          />
 
-      {/* Bottom Menu */}
-      <Menu
-        className={`bottom-menu${collapsed ? "-collapsed" : ""}`}
-        mode="inline"
-        theme="dark"
-        selectable={false}
-        items={bottomMenuItems.map((item) => ({
-          key: item.key,
-          label: item.label,
-          icon: React.cloneElement(
-            typeof item.icon === "string" ? (
-              <span>{item.icon}</span>
-            ) : (
-              item.icon
-            ),
-            {
-              style: {
-                fontSize: collapsed ? "28px" : "24px",
-                ...(item.icon.props?.style || {})
-              }
-            }
-          ),
-          onClick: item.onClick,
-          style: { ...item.style, color: "#ffffff" },
-          ...(collapsed && { "data-menu-title": item.tooltip })
-        }))}
-      />
+          <Menu
+            className="bottom-menu"
+            mode="inline"
+            theme="dark"
+            selectable={false}
+            items={bottomMenuItems.map((item) => ({
+              key: item.key,
+              label: item.label,
+              icon: React.cloneElement(
+                typeof item.icon === "string" ? (
+                  <span>{item.icon}</span>
+                ) : (
+                  item.icon
+                ),
+                {
+                  style: {
+                    fontSize: "24px",
+                    ...(item.icon.props?.style || {})
+                  }
+                }
+              ),
+              onClick: item.onClick,
+              style: { ...item.style, color: "#ffffff" }
+            }))}
+          />
+        </>
+      )}
+
+      {/* Dock Menu - visible only when collapsed */}
+      <div className="sidebar-dock-container">
+        <div className="main-dock-container">
+          <DockMenu magnification={56} distance={100}>
+            {filteredMenuItems.map(({ key, label, path, icon }, index) => (
+              <DockItem
+                key={key}
+                tooltip={label}
+                onClick={() => navigate(path)}
+              >
+                {React.cloneElement(icon, {
+                  style: {
+                    color: COLORS[index % COLORS.length]
+                  }
+                })}
+              </DockItem>
+            ))}
+          </DockMenu>
+        </div>
+
+        <div className="bottom-dock-container">
+          <DockMenu magnification={56} distance={100}>
+            {bottomMenuItems.map((item) => (
+              <DockItem
+                key={item.key}
+                tooltip={item.tooltip}
+                onClick={item.onClick}
+              >
+                {React.cloneElement(
+                  typeof item.icon === "string" ? (
+                    <span>{item.icon}</span>
+                  ) : (
+                    item.icon
+                  ),
+                  {
+                    style: {
+                      ...(item.icon.props?.style || {})
+                    }
+                  }
+                )}
+              </DockItem>
+            ))}
+          </DockMenu>
+        </div>
+      </div>
     </Sider>
   );
 };
