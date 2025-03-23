@@ -1,7 +1,4 @@
-.custom-descriptions .ant-descriptions-title {
-  font-size: 24px; /* Adjust the font size as needed */
-  font-weight: bold; /* Optional: Make the title bold */
-}
+/* Animations */
 @keyframes colorChange {
   0% { color: #ffffff; } 
   5% { color: #e6f0ff; }
@@ -43,4 +40,17 @@
   font-weight: bold;
   animation: colorChange 15s infinite, sizeChange 15s infinite;
   -webkit-animation: colorChange 15s infinite, sizeChange 15s infinite;
+}
+
+/* HomePage Layout */
+.home-page-layout {
+  background-color: transparent !important;
+  padding: 0;
+}
+
+/* HomePage Content */
+.home-page-content {
+  background-color: transparent !important;
+  margin-top: 0;
+  min-height: 100vh; /* Ensure it takes the full height */
 }

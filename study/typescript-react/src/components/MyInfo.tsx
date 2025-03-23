@@ -89,7 +89,7 @@ const calculatePasswordStrength = (
 
 // Styled components
 const MyInfoStyle = styled.div`
-  background-color: ${COLORS[12]}; /* White background */
+  background-color: transparent; /* White background */
   padding: 24px 0;
   min-height: 100vh;
 
@@ -100,7 +100,11 @@ const MyInfoStyle = styled.div`
   }
 
   .section-card {
-    background: ${COLORS[12]}; /* White */
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.3),
+      rgba(58, 123, 213, 0.5)
+    );
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     margin-bottom: 24px;
@@ -110,6 +114,11 @@ const MyInfoStyle = styled.div`
   }
 
   .section-card:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(0, 105, 148, 0.6)
+    );
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   }
 

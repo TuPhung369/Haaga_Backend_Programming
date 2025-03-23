@@ -86,20 +86,35 @@
 }
 
 .message-input {
+  background-color: #fff !important;
   flex: 1;
   border-radius: 20px;
   margin-right: 10px;
   padding: 10px 14px;
+  border: 1px solid #ccc !important;
+  color: #000 !important; /* Fix text color */
+  &:focus {
+    border-color: var(--primary-color) !important;
+    background-color: #fff !important;
+    color: #000 !important;
+  }
+  .MuiOutlinedInput-root {
+    color: #000 !important;
+    background-color: #fff !important;
+  }
 }
 
 .send-button {
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  border-radius: 20px;
+  width: 200px;
+  height: 90px;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 0;
+  background-color: #9c27b0 !important; /* Match purple from the image */
+  color: #fff !important;
+  font-size: 20px;
 }
 
 /* Custom scrollbar */

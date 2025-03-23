@@ -117,7 +117,20 @@
   left: 0;
   transition-delay: 0.1s;
   border: transparent;
+  position: relative; /* Ensure positioning context for absolute children */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #001f3f, #0077be); /* Match your existing gradient */
+  backdrop-filter: blur(5px);
 }
+/* Container for the text and button in the left panel */
+.text-container {
+  text-align: center;
+  padding: 20px;
+  z-index: 10; /* Ensure text is above the robot */
+}
+
 
 .right-panel {
   right: 0;
@@ -145,6 +158,10 @@
   margin-bottom: 15px !important;
   letter-spacing: -0.5px !important;
   transition: transform 0.3s ease !important;
+  position: absolute;
+  top: 20px;
+  left: 160px;
+  align-items: center;
 }
 
 .welcome-title:hover {
@@ -158,6 +175,10 @@
   font-weight: 500;
   margin-bottom: 20px;
   opacity: 0.9;
+  position: absolute;
+  top: 70px;
+  left: 200px;
+  align-items: center;
 }
 
 
@@ -170,6 +191,10 @@
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 16px;
+  position: absolute;
+  top: 110px;
+  left: 210px;
+  align-items: center;
   box-shadow: 
     3px 3px 8px rgba(0, 0, 0, 0.1),
     -3px -3px 8px rgba(255, 255, 255, 0.3);
@@ -189,6 +214,33 @@
   color: #ffffff !important;
 }
 
+/* Container for the Spline robot */
+.spline-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5; /* Place the robot behind the text */
+}
+
+/* Style the Spline robot */
+.spline-robot {
+  width: 100%; /* Adjust size as needed */
+  height: 100%; /* Adjust size as needed */
+  max-width: 800px; /* Prevent it from getting too large */
+  max-height: 800px; /* Prevent it from getting too large */
+  transition: filter 0.3s ease;
+  position: absolute;
+  bottom: -40px;
+  filter: brightness(4);
+  color: white !important;
+}
+
+/* Optional: Add a glow effect to the robot */
+.spline-robot:hover {
+  filter: brightness(1.5); /* Brighten on hover */
+}
 
 .auth-button {
   width: 100%;
@@ -576,6 +628,35 @@
   .auth-button {
     height: 45px !important;
     font-size: 15px !important;
+  }
+
+  * Adjust the robot size for smaller screens */
+  .spline-robot {
+    width: 60%;
+    height: 60%;
+    max-width: 300px;
+    max-height: 300px;
+    color: white !important;
+    background-color: white !important;
+  }
+
+  /* Ensure the text-container remains visible on smaller screens */
+  .text-container {
+    padding: 10px;
+  }
+
+  .welcome-title {
+    font-size: 24px !important; /* Adjust font size for smaller screens */
+  }
+
+  .panel-text {
+    font-size: 14px;
+  }
+
+  .panel-register-button,
+  .panel-login-button {
+    padding: 8px 25px;
+    font-size: 14px;
   }
 }
 

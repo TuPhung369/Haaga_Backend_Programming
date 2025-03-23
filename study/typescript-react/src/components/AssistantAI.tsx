@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Button,
   TextField,
@@ -32,37 +32,16 @@ const AssistantAI: React.FC = () => {
   const { userInfo } = useSelector((state: RootState) => state.user);
 
   useEffect(() => {
-    // Generate a new session ID when the component mounts
-    setSessionId(uuidv4());
-
-    // Add welcome message
-    setMessages([
-      {
-        content: "Hello! I am your AI assistant. How can I help you today?",
-        sender: "AI",
-        sessionId: uuidv4()
-      }
-    ]);
-
-    // Load chat history
-    if (userInfo?.id) {
-      loadChatHistory();
-    }
-  }, [userInfo?.id]);
-
-  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const loadChatHistory = async () => {
+  const loadChatHistory = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Import the getRecaptchaToken function
       const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
       const recaptchaToken = getRecaptchaToken();
 
-      // Add recaptchaToken to query parameters explicitly
       const response = await axios.get(
         `/api/chat/${userInfo?.id}?recaptchaToken=${encodeURIComponent(
           recaptchaToken
@@ -80,7 +59,6 @@ const AssistantAI: React.FC = () => {
         response.data.length > 0
       ) {
         setMessages(response.data);
-        // Use the last session ID from the history
         const lastMessage = response.data[response.data.length - 1];
         if (lastMessage.sessionId) {
           setSessionId(lastMessage.sessionId);
@@ -90,10 +68,24 @@ const AssistantAI: React.FC = () => {
     } catch (error) {
       console.error("Error loading chat history:", error);
       setLoading(false);
-      // Initialize messages to empty array if there's an error
       setMessages([]);
     }
-  };
+  }, [token, userInfo?.id]); // Dependencies for useCallback
+
+  useEffect(() => {
+    setSessionId(uuidv4());
+    setMessages([
+      {
+        content: "Hello! I am your AI assistant. How can I help you today?",
+        sender: "AI",
+        sessionId: uuidv4()
+      }
+    ]);
+
+    if (userInfo?.id) {
+      loadChatHistory();
+    }
+  }, [userInfo?.id, loadChatHistory]); // Dependencies for useEffect
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -102,7 +94,6 @@ const AssistantAI: React.FC = () => {
   const handleSendMessage = async () => {
     if (!input.trim() || !userInfo?.id) return;
 
-    // Add user message to chat
     const userMessage: ChatMessage = {
       content: input,
       sender: "USER",
@@ -114,18 +105,16 @@ const AssistantAI: React.FC = () => {
     setLoading(true);
 
     try {
-      // Import the getRecaptchaToken function
       const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
       const recaptchaToken = getRecaptchaToken();
 
-      // Use the actual path from ChatController
       const response = await axios.post(
         "/api/chat/send",
         {
           userId: userInfo.id,
           message: input,
           sessionId: sessionId,
-          recaptchaToken // Manually add recaptchaToken to the payload
+          recaptchaToken
         },
         {
           headers: {
@@ -134,7 +123,6 @@ const AssistantAI: React.FC = () => {
         }
       );
 
-      // Add AI response to chat
       if (response.data) {
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -150,7 +138,6 @@ const AssistantAI: React.FC = () => {
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      // Add error message
       const errorMessage: ChatMessage = {
         content: "Sorry, something went wrong. Please try again.",
         sender: "AI",
@@ -270,6 +257,7 @@ const AssistantAI: React.FC = () => {
           <TextField
             fullWidth
             multiline
+            className="message-input"
             maxRows={4}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -282,11 +270,12 @@ const AssistantAI: React.FC = () => {
         <Grid item xs={2}>
           <Button
             fullWidth
+            className="send-button"
             variant="contained"
-            color="primary"
+            color="secondary"
             onClick={handleSendMessage}
             disabled={!input.trim() || loading}
-            sx={{ height: "100%" }}
+            sx={{ height: "100%", borderRadius: "10px" }}
           >
             Send
           </Button>

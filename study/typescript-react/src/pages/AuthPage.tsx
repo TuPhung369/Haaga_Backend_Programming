@@ -45,6 +45,7 @@ import { GradientButton } from "../components/GradientButton";
 import { SparklesText } from "../components/SparklesText";
 import { ShineBorder } from "../components/ShineBorder";
 import LoginRegisterTitle from "../components/LoginRegisterTitle";
+import { SplineScene } from "../components/SplineScene";
 import { FaFacebook, FaGithub } from "react-icons/fa";
 
 // Define error response interface based on your API structure
@@ -122,7 +123,6 @@ const AuthPage: React.FC = () => {
 
   // Check if we're in development mode
   const isDevelopment = import.meta.env.MODE === "development";
-  // Check if we're using test key
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -204,7 +204,6 @@ const AuthPage: React.FC = () => {
       console.error("Login error:", error);
 
       // Check for account locked error
-      // Handle different error formats
       let errorMessage = "Authentication failed";
       let errorCode = "";
 
@@ -257,7 +256,6 @@ const AuthPage: React.FC = () => {
         errorMessage.includes("locked") ||
         errorMessage.includes("blocked");
 
-      // Additional check for locked/blocked message in response
       let responseHasLockedMessage = false;
       if (
         typeof error === "object" &&
@@ -296,20 +294,17 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  // Handle registration - Updated to only use reCAPTCHA V3
+  // Handle registration
   const handleRegister = async () => {
     clearAllFieldErrors();
 
-    // Use existing environment flags instead of creating a new one
     if (isDevelopment) {
-      // In development mode, log extra info about the token
       console.log("Registration in development mode with token details:", {
         tokenLength: recaptchaV3Token?.length || 0,
         tokenPrefix: recaptchaV3Token?.substring(0, 10) + "...",
         isDevelopment
       });
     } else {
-      // In production, ensure we have a real V3 token
       if (!recaptchaV3Token) {
         notification.error({
           message: "Verification Required",
@@ -360,7 +355,7 @@ const AuthPage: React.FC = () => {
         state: { username: registerValues.username }
       });
     } else if (error) {
-      console.log("Register error:", error); // Debugging
+      console.log("Register error:", error);
 
       if (error instanceof ServiceError) {
         if (error.field) {
@@ -399,6 +394,7 @@ const AuthPage: React.FC = () => {
     const authorizationUri = `https://www.facebook.com/v18.0/dialog/oauth?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
     window.location.href = authorizationUri;
   };
+
   const handleGithubLogin = () => {
     setGithubLoading(true);
     const scope = "openid email profile";
@@ -406,14 +402,14 @@ const AuthPage: React.FC = () => {
     const authorizationUri = `https://github.com/login/oauth/authorize?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
     window.location.href = authorizationUri;
   };
-  // Handle input changes for registration form - Updated to use field errors hook
+
+  // Handle input changes for registration form
   const handleInputChange = (
     name: string,
     value: string | dayjs.Dayjs | null
   ) => {
     setRegisterValues((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
-    // Clear error for this field
     clearFieldError(name);
   };
 
@@ -422,20 +418,16 @@ const AuthPage: React.FC = () => {
     navigate("/forgot-password");
   };
 
-  // Validate a single field - Updated to use field errors hook
+  // Validate a single field
   const validateField = (name: string, value: string | dayjs.Dayjs | null) => {
-    // Create an object with just the field being validated
     const fieldToValidate: Partial<ValidationInput> = { [name]: value };
 
-    // Special handling for date of birth
     if (name === "dob" && dayjs.isDayjs(value)) {
       fieldToValidate[name] = value.format("YYYY-MM-DD");
     }
 
-    // Get validation errors for this field
     const fieldErrors = validateInput(fieldToValidate);
 
-    // Update errors state
     if (fieldErrors[name]) {
       setFieldError(name, fieldErrors[name] as string);
     } else {
@@ -483,11 +475,10 @@ const AuthPage: React.FC = () => {
     );
   }
 
-  // Simplified renderCaptcha method - only ReCaptchaV3
+  // Simplified renderCaptcha method
   const renderCaptcha = () => {
     return (
       <>
-        {/* Invisible v3 reCAPTCHA */}
         <ReCaptchaV3
           sitekey={recaptchaSiteKeyV3}
           action="register"
@@ -501,19 +492,15 @@ const AuthPage: React.FC = () => {
     <>
       {/* Fullscreen loading states */}
       {isLoading && <LoadingState tip="Signing you in..." fullscreen={true} />}
-
       {registerLoading && (
         <LoadingState tip="Creating your account..." fullscreen={true} />
       )}
-
       {googleLoading && (
         <LoadingState tip="Connecting to Google..." fullscreen={true} />
       )}
-
       {githubLoading && (
         <LoadingState tip="Connecting to GitHub..." fullscreen={true} />
       )}
-
       {facebookLoading && (
         <LoadingState tip="Connecting to Facebook..." fullscreen={true} />
       )}
@@ -558,24 +545,32 @@ const AuthPage: React.FC = () => {
               <div className="panel-content">
                 {isLoginMode ? (
                   <>
-                    <SparklesText
-                      text="Welcome Back!"
-                      className="welcome-title"
-                      sparklesCount={8}
-                      colors={{ first: "#9E7AFF", second: "#FE8BBB" }}
-                      shimmer={true}
-                      duration={1.2}
-                      spread={2}
-                      textColor="#9E7AFF"
-                    />
-
-                    <Text className="panel-text">Don't have an account?</Text>
-                    <GradientButton
-                      className="panel-register-button"
-                      onClick={toggleMode}
-                    >
-                      Register
-                    </GradientButton>
+                    <div className="text-container">
+                      <SparklesText
+                        text="Welcome Back!"
+                        className="welcome-title"
+                        sparklesCount={8}
+                        colors={{ first: "#9E7AFF", second: "#FE8BBB" }}
+                        shimmer={true}
+                        duration={1.2}
+                        spread={2}
+                        textColor="#9E7AFF"
+                      />
+                      <Text className="panel-text">Don't have an account?</Text>
+                      <GradientButton
+                        className="panel-register-button"
+                        onClick={toggleMode}
+                      >
+                        Register
+                      </GradientButton>
+                    </div>
+                    <div className="spline-container">
+                      <SplineScene
+                        scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+                        className="spline-robot"
+                        filterColor="90deg"
+                      />
+                    </div>
                   </>
                 ) : (
                   <Form
@@ -588,7 +583,6 @@ const AuthPage: React.FC = () => {
                       text="Registration"
                       className="register-title"
                     />
-
                     <Form.Item
                       required
                       validateStatus={fieldErrors.username ? "error" : ""}
@@ -603,7 +597,6 @@ const AuthPage: React.FC = () => {
                         }
                       />
                     </Form.Item>
-
                     <Form.Item
                       required
                       validateStatus={fieldErrors.email ? "error" : ""}
@@ -618,7 +611,6 @@ const AuthPage: React.FC = () => {
                         }
                       />
                     </Form.Item>
-
                     <Form.Item
                       required
                       validateStatus={fieldErrors.password ? "error" : ""}
@@ -633,7 +625,6 @@ const AuthPage: React.FC = () => {
                         }
                       />
                     </Form.Item>
-
                     <Form.Item
                       required
                       validateStatus={
@@ -650,7 +641,6 @@ const AuthPage: React.FC = () => {
                         }
                       />
                     </Form.Item>
-
                     <Form.Item
                       required
                       validateStatus={fieldErrors.firstname ? "error" : ""}
@@ -665,7 +655,6 @@ const AuthPage: React.FC = () => {
                         }
                       />
                     </Form.Item>
-
                     <Form.Item
                       required
                       validateStatus={fieldErrors.lastname ? "error" : ""}
@@ -680,7 +669,6 @@ const AuthPage: React.FC = () => {
                         }
                       />
                     </Form.Item>
-
                     <Form.Item
                       required
                       validateStatus={fieldErrors.dob ? "error" : ""}
@@ -704,9 +692,7 @@ const AuthPage: React.FC = () => {
                         allowClear={false}
                       />
                     </Form.Item>
-
                     {renderCaptcha()}
-
                     <Form.Item>
                       <Button
                         type="primary"
@@ -737,7 +723,6 @@ const AuthPage: React.FC = () => {
                       text="Login Now"
                       className="login-title"
                     />
-
                     <Form.Item
                       name="username"
                       rules={[
@@ -748,7 +733,6 @@ const AuthPage: React.FC = () => {
                                 "Please input your username!"
                               );
                             }
-
                             const errors = validateInput({ username: value });
                             return errors.username
                               ? Promise.reject(errors.username)
@@ -759,7 +743,6 @@ const AuthPage: React.FC = () => {
                     >
                       <Input prefix={<UserOutlined />} placeholder="Username" />
                     </Form.Item>
-
                     <Form.Item
                       name="password"
                       rules={[
@@ -770,7 +753,6 @@ const AuthPage: React.FC = () => {
                                 "Please input your password!"
                               );
                             }
-
                             const errors = validateInput({ password: value });
                             return errors.password
                               ? Promise.reject(errors.password)
@@ -784,11 +766,9 @@ const AuthPage: React.FC = () => {
                         placeholder="Password"
                       />
                     </Form.Item>
-
                     {loginError && !isAccountLocked && (
                       <div className="error-message">{loginError}</div>
                     )}
-
                     {isAccountLocked && (
                       <div
                         style={{
@@ -827,7 +807,6 @@ const AuthPage: React.FC = () => {
                         </p>
                       </div>
                     )}
-
                     <Form.Item>
                       <Button
                         type="primary"
@@ -839,9 +818,7 @@ const AuthPage: React.FC = () => {
                         LOGIN
                       </Button>
                     </Form.Item>
-
                     <div className="social-login-container">
-                      {/* GitHub Login Button */}
                       <button
                         type="button"
                         onClick={handleGithubLogin}
@@ -852,8 +829,6 @@ const AuthPage: React.FC = () => {
                           <FaGithub size={40} color="#FFFFFF" />
                         </span>
                       </button>
-
-                      {/* Google Login Button */}
                       <button
                         type="button"
                         onClick={handleGoogleLogin}
@@ -864,8 +839,6 @@ const AuthPage: React.FC = () => {
                           <FcGoogle size={40} />
                         </span>
                       </button>
-
-                      {/* Facebook Login Button */}
                       <button
                         type="button"
                         onClick={handleFacebookLogin}
@@ -887,24 +860,35 @@ const AuthPage: React.FC = () => {
                   </Form>
                 ) : (
                   <>
-                    <SparklesText
-                      text="Welcome Back!"
-                      className="welcome-title"
-                      sparklesCount={8}
-                      colors={{ first: "#9E7AFF", second: "#FE8BBB" }}
-                      shimmer={true}
-                      duration={1.2}
-                      spread={2}
-                      textColor="#9E7AFF"
-                    />
-                    <Text className="panel-text">Already have an account?</Text>
-                    <GradientButton
-                      className="panel-login-button"
-                      onClick={toggleMode}
-                      variant="variant"
-                    >
-                      Login
-                    </GradientButton>
+                    <div className="text-container">
+                      <SparklesText
+                        text="Welcome Back!"
+                        className="welcome-title"
+                        sparklesCount={8}
+                        colors={{ first: "#9E7AFF", second: "#FE8BBB" }}
+                        shimmer={true}
+                        duration={1.2}
+                        spread={2}
+                        textColor="#9E7AFF"
+                      />
+                      <Text className="panel-text">
+                        Already have an account?
+                      </Text>
+                      <GradientButton
+                        className="panel-login-button"
+                        onClick={toggleMode}
+                        variant="variant"
+                      >
+                        Login
+                      </GradientButton>
+                    </div>
+                    <div className="spline-container">
+                      <SplineScene
+                        scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+                        className="spline-robot"
+                        filterColor="90deg"
+                      />
+                    </div>
                   </>
                 )}
               </div>

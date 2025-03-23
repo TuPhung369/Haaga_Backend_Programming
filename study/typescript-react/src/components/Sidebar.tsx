@@ -148,28 +148,37 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     {
       key: "profile",
       label: userInfo?.firstname + " " + userInfo?.lastname,
+      tooltip: userInfo?.firstname + " " + userInfo?.lastname,
       icon: (
         <Avatar
-          size={collapsed ? 24 : 24}
+          size={collapsed ? 28 : 24}
           icon={<UserOutlined />}
-          style={{ backgroundColor: COLORS[14] }}
+          style={{
+            backgroundColor: COLORS[14],
+            alignItems: "center",
+            justifyContent: "center",
+            display: "flex",
+            alignSelf: "center"
+          }}
         />
-      ),
-      description: "Developer"
+      )
     },
     {
       key: "settings",
       label: "Setting",
+      tooltip: "Setting",
       icon: <SettingOutlined style={{ color: COLORS[5] }} />
     },
     {
       key: "notification",
       label: "Notification",
+      tooltip: "Notification",
       icon: <BellOutlined style={{ color: COLORS[4] }} />
     },
     {
       key: "logout",
       label: "Logout",
+      tooltip: "Logout",
       icon: <LogoutOutlined style={{ color: COLORS[1] }} />,
       onClick: handleLogout
     },
@@ -181,6 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           <div>Created by Tu Phung</div>
         </div>
       ),
+      tooltip: "The Application ©2024\nCreated by Tu Phung",
       icon: <CopyrightOutlined style={{ color: COLORS[9] }} />,
       style: { opacity: 0.7 }
     }
@@ -199,14 +209,15 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         border: "none",
         transition: "width 0.3s ease, background 0.3s ease",
         display: "flex",
+        justifyContent: "flex-start",
         flexDirection: "column",
         height: "100vh",
         overflow: "hidden",
         paddingBottom: 0
       }}
     >
-      <div className="sidebar-header">
-        <div className={`app-logo ${collapsed ? "collapsed" : ""}`}>
+      <div className={`sidebar-header${collapsed ? "-collapsed" : ""}`}>
+        <div className={`app-logo${collapsed ? "-collapsed" : ""}`}>
           TomBoBap
         </div>
         <Button
@@ -214,7 +225,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           icon={
             collapsed ? (
               <MenuUnfoldOutlined
-                style={{ fontSize: "32px", color: COLORS[8] }}
+                style={{ fontSize: "36px", color: COLORS[8] }}
               />
             ) : (
               <MenuFoldOutlined
@@ -223,13 +234,13 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             )
           }
           onClick={toggleCollapsed}
-          className="sidebar-toggle-button"
+          className={`sidebar-toggle-button${collapsed ? "-collapsed" : ""}`}
         />
       </div>
 
       {/* Main Menu */}
       <Menu
-        className="main-menu"
+        className={`main-menu${collapsed ? "-collapsed" : ""}`}
         mode="inline"
         theme="dark"
         selectedKeys={[
@@ -244,16 +255,18 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           icon: React.cloneElement(icon, {
             style: {
               color: COLORS[index % COLORS.length],
-              fontSize: collapsed ? "24px" : "20px"
+              fontSize: collapsed ? "28px" : "24px"
             }
           }),
-          onClick: () => navigate(path)
+          onClick: () => navigate(path),
+          style: { color: "#ffffff" },
+          ...(collapsed && { "data-menu-title": label })
         }))}
       />
 
       {/* Bottom Menu */}
       <Menu
-        className="bottom-menu"
+        className={`bottom-menu${collapsed ? "-collapsed" : ""}`}
         mode="inline"
         theme="dark"
         selectable={false}
@@ -268,13 +281,14 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             ),
             {
               style: {
-                fontSize: collapsed ? "24px" : "20px",
+                fontSize: collapsed ? "28px" : "24px",
                 ...(item.icon.props?.style || {})
               }
             }
           ),
           onClick: item.onClick,
-          style: { ...item.style, color: "#ffffff" }
+          style: { ...item.style, color: "#ffffff" },
+          ...(collapsed && { "data-menu-title": item.tooltip })
         }))}
       />
     </Sider>
