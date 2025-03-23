@@ -233,9 +233,15 @@
   max-height: 600px; /* Prevent it from getting too large */
   transition: filter 0.3s ease;
   position: absolute;
-  bottom: -60px;
   left: 0px;
+  border: none !important;
+  background-color: transparent !important;
+}
+.spline-robot.model-other {
   filter: brightness(1);
+  bottom: -60px;
+  border: none !important;
+  background-color: transparent !important;
 }
 .spline-robot.model-other:hover {
   filter: brightness(1.2);
@@ -248,7 +254,6 @@
 .spline-robot.model-robot:hover {
   filter: brightness(1.5);
 }
-
 
 .auth-button {
   width: 100%;
