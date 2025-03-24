@@ -48,45 +48,172 @@ const { Option } = Select;
 
 // Move the styled component definition outside the component function
 const UserListStyle = styled.div`
+  background-color: transparent;
+  border-radius: 12px;
+
   .user-list-header {
     margin-top: 10px;
     margin-bottom: 0px;
+    transition: all 0.3s ease; /* Smooth transition for hover */
   }
 
   .title-container {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
     display: flex;
     flex-direction: row;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
+    padding: 12px 20px;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: background 0.3s ease; /* Smooth background transition */
+  }
+
+  .title-container:hover {
+    background: linear-gradient(
+      135deg,
+      #1e40af 0%,
+      /* Slightly darker on hover */ #2563eb 100%
+    );
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+  }
+
+  .title-container:hover .section-title {
+    color: #e5e7eb; /* Lighter gray for better contrast on hover */
+  }
+
+  .title-container:hover .add-user-icon {
+    color: #e5e7eb; /* Match the icon color with the title on hover */
   }
 
   .section-title {
-    font-size: 20px;
+    background: none;
+    font-size: 24px;
     margin: 0;
     font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    transition: color 0.3s ease; /* Smooth color transition */
   }
 
   .add-user-icon {
     cursor: pointer;
-    margin-left: 10px;
-    font-size: 18px;
-    color: #1890ff;
-    transition: color 0.3s;
+    font-size: 20px;
+    color: #ffffff;
+    transition: transform 0.3s ease, opacity 0.3s ease, color 0.3s ease;
+
+    &:hover {
+      transform: scale(1.2);
+      opacity: 0.8;
+    }
   }
 
-  .add-user-icon:hover {
-    color: #40a9ff;
-  }
+  .compact-table {
+    background: #ffffff;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
 
-  .compact-table .ant-table-tbody > tr > td {
-    padding: 6px 8px; /* Adjust the padding values as needed */
-  }
+    .ant-table-thead > tr > th {
+      background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 14px 20px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: background 0.3s ease;
+    }
 
-  /* Make the tag spacing more compact in the table */
-  .compact-table .ant-tag {
-    margin-right: 4px;
-    margin-bottom: 0px;
-    padding: 0 6px;
+    .ant-table-thead > tr > th:hover {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    }
+
+    .ant-table-tbody > tr > td {
+      padding: 12px 20px;
+      color: #1f2937;
+      font-size: 14px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #fafafa;
+    }
+
+    .ant-table-tbody > tr:nth-child(even) > td {
+      background: #f9fafb;
+    }
+
+    .ant-table-tbody > tr:hover > td {
+      background: ${COLORS[9]};
+      transition: background 0.3s ease;
+    }
+
+    .ant-tag {
+      margin-right: 6px;
+      margin-bottom: 6px;
+      padding: 4px 10px;
+      border: none;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .ant-tag[style*="blue"] {
+      background: #3b82f6;
+      color: #ffffff;
+      transition: background 0.3s ease;
+      &:hover {
+        background: #2563eb;
+      }
+    }
+
+    .ant-tag[style*="red"] {
+      background: #ef4444;
+      color: #ffffff;
+      transition: background 0.3s ease;
+      &:hover {
+        background: #dc2626;
+      }
+    }
+
+    .ant-pagination {
+      margin: 16px 0;
+      .ant-pagination-item {
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        a {
+          color: #1f2937;
+        }
+      }
+      .ant-pagination-item-active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        a {
+          color: #ffffff;
+        }
+      }
+      .ant-pagination-prev,
+      .ant-pagination-next {
+        border-radius: 8px;
+        .ant-pagination-item-link {
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+        }
+      }
+    }
+
+    @media (max-width: 768px) {
+      .ant-table-thead > tr > th,
+      .ant-table-tbody > tr > td {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      .ant-tag {
+        padding: 2px 8px;
+        font-size: 10px;
+      }
+    }
   }
 `;
 
@@ -554,7 +681,6 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
   // Get column search component that excludes the render property
   const getDobColumnSearchProps = (dataIndex: keyof User) => {
     const props = getColumnSearchProps(dataIndex);
-    // Remove the render property
     const { render: _, ...restProps } = props;
     return restProps;
   };

@@ -277,9 +277,7 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
         }
 
         const devicesResponse = await getTotpDevices(token);
-        console.log("Fetched devices response:", devicesResponse);
         setDevices(devicesResponse.result || []);
-        console.log("Devices state updated:", devicesResponse.result || []);
 
         sessionStorage.setItem("totpDevicesFetched", "true");
       } catch (error) {
@@ -305,14 +303,12 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
   useEffect(() => {
     const isEnabled = totpSecurity?.enabled || false;
     setIsTotpEnabled(isEnabled);
-    console.log("totpSecurity received:", totpSecurity);
 
     if (isEnabled) {
       fetchDevices();
     } else {
       setDevices([]);
       setLoading(false);
-      console.log("TOTP disabled, devices cleared");
     }
   }, [totpSecurity, fetchDevices]);
 
