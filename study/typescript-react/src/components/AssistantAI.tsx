@@ -3,22 +3,25 @@ import {
   Button,
   TextField,
   Paper,
-  Typography,
   Box,
-  Avatar,
-  Grid,
-  CircularProgress
+  CircularProgress,
+  Typography
 } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { RootState } from "../type/types";
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import "../styles/AssistantAI.css";
 
 interface ChatMessage {
   id?: number;
   content: string;
   sender: string;
-  timestamp?: string;
+  timestamp?: number[] | string;
   sessionId: string;
 }
 
@@ -70,7 +73,7 @@ const AssistantAI: React.FC = () => {
       setLoading(false);
       setMessages([]);
     }
-  }, [token, userInfo?.id]); // Dependencies for useCallback
+  }, [token, userInfo?.id]);
 
   useEffect(() => {
     setSessionId(uuidv4());
@@ -78,14 +81,15 @@ const AssistantAI: React.FC = () => {
       {
         content: "Hello! I am your AI assistant. How can I help you today?",
         sender: "AI",
-        sessionId: uuidv4()
+        sessionId: uuidv4(),
+        timestamp: new Date().toISOString()
       }
     ]);
 
     if (userInfo?.id) {
       loadChatHistory();
     }
-  }, [userInfo?.id, loadChatHistory]); // Dependencies for useEffect
+  }, [userInfo?.id, loadChatHistory]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -97,7 +101,8 @@ const AssistantAI: React.FC = () => {
     const userMessage: ChatMessage = {
       content: input,
       sender: "USER",
-      sessionId: sessionId
+      sessionId: sessionId,
+      timestamp: new Date().toISOString()
     };
 
     setMessages((prevMessages) => [...prevMessages, userMessage]);
@@ -132,7 +137,8 @@ const AssistantAI: React.FC = () => {
                 ? response.data.content
                 : response.data.content || "No response",
             sender: "AI",
-            sessionId: sessionId
+            sessionId: sessionId,
+            timestamp: new Date().toISOString()
           }
         ]);
       }
@@ -141,7 +147,8 @@ const AssistantAI: React.FC = () => {
       const errorMessage: ChatMessage = {
         content: "Sorry, something went wrong. Please try again.",
         sender: "AI",
-        sessionId: sessionId
+        sessionId: sessionId,
+        timestamp: new Date().toISOString()
       };
       setMessages((prevMessages) => [...prevMessages, errorMessage]);
     } finally {
@@ -156,104 +163,107 @@ const AssistantAI: React.FC = () => {
     }
   };
 
-  return (
-    <Box
-      sx={{
-        p: 2,
-        height: "calc(100vh - 160px)",
-        display: "flex",
-        flexDirection: "column"
-      }}
-    >
-      <Typography variant="h4" component="h1" gutterBottom>
-        AI Assistant
-      </Typography>
+  const parseTimestamp = (timestamp?: number[] | string) => {
+    if (!timestamp) return null;
 
-      <Paper
-        elevation={3}
-        sx={{
-          p: 2,
-          flexGrow: 1,
-          mb: 2,
-          overflow: "auto",
-          maxHeight: "calc(100vh - 280px)",
-          backgroundColor: "#f5f5f5"
-        }}
-      >
-        {Array.isArray(messages) &&
-          messages.map((message, index) => (
-            <Box
-              key={index}
-              sx={{
-                display: "flex",
-                justifyContent:
-                  message.sender === "USER" ? "flex-end" : "flex-start",
-                mb: 2
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection:
-                    message.sender === "USER" ? "row-reverse" : "row",
-                  alignItems: "flex-start",
-                  maxWidth: "80%"
-                }}
-              >
-                <Avatar
-                  sx={{
-                    bgcolor:
-                      message.sender === "USER"
-                        ? "primary.main"
-                        : "secondary.main",
-                    width: 36,
-                    height: 36,
-                    mr: message.sender === "USER" ? 0 : 1,
-                    ml: message.sender === "USER" ? 1 : 0
-                  }}
+    if (typeof timestamp === "string") {
+      return new Date(timestamp);
+    }
+
+    if (Array.isArray(timestamp) && timestamp.length >= 6) {
+      const [year, month, day, hour, minute, second] = timestamp;
+      return new Date(year, month - 1, day, hour, minute, second);
+    }
+
+    return null;
+  };
+
+  const formatTimestamp = (timestamp?: number[] | string) => {
+    const date = parseTimestamp(timestamp);
+    if (!date || isNaN(date.getTime())) return "Invalid Date";
+    return date.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
+  };
+
+  return (
+    <Box className="root-container">
+      <Paper elevation={3} className="chat-card">
+        <Box className="chat-container">
+          {Array.isArray(messages) && messages.length === 0 ? (
+            <Box className="empty-chat">
+              <Typography variant="h6">No messages yet</Typography>
+              <Typography variant="body2">
+                Start a conversation by typing a message below.
+              </Typography>
+            </Box>
+          ) : (
+            <Box className="messages-container">
+              {messages.map((message, index) => (
+                <Box
+                  key={index}
+                  className={`message ${
+                    message.sender === "USER" ? "user-message" : "bot-message"
+                  }`}
                 >
-                  {message.sender === "USER"
-                    ? userInfo?.username?.charAt(0).toUpperCase() || "U"
-                    : "AI"}
-                </Avatar>
-                <Paper
-                  sx={{
-                    p: 2,
-                    backgroundColor:
-                      message.sender === "USER" ? "#e3f2fd" : "white",
-                    borderRadius: 2
-                  }}
-                >
-                  <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
-                    {message.content}
+                  <Typography
+                    variant="body1"
+                    className={
+                      message.sender === "USER" ? "user-name" : "ai-name"
+                    }
+                  >
+                    {message.sender === "USER"
+                      ? userInfo?.username || "User"
+                      : "AI Assistant"}
                   </Typography>
+                  <ReactMarkdown
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      code({ className, children, ...props }) {
+                        const match = /language-(\w+)/.exec(className || "");
+                        return match ? (
+                          <SyntaxHighlighter
+                            style={vscDarkPlus}
+                            language={match[1]}
+                            PreTag="div"
+                            {...props}
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                        ) : (
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
                   {message.timestamp && (
-                    <Typography
-                      variant="caption"
-                      sx={{ display: "block", mt: 1, color: "text.secondary" }}
-                    >
-                      {new Date(message.timestamp).toLocaleTimeString()}
+                    <Typography variant="caption" className="message-timestamp">
+                      {formatTimestamp(message.timestamp)}
                     </Typography>
                   )}
-                </Paper>
-              </Box>
+                </Box>
+              ))}
+              {loading && (
+                <Box className="loading-message">
+                  <CircularProgress size={20} />
+                  <Typography variant="body1">AI is thinking...</Typography>
+                </Box>
+              )}
+              <div ref={messagesEndRef} />
             </Box>
-          ))}
-        {loading && (
-          <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
-            <Paper sx={{ p: 2, backgroundColor: "white", borderRadius: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <CircularProgress size={20} sx={{ mr: 1 }} />
-                <Typography variant="body1">AI is thinking...</Typography>
-              </Box>
-            </Paper>
-          </Box>
-        )}
-        <div ref={messagesEndRef} />
-      </Paper>
+          )}
+        </Box>
 
-      <Grid container spacing={1}>
-        <Grid item xs={10}>
+        <Box className="input-container">
           <TextField
             fullWidth
             multiline
@@ -266,21 +276,16 @@ const AssistantAI: React.FC = () => {
             variant="outlined"
             disabled={loading}
           />
-        </Grid>
-        <Grid item xs={2}>
           <Button
-            fullWidth
             className="send-button"
             variant="contained"
-            color="secondary"
             onClick={handleSendMessage}
             disabled={!input.trim() || loading}
-            sx={{ height: "100%", borderRadius: "10px" }}
           >
             Send
           </Button>
-        </Grid>
-      </Grid>
+        </Box>
+      </Paper>
     </Box>
   );
 };
