@@ -12,7 +12,6 @@ import styled from "styled-components";
 import { getAllRoles } from "../services/roleService";
 import {
   Descriptions,
-  Layout,
   Table,
   Tag,
   Modal,
@@ -43,16 +42,15 @@ import { User, Role, RootState, ExtendApiError } from "../type/types";
 import ReCaptchaV3 from "../components/ReCaptchaV3";
 
 const { confirm } = Modal;
-const { Content } = Layout;
 const { Option } = Select;
 
 // Move the styled component definition outside the component function
 const UserListStyle = styled.div`
   background-color: transparent;
-  border-radius: 12px;
+  border-radius: 12px 12px 12px 12px;
 
   .user-list-header {
-    margin-top: 10px;
+    margin-top: 0px;
     margin-bottom: 0px;
     transition: all 0.3s ease; /* Smooth transition for hover */
   }
@@ -61,7 +59,7 @@ const UserListStyle = styled.div`
     background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     padding: 12px 20px;
     border-radius: 12px 12px 0 0;
@@ -70,20 +68,16 @@ const UserListStyle = styled.div`
   }
 
   .title-container:hover {
-    background: linear-gradient(
-      135deg,
-      #1e40af 0%,
-      /* Slightly darker on hover */ #2563eb 100%
-    );
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   .title-container:hover .section-title {
-    color: #e5e7eb; /* Lighter gray for better contrast on hover */
+    color: #e5e7eb;
   }
 
   .title-container:hover .add-user-icon {
-    color: #e5e7eb; /* Match the icon color with the title on hover */
+    color: #e5e7eb;
   }
 
   .section-title {
@@ -98,26 +92,28 @@ const UserListStyle = styled.div`
 
   .add-user-icon {
     cursor: pointer;
-    font-size: 20px;
-    color: #ffffff;
+    margin-left: 10px;
+    font-size: 28px;
+    color: ${COLORS[1]};
     transition: transform 0.3s ease, opacity 0.3s ease, color 0.3s ease;
 
     &:hover {
-      transform: scale(1.2);
-      opacity: 0.8;
+      transform: scale(1.5);
+      color: ${COLORS[3]};
     }
   }
 
   .compact-table {
     background: #ffffff;
-    border-radius: 0 0 12px 12px;
+    border-radius: 12px 12px 0px 0px;
+    margin-top: -10px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border: 1px solid #e5e7eb;
 
     .ant-table-thead > tr > th {
       background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
-      color: #ffffff;
+      color: ${COLORS[12]};
       font-weight: 600;
       font-size: 14px;
       padding: 14px 20px;
@@ -125,14 +121,22 @@ const UserListStyle = styled.div`
       text-transform: uppercase;
       letter-spacing: 0.5px;
       transition: background 0.3s ease;
+
+      .anticon {
+        color: ${COLORS[13]};
+      }
     }
 
     .ant-table-thead > tr > th:hover {
       background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
     }
 
+    .compact-table .ant-table-thead > tr > th[key="edit"] {
+      text-align: center;
+    }
+
     .ant-table-tbody > tr > td {
-      padding: 12px 20px;
+      padding: 10px 20px;
       color: #1f2937;
       font-size: 14px;
       border-bottom: 1px solid #e5e7eb;
@@ -149,11 +153,10 @@ const UserListStyle = styled.div`
     }
 
     .ant-tag {
-      margin-right: 6px;
-      margin-bottom: 6px;
+      margin: 4px 6px 4px 0;
       padding: 4px 10px;
       border: none;
-      border-radius: 12px;
+      border-radius: 4px;
       font-size: 12px;
       font-weight: 500;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -178,7 +181,7 @@ const UserListStyle = styled.div`
     }
 
     .ant-pagination {
-      margin: 16px 0;
+      margin: 16px 4px;
       .ant-pagination-item {
         border-radius: 8px;
         border: 1px solid #d1d5db;
@@ -196,6 +199,7 @@ const UserListStyle = styled.div`
       .ant-pagination-prev,
       .ant-pagination-next {
         border-radius: 8px;
+        margin: 0 4px;
         .ant-pagination-item-link {
           border: 1px solid #d1d5db;
           border-radius: 8px;
@@ -221,12 +225,13 @@ interface UserListPageProps {
   style?: React.CSSProperties;
 }
 
-const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
+const UserListPage: React.FC<UserListPageProps> = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModeNew, setIsModeNew] = useState(false);
   const [isModeIdUpdate, setIsModeIdUpdate] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isDisabled, setIsDisabled] = useState(false);
+  const [pageSize, setPageSize] = useState(15);
   const [form] = Form.useForm();
 
   // Real-time search states
@@ -685,306 +690,327 @@ const UserListPage: React.FC<UserListPageProps> = ({ style }) => {
     return restProps;
   };
 
-  // Format date array to string
   const formatDateArray = (date: number[]): string => {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ];
     if (!Array.isArray(date) || date.length < 3) return "";
-    return `${date[0]}-${String(date[1]).padStart(2, "0")}-${String(
-      date[2]
-    ).padStart(2, "0")}`;
+    const [year, month, day] = date;
+    return `${String(day).padStart(2, "0")} ${months[month - 1]} ${year}`;
   };
 
   const isAdmin = userInfo?.roles.some((role) => role.name === "ADMIN");
   const isManager = userInfo?.roles.some((role) => role.name === "MANAGER");
 
   return (
-    <Layout style={{ padding: "0 10px 0 10px", ...style }}>
-      <Content style={{ margin: "0", ...style }}>
-        <UserListStyle>
-          {contextHolder}
-          <ReCaptchaV3
-            sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY_V3}
-            action="update_user"
-            onVerify={(token) => setRecaptchaToken(token)}
-          />
-          <Modal
-            title={isModeNew ? "Add New User" : "Edit User Information"}
-            open={isModalVisible}
-            onOk={handleOk}
-            onCancel={handleCancel}
+    <UserListStyle>
+      {contextHolder}
+      <ReCaptchaV3
+        sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY_V3}
+        action="update_user"
+        onVerify={(token) => setRecaptchaToken(token)}
+      />
+      <Modal
+        title={isModeNew ? "Add New User" : "Edit User Information"}
+        open={isModalVisible}
+        onOk={handleOk}
+        onCancel={handleCancel}
+      >
+        <Form form={form} layout="vertical" name="userForm">
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[{ required: true, message: "Please input the username!" }]}
           >
-            <Form form={form} layout="vertical" name="userForm">
-              <Form.Item
-                name="username"
-                label="Username"
-                rules={[
-                  { required: true, message: "Please input the username!" }
-                ]}
-              >
-                <Input
-                  readOnly={!isModeNew && isDisabled}
-                  disabled={!isModeNew && isDisabled}
-                  onFocus={() => {
-                    if (!isModeNew) setIsDisabled(true);
-                  }}
-                  onBlur={() => {
-                    if (!isModeNew) setIsDisabled(false);
-                  }}
-                  style={{
-                    cursor: !isModeNew && isDisabled ? "not-allowed" : "text"
-                  }}
+            <Input
+              readOnly={!isModeNew && isDisabled}
+              disabled={!isModeNew && isDisabled}
+              onFocus={() => {
+                if (!isModeNew) setIsDisabled(true);
+              }}
+              onBlur={() => {
+                if (!isModeNew) setIsDisabled(false);
+              }}
+              style={{
+                cursor: !isModeNew && isDisabled ? "not-allowed" : "text"
+              }}
+            />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[{ required: true, message: "Please input the password!" }]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Please input the email!" },
+              { type: "email", message: "Please enter a valid email!" }
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="firstname"
+            label="First Name"
+            rules={[
+              { required: true, message: "Please input the first name!" }
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="lastname"
+            label="Last Name"
+            rules={[{ required: true, message: "Please input the last name!" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="dob"
+            label="DoB (YYYY-MM-DD)"
+            rules={[
+              {
+                required: true,
+                message: "Please input the date of birth!"
+              }
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="roles"
+            label="Role"
+            rules={[{ required: true, message: "Please select the role!" }]}
+          >
+            <Select mode="multiple" placeholder="Select roles">
+              {roles
+                .filter((role) => getAvailableRoles().includes(role.name))
+                .map((role) => (
+                  <Option key={role.name} value={role.name}>
+                    {role.name}
+                  </Option>
+                ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+      <div className="user-list-header">
+        <Descriptions
+          className="custom-descriptions"
+          title={
+            <div className="title-container">
+              <h2 className="section-title">User List</h2>
+              {userInfo && (isAdmin || isManager) ? (
+                <UserAddOutlined
+                  onClick={showModalNew}
+                  className="add-user-icon"
                 />
-              </Form.Item>
-              <Form.Item
-                name="password"
-                label="Password"
-                rules={[
-                  { required: true, message: "Please input the password!" }
-                ]}
-              >
-                <Input.Password />
-              </Form.Item>
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[
-                  { required: true, message: "Please input the email!" },
-                  { type: "email", message: "Please enter a valid email!" }
-                ]}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                name="firstname"
-                label="First Name"
-                rules={[
-                  { required: true, message: "Please input the first name!" }
-                ]}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                name="lastname"
-                label="Last Name"
-                rules={[
-                  { required: true, message: "Please input the last name!" }
-                ]}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                name="dob"
-                label="DoB (YYYY-MM-DD)"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please input the date of birth!"
-                  }
-                ]}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                name="roles"
-                label="Role"
-                rules={[{ required: true, message: "Please select the role!" }]}
-              >
-                <Select mode="multiple" placeholder="Select roles">
-                  {roles
-                    .filter((role) => getAvailableRoles().includes(role.name))
-                    .map((role) => (
-                      <Option key={role.name} value={role.name}>
-                        {role.name}
-                      </Option>
-                    ))}
-                </Select>
-              </Form.Item>
-            </Form>
-          </Modal>
-          <div className="user-list-header">
-            <Descriptions
-              className="custom-descriptions"
-              title={
-                <div className="title-container">
-                  <h2 className="section-title">User List</h2>
-                  {userInfo && (isAdmin || isManager) ? (
-                    <UserAddOutlined
-                      onClick={showModalNew}
-                      className="add-user-icon"
-                    />
-                  ) : null}
-                </div>
+              ) : null}
+            </div>
+          }
+          bordered
+        ></Descriptions>
+      </div>
+      <Table
+        dataSource={filteredUsers}
+        rowKey="id"
+        pagination={{
+          pageSize: pageSize,
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "15", "20", "50", "100"],
+          onShowSizeChange: (current, size) => {
+            setPageSize(size);
+          }
+        }}
+        scroll={{ x: 1300 }}
+        bordered
+        size="small"
+        className="compact-table"
+      >
+        <Table.Column
+          title="Email"
+          dataIndex="email"
+          key="email"
+          sorter={(a: User, b: User) => a.email.localeCompare(b.email)}
+          {...getColumnSearchProps("email")}
+        />
+        <Table.Column
+          title="First Name"
+          dataIndex="firstname"
+          key="firstname"
+          sorter={(a: User, b: User) => a.firstname.localeCompare(b.firstname)}
+          {...getColumnSearchProps("firstname")}
+        />
+        <Table.Column
+          title="Last Name"
+          dataIndex="lastname"
+          key="lastname"
+          sorter={(a: User, b: User) => a.lastname.localeCompare(b.lastname)}
+          {...getColumnSearchProps("lastname")}
+        />
+        <Table.Column
+          title="Username"
+          dataIndex="username"
+          key="username"
+          sorter={(a: User, b: User) => a.username.localeCompare(b.username)}
+          {...getColumnSearchProps("username")}
+        />
+        <Table.Column
+          title="D.o.B"
+          dataIndex="dob"
+          width={120}
+          align="center"
+          key="dob"
+          sorter={(a: User, b: User) => {
+            // Handle both string and array formats for sorting
+            const formatDate = (
+              date: string | number[] | null | undefined
+            ): string => {
+              if (Array.isArray(date)) {
+                return formatDateArray(date);
               }
-              bordered
-            ></Descriptions>
-          </div>
-          <Table
-            dataSource={filteredUsers}
-            rowKey="id"
-            pagination={{ pageSize: 13 }}
-            scroll={{ x: 1300 }} // Enable horizontal scrolling if needed
-            bordered
-            size="small" // Set to "small" to reduce cell padding
-            className="compact-table" // Add custom class for additional styling
-          >
-            <Table.Column
-              title="Email"
-              dataIndex="email"
-              key="email"
-              sorter={(a: User, b: User) => a.email.localeCompare(b.email)}
-              {...getColumnSearchProps("email")}
-            />
-            <Table.Column
-              title="First Name"
-              dataIndex="firstname"
-              key="firstname"
-              sorter={(a: User, b: User) =>
-                a.firstname.localeCompare(b.firstname)
-              }
-              {...getColumnSearchProps("firstname")}
-            />
-            <Table.Column
-              title="Last Name"
-              dataIndex="lastname"
-              key="lastname"
-              sorter={(a: User, b: User) =>
-                a.lastname.localeCompare(b.lastname)
-              }
-              {...getColumnSearchProps("lastname")}
-            />
-            <Table.Column
-              title="Username"
-              dataIndex="username"
-              key="username"
-              sorter={(a: User, b: User) =>
-                a.username.localeCompare(b.username)
-              }
-              {...getColumnSearchProps("username")}
-            />
-            <Table.Column
-              title="D.o.B"
-              dataIndex="dob"
-              key="dob"
-              sorter={(a: User, b: User) => {
-                // Handle both string and array formats for sorting
-                const formatDate = (
-                  date: string | number[] | null | undefined
-                ): string => {
-                  if (Array.isArray(date)) {
-                    return formatDateArray(date);
-                  }
-                  return String(date || "");
-                };
-                return formatDate(a.dob).localeCompare(formatDate(b.dob));
-              }}
-              render={(dob) => {
-                // Format the DOB for display
-                if (Array.isArray(dob)) {
-                  return formatDateArray(dob);
-                }
-                return dob;
-              }}
-              {...getDobColumnSearchProps("dob")}
-            />
-            <Table.Column
-              title="Role"
-              key="roles"
-              sorter={(a: User, b: User) => {
-                const aRole = a.roles.length > 0 ? a.roles[0].name : "";
-                const bRole = b.roles.length > 0 ? b.roles[0].name : "";
-                return aRole.localeCompare(bRole);
-              }}
-              render={(_, record: User) =>
-                record.roles && record.roles.length > 0
-                  ? record.roles.map((role) => (
-                      <Tag key={role.name} color={role.color}>
-                        {role.name}
-                      </Tag>
-                    ))
-                  : "No roles assigned"
-              }
-            />
-            <Table.Column
-              title="Permission"
-              key="permissions"
-              sorter={(a: User, b: User) => {
-                const aPermissions = a.roles.flatMap(
-                  (role) => role.permissions || []
-                );
-                const bPermissions = b.roles.flatMap(
-                  (role) => role.permissions || []
-                );
-                const aPermission =
-                  aPermissions.length > 0 ? aPermissions[0].name : "";
-                const bPermission =
-                  bPermissions.length > 0 ? bPermissions[0].name : "";
-                return aPermission.localeCompare(bPermission);
-              }}
-              render={(_, record: User) =>
-                record.roles && record.roles.length > 0
-                  ? [
-                      ...new Set(
-                        record.roles.flatMap((role) =>
-                          role.permissions?.map((permission) => permission.name)
-                        )
-                      )
-                    ].map((permName) => {
-                      const permission = record.roles
-                        .flatMap((role) => role.permissions)
-                        .find((p) => p?.name === permName);
-                      return permission ? (
-                        <Tag key={permission.name} color={permission.color}>
-                          {permission.name}
-                        </Tag>
-                      ) : null;
-                    })
-                  : "No permissions assigned"
-              }
-            />
-            {(isAdmin || isManager) && (
-              <Table.Column
-                title={
-                  <span>
-                    Edit
-                    <EditOutlined style={{ marginLeft: 8 }} />
-                  </span>
-                }
-                key="edit"
-                render={(_, record: User) => (
-                  <Tag
-                    color="blue"
-                    onClick={() => showModalIdUpdate(record.id)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    Update
+              return String(date || "");
+            };
+            return formatDate(a.dob).localeCompare(formatDate(b.dob));
+          }}
+          render={(dob) => {
+            // Format the DOB for display
+            if (Array.isArray(dob)) {
+              return formatDateArray(dob);
+            }
+            return dob;
+          }}
+          {...getDobColumnSearchProps("dob")}
+        />
+        <Table.Column
+          title="Role"
+          key="roles"
+          width={100}
+          sorter={(a: User, b: User) => {
+            const aRole = a.roles.length > 0 ? a.roles[0].name : "";
+            const bRole = b.roles.length > 0 ? b.roles[0].name : "";
+            return aRole.localeCompare(bRole);
+          }}
+          render={(_, record: User) =>
+            record.roles && record.roles.length > 0
+              ? record.roles.map((role) => (
+                  <Tag key={role.name} color={role.color}>
+                    {role.name}
                   </Tag>
-                )}
-              />
+                ))
+              : "No roles assigned"
+          }
+        />
+        <Table.Column
+          title="Permission"
+          key="permissions"
+          width={280}
+          sorter={(a: User, b: User) => {
+            const aPermissions = a.roles.flatMap(
+              (role) => role.permissions || []
+            );
+            const bPermissions = b.roles.flatMap(
+              (role) => role.permissions || []
+            );
+            const aPermission =
+              aPermissions.length > 0 ? aPermissions[0].name : "";
+            const bPermission =
+              bPermissions.length > 0 ? bPermissions[0].name : "";
+            return aPermission.localeCompare(bPermission);
+          }}
+          render={(_, record: User) =>
+            record.roles && record.roles.length > 0
+              ? [
+                  ...new Set(
+                    record.roles.flatMap((role) =>
+                      role.permissions?.map((permission) => permission.name)
+                    )
+                  )
+                ].map((permName) => {
+                  const permission = record.roles
+                    .flatMap((role) => role.permissions)
+                    .find((p) => p?.name === permName);
+                  return permission ? (
+                    <Tag key={permission.name} color={permission.color}>
+                      {permission.name}
+                    </Tag>
+                  ) : null;
+                })
+              : "No permissions assigned"
+          }
+        />
+        {(isAdmin || isManager) && (
+          <Table.Column
+            title={
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between"
+                }}
+              >
+                EDIT
+                <EditOutlined style={{ marginLeft: 8 }} />
+              </span>
+            }
+            key="edit"
+            width={80}
+            align="center"
+            render={(_, record: User) => (
+              <Tag
+                color="blue"
+                onClick={() => showModalIdUpdate(record.id)}
+                style={{ cursor: "pointer" }}
+              >
+                Update
+              </Tag>
             )}
-            {isAdmin && (
-              <Table.Column
-                width={90}
-                title={
-                  <span>
-                    Delete
-                    <DeleteOutlined style={{ marginLeft: 8 }} />
-                  </span>
-                }
-                key="delete"
-                render={(_, record: User) => (
-                  <Tag
-                    color="red"
-                    onClick={() => showDeleteConfirm(record.id)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    Delete
-                  </Tag>
-                )}
-              />
+          />
+        )}
+        {isAdmin && (
+          <Table.Column
+            width={80}
+            title={
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between"
+                }}
+              >
+                DELETE
+                <DeleteOutlined style={{ marginLeft: 8 }} />
+              </span>
+            }
+            key="delete"
+            render={(_, record: User) => (
+              <Tag
+                color="red"
+                onClick={() => showDeleteConfirm(record.id)}
+                style={{ cursor: "pointer" }}
+              >
+                Delete
+              </Tag>
             )}
-          </Table>
-        </UserListStyle>
-      </Content>
-    </Layout>
+          />
+        )}
+      </Table>
+    </UserListStyle>
   );
 };
 

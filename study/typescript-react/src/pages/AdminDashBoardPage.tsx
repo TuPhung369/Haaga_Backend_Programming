@@ -8,7 +8,6 @@ import {
   Col,
   Button,
   Space,
-  Avatar,
   Table,
   Spin,
   notification
@@ -17,7 +16,6 @@ import {
   DashboardOutlined,
   KeyOutlined,
   ReloadOutlined,
-  UserOutlined
 } from "@ant-design/icons";
 import {
   BarChart,
@@ -371,10 +369,6 @@ const AdminDashBoardPage: React.FC = () => {
             {menuItems.find((item) => item.key === selectedMenuItem)?.label}
           </Title>
           <Space>
-            <Avatar
-              icon={<UserOutlined />}
-              style={{ backgroundColor: "#1890ff" }}
-            />
             <Button
               type="text"
               icon={<ReloadOutlined />}
