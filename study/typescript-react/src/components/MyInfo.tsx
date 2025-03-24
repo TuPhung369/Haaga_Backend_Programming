@@ -48,7 +48,7 @@ import VerificationCodeInput from "./VerificationCodeInput";
 import styled from "styled-components";
 import { COLORS } from "../utils/constant";
 import LoadingState from "./LoadingState";
-import TotpManagementComponent from "./TotpManagementComponent";
+import TotpDeviceComponent from "./TotpDeviceComponent";
 
 const { Option } = Select;
 const { Text, Title } = Typography;
@@ -142,16 +142,16 @@ const MyInfoStyle = styled.div`
   }
 
   .section-title .anticon {
-    color: ${COLORS[14]}; /* Blue */
+    color: ${COLORS[12]};
   }
 
   .edit-button {
-    color: ${COLORS[14]}; /* Blue */
+    color: ${COLORS[12]};
   }
 
   .info-item {
     padding: 16px 0;
-    border-bottom: 1px solid ${COLORS[11]}; /* Light gray */
+    border-bottom: 1px solid ${COLORS[11]};
   }
 
   .info-item:last-child {
@@ -161,7 +161,7 @@ const MyInfoStyle = styled.div`
   .info-label {
     font-size: 15px;
     font-weight: 500;
-    color: ${COLORS[10]}; /* Slightly darker gray */
+    color: ${COLORS[12]};
     margin-bottom: 8px;
   }
 
@@ -1212,7 +1212,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
       <>
         <PersonalInfoCard userInfo={userInfo} onEdit={showModalUpdate} />
         <PermissionsCard userInfo={userInfo} />
-        <TotpManagementComponent
+        <TotpDeviceComponent
           onUpdate={onUpdateSuccess}
           totpSecurity={userInfo?.totpSecurity}
         />

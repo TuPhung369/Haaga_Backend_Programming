@@ -1,4 +1,4 @@
-// TotpManagementComponent.tsx
+// TotpDeviceComponent.tsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Card,
@@ -41,6 +41,7 @@ import { RootState } from "../type/types";
 import { handleServiceError } from "../services/baseService";
 import TotpSetupComponent from "./TotpSetupComponent";
 import moment from "moment";
+import { COLORS } from "../utils/constant";
 import LoadingState from "./LoadingState";
 import styled from "styled-components";
 import VerificationCodeInput from "./VerificationCodeInput";
@@ -49,11 +50,20 @@ const { Text, Paragraph, Title } = Typography;
 
 const StyledCard = styled(Card)`
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.3),
+    rgba(58, 123, 213, 0.5)
+  );
   transition: all 0.3s ease;
 
   &:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(0, 105, 148, 0.6)
+    );
     box-shadow: 0 6px 6px rgba(0, 0, 0, 0.15);
   }
 
@@ -75,7 +85,7 @@ const StyledCard = styled(Card)`
     align-items: center;
     font-size: 20px;
     font-weight: 600;
-    color: #1a365d;
+    color: ${COLORS[13]};
 
     .anticon {
       margin-right: 8px;
@@ -98,8 +108,9 @@ const StyledCard = styled(Card)`
     }
 
     .ant-btn-primary {
-      background: #1890ff;
-      border-color: #1890ff;
+      background: ${COLORS[3]};
+      border-color: ${COLORS[3]};
+      color: ${COLORS[13]};
     }
   }
 
@@ -109,35 +120,105 @@ const StyledCard = styled(Card)`
     transition: background 0.3s;
 
     &:hover {
-      background: #fafafa;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.1),
+        rgba(0, 105, 148, 0.6)
+      );
     }
 
     .ant-list-item-meta-title {
       font-size: 16px;
       font-weight: 500;
-      color: #2d3748;
+      color: ${COLORS[13]};
     }
 
     .ant-list-item-meta-description {
       font-size: 14px;
-      color: #718096;
+      color: ${COLORS[12]};
     }
 
     .ant-btn-danger {
-      background: #ff4d4f;
-      border-color: #ff4d4f;
-      color: #fff;
+      background: ${COLORS[3]};
+      border-color: ${COLORS[13]};
+      color: ${COLORS[12]};
     }
   }
 
   .empty-state {
     padding: 32px 0;
     text-align: center;
-    color: #718096;
+    color: ${COLORS[12]};
   }
 `;
+const DeviceCard = styled.div`
+  background: linear-gradient(
+    135deg,
+    rgba(0, 30, 60, 0.9),
+    rgba(0, 60, 90, 0.7)
+  );
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2), 0 0 8px rgba(0, 123, 255, 0.3);
+  padding: 24px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 
-interface TotpManagementComponentProps {
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 12px rgba(0, 123, 255, 0.5);
+  }
+
+  .device-icon {
+    font-size: 48px;
+    color: #e0e0e0;
+    margin-right: 24px;
+    filter: drop-shadow(0 0 4px rgba(0, 123, 255, 0.5));
+  }
+
+  .device-info {
+    flex: 1;
+    color: #ffffff;
+  }
+
+  .device-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+    font-family: "Arial", sans-serif;
+  }
+
+  .device-details {
+    font-size: 14px;
+    color: #b0b0b0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .action-button {
+    background: #ff4444;
+    border: none;
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+    transition: background 0.3s ease, transform 0.3s ease;
+
+    &:hover {
+      background: #ff6666;
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+`;
+interface TotpDeviceComponentProps {
   onUpdate?: () => void;
   totpSecurity?: {
     enabled: boolean;
@@ -146,7 +227,7 @@ interface TotpManagementComponentProps {
   };
 }
 
-const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
+const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
   onUpdate,
   totpSecurity
 }) => {
@@ -162,7 +243,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   const [isTotpEnabled, setIsTotpEnabled] = useState<boolean>(
     totpSecurity?.enabled || false
   );
-
+  const device = devices[0];
   // New state for verification modals
   const [showDeleteVerification, setShowDeleteVerification] =
     useState<boolean>(false);
@@ -181,7 +262,6 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   const { token } = useSelector((state: RootState) => state.auth);
   const { userInfo } = useSelector((state: RootState) => state.user);
   // Add a ref to track initial load
-  const initialLoadRef = useRef<boolean>(true);
 
   // Define a fetchDevices function to be used by multiple methods
   const fetchDevices = useCallback(
@@ -191,76 +271,48 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
       setLoading(true);
       setError(null);
 
-      // Get TOTP status directly from props
-      const isEnabled = totpSecurity?.enabled || false;
-      setIsTotpEnabled(isEnabled);
-
-      // Only fetch devices if TOTP is enabled
-      if (isEnabled) {
-        try {
-          // If forceRefresh is true, we'll bypass session storage checks
-          if (forceRefresh) {
-            sessionStorage.removeItem("totpDevicesFetched");
-          }
-
-          const devicesResponse = await getTotpDevices(token);
-          setDevices(devicesResponse.result || []);
-
-          // Mark as fetched in session storage
-          sessionStorage.setItem("totpDevicesFetched", "true");
-        } catch (error) {
-          handleServiceError(error);
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : "Failed to fetch TOTP devices";
-          setError(errorMessage);
-          notification.error({
-            message: "Error",
-            description: errorMessage
-          });
+      try {
+        if (forceRefresh) {
+          sessionStorage.removeItem("totpDevicesFetched");
         }
-      } else {
-        setDevices([]);
+
+        const devicesResponse = await getTotpDevices(token);
+        console.log("Fetched devices response:", devicesResponse);
+        setDevices(devicesResponse.result || []);
+        console.log("Devices state updated:", devicesResponse.result || []);
+
+        sessionStorage.setItem("totpDevicesFetched", "true");
+      } catch (error) {
+        handleServiceError(error);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch TOTP devices";
+        setError(errorMessage);
+        notification.error({
+          message: "Error",
+          description: errorMessage
+        });
+        console.error("Fetch devices error:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     },
-    [token, totpSecurity, setIsTotpEnabled, setDevices, setLoading, setError]
+    [token]
   );
 
   // Update state when props change and fetch devices if needed
   useEffect(() => {
-    // Set TOTP status from props (Redux store)
     const isEnabled = totpSecurity?.enabled || false;
     setIsTotpEnabled(isEnabled);
+    console.log("totpSecurity received:", totpSecurity);
 
-    // Check if TOTP status has changed
-    const previousTotpStatus = sessionStorage.getItem("totpEnabled");
-    if (
-      previousTotpStatus !== null &&
-      previousTotpStatus !== String(isEnabled)
-    ) {
-      // If TOTP status changed, clear the fetched flag to force a refresh
-      sessionStorage.removeItem("totpDevicesFetched");
-    }
-    // Store current TOTP status for future comparison
-    sessionStorage.setItem("totpEnabled", String(isEnabled));
-
-    // Only fetch devices on specific conditions:
-    // 1. When it's the initial load
-    // 2. When TOTP is enabled and we haven't fetched yet
-    const hasFetchedThisSession =
-      sessionStorage.getItem("totpDevicesFetched") === "true";
-
-    if (initialLoadRef.current && isEnabled && !hasFetchedThisSession) {
+    if (isEnabled) {
       fetchDevices();
-      initialLoadRef.current = false;
     } else {
-      // If TOTP is disabled, ensure the devices list is empty
-      if (!isEnabled) {
-        setDevices([]);
-      }
+      setDevices([]);
       setLoading(false);
+      console.log("TOTP disabled, devices cleared");
     }
   }, [totpSecurity, fetchDevices]);
 
@@ -782,8 +834,8 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
                 />
               )}
 
-              <Paragraph style={{ fontSize: 14, color: "#666" }}>
-                Enhance security with a second verification step. Only one
+              <Paragraph style={{ fontSize: 14, color: COLORS[12] }}>
+                Increase security with a second verification step. Only one
                 device can be registered at a time.
               </Paragraph>
 
@@ -794,7 +846,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
                     onClick={handleRegenerateBackupCodes}
                     loading={regeneratingCodes}
                   >
-                    Regenerate Codes
+                    Regenerate Backup Codes
                   </Button>
                 )}
                 <Button
@@ -803,7 +855,7 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
                   onClick={handleAddDevice}
                   disabled={isTotpEnabled}
                 >
-                  {isTotpEnabled ? "Device Already Active" : "Add Device"}
+                  {isTotpEnabled ? "Device Already Activated" : "Add Device"}
                 </Button>
                 {isTotpEnabled && (
                   <Button
@@ -816,66 +868,77 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
                 )}
               </Space>
 
-              <Divider orientation="left" style={{ margin: "16px 0" }}>
-                Authenticator Devices
-              </Divider>
-
-              {devices.length === 0 ? (
+              {isTotpEnabled && device ? (
+                <DeviceCard>
+                  <MobileOutlined className="device-icon" />
+                  <div className="device-info">
+                    <div className="device-title">{device.deviceName}</div>
+                    <div className="device-details">
+                      <Text type="secondary" style={{ color: "#b0b0b0" }}>
+                        <ClockCircleOutlined />{" "}
+                        {(() => {
+                          if (Array.isArray(device.createdAt)) {
+                            if (device.createdAt.length < 3) {
+                              return "Ngày không hợp lệ";
+                            }
+                            const [
+                              year,
+                              month,
+                              day,
+                              hour = 0,
+                              minute = 0,
+                              second = 0,
+                              ms = 0
+                            ] = device.createdAt;
+                            const milliseconds = Number(String(ms).slice(0, 3));
+                            const date = new Date(
+                              year,
+                              month - 1, // tháng bắt đầu từ 0
+                              day,
+                              hour,
+                              minute,
+                              second,
+                              milliseconds
+                            );
+                            return moment(date).format("MMM DD, YYYY");
+                          }
+                          return moment(device.createdAt).format(
+                            "MMM DD, YYYY"
+                          );
+                        })()}
+                      </Text>
+                      <Tag color={device.active ? "success" : "error"}>
+                        {device.active ? "Active" : "Inactive"}
+                      </Tag>
+                    </div>
+                  </div>
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDeleteDevice(device.id)}
+                    loading={deletingDevice === device.id}
+                    className="action-button"
+                    size="small"
+                  >
+                    Delete
+                  </Button>
+                </DeviceCard>
+              ) : (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   className="empty-state"
                   description={
-                    <span>
-                      No devices setup.{" "}
+                    <span style={{ color: COLORS[12] }}>
+                      Chưa có thiết bị nào được thiết lập.{" "}
                       <Button
                         type="link"
                         onClick={handleAddDevice}
-                        style={{ padding: 0 }}
+                        style={{ padding: 0, color: COLORS[2] }}
                       >
-                        Add now
+                        Thêm ngay
                       </Button>
                     </span>
                   }
-                />
-              ) : (
-                <List
-                  className="device-list"
-                  dataSource={devices}
-                  renderItem={(device) => (
-                    <List.Item
-                      actions={[
-                        <Button
-                          danger
-                          icon={<DeleteOutlined />}
-                          onClick={() => handleDeleteDevice(device.id)}
-                          loading={deletingDevice === device.id}
-                          size="small"
-                        >
-                          Remove
-                        </Button>
-                      ]}
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <MobileOutlined
-                            style={{ fontSize: 20, color: "#1890ff" }}
-                          />
-                        }
-                        title={device.deviceName}
-                        description={
-                          <Space direction="vertical" size={2}>
-                            <Text type="secondary">
-                              <ClockCircleOutlined />{" "}
-                              {moment(device.createdAt).format("MMM D, YYYY")}
-                            </Text>
-                            <Tag color={device.active ? "success" : "error"}>
-                              {device.active ? "Active" : "Inactive"}
-                            </Tag>
-                          </Space>
-                        }
-                      />
-                    </List.Item>
-                  )}
                 />
               )}
             </>
@@ -886,4 +949,4 @@ const TotpManagementComponent: React.FC<TotpManagementComponentProps> = ({
   );
 };
 
-export default TotpManagementComponent;
+export default TotpDeviceComponent;

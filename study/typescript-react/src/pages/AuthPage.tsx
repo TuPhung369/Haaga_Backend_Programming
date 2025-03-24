@@ -131,7 +131,6 @@ const AuthPage: React.FC = () => {
     setSplineSceneUrl(
       `https://prod.spline.design/${randomModel}/scene.splinecode`
     );
-    console.log("randomModel", randomModel);
   }, []);
   useEffect(() => {
     if (isAuthenticated && token) {
