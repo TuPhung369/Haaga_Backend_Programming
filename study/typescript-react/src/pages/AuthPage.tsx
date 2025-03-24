@@ -70,11 +70,14 @@ const { Text } = Typography;
 
 const ModelList = [
   "kZDDjO5HuC9GJUM2",
+  "esVFW2MBH1aph2q9",
   "NyQ0ZBDp0dijSlWk",
-  "nOtLYnihQfeOAj-7",
-  "aROe8luBmDcTxkmC"
+  "aROe8luBmDcTxkmC",
+  "wdQtYcf9yU1pcayP",
+  "6TPRZlnxSvkOEA3K",
+  "LjqCyuErUCLpmQBK"
 ];
-
+//const ModelList = ["kZDDjO5HuC9GJUM2", "esVFW2MBH1aph2q9", "LjqCyuErUCLpmQBK"];
 const AuthPage: React.FC = () => {
   const [splineSceneUrl, setSplineSceneUrl] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
@@ -548,8 +551,10 @@ const AuthPage: React.FC = () => {
                         scene={splineSceneUrl}
                         className={`spline-robot ${
                           selectedModel === ModelList[0]
-                            ? "model-robot"
-                            : "model-other"
+                            ? "black-robot"
+                            : selectedModel === ModelList[1]
+                            ? "white-robot"
+                            : "other-robot"
                         }`}
                       />
                     </div>
@@ -869,8 +874,10 @@ const AuthPage: React.FC = () => {
                         scene={splineSceneUrl}
                         className={`spline-robot ${
                           selectedModel === ModelList[0]
-                            ? "model-robot"
-                            : "model-other"
+                            ? "black-robot"
+                            : selectedModel === ModelList[1]
+                            ? "white-robot"
+                            : "other-robot"
                         }`}
                       />
                     </div>
