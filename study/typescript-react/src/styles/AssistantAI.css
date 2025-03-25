@@ -188,7 +188,7 @@
 .message-input {
   background-color: #fff !important;
   flex: 1;
-  border-radius: 24px;
+  border-radius: 24px 0 0 24px;
   margin-right: 12px;
   border: none !important;
   color: #1e293b !important;
@@ -205,7 +205,7 @@
   color: #1e293b !important;
   background-color: #fff !important;
   border: 2px solid #e2e8f0 !important;
-  border-radius: 24px;
+  border-radius: 24px 0 0 24px;
 }
 
 .message-input .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
@@ -216,41 +216,9 @@
   border-color: #1890ff;
 }
 
-/* Scroll down button */
-.scroll-down-button {
-  position: absolute;
-  right: 10px !important;
-  top: 10px !important;
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 0 !important;
-  border-radius: 50% !important;
-  background: linear-gradient(135deg, #ffffff 0%, #e5e7eb 100%) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  transition: transform 0.2s ease, opacity 0.3s ease !important;
-  z-index: 10 !important;
-}
-
-.scroll-down-button:hover {
-  transform: scale(1.1) !important;
-  background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%) !important;
-}
-
-.scroll-down-button svg {
-  color: #1890ff !important;
-  font-size: 24px !important;
-}
-
 /* Send button */
 .send-button {
-  border-radius: 24px !important;
-  margin-top: 10px !important;
-  margin-left: 15px !important;
-  width: 100px !important;
-  height: 40px !important;
+  border-radius: 0 24px 24px 0 !important;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
@@ -272,6 +240,44 @@
   background: #d1d5db !important;
   color: #a8a8a8 !important;
   box-shadow: none !important;
+}
+
+/* Scroll down button */
+.scroll-down-button {
+  position: fixed !important;
+  bottom: 120px !important; 
+  right: 30px !important;
+  z-index: 999 !important;
+  opacity: 0.8 !important;
+  background-color: #5b5c5d !important;
+  color: white !important;
+  border: none !important;
+  width: 50px !important;
+  height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  border-radius: 50% !important;
+  box-shadow: 0px 3px 5px -1px rgba(0,0,0,0.2), 
+              0px 6px 10px 0px rgba(0,0,0,0.14), 
+              0px 1px 18px 0px rgba(0,0,0,0.12) !important;
+  & .MuiSvgIcon-root {
+    color: #ffffff !important;
+    font-size: 36px !important;
+    font-weight: 400 !important;
+    
+  }
+}
+
+.scroll-down-button:hover {
+  opacity: 1 !important;
+  background-color: #616161 !important;
+}
+
+.scroll-down-button svg {
+  color: #1890ff !important;
+  font-size: 24px !important;
 }
 
 /* Markdown styles */

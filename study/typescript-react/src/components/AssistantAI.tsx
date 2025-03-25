@@ -5,9 +5,11 @@ import {
   Paper,
   Box,
   CircularProgress,
-  Typography
+  Typography,
+  Fab
 } from "@mui/material";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import { PlayCircleOutlined } from "@mui/icons-material";
+import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -31,9 +33,9 @@ const AssistantAI: React.FC = () => {
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false); // State để hiển thị icon
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null); // Ref cho chat container
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const { token } = useSelector((state: RootState) => state.auth);
   const { userInfo } = useSelector((state: RootState) => state.user);
 
@@ -94,19 +96,32 @@ const AssistantAI: React.FC = () => {
   }, [userInfo?.id, loadChatHistory]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    setShowScrollButton(false); // Ẩn icon khi đã ở dưới cùng
-  };
-
-  // Kiểm tra vị trí cuộn để hiển thị/ẩn icon
-  const handleScroll = () => {
-    const chatContainer = chatContainerRef.current;
-    if (chatContainer) {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 50; // Gần đáy trong 50px
-      setShowScrollButton(!isNearBottom);
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   };
+
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } =
+        chatContainerRef.current;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      setShowScrollButton(isScrolledUp);
+    }
+  };
+
+  useEffect(() => {
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      chatContainer.addEventListener("scroll", handleScroll);
+      return () => chatContainer.removeEventListener("scroll", handleScroll);
+    }
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !userInfo?.id) return;
@@ -202,11 +217,7 @@ const AssistantAI: React.FC = () => {
   return (
     <Box className="root-container">
       <Paper elevation={3} className="chat-card">
-        <Box
-          className="chat-container"
-          ref={chatContainerRef}
-          onScroll={handleScroll}
-        >
+        <Box className="chat-container" ref={chatContainerRef}>
           {Array.isArray(messages) && messages.length === 0 ? (
             <Box className="empty-chat">
               <Typography variant="h6">No messages yet</Typography>
@@ -277,13 +288,17 @@ const AssistantAI: React.FC = () => {
               <div ref={messagesEndRef} />
             </Box>
           )}
-          {showScrollButton && (
-            <Button className="scroll-down-button" onClick={scrollToBottom}>
-              <ArrowDownwardIcon />
-            </Button>
-          )}
         </Box>
-
+        {showScrollButton && (
+          <Fab
+            className="scroll-down-button"
+            color="default"
+            size="large"
+            onClick={scrollToBottom}
+          >
+            <KeyboardArrowDown />
+          </Fab>
+        )}
         <Box className="input-container" style={{ position: "relative" }}>
           <TextField
             fullWidth
@@ -304,13 +319,8 @@ const AssistantAI: React.FC = () => {
             onClick={handleSendMessage}
             disabled={!input.trim() || loading}
           >
-            Send
+            <PlayCircleOutlined fontSize="large" />
           </Button>
-          {showScrollButton && (
-            <Button className="scroll-down-button" onClick={scrollToBottom}>
-              <ArrowDownwardIcon />
-            </Button>
-          )}
         </Box>
       </Paper>
     </Box>
