@@ -61,15 +61,6 @@ const AdminDashBoardPage: React.FC = () => {
 
   const token = useSelector((state: RootState) => state.auth.token || "");
 
-  // Debugging hook to log location changes
-  useEffect(() => {
-    console.log("Location changed:", {
-      pathname: location.pathname,
-      search: location.search,
-      hash: location.hash
-    });
-  }, [location]);
-
   const fetchAnalyticsData = useCallback(async () => {
     if (!token) {
       setError("Authentication token is missing.");
@@ -126,16 +117,9 @@ const AdminDashBoardPage: React.FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const viewFromUrl = urlParams.get("view");
 
-    console.log("Component mounted, URL params:", window.location.search);
-    console.log("View from URL on mount:", viewFromUrl);
-
     // If there's a view parameter in the URL, but it's not in location.search
     // This can happen due to how React Router handles some navigation
     if (viewFromUrl && location.search === "") {
-      console.log(
-        "Detected view in URL but not in location, setting manually:",
-        viewFromUrl
-      );
       setViewParam(viewFromUrl);
 
       // Load the appropriate data based on view parameter
@@ -145,16 +129,13 @@ const AdminDashBoardPage: React.FC = () => {
         fetchTotpRequestsData();
       }
     }
-  }, []); // Empty dependency array = run once on mount
+  }, [fetchAnalyticsData, fetchTotpRequestsData, location.search]); // Empty dependency array = run once on mount
 
   // Update viewParam whenever location.search changes
   useEffect(() => {
     // Extract view parameter from URL search string
     const searchParams = new URLSearchParams(location.search);
     const view = searchParams.get("view") || "dashboard";
-
-    console.log("URLSearchParams extracted:", searchParams.toString());
-    console.log("View parameter detected:", view);
 
     // Update state with the view parameter
     setViewParam(view);
@@ -166,12 +147,6 @@ const AdminDashBoardPage: React.FC = () => {
       fetchTotpRequestsData();
     }
 
-    console.log(
-      "location.search updated:",
-      location.search,
-      "viewParam set to:",
-      view
-    );
   }, [location.search, fetchAnalyticsData, fetchTotpRequestsData]);
 
   const handleStatusChange = async (values: {
@@ -227,6 +202,70 @@ const AdminDashBoardPage: React.FC = () => {
 
   const handleRowDoubleClick = (record: TotpResetRequest) => {
     setSelectedRequest(record);
+
+    // If the request is already processed, just show information
+    if (record.processed) {
+      // Show information modal instead of edit modal
+      Modal.info({
+        title: "Request Details",
+        content: (
+          <div>
+            <p>
+              <strong>User:</strong> {record.username}
+            </p>
+            <p>
+              <strong>Email:</strong> {record.email}
+            </p>
+            <p>
+              <strong>Request Time:</strong>{" "}
+              {Array.isArray(record.requestTime)
+                ? moment(
+                    new Date(
+                      record.requestTime[0],
+                      record.requestTime[1] - 1,
+                      record.requestTime[2],
+                      record.requestTime[3],
+                      record.requestTime[4],
+                      record.requestTime[5]
+                    )
+                  ).format("YYYY-MM-DD HH:mm")
+                : moment(record.requestTime).format("YYYY-MM-DD HH:mm")}
+            </p>
+            <p>
+              <strong>Status:</strong> {record.status}
+            </p>
+            <p>
+              <strong>Processed By:</strong> {record.processedBy || "N/A"}
+            </p>
+            <p>
+              <strong>Processed Time:</strong>{" "}
+              {Array.isArray(record.processedTime)
+                ? moment(
+                    new Date(
+                      record.processedTime[0],
+                      record.processedTime[1] - 1,
+                      record.processedTime[2],
+                      record.processedTime[3],
+                      record.processedTime[4],
+                      record.processedTime[5]
+                    )
+                  ).format("YYYY-MM-DD HH:mm")
+                : record.processedTime
+                ? moment(record.processedTime).format("YYYY-MM-DD HH:mm")
+                : "N/A"}
+            </p>
+            <p>
+              <strong>Notes:</strong> {record.notes || "No notes"}
+            </p>
+          </div>
+        ),
+        onOk() {},
+        width: 500
+      });
+      return;
+    }
+
+    // If not processed, show edit form
     form.setFieldsValue({
       status: record.status,
       notes: record.notes || ""
@@ -263,7 +302,7 @@ const AdminDashBoardPage: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => {
+      render: (status: string, record: TotpResetRequest) => {
         const statusColors: Record<string, string> = {
           PENDING: "#faad14", // Yellow
           APPROVED: "#52c41a", // Green
@@ -274,10 +313,26 @@ const AdminDashBoardPage: React.FC = () => {
           <span
             style={{
               color: statusColors[status] || "#1890ff",
-              fontWeight: "bold"
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center"
             }}
           >
             {status}
+            {record.processed && (
+              <span
+                style={{
+                  marginLeft: "8px",
+                  fontSize: "12px",
+                  backgroundColor: "#f0f0f0",
+                  color: "#888",
+                  padding: "2px 6px",
+                  borderRadius: "10px"
+                }}
+              >
+                Processed
+              </span>
+            )}
           </span>
         );
       }
@@ -287,11 +342,19 @@ const AdminDashBoardPage: React.FC = () => {
       dataIndex: "notes",
       key: "notes",
       ellipsis: true
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_: unknown, record: TotpResetRequest) => (
+        <Button type="link" onClick={() => handleRowDoubleClick(record)}>
+          {record.processed ? "View" : "Edit"}
+        </Button>
+      )
     }
   ];
 
   const renderContent = () => {
-    console.log("Rendering content with viewParam:", viewParam);
     if (loading) {
       return (
         <div style={{ textAlign: "center", padding: "50px 0" }}>
@@ -433,9 +496,6 @@ const AdminDashBoardPage: React.FC = () => {
         );
     }
   };
-
-  console.log("Current location.search:", location.search);
-  console.log("Current viewParam:", viewParam);
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f5f7fa" }}>

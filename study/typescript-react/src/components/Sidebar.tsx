@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Layout, Menu, Button, Avatar } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RootState } from "../type/types";
@@ -241,13 +241,18 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   ];
 
   // Function to check if current path includes a specific route
-  const isPathActive = (path: string) => {
-    if (path.includes("?")) {
-      const [basePath, query] = path.split("?");
-      return location.pathname === basePath && location.search.includes(query);
-    }
-    return location.pathname === path;
-  };
+  const isPathActive = useCallback(
+    (path: string) => {
+      if (path.includes("?")) {
+        const [basePath, query] = path.split("?");
+        return (
+          location.pathname === basePath && location.search.includes(query)
+        );
+      }
+      return location.pathname === path;
+    },
+    [location] // Dependency: location object from useLocation
+  );
 
   // Function to find the active key based on current location
   const findActiveKey = () => {
@@ -286,7 +291,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         }
       }
     }
-  }, [location.pathname, location.search, filteredMenuItems]);
+  }, [filteredMenuItems, isPathActive]);
 
   // Handle menu item click to close submenus
   const handleMenuClick = (key: string) => {
@@ -342,13 +347,9 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
               }
             }),
           onClick: () => {
-            console.log("Navigating to child path:", child.path);
             // Manually parse the URL to extract base path and query params
-            const [basePath, queryParams] = child.path.split("?");
+            const [queryParams] = child.path.split("?");
             if (queryParams) {
-              console.log(
-                `Navigating to ${basePath} with query params: ${queryParams}`
-              );
               // Use direct window.location.href to force a full navigation
               window.location.href = child.path;
             } else {
@@ -482,14 +483,9 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                           key={child.key}
                           className="dock-submenu-item"
                           onClick={() => {
-                            console.log("Dock menu navigating to:", child.path);
                             // Manually parse the URL to extract base path and query params
-                            const [basePath, queryParams] =
-                              child.path.split("?");
+                            const [queryParams] = child.path.split("?");
                             if (queryParams) {
-                              console.log(
-                                `Navigating to ${basePath} with query params: ${queryParams}`
-                              );
                               // Use direct window.location.href to force a full navigation
                               window.location.href = child.path;
                             } else {

@@ -114,9 +114,7 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
               (refreshError as RefreshErrorWithOriginal).originalError?.response
                 ?.status === 401
             ) {
-              console.log(
-                "Refresh token expired or invalid - redirecting to login"
-              );
+
               notification.info({
                 message: "Session Expired",
                 description: "Your session has expired. Please log in again.",
