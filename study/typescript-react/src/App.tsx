@@ -114,7 +114,6 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
               (refreshError as RefreshErrorWithOriginal).originalError?.response
                 ?.status === 401
             ) {
-
               notification.info({
                 message: "Session Expired",
                 description: "Your session has expired. Please log in again.",
@@ -245,6 +244,7 @@ const App: React.FC = () => {
                         path="/adminDashBoard"
                         element={<AdminDashBoardPage />}
                       />
+                      <Route path="*" element={<HomePage />} />
                     </Routes>
                   </MainLayout>
                 </AuthWrapper>

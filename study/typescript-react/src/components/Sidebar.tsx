@@ -327,8 +327,11 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           }
         }),
         onClick: () => {
-          navigate(item.path);
-          handleMenuClick(item.key); // Handle submenu closing
+          // Navigate to the specified path
+          console.log("Navigating to item path:", item.path);
+          // Use window.location.href to force a full page navigation/reload
+          window.location.href = item.path;
+          handleMenuClick(item.key);
         },
         className: item.children ? "admin-submenu" : ""
       };
@@ -347,14 +350,9 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
               }
             }),
           onClick: () => {
-            // Manually parse the URL to extract base path and query params
-            const [queryParams] = child.path.split("?");
-            if (queryParams) {
-              // Use direct window.location.href to force a full navigation
-              window.location.href = child.path;
-            } else {
-              navigate(child.path);
-            }
+            console.log("Navigating to child path:", child.path);
+            // Always use window.location.href for consistent behavior
+            window.location.href = child.path;
             handleMenuClick(child.key);
           },
           className: "admin-submenu-item"
@@ -469,6 +467,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                           ? "dock-item-active"
                           : ""
                       }`}
+                      onClick={() => {
+                        // For parent items with submenu, just toggle the submenu
+                        console.log("Clicked dock parent item:", item.path);
+                      }}
                     >
                       {React.cloneElement(item.icon, {
                         style: {
@@ -483,14 +485,9 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                           key={child.key}
                           className="dock-submenu-item"
                           onClick={() => {
-                            // Manually parse the URL to extract base path and query params
-                            const [queryParams] = child.path.split("?");
-                            if (queryParams) {
-                              // Use direct window.location.href to force a full navigation
-                              window.location.href = child.path;
-                            } else {
-                              navigate(child.path);
-                            }
+                            console.log("Dock menu navigating to:", child.path);
+                            // Always use window.location.href for dock submenu items
+                            window.location.href = child.path;
                           }}
                         >
                           {child.icon ? (
@@ -523,7 +520,11 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                   className={`dock-item ${
                     location.pathname === item.path ? "dock-item-active" : ""
                   }`}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => {
+                    console.log("Navigating from dock to:", item.path);
+                    // Use window.location.href for all navigation to ensure page reloads
+                    window.location.href = item.path;
+                  }}
                 >
                   {React.cloneElement(item.icon, {
                     style: {
