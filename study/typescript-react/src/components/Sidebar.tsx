@@ -317,6 +317,9 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   // Render menu items with support for submenus
   const renderMenuItems = (items: MenuItem[]): AntMenuItem[] => {
     return items.map((item) => {
+      // Special handling for Admin Dashboard parent menu
+      const isAdminDashboard = item.path === "/adminDashBoard";
+
       const menuItem: AntMenuItem = {
         key: item.key,
         label: item.label,
@@ -328,10 +331,14 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         }),
         onClick: () => {
           // Navigate to the specified path
-          console.log("Navigating to item path:", item.path);
-          // Use window.location.href to force a full page navigation/reload
-          window.location.href = item.path;
-          handleMenuClick(item.key);
+          if (isAdminDashboard && item.children) {
+            // For Admin Dashboard, just toggle the submenu and don't navigate
+            handleMenuClick(item.key);
+          } else {
+            // For regular menu items, navigate
+            window.location.href = item.path;
+            handleMenuClick(item.key);
+          }
         },
         className: item.children ? "admin-submenu" : ""
       };
@@ -350,10 +357,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
               }
             }),
           onClick: () => {
-            console.log("Navigating to child path:", child.path);
             // Always use window.location.href for consistent behavior
             window.location.href = child.path;
-            handleMenuClick(child.key);
           },
           className: "admin-submenu-item"
         }));
@@ -469,7 +474,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                       }`}
                       onClick={() => {
                         // For parent items with submenu, just toggle the submenu
-                        console.log("Clicked dock parent item:", item.path);
+                        // If it's Admin Dashboard, don't navigate, just show submenu
+                        if (item.path === "/adminDashBoard") {
+                          // The submenu is already showing in the dock view
+                        } else {
+                          window.location.href = item.path;
+                        }
                       }}
                     >
                       {React.cloneElement(item.icon, {
@@ -485,8 +495,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                           key={child.key}
                           className="dock-submenu-item"
                           onClick={() => {
-                            console.log("Dock menu navigating to:", child.path);
-                            // Always use window.location.href for dock submenu items
+                            // Force full page reload for submenu items
                             window.location.href = child.path;
                           }}
                         >
@@ -521,7 +530,6 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                     location.pathname === item.path ? "dock-item-active" : ""
                   }`}
                   onClick={() => {
-                    console.log("Navigating from dock to:", item.path);
                     // Use window.location.href for all navigation to ensure page reloads
                     window.location.href = item.path;
                   }}
