@@ -321,9 +321,13 @@ export const introspectToken = async (
 // New function to refresh token using cookie
 export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshTokenResponse>> => {
   try {
+    // Import and get a recaptcha token for the refresh request
+    const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
+    const recaptchaToken = getRecaptchaToken();
+
     const response = await apiClient.post<ApiResponse<RefreshTokenResponse>>(
       "/auth/refresh",
-      {},
+      { recaptchaToken },
       {
         withCredentials: true,
         headers: {
@@ -338,6 +342,13 @@ export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshToken
     return response.data;
   } catch (error) {
     console.error("Token refresh error:", error);
+
+    // Check if it's a 500 error, which might be due to missing recaptcha
+    if (error && typeof error === 'object' && 'response' in error &&
+      (error as any).response?.status === 500) {
+      console.log("Server error during refresh, might be related to recaptcha validation");
+    }
+
     throw handleServiceError(error);
   }
 };

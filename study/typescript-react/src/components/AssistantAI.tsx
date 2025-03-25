@@ -7,6 +7,7 @@ import {
   CircularProgress,
   Typography
 } from "@mui/material";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -30,7 +31,9 @@ const AssistantAI: React.FC = () => {
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false); // State để hiển thị icon
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null); // Ref cho chat container
   const { token } = useSelector((state: RootState) => state.auth);
   const { userInfo } = useSelector((state: RootState) => state.user);
 
@@ -41,7 +44,6 @@ const AssistantAI: React.FC = () => {
   const loadChatHistory = useCallback(async () => {
     try {
       setLoading(true);
-
       const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
       const recaptchaToken = getRecaptchaToken();
 
@@ -93,6 +95,17 @@ const AssistantAI: React.FC = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowScrollButton(false); // Ẩn icon khi đã ở dưới cùng
+  };
+
+  // Kiểm tra vị trí cuộn để hiển thị/ẩn icon
+  const handleScroll = () => {
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 50; // Gần đáy trong 50px
+      setShowScrollButton(!isNearBottom);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -165,16 +178,11 @@ const AssistantAI: React.FC = () => {
 
   const parseTimestamp = (timestamp?: number[] | string) => {
     if (!timestamp) return null;
-
-    if (typeof timestamp === "string") {
-      return new Date(timestamp);
-    }
-
+    if (typeof timestamp === "string") return new Date(timestamp);
     if (Array.isArray(timestamp) && timestamp.length >= 6) {
       const [year, month, day, hour, minute, second] = timestamp;
       return new Date(year, month - 1, day, hour, minute, second);
     }
-
     return null;
   };
 
@@ -194,7 +202,11 @@ const AssistantAI: React.FC = () => {
   return (
     <Box className="root-container">
       <Paper elevation={3} className="chat-card">
-        <Box className="chat-container">
+        <Box
+          className="chat-container"
+          ref={chatContainerRef}
+          onScroll={handleScroll}
+        >
           {Array.isArray(messages) && messages.length === 0 ? (
             <Box className="empty-chat">
               <Typography variant="h6">No messages yet</Typography>
@@ -263,7 +275,7 @@ const AssistantAI: React.FC = () => {
           )}
         </Box>
 
-        <Box className="input-container">
+        <Box className="input-container" style={{ position: "relative" }}>
           <TextField
             fullWidth
             multiline
@@ -271,11 +283,12 @@ const AssistantAI: React.FC = () => {
             maxRows={4}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder="Type your message here..."
             variant="outlined"
             disabled={loading}
           />
+
           <Button
             className="send-button"
             variant="contained"
@@ -284,6 +297,11 @@ const AssistantAI: React.FC = () => {
           >
             Send
           </Button>
+          {showScrollButton && (
+            <Button className="scroll-down-button" onClick={scrollToBottom}>
+              <ArrowDownwardIcon />
+            </Button>
+          )}
         </Box>
       </Paper>
     </Box>

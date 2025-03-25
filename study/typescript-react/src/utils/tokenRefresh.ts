@@ -56,19 +56,22 @@ const REFRESH_SAFETY_BUFFER = 10 * 60 * 1000; // 10 minutes in milliseconds
 // Default refresh interval - refresh every 50 minutes if no expiration info
 const DEFAULT_REFRESH_INTERVAL = 50 * 60 * 1000; // 50 minutes
 
-// Shorter retry interval if refresh fails - 1 minute
-const RETRY_AFTER_ERROR = 60 * 1000; // 1 minute
+// Shorter retry interval if refresh fails - gradually increase with backoff
+const INITIAL_RETRY_INTERVAL = 30 * 1000; // 30 seconds
+const MAX_RETRY_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 // Maximum retry attempts before giving up
 const MAX_RETRY_ATTEMPTS = 3;
 
 // Track retry attempts
 let retryAttempts = 0;
+let currentRetryInterval = INITIAL_RETRY_INTERVAL;
 
 type NodeJSTimeout = ReturnType<typeof setTimeout>;
 
 let refreshTimer: NodeJSTimeout | null = null;
 let refreshInProgress = false;
+let isRefreshingForced = false; // Track if this is a manual refresh
 
 /**
  * Sets up automatic token refresh based on token expiration
@@ -106,8 +109,12 @@ export const setupTokenRefresh = (token: string, expiresInMs?: number): void => 
 /**
  * Refreshes the access token using the refresh token cookie
  * Can be called manually to force refresh
+ * @param force If true, marks this as a manual refresh attempt
  */
-export const refreshToken = async (): Promise<boolean> => {
+export const refreshToken = async (force: boolean = false): Promise<boolean> => {
+  // Set force flag
+  isRefreshingForced = force;
+
   // Prevent multiple simultaneous refresh attempts
   if (refreshInProgress) {
     console.log("Token refresh already in progress");
@@ -115,7 +122,7 @@ export const refreshToken = async (): Promise<boolean> => {
   }
 
   refreshInProgress = true;
-  console.log("Starting token refresh process...");
+  console.log(`Starting token refresh process... ${force ? '(FORCED)' : ''}`);
 
   try {
     console.log("Calling refreshTokenFromCookie API...");
@@ -129,6 +136,8 @@ export const refreshToken = async (): Promise<boolean> => {
 
       // Reset retry counter on success
       retryAttempts = 0;
+      currentRetryInterval = INITIAL_RETRY_INTERVAL;
+      isRefreshingForced = false;
 
       // Store the new token
       store.dispatch(
@@ -181,7 +190,22 @@ export const refreshToken = async (): Promise<boolean> => {
       }
 
       if ('response' in error) {
-        console.error("Response data:", (error as { response: { data: unknown } }).response?.data);
+        console.error("Response data:", (error as { response: { data: unknown, status: number } }).response?.data);
+
+        // Check if it's a 500 Internal Server Error
+        const status = (error as any).response?.status;
+        if (status === 500) {
+          console.error("Server error (500) detected during token refresh");
+          // For manual refresh attempts with 500 errors, show a notification
+          if (isRefreshingForced) {
+            notification.error({
+              message: "Server Error",
+              description: "The server encountered an error processing your request. Please try again later.",
+              duration: 5,
+              placement: "bottomRight"
+            });
+          }
+        }
       }
     }
 
@@ -192,8 +216,6 @@ export const refreshToken = async (): Promise<boolean> => {
     if (isAuthError) {
       console.log("Clear authentication error detected. Session expired.");
       handleAuthenticationExpired();
-      refreshInProgress = false;
-      return false;
     } else if (isServerError) {
       console.log("Server error during token refresh, will retry with shorter interval");
       handleRefreshError("Server temporarily unavailable", true);
@@ -201,6 +223,7 @@ export const refreshToken = async (): Promise<boolean> => {
       handleRefreshError("Failed to refresh session");
     }
 
+    isRefreshingForced = false;
     refreshInProgress = false;
     return false;
   }
@@ -235,29 +258,60 @@ const handleRefreshError = (errorMessage: string, isServerError = false): void =
   refreshInProgress = false;
   retryAttempts++;
 
-  // Use a shorter retry time for server errors to recover faster
-  const retryTime = isServerError ? RETRY_AFTER_ERROR / 2 : RETRY_AFTER_ERROR;
+  // If we've exceeded max retries or this is a forced refresh that failed, log user out
+  if (retryAttempts > MAX_RETRY_ATTEMPTS || isRefreshingForced) {
+    // If we're specifically refreshing manually and fail, it's a critical error
+    if (isRefreshingForced) {
+      console.error("Manual token refresh failed after maximum attempts");
+      notification.error({
+        message: "Session Error",
+        description: "Could not refresh your session. Please log in again.",
+        duration: 0
+      });
 
-  if (retryAttempts <= MAX_RETRY_ATTEMPTS) {
-    // Schedule retry
-    console.log(`Scheduling token refresh retry (${retryAttempts}/${MAX_RETRY_ATTEMPTS}) in ${retryTime / 1000} seconds`);
-    refreshTimer = setTimeout(refreshToken, retryTime);
+      // Force logout
+      handleAuthenticationExpired();
+      return;
+    }
 
-    // Show warning notification
-    notification.warning({
-      message: "Session Refresh Warning",
-      description: `${errorMessage}. Retrying in ${retryTime / 1000} seconds...`,
-      duration: 5,
-      placement: "bottomRight"
-    });
-  } else {
-    // Max retries reached, show error notification
-    notification.error({
-      message: "Session Expired",
-      description: "Unable to refresh your session. Please log in again.",
-      duration: 0 // Don't auto-dismiss
-    });
+    console.log(`Token refresh failed after ${retryAttempts} attempts. Logging out.`);
+
+    // Reset variables
+    refreshInProgress = false;
+    retryAttempts = 0;
+    currentRetryInterval = INITIAL_RETRY_INTERVAL;
+
+    // Redirect to login
+    handleAuthenticationExpired();
+    return;
   }
+
+  // Implement exponential backoff for retries
+  const backoffFactor = Math.pow(2, retryAttempts - 1);
+  let retryTime = Math.min(
+    currentRetryInterval * backoffFactor,
+    MAX_RETRY_INTERVAL
+  );
+
+  // Server errors get a slightly shorter retry time to recover faster from temporary issues
+  if (isServerError) {
+    retryTime = Math.max(retryTime / 2, INITIAL_RETRY_INTERVAL);
+  }
+
+  // Update the current retry interval for next time
+  currentRetryInterval = retryTime;
+
+  // Schedule retry
+  console.log(`Scheduling token refresh retry (${retryAttempts}/${MAX_RETRY_ATTEMPTS}) in ${retryTime / 1000} seconds`);
+  refreshTimer = setTimeout(refreshToken, retryTime);
+
+  // Show warning notification
+  notification.warning({
+    message: "Session Refresh Warning",
+    description: `${errorMessage}. Retrying in ${Math.round(retryTime / 1000)} seconds...`,
+    duration: 5,
+    placement: "bottomRight"
+  });
 };
 
 /**

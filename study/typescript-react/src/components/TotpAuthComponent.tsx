@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
 import { motion } from "framer-motion";
-import axios from "axios";
 import { authenticateWithTotpAndCookies } from "../services/authService";
 
 const { Title, Text } = Typography;
@@ -265,8 +264,6 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
         totpCode
       );
 
-      console.log("TOTP authentication response:", result);
-
       if (result && result.result?.token) {
         dispatch(
           setAuthData({
@@ -287,15 +284,49 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
 
       // Handle unexpected response format
       setError("Authentication failed. Please try again.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("TOTP auth error:", error);
 
       let attemptsLeft: number | null = null;
       let accountLocked = false;
       let errorMessage = "Authentication failed";
 
+      // Define type guards to safely handle errors
+      interface ErrorWithResponse {
+        response?: {
+          data?: {
+            message?: string;
+            code?: number;
+            errorCode?: string;
+            metadata?: { remainingAttempts?: number };
+          };
+        };
+      }
+
+      interface ErrorWithMessage {
+        message: string;
+      }
+
+      const isErrorWithResponse = (err: unknown): err is ErrorWithResponse => {
+        return (
+          typeof err === "object" &&
+          err !== null &&
+          "response" in err &&
+          typeof (err as ErrorWithResponse).response === "object"
+        );
+      };
+
+      const isErrorWithMessage = (err: unknown): err is ErrorWithMessage => {
+        return (
+          typeof err === "object" &&
+          err !== null &&
+          "message" in err &&
+          typeof (err as ErrorWithMessage).message === "string"
+        );
+      };
+
       // Check if it's a ServiceError or has response.data
-      if (error.response && error.response.data) {
+      if (isErrorWithResponse(error) && error.response?.data) {
         const responseData = error.response.data;
         console.log("Error response data:", responseData);
 
@@ -323,7 +354,7 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
             accountLocked = true;
           }
         }
-      } else if (error.message) {
+      } else if (isErrorWithMessage(error)) {
         errorMessage = error.message;
         if (
           errorMessage.includes("locked") ||

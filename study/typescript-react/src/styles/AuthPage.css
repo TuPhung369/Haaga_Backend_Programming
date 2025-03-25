@@ -256,7 +256,7 @@
 }
 
 .spline-robot.white-robot {
-  max-width: 1000px !important; /* Prevent it from getting too large */
+  max-width: 1000px !important;
   max-height: 1000px !important;
   filter: brightness(1);
   bottom: -60px;

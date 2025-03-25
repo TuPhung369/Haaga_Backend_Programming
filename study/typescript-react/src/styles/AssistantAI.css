@@ -20,7 +20,6 @@
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-
 /* Chat container */
 .chat-container {
   flex: 1;
@@ -181,6 +180,7 @@
   background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
   border-radius: 0 0 12px 12px;
   box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: relative; /* Để định vị icon */
 }
 
 /* Message input */
@@ -213,6 +213,34 @@
 
 .message-input .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
   border-color: #1890ff;
+}
+
+/* Scroll down button */
+.scroll-down-button {
+  position: absolute;
+  right: -90px !important;
+  bottom: 60px !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 0 !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #ffffff 0%, #e5e7eb 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  transition: transform 0.2s ease, opacity 0.3s ease !important;
+  z-index: 10 !important;
+}
+
+.scroll-down-button:hover {
+  transform: scale(1.1) !important;
+  background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%) !important;
+}
+
+.scroll-down-button svg {
+  color: #1890ff !important;
+  font-size: 24px !important;
 }
 
 /* Send button */

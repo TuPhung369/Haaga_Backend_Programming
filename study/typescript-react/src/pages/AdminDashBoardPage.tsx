@@ -2,21 +2,15 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Typography,
   Layout,
-  Menu,
   Card,
   Row,
   Col,
   Button,
-  Space,
   Table,
   Spin,
   notification
 } from "antd";
-import {
-  DashboardOutlined,
-  KeyOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons";
+import { ReloadOutlined } from "@ant-design/icons";
 import {
   BarChart,
   Bar,
@@ -30,6 +24,7 @@ import { ColumnType } from "antd/es/table";
 import moment from "moment";
 import { useSelector } from "react-redux";
 import { RootState } from "../type/types";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   fetchTotpResetRequests,
   getTotpResetRequestsPerDay,
@@ -67,7 +62,7 @@ class ErrorBoundary extends React.Component<
 }
 
 const { Title, Text } = Typography;
-const { Header, Sider, Content } = Layout;
+const { Content } = Layout;
 
 // State interfaces
 interface AnalyticsData {
@@ -76,8 +71,11 @@ interface AnalyticsData {
 }
 
 const AdminDashBoardPage: React.FC = () => {
-  const [selectedMenuItem, setSelectedMenuItem] = useState<string>("dashboard");
-  const [collapsed, setCollapsed] = useState<boolean>(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const viewParam = searchParams.get("view") || "dashboard";
+
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
   const [totpRequestsData, setTotpRequestsData] = useState<TotpResetRequest[]>(
     []
@@ -87,17 +85,6 @@ const AdminDashBoardPage: React.FC = () => {
 
   // Get token from Redux store
   const token = useSelector((state: RootState) => state.auth.token || "");
-
-  // Menu items for the sidebar
-  const menuItems = [
-    { key: "dashboard", icon: <DashboardOutlined />, label: "Overview" },
-    { key: "totp-requests", icon: <KeyOutlined />, label: "Reset Requests" }
-  ];
-
-  // Handle menu selection
-  const handleMenuSelect = ({ key }: { key: string }) => {
-    setSelectedMenuItem(key);
-  };
 
   // Fetch analytics data (daily TOTP reset requests)
   const fetchAnalyticsData = useCallback(async () => {
@@ -158,14 +145,14 @@ const AdminDashBoardPage: React.FC = () => {
     }
   }, [token]);
 
-  // Fetch data on mount and when menu item changes
+  // Fetch data on mount and when view changes
   useEffect(() => {
-    if (selectedMenuItem === "dashboard") {
+    if (viewParam === "dashboard") {
       fetchAnalyticsData();
-    } else if (selectedMenuItem === "totp-requests") {
+    } else if (viewParam === "totp-requests") {
       fetchTotpRequestsData();
     }
-  }, [selectedMenuItem, token, fetchAnalyticsData, fetchTotpRequestsData]);
+  }, [viewParam, token, fetchAnalyticsData, fetchTotpRequestsData]);
 
   const columns: ColumnType<TotpResetRequest>[] = [
     { title: "User", dataIndex: "username", key: "username" },
@@ -179,7 +166,7 @@ const AdminDashBoardPage: React.FC = () => {
     { title: "Status", dataIndex: "status", key: "status" }
   ];
 
-  // Render content based on selected menu item
+  // Render content based on selected view
   const renderContent = () => {
     if (loading) {
       return (
@@ -199,9 +186,8 @@ const AdminDashBoardPage: React.FC = () => {
             type="primary"
             onClick={() => {
               setLoading(true);
-              if (selectedMenuItem === "dashboard") fetchAnalyticsData();
-              else if (selectedMenuItem === "totp-requests")
-                fetchTotpRequestsData();
+              if (viewParam === "dashboard") fetchAnalyticsData();
+              else if (viewParam === "totp-requests") fetchTotpRequestsData();
             }}
             style={{ marginTop: 16 }}
           >
@@ -211,7 +197,7 @@ const AdminDashBoardPage: React.FC = () => {
       );
     }
 
-    switch (selectedMenuItem) {
+    switch (viewParam) {
       case "dashboard":
         return (
           <div className="dashboard-container">
@@ -219,6 +205,15 @@ const AdminDashBoardPage: React.FC = () => {
               <Col span={24}>
                 <Title level={2} style={{ marginBottom: 8 }}>
                   Overview
+                  <Button
+                    type="text"
+                    icon={<ReloadOutlined />}
+                    onClick={() => {
+                      setLoading(true);
+                      fetchAnalyticsData();
+                    }}
+                    style={{ color: "#1890ff", fontSize: 24, marginLeft: 10 }}
+                  />
                 </Title>
                 <Text type="secondary">
                   Monitor TOTP reset trends and manage activities efficiently.
@@ -272,6 +267,15 @@ const AdminDashBoardPage: React.FC = () => {
               <Col span={24}>
                 <Title level={2} style={{ marginBottom: 8 }}>
                   Reset Requests
+                  <Button
+                    type="text"
+                    icon={<ReloadOutlined />}
+                    onClick={() => {
+                      setLoading(true);
+                      fetchTotpRequestsData();
+                    }}
+                    style={{ color: "#1890ff", fontSize: 24, marginLeft: 10 }}
+                  />
                 </Title>
                 <Text type="secondary">
                   Review and manage TOTP reset requests from users.
@@ -301,11 +305,11 @@ const AdminDashBoardPage: React.FC = () => {
           </div>
         );
       default:
+        // If no valid view is specified, redirect to dashboard view
+        navigate("/adminDashBoard?view=dashboard");
         return (
           <div style={{ textAlign: "center", padding: "50px 0" }}>
-            <Text type="secondary">
-              Select an option from the menu to begin.
-            </Text>
+            <Spin size="large" />
           </div>
         );
     }
@@ -313,91 +317,20 @@ const AdminDashBoardPage: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f5f7fa" }}>
-      {/* Sidebar */}
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={(value) => setCollapsed(value)}
-        width={250}
-        style={{
-          background: "#ffffff",
-          boxShadow: "2px 0 8px rgba(0, 0, 0, 0.05)"
-        }}
-      >
+      {/* Main Content */}
+      <Content style={{ margin: "0", overflow: "auto" }}>
         <div
           style={{
-            height: 64,
-            padding: "16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: collapsed ? "center" : "flex-start",
-            background: "#1890ff",
-            color: "#fff"
-          }}
-        >
-          {!collapsed ? (
-            <Title level={4} style={{ color: "#fff", margin: 0 }}>
-              Admin Panel
-            </Title>
-          ) : (
-            <span style={{ fontSize: 18, fontWeight: 600 }}>AP</span>
-          )}
-        </div>
-        <Menu
-          style={{ borderRight: 0 }}
-          selectedKeys={[selectedMenuItem]}
-          mode="inline"
-          items={menuItems}
-          onSelect={handleMenuSelect}
-          defaultOpenKeys={["dashboard"]}
-        />
-      </Sider>
-
-      {/* Main Content */}
-      <Layout>
-        <Header
-          style={{
+            padding: 24,
             background: "#fff",
-            padding: "0 24px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between"
+            borderRadius: 8,
+            minHeight: "calc(100vh - 112px)",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)"
           }}
         >
-          <Title level={4} style={{ margin: 0, color: "#1890ff" }}>
-            {menuItems.find((item) => item.key === selectedMenuItem)?.label}
-          </Title>
-          <Space>
-            <Button
-              type="text"
-              icon={<ReloadOutlined />}
-              onClick={() => {
-                setLoading(true);
-                if (selectedMenuItem === "dashboard") fetchAnalyticsData();
-                else if (selectedMenuItem === "totp-requests")
-                  fetchTotpRequestsData();
-              }}
-              style={{ color: "#1890ff" }}
-            >
-              Refresh
-            </Button>
-          </Space>
-        </Header>
-        <Content style={{ margin: "24px", overflow: "auto" }}>
-          <div
-            style={{
-              padding: 24,
-              background: "#fff",
-              borderRadius: 8,
-              minHeight: "calc(100vh - 112px)",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)"
-            }}
-          >
-            {renderContent()}
-          </div>
-        </Content>
-      </Layout>
+          {renderContent()}
+        </div>
+      </Content>
 
       {/* Inline CSS for additional styling */}
       <style>{`
@@ -416,27 +349,6 @@ const AdminDashBoardPage: React.FC = () => {
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
 
-        .ant-menu-item {
-          transition: background-color 0.3s, color 0.3s;
-          border-radius: 4px;
-          margin: 4px 8px;
-        }
-
-        .ant-menu-item:hover {
-          background-color: #e6f7ff;
-          color: #1890ff;
-        }
-
-        .ant-menu-item-selected {
-          background-color: #e6f7ff !important;
-          color: #1890ff !important;
-          font-weight: 600;
-        }
-
-        .ant-menu-item-selected::after {
-          border-right: 3px solid #1890ff !important;
-        }
-
         .ant-btn-text:hover {
           background-color: #e6f7ff;
           border-radius: 4px;
@@ -446,17 +358,6 @@ const AdminDashBoardPage: React.FC = () => {
           .dashboard-container,
           .totp-requests-container {
             padding: 0 16px;
-          }
-
-          .ant-layout-sider {
-            position: absolute;
-            z-index: 1000;
-            height: 100vh;
-          }
-
-          .ant-layout-sider-collapsed {
-            width: 0 !important;
-            min-width: 0 !important;
           }
         }
       `}</style>

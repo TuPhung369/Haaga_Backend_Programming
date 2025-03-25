@@ -18,7 +18,8 @@ import {
   SettingOutlined,
   BellOutlined,
   LogoutOutlined,
-  CopyrightOutlined
+  CopyrightOutlined,
+  KeyOutlined
 } from "@ant-design/icons";
 
 import { COLORS } from "../utils/constant";
@@ -27,9 +28,35 @@ import { logoutUserWithCookies } from "../services/authService";
 import { clearTokenRefresh } from "../utils/tokenRefresh";
 import { notification } from "antd";
 import "../styles/Sidebar.css";
-import { DockMenu, DockItem } from "./DockMenu";
 
 const { Sider } = Layout;
+
+// Define types for menu items
+interface MenuItem {
+  key: string;
+  label: string;
+  path: string;
+  icon: React.ReactElement;
+  children?: ChildMenuItem[];
+}
+
+interface ChildMenuItem {
+  key: string;
+  label: string;
+  path: string;
+  icon?: React.ReactElement;
+}
+
+// Type for Ant Design's menu items
+interface AntMenuItem {
+  key: string;
+  label: string;
+  icon?: React.ReactElement;
+  children?: AntMenuItem[];
+  onClick?: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+}
 
 interface SidebarProps {
   defaultSelectedKey?: string;
@@ -130,7 +157,21 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       key: "8",
       label: "Admin Dashboard",
       path: "/adminDashBoard",
-      icon: <DashboardOutlined />
+      icon: <DashboardOutlined />,
+      children: [
+        {
+          key: "8-1",
+          label: "Overview",
+          path: "/adminDashBoard?view=dashboard",
+          icon: <DashboardOutlined />
+        },
+        {
+          key: "8-2",
+          label: "Reset Requests",
+          path: "/adminDashBoard?view=totp-requests",
+          icon: <KeyOutlined />
+        }
+      ]
     },
     {
       key: "9",
@@ -138,7 +179,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       path: "/assistantAI",
       icon: <RobotOutlined />
     }
-  ];
+  ] as MenuItem[];
 
   const filteredMenuItems = menuItems.filter((item) => {
     if (item.path !== "/adminDashBoard") return true;
@@ -197,6 +238,78 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     }
   ];
 
+  // Function to check if current path includes a specific route
+  const isPathActive = (path: string) => {
+    if (path.includes("?")) {
+      const [basePath, query] = path.split("?");
+      return location.pathname === basePath && location.search.includes(query);
+    }
+    return location.pathname === path;
+  };
+
+  // Function to find the active key based on current location
+  const findActiveKey = () => {
+    // First check for exact matches including query parameters
+    for (const item of filteredMenuItems) {
+      if (item.children) {
+        for (const child of item.children) {
+          if (isPathActive(child.path)) {
+            return child.key;
+          }
+        }
+      }
+      if (isPathActive(item.path)) {
+        return item.key;
+      }
+    }
+
+    // If no exact match with query params, check just the pathname
+    const activeItem = filteredMenuItems.find(
+      (item) => item.path === location.pathname
+    );
+    return activeItem?.key || defaultSelectedKey || "1";
+  };
+
+  // Render menu items with support for submenus
+  const renderMenuItems = (items: MenuItem[]): AntMenuItem[] => {
+    return items.map((item) => {
+      // Base item structure
+      const menuItem: AntMenuItem = {
+        key: item.key,
+        label: item.label,
+        icon: React.cloneElement(item.icon, {
+          style: {
+            color: COLORS[parseInt(item.key) % COLORS.length],
+            fontSize: "24px"
+          }
+        }),
+        onClick: () => navigate(item.path),
+        className: item.children ? "admin-submenu" : ""
+      };
+
+      // If item has children, add them as submenu items
+      if (item.children) {
+        menuItem.children = item.children.map((child) => ({
+          key: child.key,
+          label: child.label,
+          icon:
+            child.icon &&
+            React.cloneElement(child.icon || item.icon, {
+              style: {
+                color:
+                  COLORS[parseInt(child.key.split("-")[1]) % COLORS.length],
+                fontSize: "24px"
+              }
+            }),
+          onClick: () => navigate(child.path),
+          className: "admin-submenu-item"
+        }));
+      }
+
+      return menuItem;
+    });
+  };
+
   return (
     <Sider
       width={250}
@@ -246,26 +359,9 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             className="main-menu"
             mode="inline"
             theme="dark"
-            selectedKeys={[
-              filteredMenuItems.find((item) => item.path === location.pathname)
-                ?.key ||
-                defaultSelectedKey ||
-                "1"
-            ]}
-            items={filteredMenuItems.map(
-              ({ key, label, path, icon }, index) => ({
-                key,
-                label,
-                icon: React.cloneElement(icon, {
-                  style: {
-                    color: COLORS[index % COLORS.length],
-                    fontSize: "24px"
-                  }
-                }),
-                onClick: () => navigate(path),
-                style: { color: "#ffffff" }
-              })
-            )}
+            selectedKeys={[findActiveKey()]}
+            defaultOpenKeys={["8"]} // Always open Admin Dashboard submenu
+            items={renderMenuItems(filteredMenuItems)}
           />
 
           <Menu
@@ -297,38 +393,98 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       )}
 
       {/* Dock Menu - visible only when collapsed */}
-      <div className="sidebar-dock-container">
+      <div
+        className="sidebar-dock-container"
+        style={{ display: collapsed ? "block" : "none" }}
+      >
         <div className="main-dock-container">
-          <DockMenu magnification={56} distance={100}>
-            {filteredMenuItems.map(({ key, label, path, icon }, index) => (
-              <DockItem
-                key={key}
-                tooltip={label}
-                onClick={() => navigate(path)}
-                className={location.pathname === path ? "dock-item-active" : ""}
-              >
-                {React.cloneElement(icon, {
-                  style: {
-                    color: COLORS[index % COLORS.length]
-                  }
-                })}
-              </DockItem>
-            ))}
-          </DockMenu>
+          <div className="dock-menu">
+            {filteredMenuItems.map((item, index) => {
+              // Check if item has children for submenu
+              if (item.children) {
+                return (
+                  <div key={item.key} className="dock-submenu-container">
+                    <div
+                      className={`dock-item ${
+                        location.pathname === item.path ||
+                        (item.children &&
+                          item.children.some((child: ChildMenuItem) =>
+                            isPathActive(child.path)
+                          ))
+                          ? "dock-item-active"
+                          : ""
+                      }`}
+                    >
+                      {React.cloneElement(item.icon, {
+                        style: {
+                          color: COLORS[index % COLORS.length]
+                        }
+                      })}
+                      <div className="dock-tooltip">{item.label}</div>
+                    </div>
+                    <div className="dock-submenu">
+                      {item.children.map((child: ChildMenuItem) => (
+                        <div
+                          key={child.key}
+                          className="dock-submenu-item"
+                          onClick={() => navigate(child.path)}
+                        >
+                          {child.icon ? (
+                            React.cloneElement(child.icon, {
+                              style: {
+                                marginRight: "8px",
+                                color:
+                                  COLORS[
+                                    parseInt(child.key.split("-")[1]) %
+                                      COLORS.length
+                                  ]
+                              }
+                            })
+                          ) : (
+                            <span
+                              style={{ width: "16px", display: "inline-block" }}
+                            ></span>
+                          )}
+                          {child.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              // Regular menu item without children
+              return (
+                <div
+                  key={item.key}
+                  className={`dock-item ${
+                    location.pathname === item.path ? "dock-item-active" : ""
+                  }`}
+                  onClick={() => navigate(item.path)}
+                >
+                  {React.cloneElement(item.icon, {
+                    style: {
+                      color: COLORS[index % COLORS.length]
+                    }
+                  })}
+                  <div className="dock-tooltip">{item.label}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="bottom-dock-container">
-          <DockMenu magnification={56} distance={100}>
+          <div className="dock-menu">
             {bottomMenuItems.map((item) => (
-              <DockItem
+              <div
                 key={item.key}
-                tooltip={item.tooltip}
-                onClick={item.onClick}
-                className={
+                className={`dock-item ${
                   item.key === "profile" && location.pathname === "/profile"
                     ? "dock-item-active"
                     : ""
-                }
+                }`}
+                onClick={item.onClick}
               >
                 {React.cloneElement(
                   typeof item.icon === "string" ? (
@@ -342,11 +498,29 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                     }
                   }
                 )}
-              </DockItem>
+                <div className="dock-tooltip">{item.tooltip}</div>
+              </div>
             ))}
-          </DockMenu>
+          </div>
         </div>
       </div>
+
+      {/* Remove the duplicate styles since they're now in the CSS file */}
+      <style>{`
+        .ant-card {
+          transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .ant-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .ant-btn-text:hover {
+          background-color: #e6f7ff;
+          border-radius: 4px;
+        }
+      `}</style>
     </Sider>
   );
 };
