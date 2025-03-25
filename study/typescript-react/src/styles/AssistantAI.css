@@ -247,6 +247,8 @@
   position: fixed !important;
   bottom: 120px !important; 
   right: 30px !important;
+  margin-right: 5px !important;
+  margin-bottom: 3px !important;
   z-index: 999 !important;
   opacity: 0.8 !important;
   background-color: #5b5c5d !important;

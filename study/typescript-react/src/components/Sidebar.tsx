@@ -272,18 +272,36 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     return activeItem?.key || defaultSelectedKey || "1";
   };
 
+  // Find which submenu should be open based on current path
+  useEffect(() => {
+    // Check if we're on a page that has a submenu
+    for (const item of filteredMenuItems) {
+      if (item.children) {
+        for (const child of item.children) {
+          if (isPathActive(child.path)) {
+            // If we're on a page with a submenu item active, open its parent menu
+            setOpenKeys([item.key]);
+            return;
+          }
+        }
+      }
+    }
+  }, [location.pathname, location.search, filteredMenuItems]);
+
   // Handle menu item click to close submenus
   const handleMenuClick = (key: string) => {
     // Check if the clicked item is a submenu item (e.g., "8-1", "8-2")
     const isSubmenuItem = key.includes("-");
+
     if (!isSubmenuItem) {
-      // If the clicked item is a top-level item (e.g., "7" for Kanban), close all submenus
-      setOpenKeys([]);
-    } else {
-      // If the clicked item is a submenu item, keep its parent submenu open
-      const parentKey = key.split("-")[0]; // e.g., "8" for "8-1"
-      setOpenKeys([parentKey]);
+      // If clicked on a parent item, toggle its submenu
+      if (openKeys.includes(key)) {
+        setOpenKeys(openKeys.filter((k) => k !== key));
+      } else {
+        setOpenKeys([key]);
+      }
     }
+    // Don't reset openKeys when clicking a submenu item
   };
 
   // Handle submenu open/close events
@@ -324,8 +342,19 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
               }
             }),
           onClick: () => {
-            navigate(child.path);
-            handleMenuClick(child.key); // Handle submenu closing
+            console.log("Navigating to child path:", child.path);
+            // Manually parse the URL to extract base path and query params
+            const [basePath, queryParams] = child.path.split("?");
+            if (queryParams) {
+              console.log(
+                `Navigating to ${basePath} with query params: ${queryParams}`
+              );
+              // Use direct window.location.href to force a full navigation
+              window.location.href = child.path;
+            } else {
+              navigate(child.path);
+            }
+            handleMenuClick(child.key);
           },
           className: "admin-submenu-item"
         }));
@@ -452,7 +481,21 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                         <div
                           key={child.key}
                           className="dock-submenu-item"
-                          onClick={() => navigate(child.path)}
+                          onClick={() => {
+                            console.log("Dock menu navigating to:", child.path);
+                            // Manually parse the URL to extract base path and query params
+                            const [basePath, queryParams] =
+                              child.path.split("?");
+                            if (queryParams) {
+                              console.log(
+                                `Navigating to ${basePath} with query params: ${queryParams}`
+                              );
+                              // Use direct window.location.href to force a full navigation
+                              window.location.href = child.path;
+                            } else {
+                              navigate(child.path);
+                            }
+                          }}
                         >
                           {child.icon ? (
                             React.cloneElement(child.icon, {
