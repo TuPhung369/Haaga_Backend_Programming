@@ -49,8 +49,9 @@
   padding: 10px 16px;
   border-bottom: 1px solid rgba(187, 143, 143, 0.1);
   background: transparent;
+}
 
-  &.sidebar-header-collapsed {
+.sidebar-header-collapsed {
     justify-content: center;
     align-items: center;
     display: flex;
@@ -58,8 +59,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     background: transparent;
   }
-}
-
+  
 .sidebar-header-title {
   font-weight: bold;
   font-size: 24px;
@@ -73,15 +73,13 @@
   &:hover {
     color: var(--primary-color);
   }
-
-  &.sidebar-header-title-collapsed {
+}
+.sidebar-header-title-collapsed {
     width: 0;
     opacity: 0;
     display: none;
     transition: all 0.3s ease;
   }
-}
-
 .sidebar-toggle-button {
   color: var(--white-color) !important;
   transition: all 0.3s ease;
@@ -105,7 +103,8 @@
     justify-content: center;
   }
 
-  &.sidebar-toggle-button-collapsed {
+}
+.sidebar-toggle-button-collapsed {
     color: var(--white-color) !important;
     transition: all 0.3s ease;
     background-color: transparent !important;
@@ -118,8 +117,6 @@
     line-height: 32px;
     width: 100%;
   }
-}
-
 .main-menu {
   overflow: hidden !important;
   background: transparent !important;
@@ -302,7 +299,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 4px 0;
+  margin: 0px 0;
   padding: 8px;
   border-radius: 8px;
   cursor: pointer;
@@ -387,20 +384,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 16px;
   padding-left: 4px;
   font-size: 28px;
 }
 
 .bottom-dock-container {
   position: absolute;
-  bottom: 16px;
+  bottom: 0px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 16px;
   padding-left: 4px;
   font-size: 28px;
 }
@@ -427,7 +422,7 @@
     z-index: 1000;
 
     & .dock-submenu-item {
-      padding: 10px 16px;
+      padding: 0px 0px;
       color: white;
       cursor: pointer;
       transition: background-color 0.3s;

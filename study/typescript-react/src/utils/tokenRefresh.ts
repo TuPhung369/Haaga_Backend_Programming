@@ -126,6 +126,7 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
 
   try {
     console.log("Calling refreshTokenFromCookie API...");
+
     const response: ApiResponse<RefreshTokenResponse> = await refreshTokenFromCookie();
     console.log("API response received:", response ? "Valid response" : "Empty response");
 
@@ -192,9 +193,36 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
       if ('response' in error) {
         console.error("Response data:", (error as { response: { data: unknown, status: number } }).response?.data);
 
-        // Check if it's a 500 Internal Server Error
-        const status = (error as any).response?.status;
-        if (status === 500) {
+        // Specific status code checks
+        interface ErrorWithResponse {
+          response?: {
+            status?: number;
+            data?: unknown;
+          };
+        }
+
+        const errorWithResponse = error as ErrorWithResponse;
+        const status = errorWithResponse.response?.status;
+
+        // 401 Unauthorized - refresh token is expired or invalid
+        if (status === 401) {
+          console.error("401 Unauthorized - Refresh token is expired or invalid");
+
+          // This is a "clean" error - the user needs to log in again
+          notification.info({
+            message: "Session Expired",
+            description: "Your login session has expired. Please log in again.",
+            duration: 5
+          });
+
+          // Go directly to authentication expiry handler
+          handleAuthenticationExpired();
+          refreshInProgress = false;
+          return false;
+        }
+
+        // 500 Internal Server Error - backend issue
+        else if (status === 500) {
           console.error("Server error (500) detected during token refresh");
           // For manual refresh attempts with 500 errors, show a notification
           if (isRefreshingForced) {
@@ -209,12 +237,12 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
       }
     }
 
-    // Check if we should forcefully redirect to login page
+    // More general check if we should forcefully redirect to login page
     const isAuthError = hasStatusCode(error, 401);
     const isServerError = hasStatusCode(error, 500);
 
     if (isAuthError) {
-      console.log("Clear authentication error detected. Session expired.");
+      console.log("Authentication error detected. Session expired.");
       handleAuthenticationExpired();
     } else if (isServerError) {
       console.log("Server error during token refresh, will retry with shorter interval");
@@ -236,10 +264,11 @@ const handleAuthenticationExpired = (): void => {
   refreshInProgress = false;
 
   // Show error notification
-  notification.error({
+  notification.info({
     message: "Session Expired",
-    description: "Your session has expired. Please log in again.",
-    duration: 0 // Don't auto-dismiss
+    description: "Your session has expired. Please log in again to continue using the application.",
+    duration: 0, // Don't auto-dismiss
+    key: "auth-expired-notification"
   });
 
   // Clear all auth data
@@ -247,7 +276,12 @@ const handleAuthenticationExpired = (): void => {
 
   // Redirect to login page after a short delay
   setTimeout(() => {
-    window.location.href = '/login';
+    // If we're already on the login page, just refresh it
+    if (window.location.pathname.includes('/login')) {
+      window.location.reload();
+    } else {
+      window.location.href = '/login';
+    }
   }, 100);
 };
 

@@ -325,8 +325,11 @@ export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshToken
     const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
     const recaptchaToken = getRecaptchaToken();
 
+    // Check if the cookies are available before making the request
+    console.log("Attempting to refresh token using HTTP-only cookies");
+
     const response = await apiClient.post<ApiResponse<RefreshTokenResponse>>(
-      "/auth/refresh",
+      "/auth/refresh/cookie",
       { recaptchaToken },
       {
         withCredentials: true,
@@ -339,14 +342,37 @@ export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshToken
       }
     );
 
+    if (!response.data || !response.data.result?.token) {
+      console.error("Server returned success but no token in response");
+      throw new Error("No token in refresh response");
+    }
+
     return response.data;
   } catch (error) {
     console.error("Token refresh error:", error);
 
-    // Check if it's a 500 error, which might be due to missing recaptcha
-    if (error && typeof error === 'object' && 'response' in error &&
-      (error as any).response?.status === 500) {
-      console.log("Server error during refresh, might be related to recaptcha validation");
+    // Log more details about the error
+    if (error && typeof error === 'object') {
+      if ('response' in error) {
+        interface ErrorWithResponse {
+          response?: {
+            status?: number;
+            data?: unknown;
+          };
+        }
+
+        const errorWithResponse = error as ErrorWithResponse;
+        const status = errorWithResponse.response?.status;
+        const data = errorWithResponse.response?.data;
+
+        if (status === 401) {
+          console.error("401 Unauthorized during token refresh - refresh token cookie is likely expired or invalid");
+          console.error("Response data:", data);
+        } else if (status === 500) {
+          console.error("500 Server error during refresh, might be related to recaptcha validation");
+          console.error("Response data:", data);
+        }
+      }
     }
 
     throw handleServiceError(error);

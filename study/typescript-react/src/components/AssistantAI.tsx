@@ -233,30 +233,34 @@ const AssistantAI: React.FC = () => {
                       ? userInfo?.username || "User"
                       : "AI Assistant"}
                   </Typography>
-                  <ReactMarkdown
-                    rehypePlugins={[rehypeRaw]}
-                    components={{
-                      code({ className, children, ...props }) {
-                        const match = /language-(\w+)/.exec(className || "");
-                        return match ? (
-                          <SyntaxHighlighter
-                            style={vscDarkPlus}
-                            language={match[1]}
-                            PreTag="div"
-                            {...props}
-                          >
-                            {String(children).replace(/\n$/, "")}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
+                  <div className="markdown">
+                    {" "}
+                    {/* Add this div */}
+                    <ReactMarkdown
+                      rehypePlugins={[rehypeRaw]}
+                      components={{
+                        code({ className, children, ...props }) {
+                          const match = /language-(\w+)/.exec(className || "");
+                          return match ? (
+                            <SyntaxHighlighter
+                              style={vscDarkPlus}
+                              language={match[1]}
+                              PreTag="div"
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, "")}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
                   {message.timestamp && (
                     <Typography variant="caption" className="message-timestamp">
                       {formatTimestamp(message.timestamp)}
@@ -272,6 +276,11 @@ const AssistantAI: React.FC = () => {
               )}
               <div ref={messagesEndRef} />
             </Box>
+          )}
+          {showScrollButton && (
+            <Button className="scroll-down-button" onClick={scrollToBottom}>
+              <ArrowDownwardIcon />
+            </Button>
           )}
         </Box>
 

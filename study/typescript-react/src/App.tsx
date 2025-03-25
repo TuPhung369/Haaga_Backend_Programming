@@ -40,6 +40,7 @@ import { resetAllData } from "./store/resetActions";
 import { RootState } from "./type/types";
 import { setupTokenRefresh } from "./utils/tokenRefresh";
 import "./styles/Totp.css";
+import { notification } from "antd";
 
 const { Content } = Layout;
 
@@ -73,8 +74,8 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
               return; // Exit early - no need to refresh
             }
             // If we reach here, token is invalid - fall through to refresh attempt
-          } catch {
-            console.log("Token validation failed, trying refresh...");
+          } catch (error) {
+            console.log("Token validation failed, trying refresh...", error);
             // Continue to refresh attempt
           }
 
@@ -93,8 +94,36 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
               setIsChecking(false);
               return; // Success - exit function
             }
-          } catch (refreshError) {
+          } catch (refreshError: unknown) {
             console.error("Token refresh failed:", refreshError);
+
+            // Define type for error with originalError property
+            interface RefreshErrorWithOriginal {
+              originalError?: {
+                response?: {
+                  status?: number;
+                };
+              };
+            }
+
+            // Special handling for 401 errors (expired/invalid refresh token)
+            if (
+              refreshError &&
+              typeof refreshError === "object" &&
+              // Type guard to check if the error has the expected shape
+              (refreshError as RefreshErrorWithOriginal).originalError?.response
+                ?.status === 401
+            ) {
+              console.log(
+                "Refresh token expired or invalid - redirecting to login"
+              );
+              notification.info({
+                message: "Session Expired",
+                description: "Your session has expired. Please log in again.",
+                key: "session-expired"
+              });
+            }
+
             // Fall through to logout
           }
 

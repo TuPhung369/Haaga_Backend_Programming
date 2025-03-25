@@ -72,6 +72,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   });
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const { userInfo } = useSelector((state: RootState) => state.user);
+  // State to manage open submenus
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -270,10 +272,28 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     return activeItem?.key || defaultSelectedKey || "1";
   };
 
+  // Handle menu item click to close submenus
+  const handleMenuClick = (key: string) => {
+    // Check if the clicked item is a submenu item (e.g., "8-1", "8-2")
+    const isSubmenuItem = key.includes("-");
+    if (!isSubmenuItem) {
+      // If the clicked item is a top-level item (e.g., "7" for Kanban), close all submenus
+      setOpenKeys([]);
+    } else {
+      // If the clicked item is a submenu item, keep its parent submenu open
+      const parentKey = key.split("-")[0]; // e.g., "8" for "8-1"
+      setOpenKeys([parentKey]);
+    }
+  };
+
+  // Handle submenu open/close events
+  const onOpenChange = (keys: string[]) => {
+    setOpenKeys(keys);
+  };
+
   // Render menu items with support for submenus
   const renderMenuItems = (items: MenuItem[]): AntMenuItem[] => {
     return items.map((item) => {
-      // Base item structure
       const menuItem: AntMenuItem = {
         key: item.key,
         label: item.label,
@@ -283,11 +303,13 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             fontSize: "24px"
           }
         }),
-        onClick: () => navigate(item.path),
+        onClick: () => {
+          navigate(item.path);
+          handleMenuClick(item.key); // Handle submenu closing
+        },
         className: item.children ? "admin-submenu" : ""
       };
 
-      // If item has children, add them as submenu items
       if (item.children) {
         menuItem.children = item.children.map((child) => ({
           key: child.key,
@@ -301,7 +323,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                 fontSize: "24px"
               }
             }),
-          onClick: () => navigate(child.path),
+          onClick: () => {
+            navigate(child.path);
+            handleMenuClick(child.key); // Handle submenu closing
+          },
           className: "admin-submenu-item"
         }));
       }
@@ -360,7 +385,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             mode="inline"
             theme="dark"
             selectedKeys={[findActiveKey()]}
-            defaultOpenKeys={["8"]} // Always open Admin Dashboard submenu
+            openKeys={openKeys} // Control open submenus
+            onOpenChange={onOpenChange} // Handle submenu open/close
             items={renderMenuItems(filteredMenuItems)}
           />
 
@@ -400,7 +426,6 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         <div className="main-dock-container">
           <div className="dock-menu">
             {filteredMenuItems.map((item, index) => {
-              // Check if item has children for submenu
               if (item.children) {
                 return (
                   <div key={item.key} className="dock-submenu-container">
@@ -453,7 +478,6 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                 );
               }
 
-              // Regular menu item without children
               return (
                 <div
                   key={item.key}
@@ -505,7 +529,6 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         </div>
       </div>
 
-      {/* Remove the duplicate styles since they're now in the CSS file */}
       <style>{`
         .ant-card {
           transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
