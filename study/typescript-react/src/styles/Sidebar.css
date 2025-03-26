@@ -48,17 +48,14 @@
   padding: 10px 16px;
   border-bottom: 1px solid rgba(187, 143, 143, 0.1);
   background: transparent;
-}
 
-.sidebar-header-collapsed {
+  &.sidebar-header-collapsed {
     justify-content: center;
-    align-items: center;
-    display: flex;
     padding: 10px !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: transparent;
   }
-  
+}
+
 .sidebar-header-title {
   font-weight: bold;
   font-size: 24px;
@@ -71,13 +68,14 @@
   &:hover {
     color: var(--primary-color);
   }
-}
-.sidebar-header-title-collapsed {
+
+  &.sidebar-header-title-collapsed {
     width: 0;
     opacity: 0;
     display: none;
-    transition: all 0.3s ease;
   }
+}
+
 .sidebar-toggle-button {
   color: var(--white-color) !important;
   transition: all 0.3s ease;
@@ -101,27 +99,22 @@
     justify-content: center;
   }
 
-}
-.sidebar-toggle-button-collapsed {
-    color: var(--white-color) !important;
-    transition: all 0.3s ease;
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    line-height: 32px;
+  &.sidebar-toggle-button-collapsed {
     width: 100%;
   }
-.main-menu {
+}
+
+.main-menu,
+.bottom-menu {
   overflow: hidden !important;
   background: transparent !important;
   border-right: none !important;
   transition: width 0.3s ease !important;
 
   & .ant-menu-item {
+    margin-bottom: 0 !important;
+    text-shadow: none !important;
+
     &:hover {
       background-color: rgba(255, 255, 255, 0.1) !important;
       color: var(--hover-color) !important;
@@ -130,27 +123,14 @@
 }
 
 .bottom-menu {
-  overflow: hidden !important;
   padding-top: 10px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-  background: transparent;
-  border-right: none;
   position: absolute;
   bottom: 20px;
-  transition: width 0.3s ease !important;
 
-  & .ant-menu-item {
+  & .ant-menu-item:last-child {
     margin-bottom: 0 !important;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1) !important;
-      color: var(--hover-color) !important;
-    }
-
-    &:last-child {
-      margin-bottom: 0 !important;
-      padding-bottom: 0 !important;
-    }
+    padding-bottom: 0 !important;
   }
 }
 
@@ -162,12 +142,7 @@
       padding: 0 10px !important;
       position: relative;
       background-color: transparent !important;
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        color: var(--hover-color) !important;
-        transition: background-color 0.3s ease, color 0.3s ease;
-      }
+      transition: background-color 0.3s ease, color 0.3s ease;
 
       &.ant-menu-item-selected {
         background-color: rgba(24, 144, 255, 0.2) !important;
@@ -176,20 +151,15 @@
       }
     }
 
-    & .ant-menu-submenu-title {
-      &.ant-menu-submenu-selected {
-        background-color: rgba(24, 144, 255, 0.2) !important;
-        border-right: 5px solid #FFFFFF;
-        color: #ffffff !important;
-      }
+    & .ant-menu-submenu-title.ant-menu-submenu-selected {
+      background-color: rgba(24, 144, 255, 0.2) !important;
+      border-right: 5px solid #FFFFFF;
+      color: #ffffff !important;
     }
   }
 
   &.ant-menu-inline {
-    & .ant-menu-item {
-      transition: all 0.3s ease !important;
-    }
-
+    & .ant-menu-item,
     & .ant-menu-submenu-title {
       transition: all 0.3s ease !important;
     }
@@ -198,7 +168,7 @@
   & .ant-menu-item {
     display: flex;
     align-items: center;
-    margin: 0px 0px 0px 0px !important;
+    margin: 0 !important;
 
     & .ant-menu-title-content {
       font-size: 14px !important;
@@ -209,12 +179,8 @@
       }
     }
 
-    &[key="copyright"] {
-      & .ant-menu-title-content {
-        & div {
-          font-size: 14px !important;
-        }
-      }
+    &[key="copyright"] .ant-menu-title-content div {
+      font-size: 14px !important;
     }
 
     & .anticon {
@@ -223,16 +189,18 @@
   }
 
   & .ant-menu-submenu {
-    padding-left: 0px !important;
+    padding-left: 0 !important;
 
     & .ant-menu-sub {
       & li {
         margin-left: 20px !important;
       }
+
       & .ant-menu-item {
         & .ant-menu-item-icon {
           font-size: 18px !important;
         }
+
         & .ant-menu-title-content {
           font-size: 14px !important;
         }
@@ -253,7 +221,6 @@
 
       &.ant-menu-item-selected {
         color: var(--primary-color) !important;
-        transition: color 0.3s ease !important;
         font-weight: 600 !important;
         padding-left: 10px !important;
       }
@@ -294,7 +261,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0px 0;
+  margin: 0;
   padding: 8px;
   border-radius: 8px;
   cursor: pointer;
@@ -340,7 +307,7 @@
       height: 90%;
       width: 5px;
       background-color: #FFFFFF;
-      border-radius: 0px 10px 10px 0px;
+      border-radius: 0 10px 10px 0;
       transform: translate(10px, -50%);
     }
   }
@@ -384,7 +351,7 @@
 
 .bottom-dock-container {
   position: absolute;
-  bottom: 0px;
+  bottom: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -416,7 +383,7 @@
     z-index: 1000;
 
     & .dock-submenu-item {
-      padding: 0px 0px;
+      padding: 0;
       color: white;
       cursor: pointer;
       transition: background-color 0.3s;
@@ -437,41 +404,30 @@
   }
 }
 
-/* Đảm bảo kiểu chữ đồng nhất cho cả hai menu */
-.main-menu .ant-menu-item .ant-menu-title-content,
-.main-menu .ant-menu-submenu-title .ant-menu-title-content,
-.bottom-menu .ant-menu-item .ant-menu-title-content {
-  font-weight: 600 !important; /* Tăng độ đậm của chữ */
-  color: #ffffff !important;   /* Đảm bảo màu trắng rõ ràng */
-  font-size: 14px !important;  /* Giữ kích thước chữ đồng nhất */
-}
-
-/* Loại bỏ bất kỳ hiệu ứng mờ nào */
 .main-menu .ant-menu-item,
 .main-menu .ant-menu-submenu-title,
 .bottom-menu .ant-menu-item {
-  opacity: 1 !important;       /* Đảm bảo không có mờ */
-  text-shadow: none !important; /* Loại bỏ bóng chữ nếu có */
+  text-shadow: none !important;
 }
 
-/* Đảm bảo nền không ảnh hưởng đến độ tương phản */
-.main-menu,
-.bottom-menu {
-  background: transparent !important; /* Giữ nền trong suốt */
+.main-menu .ant-menu-item .ant-menu-title-content,
+.main-menu .ant-menu-submenu-title .ant-menu-title-content,
+.bottom-menu .ant-menu-item .ant-menu-title-content {
+  font-weight: 400 !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
 }
 
-/* Khi hover, giữ độ đậm đồng nhất */
 .main-menu .ant-menu-item:hover .ant-menu-title-content,
 .main-menu .ant-menu-submenu-title:hover .ant-menu-title-content,
 .bottom-menu .ant-menu-item:hover .ant-menu-title-content {
-  font-weight: 600 !important; /* Giữ độ đậm khi hover */
-  color: var(--hover-color) !important; /* Sử dụng màu hover từ biến */
+  font-weight: 500 !important;
+  color: var(--hover-color) !important;
 }
 
-/* Khi mục được chọn */
 .main-menu .ant-menu-item-selected .ant-menu-title-content,
 .main-menu .ant-menu-submenu-selected .ant-menu-title-content,
 .bottom-menu .ant-menu-item-selected .ant-menu-title-content {
-  font-weight: 600 !important; /* Đảm bảo độ đậm khi được chọn */
-  color: #ffffff !important;   /* Màu trắng rõ ràng */
+  font-weight: 500 !important;
+  color: #ffffff !important;
 }
