@@ -652,7 +652,7 @@
     font-size: 15px !important;
   }
 
-  * Adjust the robot size for smaller screens */
+  /* Adjust the robot size for smaller screens */
   .spline-robot {
     width: 60%;
     height: 60%;
@@ -682,3 +682,82 @@
   }
 }
 
+/* === FIX CHUNG CHO CẢ USERNAME VÀ PASSWORD === */
+/* Áp dụng cho cả 2 input */
+input#username,
+input#password,
+input#username:focus,
+input#password:focus {
+  all: unset !important;
+  margin-top: 7px !important;
+  background: #013364 !important;
+  padding-bottom: 5px !important;
+  width: 100% !important;
+  height: 38px !important;
+  border-radius: 6px !important;
+  color: white !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+  line-height: 1.5 !important;
+}
+
+/* Autofill Chrome */
+input#username:-webkit-autofill,
+input#password:-webkit-autofill {
+  -webkit-text-fill-color: white !important;
+  -webkit-background-clip: text !important;
+  animation: autofill-bg-fix 1ms forwards !important;
+  box-shadow: 0 0 0 1000px #013364 inset !important;
+  border: none !important;
+}
+
+/* Autofill Firefox */
+input#username:-moz-autofill,
+input#password:-moz-autofill {
+  background-color: #013364 !important;
+  border: none !important;
+  -moz-box-shadow: 0 0 0 1000px #013364 inset !important;
+  animation: autofill-bg-fix 1ms forwards !important;
+}
+
+/* Animation chung */
+@keyframes autofill-bg-fix {
+  to { background: #013364 !important; }
+}
+
+
+input#username:focus,
+input#password:focus {
+  box-shadow: 0 0 0 2px rgba(1, 51, 100, 0.5) !important;
+}
+input#username,
+input#password {
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+}
+
+input#username:invalid,
+input#password:invalid {
+  box-shadow: none !important;
+}
+
+/* Fix cho Firefox */
+input#username:-moz-ui-invalid,
+input#password:-moz-ui-invalid {
+  box-shadow: none !important;
+}
+
+/* Fix cho Chrome/Safari */
+input#username:-webkit-autofill:focus,
+input#password:-webkit-autofill:focus {
+  -webkit-box-shadow: 
+    0 0 0 1000px #013364 inset,
+    0 0 0 2px rgba(1, 51, 100, 0.5) !important;
+}
+
+/* Tắt validation message */
+input#username:invalid::placeholder,
+input#password:invalid::placeholder {
+  color: transparent !important;
+}

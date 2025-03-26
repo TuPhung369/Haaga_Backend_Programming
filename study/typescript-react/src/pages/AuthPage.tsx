@@ -72,12 +72,13 @@ const ModelList = [
   "kZDDjO5HuC9GJUM2",
   "esVFW2MBH1aph2q9",
   "NyQ0ZBDp0dijSlWk",
-  "aROe8luBmDcTxkmC",
-  "wdQtYcf9yU1pcayP",
+  "j5ehxuzV3FHCaSfK",
   "6TPRZlnxSvkOEA3K",
-  "LjqCyuErUCLpmQBK"
+  "LjqCyuErUCLpmQBK",
+  "z0TqfH0-FGkgK7No"
 ];
-//const ModelList = ["kZDDjO5HuC9GJUM2", "esVFW2MBH1aph2q9", "LjqCyuErUCLpmQBK"];
+//  const ModelList = ["kZDDjO5HuC9GJUM2", "esVFW2MBH1aph2q9", "j5ehxuzV3FHCaSfK"];
+
 const AuthPage: React.FC = () => {
   const [splineSceneUrl, setSplineSceneUrl] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
@@ -132,6 +133,7 @@ const AuthPage: React.FC = () => {
       `https://prod.spline.design/${randomModel}/scene.splinecode`
     );
   }, []);
+
   useEffect(() => {
     if (isAuthenticated && token) {
       setTimeout(() => navigate("/"), 100);
@@ -727,7 +729,11 @@ const AuthPage: React.FC = () => {
                         }
                       ]}
                     >
-                      <Input prefix={<UserOutlined />} placeholder="Username" />
+                      <Input
+                        prefix={<UserOutlined />}
+                        placeholder="Username"
+                        className="autofill-input"
+                      />
                     </Form.Item>
                     <Form.Item
                       name="password"
@@ -750,6 +756,7 @@ const AuthPage: React.FC = () => {
                       <Input.Password
                         prefix={<LockOutlined />}
                         placeholder="Password"
+                        className="autofill-input"
                       />
                     </Form.Item>
                     {loginError && !isAccountLocked && (
