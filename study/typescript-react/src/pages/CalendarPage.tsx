@@ -14,7 +14,8 @@ import {
   Tooltip,
   Select,
   InputRef,
-  notification
+  notification,
+  message
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import {
@@ -127,7 +128,12 @@ const CalendarPage: React.FC = () => {
   useEffect(() => {
     if (eventDetails.start && (!eventDetails.end || eventDetails.id === "")) {
       const startMoment = moment(eventDetails.start);
-      const endMoment = startMoment.clone().add(30, "minutes");
+      const endMoment = moment(eventDetails.end).isBefore(startMoment)
+        ? startMoment.clone().add(30, "minutes")
+        : moment(eventDetails.end);
+      if (moment(eventDetails.end).isBefore(startMoment)) {
+        message.error("End time cannot be earlier than start time.");
+      }
       setEventDetails((prev) => ({
         ...prev,
         end: endMoment.format("YYYY-MM-DDTHH:mm")
@@ -338,7 +344,12 @@ const CalendarPage: React.FC = () => {
     setIsSaving(true);
 
     const formattedStart = moment(startDate).format("YYYY-MM-DDTHH:mm:ss");
-    const formattedEnd = moment(endDate).format("YYYY-MM-DDTHH:mm:ss");
+    const formattedEnd = moment(endDate).isBefore(startDate)
+      ? moment(startDate)
+          .clone()
+          .add(30, "minutes")
+          .format("YYYY-MM-DDTHH:mm:ss")
+      : moment(endDate).format("YYYY-MM-DDTHH:mm:ss");
     const formattedDate = moment(startDate).format("YYYY-MM-DDTHH:mm:ss");
 
     const newEvent: Omit<CalendarEvent, "id" | "createdAt"> = {
@@ -358,13 +369,13 @@ const CalendarPage: React.FC = () => {
         : []
     };
 
-    console.log("Sending event with times:", {
-      localStart: eventDetails.start,
-      localEnd: eventDetails.end,
-      formattedStart,
-      formattedEnd,
-      timezone: moment().utcOffset() / 60
-    });
+    // console.log("Sending event with times:", {
+    //   localStart: eventDetails.start,
+    //   localEnd: eventDetails.end,
+    //   formattedStart,
+    //   formattedEnd,
+    //   timezone: moment().utcOffset() / 60
+    // });
 
     try {
       if (eventDetails.id) {
@@ -522,10 +533,10 @@ const CalendarPage: React.FC = () => {
               ]
             };
 
-            console.log("Sending new event data:", {
-              newEvent,
-              updatedMasterEvent
-            });
+            // console.log("Sending new event data:", {
+            //   newEvent,
+            //   updatedMasterEvent
+            // });
 
             await createEvent(newEvent, token);
             await updateEvent(masterEvent.id, updatedMasterEvent, token);
@@ -544,7 +555,7 @@ const CalendarPage: React.FC = () => {
               date: newStart
             };
 
-            console.log("Updating series event:", updatedEvent);
+            //console.log("Updating series event:", updatedEvent);
 
             await updateEventSeries(seriesId, updatedEvent, token);
             await fetchAndUpdateEvents();
@@ -562,7 +573,7 @@ const CalendarPage: React.FC = () => {
           date: newStart
         };
 
-        console.log("Updating single event:", updatedEvent);
+        //console.log("Updating single event:", updatedEvent);
 
         await updateEvent(event.id, updatedEvent, token);
         await fetchAndUpdateEvents();
@@ -638,10 +649,10 @@ const CalendarPage: React.FC = () => {
               ]
             };
 
-            console.log("Sending resize event data:", {
-              newException,
-              updatedMasterEvent
-            });
+            // console.log("Sending resize event data:", {
+            //     newException,
+            //     updatedMasterEvent
+            //   });
 
             await createEvent(newException, token);
             await updateEvent(masterEvent.id, updatedMasterEvent, token);
@@ -659,7 +670,7 @@ const CalendarPage: React.FC = () => {
               date: newStart
             };
 
-            console.log("Updating series event (resize):", updatedEvent);
+            //console.log("Updating series event (resize):", updatedEvent);
 
             await updateEventSeries(seriesId, updatedEvent, token);
             await fetchAndUpdateEvents();
@@ -677,7 +688,7 @@ const CalendarPage: React.FC = () => {
           date: newStart
         };
 
-        console.log("Updating single event (resize):", updatedEvent);
+        //console.log("Updating single event (resize):", updatedEvent);
 
         await updateEvent(event.id, updatedEvent, token);
         await fetchAndUpdateEvents();
@@ -855,16 +866,16 @@ const CalendarPage: React.FC = () => {
       if (originalEvent) {
         const startTime = moment(originalEvent.start);
         const endTime = moment(originalEvent.end);
-        let adjustedEnd = endTime;
-        if (endTime.isBefore(startTime)) {
-          adjustedEnd = startTime.clone().add(30, "minutes");
-        }
+        // let adjustedEnd = endTime;
+        // if (endTime.isBefore(startTime)) {
+        //   adjustedEnd = startTime.clone().add(30, "minutes");
+        // }
         setEventDetails({
           id: originalEvent.id,
           seriesId: originalEvent.seriesId || "",
           title: originalEvent.title,
           start: startTime.format("YYYY-MM-DDTHH:mm"),
-          end: adjustedEnd.format("YYYY-MM-DDTHH:mm"),
+          end: endTime.format("YYYY-MM-DDTHH:mm"),
           description: originalEvent.description || "",
           color: originalEvent.color || COLORS[0],
           repeat: originalEvent.repeat || "none"
