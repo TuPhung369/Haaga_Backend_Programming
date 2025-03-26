@@ -15,7 +15,7 @@ import {
 } from "antd";
 import { PlusCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
-import { RoleColor, RoleOption, COLORS } from "../utils/constant";
+import { RoleColor, RoleOption } from "../utils/constant";
 import {
   setUserInfo,
   setRoles,
@@ -25,188 +25,9 @@ import {
 } from "../store/userSlice";
 import type { AxiosError } from "axios";
 import { Role, Permission, RootState, ExtendApiError } from "../type/types";
-import styled from "styled-components";
+import "../styles/RolesPage.css";
 
 const { Option } = Select;
-
-const RolesPageStyle = styled.div`
-  background-color: transparent;
-  border-radius: 12px 12px 12px 12px;
-
-  .section-header {
-    margin-top: 10px;
-    margin-bottom: 0px;
-    border-radius: 12px 12px 12px 12px;
-    transition: all 0.3s ease;
-  }
-
-  .title-container {
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 12px 20px;
-    border-radius: 12px 12px 0px 0px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition: background 0.3s ease;
-  }
-
-  .title-container:hover {
-    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-
-  .section-title {
-    background: none;
-    font-size: 24px;
-    margin: 0;
-    font-weight: 700;
-    color: ${COLORS[12]};
-    letter-spacing: 0.5px;
-    transition: color 0.3s ease;
-  }
-
-  .add-role-icon {
-    cursor: pointer;
-    font-size: 28px;
-    margin-left: 10px;
-    color: ${COLORS[2]};
-    transition: transform 0.3s ease, opacity 0.3s ease, color 0.3s ease;
-
-    &:hover {
-      transform: scale(1.5);
-      color: ${COLORS[3]};
-    }
-  }
-
-  .ant-table {
-    background: ${COLORS[12]};
-    margin-top: -10px;
-    border-radius: 12px 12px 0px 0px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e7eb;
-
-    .ant-table-thead > tr > th {
-      background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
-      color: ${COLORS[12]};
-      font-weight: 600;
-      font-size: 14px;
-      padding: 14px 20px;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      transition: background 0.3s ease;
-    }
-    .anticon {
-      color: ${COLORS[13]};
-    }
-
-    .ant-table-thead > tr > th:hover {
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-    }
-
-    .ant-table-tbody > tr > td {
-      padding: 12px 20px;
-      color: #1f2937;
-      font-size: 15px;
-      border-bottom: 1px solid #e5e7eb;
-      background: #fafafa;
-    }
-
-    .ant-table-tbody > tr:nth-child(even) > td {
-      background: #f9fafb;
-    }
-
-    .ant-table-tbody > tr:hover > td {
-      background: ${COLORS[9]};
-      transition: background 0.3s ease;
-    }
-
-    .ant-tag {
-      margin: 4px 6px 4px 0;
-      padding: 4px 10px;
-      border: none;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 500;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .ant-tag[style*="blue"] {
-      background: #3b82f6;
-      color: ${COLORS[12]};
-      transition: background 0.3s ease;
-      &:hover {
-        background: #2563eb;
-      }
-    }
-
-    .ant-tag[style*="red"] {
-      background: #ef4444;
-      color: ${COLORS[12]};
-      transition: background 0.3s ease;
-      &:hover {
-        background: #dc2626;
-      }
-    }
-
-    .ant-pagination {
-      margin: 16px 0;
-      .ant-pagination-item {
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        a {
-          color: #1f2937;
-        }
-      }
-      .ant-pagination-item-active {
-        background: #3b82f6;
-        border-color: #3b82f6;
-        a {
-          color: ${COLORS[12]};
-        }
-      }
-      .ant-pagination-prev,
-      .ant-pagination-next {
-        border-radius: 8px;
-        .ant-pagination-item-link {
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-        }
-      }
-    }
-
-    @media (max-width: 768px) {
-      .ant-table-thead > tr > th,
-      .ant-table-tbody > tr > td {
-        padding: 8px 12px;
-        font-size: 12px;
-      }
-      .ant-tag {
-        padding: 2px 8px;
-        font-size: 10px;
-      }
-    }
-  }
-
-  /* Style cho delete column title */
-  .delete-column-title {
-    margin-left: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-  }
-
-  .delete-icon {
-    margin-left: 8px;
-  }
-
-  .delete-tag {
-    cursor: pointer;
-  }
-`;
 
 const RolesPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -391,7 +212,7 @@ const RolesPage = () => {
   };
 
   return (
-    <RolesPageStyle>
+    <>
       <div className="section-header">
         <Descriptions
           className="custom-descriptions"
@@ -518,7 +339,7 @@ const RolesPage = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </RolesPageStyle>
+    </>
   );
 };
 
