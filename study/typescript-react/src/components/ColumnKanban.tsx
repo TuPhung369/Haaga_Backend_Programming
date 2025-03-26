@@ -3,10 +3,9 @@ import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
-  useSortable,
+  useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { COLORS } from "../utils/constant";
 import Task from "./TaskCardKanban";
 import { PlusOutlined } from "@ant-design/icons";
 import { Input } from "antd";
@@ -16,7 +15,9 @@ import { hexToRgba, invertColorWithContrast } from "../utils/function";
 interface ColumnProps {
   column: ColumnKanban;
   index: number;
-  width: string;
+  minWidth?: string | number;
+  maxWidth?: string | number;
+  style?: React.CSSProperties; // Added to support background color
   addTask: (columnId: string) => void;
   deleteTask: (columnId: string, taskId: string) => void;
   editColumn: (columnId: string, newTitle: string) => void;
@@ -26,13 +27,14 @@ interface ColumnProps {
 
 const ColumnKanban: React.FC<ColumnProps> = ({
   column,
-  index,
-  width,
+  minWidth = "270px",
+  maxWidth = "600px",
+  style,
   addTask,
   deleteTask,
   editColumn,
   deleteColumn,
-  onEditTask,
+  onEditTask
 }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState(column.title);
@@ -43,25 +45,28 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
     id: column.id,
-    data: { type: "column", columnId: column.id },
+    data: { type: "column", columnId: column.id }
   });
 
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
       id: column.id,
-      data: { type: "column", columnId: column.id },
+      data: { type: "column", columnId: column.id }
     });
 
-  const style = {
+  // Normalize minWidth and maxWidth to ensure they have units
+  const normalizedMinWidth =
+    typeof minWidth === "number" ? `${minWidth}px` : minWidth;
+  const normalizedMaxWidth =
+    typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth;
+
+  const ColumnStyle = {
     transform: CSS.Transform.toString(transform),
     transition,
-    width,
-    minWidth: "250px",
-    maxWidth: "400px",
-    height: "100%",
+    minWidth: normalizedMinWidth,
+    maxWidth: normalizedMaxWidth,
+    height: "100%"
   };
-
-  const columnColor = COLORS[index % COLORS.length];
 
   const handleAddTaskClick = () => {
     addTask(column.id);
@@ -89,13 +94,13 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 
   return (
     <div
-      ref={setNodeRef as React.LegacyRef<HTMLDivElement>} // Explicitly type the ref
-      style={style}
-      className="bg-white rounded-lg shadow-md p-4 flex flex-col flex-shrink-0"
+      ref={setNodeRef as React.LegacyRef<HTMLDivElement>}
+      style={ColumnStyle}
+      className="bg-white rounded-lg shadow-md p-4 flex flex-col flex-1" // Changed flex-shrink-0 to flex-1
     >
       <div
         className="flex justify-between items-center mb-2 p-2 rounded-t-md whitespace-nowrap overflow-hidden text-ellipsis"
-        style={{ backgroundColor: columnColor }}
+        style={style}
       >
         <h2
           {...attributes}
@@ -108,7 +113,11 @@ const ColumnKanban: React.FC<ColumnProps> = ({
             <>
               <span
                 className="mx-1"
-                style={{ color: invertColorWithContrast(columnColor) }}
+                style={{
+                  color: invertColorWithContrast(
+                    style?.backgroundColor as string
+                  )
+                }}
               >
                 {column.tasks.length}
               </span>
@@ -126,9 +135,11 @@ const ColumnKanban: React.FC<ColumnProps> = ({
       </div>
 
       <div
-        ref={setDroppableNodeRef as React.LegacyRef<HTMLDivElement>} // Explicitly type the ref
+        ref={setDroppableNodeRef as React.LegacyRef<HTMLDivElement>}
         className="flex-grow space-y-2 p-2 rounded-b-md overflow-y-auto"
-        style={{ backgroundColor: hexToRgba(columnColor, 0.6) }}
+        style={{
+          backgroundColor: hexToRgba(style?.backgroundColor as string, 0.6)
+        }}
       >
         <SortableContext
           items={column.tasks.map((task) => task.id)}
@@ -158,7 +169,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
               value={newTitle}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setNewTitle(e.target.value)
-              } // Correct type for onChange
+              }
               className="mb-4"
             />
             <div className="flex justify-between">

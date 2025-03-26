@@ -22,15 +22,6 @@
 
     & .sidebar-dock-container {
       display: block;
-
-      & .dock-tooltip {
-        visibility: visible;
-        display: block !important;
-        left: 64px !important;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 9999;
-      }
     }
   }
 
@@ -48,13 +39,16 @@
   padding: 10px 16px;
   border-bottom: 1px solid rgba(187, 143, 143, 0.1);
   background: transparent;
+}
 
-  &.sidebar-header-collapsed {
+.sidebar-header-collapsed {
     justify-content: center;
+    align-items: center;
+    display: flex;
     padding: 10px !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
   }
-}
 
 .sidebar-header-title {
   font-weight: bold;
@@ -68,13 +62,13 @@
   &:hover {
     color: var(--primary-color);
   }
-
-  &.sidebar-header-title-collapsed {
+}
+.sidebar-header-title-collapsed {
     width: 0;
     opacity: 0;
     display: none;
+    transition: all 0.3s ease;
   }
-}
 
 .sidebar-toggle-button {
   color: var(--white-color) !important;
@@ -275,12 +269,16 @@
     transform: scale(1.1);
 
     & .dock-tooltip {
-      display: block;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
     }
   }
 
   & .dock-tooltip {
-    display: none;
+    display: none !important;
+    opacity: 0;
+    visibility: hidden;
     position: absolute;
     left: 64px;
     top: 50%;
@@ -294,6 +292,7 @@
     z-index: 9999;
     pointer-events: none;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: opacity 0.3s, visibility 0.3s;
   }
 
   &.dock-item-active {
@@ -327,11 +326,9 @@
   z-index: 9999;
   pointer-events: none;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  visibility: visible;
-
-  @media (max-width: 768px) {
-    display: none !important;
-  }
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s, visibility 0.3s;
 }
 
 .sidebar-dock-container {
@@ -339,6 +336,7 @@
   height: calc(100vh - 70px);
   overflow: hidden;
   position: relative;
+  z-index: 1000;
 }
 
 .main-dock-container {
@@ -363,10 +361,18 @@
 
 .dock-submenu-container {
   position: relative;
+  z-index: 10001;
 
   &:hover {
     & .dock-submenu {
-      display: block;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      z-index: 10001;
+    }
+    
+    & .dock-item {
+      background-color: rgba(255, 255, 255, 0.1);
     }
   }
 
@@ -375,27 +381,50 @@
     left: 64px;
     top: 0;
     background-color: #1a3478;
-    min-width: 160px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     border-radius: 4px;
     padding: 5px 0;
     display: none;
-    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 10001;
+    transition: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: fadeIn 0.1s ease-in-out forwards;
+
+    &:hover {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
 
     & .dock-submenu-item {
-      padding: 0;
+      padding: 10px 16px;
       color: white;
       cursor: pointer;
       transition: background-color 0.3s;
       display: flex;
       align-items: center;
       white-space: nowrap;
+      font-size: 14px;
 
       &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+      
+      &.dock-submenu-item-active {
+        background-color: rgba(255, 255, 255, 0.15);
+        font-weight: bold;
+        border-left: 3px solid #1890ff;
       }
     }
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .app-logo {
@@ -430,4 +459,14 @@
 .bottom-menu .ant-menu-item-selected .ant-menu-title-content {
   font-weight: 500 !important;
   color: #ffffff !important;
+}
+
+/* Ant Design tooltip overrides */
+.ant-tooltip {
+  z-index: 10000;
+}
+
+.ant-tooltip-inner {
+  font-weight: 500;
+  padding: 6px 12px;
 }

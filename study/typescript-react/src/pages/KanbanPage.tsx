@@ -612,11 +612,6 @@ const KanbanPage: React.FC = () => {
     setSelectedColumnId(null);
   };
 
-  const longestTitleLength = Math.max(
-    ...(columns.length > 0 ? columns.map((col) => col.title.length) : [10])
-  );
-  const columnWidth = `${Math.max(longestTitleLength * 15 + 55, 265)}px`;
-
   if (error && !columns.length) {
     return (
       <div className="kanban-board-container h-screen bg-gray-100 flex flex-col items-center justify-center">
@@ -759,7 +754,7 @@ const KanbanPage: React.FC = () => {
             {boardId ? "Save Board" : "Save Locally"}
           </Button>
         </div>
-        <div className="flex flex-row justify-evenly mt-3 overflow-x-auto w-full h-[calc(100vh-180px)]">
+        <div className="flex flex-row justify-evenly px-3 gap-3 mt-3 overflow-x-auto w-full h-[calc(100vh-180px)]">
           <SortableContext
             items={columns.map((col) => col.id)}
             strategy={verticalListSortingStrategy}
@@ -774,7 +769,9 @@ const KanbanPage: React.FC = () => {
                 editColumn={handleEditColumn}
                 deleteColumn={handleDeleteColumn}
                 onEditTask={handleEditTask}
-                width={columnWidth}
+                style={{
+                  backgroundColor: COLORS[index % COLORS.length]
+                }}
               />
             ))}
           </SortableContext>

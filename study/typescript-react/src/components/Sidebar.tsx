@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Layout, Menu, Button, Avatar } from "antd";
+import { Layout, Menu, Button, Avatar, Tooltip } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RootState } from "../type/types";
 import { useSelector, useDispatch } from "react-redux";
@@ -462,40 +462,68 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             {filteredMenuItems.map((item, index) => {
               if (item.children) {
                 return (
-                  <div key={item.key} className="dock-submenu-container">
-                    <div
-                      className={`dock-item ${
-                        location.pathname === item.path ||
-                        (item.children &&
-                          item.children.some((child: ChildMenuItem) =>
-                            isPathActive(child.path)
-                          ))
-                          ? "dock-item-active"
-                          : ""
-                      }`}
-                      onClick={() => {
-                        // For parent items with submenu, just toggle the submenu
-                        // If it's Admin Dashboard, don't navigate, just show submenu
-                        if (item.path === "/adminDashBoard") {
-                          // The submenu is already showing in the dock view
-                        } else {
-                          window.location.href = item.path;
-                        }
-                      }}
-                    >
-                      {React.cloneElement(item.icon, {
-                        style: {
-                          color: COLORS[index % COLORS.length]
-                        }
-                      })}
-                      <div className="dock-tooltip">{item.label}</div>
-                    </div>
+                  <div
+                    key={item.key}
+                    className="dock-submenu-container"
+                    id={`submenu-container-${item.key}`}
+                  >
+                    <Tooltip title={item.label} placement="right">
+                      <div
+                        className={`dock-item ${
+                          location.pathname === item.path ||
+                          (item.children &&
+                            item.children.some((child: ChildMenuItem) =>
+                              isPathActive(child.path)
+                            ))
+                            ? "dock-item-active"
+                            : ""
+                        }`}
+                        onClick={() => {
+                          // For Admin Dashboard, we don't navigate - just show the submenu
+                          console.log("Clicked dock parent item:", item.path);
+                          if (item.path !== "/adminDashBoard") {
+                            window.location.href = item.path;
+                          }
+                        }}
+                        onMouseEnter={() => {
+                          if (item.path === "/adminDashBoard") {
+                            console.log(
+                              "Hovering on Admin Dashboard item, submenu should appear"
+                            );
+                            // Force show submenu on hover
+                            const submenu = document.querySelector(
+                              `#submenu-container-${item.key} .dock-submenu`
+                            );
+                            if (submenu) {
+                              (submenu as HTMLElement).style.display = "block";
+                              (submenu as HTMLElement).style.opacity = "1";
+                              (submenu as HTMLElement).style.visibility =
+                                "visible";
+                            }
+                          }
+                        }}
+                      >
+                        {React.cloneElement(item.icon, {
+                          style: {
+                            color: COLORS[index % COLORS.length]
+                          }
+                        })}
+                      </div>
+                    </Tooltip>
                     <div className="dock-submenu">
                       {item.children.map((child: ChildMenuItem) => (
                         <div
                           key={child.key}
-                          className="dock-submenu-item"
+                          className={`dock-submenu-item ${
+                            isPathActive(child.path)
+                              ? "dock-submenu-item-active"
+                              : ""
+                          }`}
                           onClick={() => {
+                            console.log(
+                              "Navigating to submenu item:",
+                              child.path
+                            );
                             // Force full page reload for submenu items
                             window.location.href = child.path;
                           }}
@@ -525,23 +553,23 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
               }
 
               return (
-                <div
-                  key={item.key}
-                  className={`dock-item ${
-                    location.pathname === item.path ? "dock-item-active" : ""
-                  }`}
-                  onClick={() => {
-                    // Use window.location.href for all navigation to ensure page reloads
-                    window.location.href = item.path;
-                  }}
-                >
-                  {React.cloneElement(item.icon, {
-                    style: {
-                      color: COLORS[index % COLORS.length]
-                    }
-                  })}
-                  <div className="dock-tooltip">{item.label}</div>
-                </div>
+                <Tooltip key={item.key} title={item.label} placement="right">
+                  <div
+                    className={`dock-item ${
+                      location.pathname === item.path ? "dock-item-active" : ""
+                    }`}
+                    onClick={() => {
+                      // Use window.location.href for all navigation to ensure page reloads
+                      window.location.href = item.path;
+                    }}
+                  >
+                    {React.cloneElement(item.icon, {
+                      style: {
+                        color: COLORS[index % COLORS.length]
+                      }
+                    })}
+                  </div>
+                </Tooltip>
               );
             })}
           </div>
@@ -550,29 +578,29 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         <div className="bottom-dock-container">
           <div className="dock-menu">
             {bottomMenuItems.map((item) => (
-              <div
-                key={item.key}
-                className={`dock-item ${
-                  item.key === "profile" && location.pathname === "/profile"
-                    ? "dock-item-active"
-                    : ""
-                }`}
-                onClick={item.onClick}
-              >
-                {React.cloneElement(
-                  typeof item.icon === "string" ? (
-                    <span>{item.icon}</span>
-                  ) : (
-                    item.icon
-                  ),
-                  {
-                    style: {
-                      ...(item.icon.props?.style || {})
+              <Tooltip key={item.key} title={item.tooltip} placement="right">
+                <div
+                  className={`dock-item ${
+                    item.key === "profile" && location.pathname === "/profile"
+                      ? "dock-item-active"
+                      : ""
+                  }`}
+                  onClick={item.onClick}
+                >
+                  {React.cloneElement(
+                    typeof item.icon === "string" ? (
+                      <span>{item.icon}</span>
+                    ) : (
+                      item.icon
+                    ),
+                    {
+                      style: {
+                        ...(item.icon.props?.style || {})
+                      }
                     }
-                  }
-                )}
-                <div className="dock-tooltip">{item.tooltip}</div>
-              </div>
+                  )}
+                </div>
+              </Tooltip>
             ))}
           </div>
         </div>
