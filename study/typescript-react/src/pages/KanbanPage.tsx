@@ -615,7 +615,7 @@ const KanbanPage: React.FC = () => {
   const longestTitleLength = Math.max(
     ...(columns.length > 0 ? columns.map((col) => col.title.length) : [10])
   );
-  const columnWidth = `${Math.max(longestTitleLength * 15 + 70, 280)}px`;
+  const columnWidth = `${Math.max(longestTitleLength * 15 + 55, 265)}px`;
 
   if (error && !columns.length) {
     return (
@@ -759,7 +759,7 @@ const KanbanPage: React.FC = () => {
             {boardId ? "Save Board" : "Save Locally"}
           </Button>
         </div>
-        <div className="flex flex-row gap-4 p-4 overflow-x-auto w-full h-[calc(100vh-180px)]">
+        <div className="flex flex-row justify-evenly mt-3 overflow-x-auto w-full h-[calc(100vh-180px)]">
           <SortableContext
             items={columns.map((col) => col.id)}
             strategy={verticalListSortingStrategy}
@@ -882,4 +882,3 @@ const KanbanPage: React.FC = () => {
 };
 
 export default KanbanPage;
-

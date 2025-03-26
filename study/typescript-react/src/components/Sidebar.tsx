@@ -195,7 +195,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       tooltip: userInfo?.firstname + " " + userInfo?.lastname,
       icon: (
         <Avatar
-          size={collapsed ? 28 : 24}
+          size={collapsed ? 24 : 20}
           icon={<UserOutlined />}
           style={{
             backgroundColor: COLORS[14],
@@ -326,7 +326,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         icon: React.cloneElement(item.icon, {
           style: {
             color: COLORS[parseInt(item.key) % COLORS.length],
-            fontSize: "24px"
+            fontSize: "20px"
           }
         }),
         onClick: () => {
@@ -353,7 +353,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
               style: {
                 color:
                   COLORS[parseInt(child.key.split("-")[1]) % COLORS.length],
-                fontSize: "24px"
+                fontSize: "20px"
               }
             }),
           onClick: () => {
@@ -418,9 +418,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             mode="inline"
             theme="dark"
             selectedKeys={[findActiveKey()]}
-            openKeys={openKeys} // Control open submenus
-            onOpenChange={onOpenChange} // Handle submenu open/close
+            openKeys={openKeys}
+            onOpenChange={onOpenChange}
             items={renderMenuItems(filteredMenuItems)}
+            style={{ color: "#ffffff" }}
           />
 
           <Menu
@@ -439,7 +440,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                 ),
                 {
                   style: {
-                    fontSize: "24px",
+                    fontSize: "20px",
                     ...(item.icon.props?.style || {})
                   }
                 }

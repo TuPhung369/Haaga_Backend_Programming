@@ -24,7 +24,6 @@
       display: block;
 
       & .dock-tooltip {
-        opacity: 1;
         visibility: visible;
         display: block !important;
         left: 64px !important;
@@ -68,7 +67,6 @@
   white-space: nowrap;
   color: #ffffff;
   font-family: 'Inter', sans-serif;
-  opacity: 1;
 
   &:hover {
     color: var(--primary-color);
@@ -133,7 +131,7 @@
 
 .bottom-menu {
   overflow: hidden !important;
-  padding-top: 20px !important;
+  padding-top: 10px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   background: transparent;
   border-right: none;
@@ -203,7 +201,7 @@
     margin: 0px 0px 0px 0px !important;
 
     & .ant-menu-title-content {
-      font-size: 16px !important;
+      font-size: 14px !important;
       line-height: 20px !important;
 
       & div {
@@ -242,13 +240,11 @@
     }
 
     & .ant-menu-submenu-title {
-      font-size: 16px !important;
+      font-size: 14px !important;
       color: #ffffff !important;
       transition: width 0.3s ease !important;
-      opacity: 0.8 !important;
 
       &:hover {
-        opacity: 1 !important;
         color: var(--primary-color) !important;
         transition: color 0.3s ease !important;
         font-weight: 600 !important;
@@ -256,7 +252,6 @@
       }
 
       &.ant-menu-item-selected {
-        opacity: 1 !important;
         color: var(--primary-color) !important;
         transition: color 0.3s ease !important;
         font-weight: 600 !important;
@@ -365,7 +360,6 @@
   z-index: 9999;
   pointer-events: none;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  opacity: 1;
   visibility: visible;
 
   @media (max-width: 768px) {
@@ -385,7 +379,7 @@
   flex-direction: column;
   align-items: center;
   padding-left: 4px;
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .bottom-dock-container {
@@ -397,7 +391,7 @@
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-left: 4px;
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .dock-submenu-container {
@@ -441,4 +435,43 @@
   @media (max-width: 1000px) {
     display: none !important;
   }
+}
+
+/* Đảm bảo kiểu chữ đồng nhất cho cả hai menu */
+.main-menu .ant-menu-item .ant-menu-title-content,
+.main-menu .ant-menu-submenu-title .ant-menu-title-content,
+.bottom-menu .ant-menu-item .ant-menu-title-content {
+  font-weight: 600 !important; /* Tăng độ đậm của chữ */
+  color: #ffffff !important;   /* Đảm bảo màu trắng rõ ràng */
+  font-size: 14px !important;  /* Giữ kích thước chữ đồng nhất */
+}
+
+/* Loại bỏ bất kỳ hiệu ứng mờ nào */
+.main-menu .ant-menu-item,
+.main-menu .ant-menu-submenu-title,
+.bottom-menu .ant-menu-item {
+  opacity: 1 !important;       /* Đảm bảo không có mờ */
+  text-shadow: none !important; /* Loại bỏ bóng chữ nếu có */
+}
+
+/* Đảm bảo nền không ảnh hưởng đến độ tương phản */
+.main-menu,
+.bottom-menu {
+  background: transparent !important; /* Giữ nền trong suốt */
+}
+
+/* Khi hover, giữ độ đậm đồng nhất */
+.main-menu .ant-menu-item:hover .ant-menu-title-content,
+.main-menu .ant-menu-submenu-title:hover .ant-menu-title-content,
+.bottom-menu .ant-menu-item:hover .ant-menu-title-content {
+  font-weight: 600 !important; /* Giữ độ đậm khi hover */
+  color: var(--hover-color) !important; /* Sử dụng màu hover từ biến */
+}
+
+/* Khi mục được chọn */
+.main-menu .ant-menu-item-selected .ant-menu-title-content,
+.main-menu .ant-menu-submenu-selected .ant-menu-title-content,
+.bottom-menu .ant-menu-item-selected .ant-menu-title-content {
+  font-weight: 600 !important; /* Đảm bảo độ đậm khi được chọn */
+  color: #ffffff !important;   /* Màu trắng rõ ràng */
 }
