@@ -682,9 +682,7 @@
   }
 }
 
-/* === FIX CHUNG CHO CẢ USERNAME VÀ PASSWORD === */
-
-/* Autofill Chrome */
+/* Apply to Chrome, Edge, Safari */
 input#username:-webkit-autofill,
 input#password:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
@@ -692,27 +690,9 @@ input#password:-webkit-autofill {
   -webkit-background-clip: text !important;
   box-shadow: 0 0 0 1000px transparent inset !important;
   border: none !important;
-}
-input#username:-webkit-autofill:focus,
-input#password:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
-  transition: background-color 9999s ease-in-out 0s;
-}
-
-input#username:invalid,
-input#password:invalid {
-  box-shadow: none !important;
-}
-/* Tắt validation message */
-input#username:invalid::placeholder,
-input#password:invalid::placeholder {
-  color: transparent !important;
-}
-
-/* Fix cho Firefox */
-input#username:-moz-ui-invalid,
-input#password:-moz-ui-invalid {
-  box-shadow: none !important;
+  background-color: transparent !important;
+  color: white !important;
+  transition: background-color 5000s ease-in-out 0s; 
 }
 
 /* Autofill Firefox */
@@ -722,4 +702,5 @@ input#password:-moz-autofill {
   border: none !important;
   -moz-box-shadow: 0 0 0 1000px transparent inset !important;
 }
+
 

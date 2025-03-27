@@ -732,6 +732,7 @@ const AuthPage: React.FC = () => {
                       <Input
                         prefix={<UserOutlined />}
                         placeholder="Username"
+                        spellCheck={false}
                         className="autofill-input"
                       />
                     </Form.Item>
