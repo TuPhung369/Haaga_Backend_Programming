@@ -20,9 +20,6 @@
     min-width: 64px !important;
     flex: 0 0 64px !important;
 
-    & .sidebar-dock-container {
-      display: block;
-    }
   }
 
   @media (max-width: 1000px) {
@@ -42,13 +39,13 @@
 }
 
 .sidebar-header-collapsed {
-    justify-content: center;
-    align-items: center;
-    display: flex;
-    padding: 10px !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: transparent;
-  }
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  padding: 10px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+}
 
 .sidebar-header-title {
   font-weight: bold;
@@ -57,18 +54,19 @@
   overflow: hidden;
   white-space: nowrap;
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 
   &:hover {
     color: var(--primary-color);
   }
 }
+
 .sidebar-header-title-collapsed {
-    width: 0;
-    opacity: 0;
-    display: none;
-    transition: all 0.3s ease;
-  }
+  width: 0;
+  opacity: 0;
+  display: none;
+  transition: all 0.3s ease;
+}
 
 .sidebar-toggle-button {
   color: var(--white-color) !important;
@@ -139,15 +137,15 @@
       transition: background-color 0.3s ease, color 0.3s ease;
 
       &.ant-menu-item-selected {
-        background-color: rgba(24, 144, 255, 0.2) !important;
-        border-right: 5px solid #FFFFFF;
+        background-color: rgba(24, 144, 255, 0.1) !important;
+        border-right: 5px solid #ffffff;
         color: #ffffff !important;
       }
     }
 
     & .ant-menu-submenu-title.ant-menu-submenu-selected {
-      background-color: rgba(24, 144, 255, 0.2) !important;
-      border-right: 5px solid #FFFFFF;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border-right: 5px solid #ffffff;
       color: #ffffff !important;
     }
   }
@@ -163,6 +161,7 @@
     display: flex;
     align-items: center;
     margin: 0 !important;
+    width: 100% !important;
 
     & .ant-menu-title-content {
       font-size: 14px !important;
@@ -192,7 +191,7 @@
 
       & .ant-menu-item {
         & .ant-menu-item-icon {
-          font-size: 18px !important;
+          font-size: 20px !important;
         }
 
         & .ant-menu-title-content {
@@ -207,14 +206,14 @@
       transition: width 0.3s ease !important;
 
       &:hover {
-        color: var(--primary-color) !important;
+        color: rgba(255, 255, 255, 0.1)  !important;
         transition: color 0.3s ease !important;
         font-weight: 600 !important;
         padding-left: 10px !important;
       }
 
       &.ant-menu-item-selected {
-        color: var(--primary-color) !important;
+        color: rgba(255, 255, 255, 0.1)  !important;
         font-weight: 600 !important;
         padding-left: 10px !important;
       }
@@ -264,8 +263,9 @@
   overflow: hidden;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.2) !important;
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
 
     & .dock-tooltip {
@@ -276,19 +276,25 @@
   }
 
   &.dock-item-active {
-    background-color: rgba(255, 255, 255, 0.2) !important;
+    background-color: rgba(24, 144, 255, 0.25) !important;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.5);
     position: relative;
     overflow: hidden;
   }
 
   &.dock-item-active::after {
-    content: '';
+    content: "";
     position: absolute;
     width: 100%;
     height: 100%;
     top: 0;
     left: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
     animation: shine 1.5s infinite;
   }
 }
@@ -321,150 +327,16 @@
   transition: opacity 0.3s, visibility 0.3s;
 }
 
-.sidebar-dock-container {
-  display: none;
-  height: calc(100vh - 70px);
-  overflow: hidden;
-  position: relative;
-  z-index: 1000;
-}
 
-.main-dock-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-left: 4px;
-  font-size: 20px;
-}
-
-.bottom-dock-container {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-left: 4px;
-  font-size: 20px;
-}
-
-.dock-submenu-container {
-  position: relative;
-  z-index: 1001;
-}
-
-/* Hiển thị submenu khi hover vào container */
-.dock-submenu-container:hover .dock-submenu {
-  display: block !important; 
-  opacity: 1 !important;
-  visibility: visible !important;
-  transform: translateX(0);
-  z-index: 10003;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-.dock-submenu-container:hover .dock-item {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  transform: scale(1.05);
-  border-radius: 8px;
-}
-
-/* Đảm bảo submenu có z-index cao hơn */
-.dock-submenu {
-  z-index: 1001 !important;
-  transform-origin: left center;
-  animation: scaleIn 0.2s ease-out forwards;
-  position: absolute;
-  left: 64px;
-  top: 0;
-  background-color: rgba(27, 32, 43, 0.95);
-  min-width: 180px;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-  padding: 6px 0;
-  transition: opacity 0.3s, visibility 0.3s;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-}
-
-.dock-submenu::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 20px;
-  width: 0;
-  height: 0;
-  border-top: 8px solid transparent;
-  border-bottom: 8px solid transparent;
-  border-right: 8px solid #1a3478;
-  z-index: 10003;
-}
-
-.dock-submenu-container:hover .dock-submenu {
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.6);
-}
-
-/* Add separator for submenu items */
-.dock-submenu-item:not(:last-child) {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Highlight active item */
-.dock-item.dock-item-active {
-  background-color: rgba(24, 144, 255, 0.15) !important;
-
-  &::after {
-    background-color: #1890ff;
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.7);
   }
-}
-
-.dock-submenu-item {
-  padding: 0px 0px !important;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: all 0.2s ease;
-  border-radius: 4px;
-  margin: 0 5px;
-}
-
-.dock-submenu-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  transform: translateX(5px);
-}
-
-.dock-submenu-item-active {
-  background-color: rgba(24, 144, 255, 0.2) !important;
-  color: white !important;
-  font-weight: 500 !important;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 0 10px rgba(24, 144, 255, 0.3);
-}
-
-.dock-submenu-item-active::before {
-  content: '';
-  position: absolute;
-  width: 3px;
-  height: 100%;
-  background-color: #1890ff;
-  left: 0;
-  top: 0;
-}
-
-/* Animation cho submenu */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* Đảm bảo tooltip không hiển thị khi đang hover submenu */
-.dock-submenu-container:hover .ant-tooltip {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
 }
 
 .app-logo {
@@ -541,18 +413,160 @@
   }
 }
 
-/* Ensure dock submenu is above other content */
-.dock-submenu {
-  z-index: 1001 !important;
+/* New styles for collapsed mode */
+.main-menu-collapsed .ant-menu-item,
+.main-menu-collapsed .ant-menu-submenu-title {
+  padding: 0 16px !important;
+  display: flex;
+  justify-content: center;
 }
 
-@keyframes scaleIn {
-  0% {
-    opacity: 0;
-    transform: scaleX(0.7);
-  }
-  100% {
-    opacity: 1;
-    transform: scaleX(1);
-  }
+.main-menu-collapsed .ant-menu-item-icon,
+.main-menu-collapsed .ant-menu-submenu-title .ant-menu-item-icon,
+.main-menu-collapsed .ant-menu-submenu-title .anticon {
+  margin-right: 0 !important;
+}
+
+.main-menu-collapsed .ant-menu-title-content,
+.main-menu-collapsed .ant-menu-submenu-title .ant-menu-title-content {
+  display: none !important;
+}
+
+.bottom-menu-collapsed .ant-menu-item {
+  padding: 0 16px !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+}
+
+.bottom-menu-collapsed .ant-menu-item-icon,
+.bottom-menu .ant-menu-item .anticon {
+  margin-right: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.bottom-menu-collapsed .ant-menu-item .ant-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-menu .ant-menu-item .ant-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.bottom-menu-collapsed .ant-menu-item .ant-avatar {
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 24px !important;
+}
+
+.bottom-menu-collapsed .ant-menu-item .ant-avatar .anticon {
+  font-size: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Submenu styles (same for both modes) */
+.main-menu .ant-menu-sub {
+  background-color: rgba(27, 32, 43, 0.95) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+  padding: 6px 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.main-menu .ant-menu-sub .ant-menu-item {
+  color: white !important;
+  padding: 0 16px !important;
+  margin: 0 5px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.main-menu .ant-menu-sub .ant-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  transform: translateX(5px) !important;
+}
+
+.main-menu .ant-menu-sub .ant-menu-item-selected,
+.main-menu .ant-menu-sub .ant-menu-item-active {
+  background-color: rgba(24, 144, 255, 0.2) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 10px rgba(24, 144, 255, 0.3) !important;
+}
+
+.main-menu .ant-menu-sub .ant-menu-item-selected::before,
+.main-menu .ant-menu-sub .ant-menu-item-active::before {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 100%;
+  background-color: #1890ff;
+  left: 0;
+  top: 0;
+}
+
+.main-menu .ant-menu-sub .ant-menu-item:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Submenu positioning for collapsed mode */
+.main-menu-collapsed .ant-menu-sub {
+  position: absolute;
+  left: 64px;
+  top: 0;
+  z-index: 1001 !important;
+  transform-origin: left center;
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+.main-menu-collapsed .ant-menu-sub::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 20px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid #1a3478;
+  z-index: 10003;
+}
+
+/* Ensure submenu items have proper padding in both modes */
+.main-menu .ant-menu-sub .ant-menu-item {
+  padding: 8px 16px !important;
+}
+
+/* Hover effect for menu items in collapsed mode */
+.main-menu-collapsed .ant-menu-item:hover,
+.main-menu-collapsed .ant-menu-submenu-title:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-2px) !important;
+}
+
+.bottom-menu-collapsed .ant-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-2px) !important;
+}
+
+.bottom-menu-collapsed .ant-menu-title-content,
+.bottom-menu-collapsed .ant-menu-submenu-title .ant-menu-title-content {
+  display: none !important;
 }
