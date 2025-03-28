@@ -255,18 +255,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0;
-  padding: 8px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 24px;
-  width: 48px;
-  height: 48px;
+  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
 
     & .dock-tooltip {
       display: block !important;
@@ -275,40 +275,30 @@
     }
   }
 
-  & .dock-tooltip {
-    display: none !important;
-    opacity: 0;
-    visibility: hidden;
-    position: absolute;
-    left: 64px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 14px;
-    white-space: nowrap;
-    z-index: 9999;
-    pointer-events: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    transition: opacity 0.3s, visibility 0.3s;
+  &.dock-item-active {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    position: relative;
+    overflow: hidden;
   }
 
-  &.dock-item-active {
-    background-color: transparent !important;
+  &.dock-item-active::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shine 1.5s infinite;
+  }
+}
 
-    &::after {
-      content: "";
-      position: absolute;
-      right: 0;
-      top: 50%;
-      height: 90%;
-      width: 5px;
-      background-color: #FFFFFF;
-      border-radius: 0 10px 10px 0;
-      transform: translate(10px, -50%);
-    }
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
   }
 }
 
@@ -344,7 +334,7 @@
   flex-direction: column;
   align-items: center;
   padding-left: 4px;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .bottom-dock-container {
@@ -356,7 +346,7 @@
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-left: 4px;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .dock-submenu-container {
@@ -371,54 +361,100 @@
   visibility: visible !important;
   transform: translateX(0);
   z-index: 10003;
-  animation: fadeIn 0.2s ease-in-out;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 .dock-submenu-container:hover .dock-item {
   background-color: rgba(255, 255, 255, 0.15) !important;
   transform: scale(1.05);
+  border-radius: 8px;
 }
 
 /* Đảm bảo submenu có z-index cao hơn */
 .dock-submenu {
+  z-index: 1001 !important;
+  transform-origin: left center;
+  animation: scaleIn 0.2s ease-out forwards;
   position: absolute;
   left: 64px;
-  top: -10px;
-  background-color: #1a3478;
+  top: 0;
+  background-color: rgba(27, 32, 43, 0.95);
   min-width: 180px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   border-radius: 8px;
-  padding: 5px 0;
-  display: none;
-  opacity: 0;
-  visibility: hidden;
-  z-index: 10002;
-  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
-  transform: translateX(-10px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  padding: 6px 0;
+  transition: opacity 0.3s, visibility 0.3s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
 }
 
+.dock-submenu::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 20px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid #1a3478;
+  z-index: 10003;
+}
+
+.dock-submenu-container:hover .dock-submenu {
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.6);
+}
+
+/* Add separator for submenu items */
+.dock-submenu-item:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Highlight active item */
+.dock-item.dock-item-active {
+  background-color: rgba(24, 144, 255, 0.15) !important;
+
+  &::after {
+    background-color: #1890ff;
+  }
+}
 
 .dock-submenu-item {
-  padding: 10px 16px;
+  padding: 0px 0px !important;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   border-radius: 4px;
   margin: 0 5px;
 }
 
 .dock-submenu-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(5px);
 }
 
 .dock-submenu-item-active {
-  background-color: rgba(24, 144, 255, 0.2);
-  font-weight: 500;
+  background-color: rgba(24, 144, 255, 0.2) !important;
+  color: white !important;
+  font-weight: 500 !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(24, 144, 255, 0.3);
 }
 
+.dock-submenu-item-active::before {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 100%;
+  background-color: #1890ff;
+  left: 0;
+  top: 0;
+}
+
+/* Animation cho submenu */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateX(-10px); }
   to { opacity: 1; transform: translateX(0); }
@@ -473,4 +509,50 @@
 .ant-tooltip-inner {
   font-weight: 500;
   padding: 6px 12px;
+}
+
+/* Style cho Ant Design Menu */
+.ant-menu-dark.ant-menu-inline .ant-menu-sub.ant-menu-inline {
+  background: rgba(0, 0, 0, 0.15) !important;
+}
+
+.ant-menu-item-selected {
+  background-color: #1890ff !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover,
+.ant-menu-dark .ant-menu-submenu-title:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Menu transitions */
+.main-menu {
+  animation: fadeSlideIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ensure dock submenu is above other content */
+.dock-submenu {
+  z-index: 1001 !important;
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
 }

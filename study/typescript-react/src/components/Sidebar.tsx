@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Layout, Menu, Button, Avatar, Tooltip } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RootState } from "../type/types";
@@ -31,28 +31,12 @@ import "../styles/Sidebar.css";
 
 const { Sider } = Layout;
 
-// Define types for menu items
-interface MenuItem {
+// Define MenuItemWithKey type
+interface MenuItemWithKey {
   key: string;
-  label: string;
-  path: string;
-  icon: React.ReactElement;
-  children?: ChildMenuItem[];
-}
-
-interface ChildMenuItem {
-  key: string;
-  label: string;
-  path: string;
-  icon?: React.ReactElement;
-}
-
-// Type for Ant Design's menu items
-interface AntMenuItem {
-  key: string;
-  label: string;
-  icon?: React.ReactElement;
-  children?: AntMenuItem[];
+  icon?: React.ReactNode;
+  children?: MenuItemWithKey[];
+  label: React.ReactNode;
   onClick?: () => void;
   className?: string;
   style?: React.CSSProperties;
@@ -72,9 +56,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   });
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const { userInfo } = useSelector((state: RootState) => state.user);
-  // State to manage open submenus
+  // State để quản lý submenu đang mở
   const [openKeys, setOpenKeys] = useState<string[]>([]);
-  const [openSubmenuKey, setOpenSubmenuKey] = useState<string | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -113,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     setCollapsed(!collapsed);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       clearTokenRefresh();
       await logoutUserWithCookies();
@@ -131,117 +114,36 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         description: "You have been logged out of the application."
       });
     }
-  };
+  }, [dispatch, navigate]);
 
-  const menuItems = [
-    { key: "1", label: "Home", path: "/", icon: <HomeOutlined /> },
-    { key: "2", label: "Users", path: "/userList", icon: <UserOutlined /> },
-    { key: "3", label: "Roles", path: "/roles", icon: <TeamOutlined /> },
-    {
-      key: "4",
-      label: "Permissions",
-      path: "/permissions",
-      icon: <LockOutlined />
-    },
-    {
-      key: "5",
-      label: "Statistics",
-      path: "/statistics",
-      icon: <BarChartOutlined />
-    },
-    {
-      key: "6",
-      label: "Calendar",
-      path: "/calendar",
-      icon: <CalendarOutlined />
-    },
-    { key: "7", label: "Kanban", path: "/kanban", icon: <ProjectOutlined /> },
-    {
-      key: "8",
-      label: "Admin Dashboard",
-      path: "/adminDashBoard",
-      icon: <DashboardOutlined />,
-      children: [
-        {
-          key: "8-1",
-          label: "Overview",
-          path: "/adminDashBoard?view=dashboard",
-          icon: <DashboardOutlined />
-        },
-        {
-          key: "8-2",
-          label: "Reset Requests",
-          path: "/adminDashBoard?view=totp-requests",
-          icon: <KeyOutlined />
+  // Hàm tạo item cho Menu từ Ant Design
+  const getItem = useCallback(
+    (
+      label: React.ReactNode,
+      key: string,
+      icon?: React.ReactNode,
+      children?: MenuItemWithKey[],
+      path?: string
+    ): MenuItemWithKey => {
+      const onClick = () => {
+        if (path) {
+          window.location.href = path;
         }
-      ]
-    },
-    {
-      key: "9",
-      label: "AssistantAI",
-      path: "/assistantAI",
-      icon: <RobotOutlined />
-    }
-  ] as MenuItem[];
+      };
 
-  const filteredMenuItems = menuItems.filter((item) => {
-    if (item.path !== "/adminDashBoard") return true;
-    return userInfo?.roles?.some((role) => role.name === "ADMIN");
-  });
+      return {
+        key,
+        icon,
+        children,
+        label,
+        onClick,
+        className: children ? "admin-submenu" : ""
+      };
+    },
+    []
+  );
 
-  const bottomMenuItems = [
-    {
-      key: "profile",
-      label: userInfo?.firstname + " " + userInfo?.lastname,
-      tooltip: userInfo?.firstname + " " + userInfo?.lastname,
-      icon: (
-        <Avatar
-          size={collapsed ? 24 : 20}
-          icon={<UserOutlined />}
-          style={{
-            backgroundColor: COLORS[14],
-            alignItems: "center",
-            justifyContent: "center",
-            display: "flex",
-            alignSelf: "center"
-          }}
-        />
-      )
-    },
-    {
-      key: "settings",
-      label: "Setting",
-      tooltip: "Setting",
-      icon: <SettingOutlined style={{ color: COLORS[5] }} />
-    },
-    {
-      key: "notification",
-      label: "Notification",
-      tooltip: "Notification",
-      icon: <BellOutlined style={{ color: COLORS[4] }} />
-    },
-    {
-      key: "logout",
-      label: "Logout",
-      tooltip: "Logout",
-      icon: <LogoutOutlined style={{ color: COLORS[1] }} />,
-      onClick: handleLogout
-    },
-    {
-      key: "copyright",
-      label: (
-        <div style={{ fontSize: "11px", lineHeight: "1.2" }}>
-          <div>The Application ©2024</div>
-          <div>Created by Tu Phung</div>
-        </div>
-      ),
-      tooltip: "The Application ©2024\nCreated by Tu Phung",
-      icon: <CopyrightOutlined style={{ color: COLORS[9] }} />,
-      style: { opacity: 0.7 }
-    }
-  ];
-
-  // Function to check if current path includes a specific route
+  // Function để kiểm tra đường dẫn có phù hợp với route cụ thể không
   const isPathActive = useCallback(
     (path: string) => {
       if (path.includes("?")) {
@@ -252,144 +154,230 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       }
       return location.pathname === path;
     },
-    [location] // Dependency: location object from useLocation
+    [location]
   );
 
-  // Function to find the active key based on current location
+  // Xây dựng các menu item
+  const mainMenuItems = useMemo(() => {
+    const items: MenuItemWithKey[] = [
+      getItem(
+        "Home",
+        "1",
+        <HomeOutlined style={{ color: COLORS[0], fontSize: "20px" }} />,
+        undefined,
+        "/"
+      ),
+      getItem(
+        "Users",
+        "2",
+        <UserOutlined style={{ color: COLORS[1], fontSize: "20px" }} />,
+        undefined,
+        "/userList"
+      ),
+      getItem(
+        "Roles",
+        "3",
+        <TeamOutlined style={{ color: COLORS[2], fontSize: "20px" }} />,
+        undefined,
+        "/roles"
+      ),
+      getItem(
+        "Permissions",
+        "4",
+        <LockOutlined style={{ color: COLORS[3], fontSize: "20px" }} />,
+        undefined,
+        "/permissions"
+      ),
+      getItem(
+        "Statistics",
+        "5",
+        <BarChartOutlined style={{ color: COLORS[4], fontSize: "20px" }} />,
+        undefined,
+        "/statistics"
+      ),
+      getItem(
+        "Calendar",
+        "6",
+        <CalendarOutlined style={{ color: COLORS[5], fontSize: "20px" }} />,
+        undefined,
+        "/calendar"
+      ),
+      getItem(
+        "Kanban",
+        "7",
+        <ProjectOutlined style={{ color: COLORS[6], fontSize: "20px" }} />,
+        undefined,
+        "/kanban"
+      )
+    ];
+
+    // Chỉ thêm Admin Dashboard nếu user có quyền admin
+    if (userInfo?.roles?.some((role) => role.name === "ADMIN")) {
+      items.push(
+        getItem(
+          "Admin Dashboard",
+          "8",
+          <DashboardOutlined style={{ color: COLORS[7], fontSize: "20px" }} />,
+          [
+            getItem(
+              "Overview",
+              "8-1",
+              <DashboardOutlined
+                style={{ color: COLORS[8], fontSize: "20px" }}
+              />,
+              undefined,
+              "/adminDashBoard?view=dashboard"
+            ),
+            getItem(
+              "Reset Requests",
+              "8-2",
+              <KeyOutlined style={{ color: COLORS[9], fontSize: "20px" }} />,
+              undefined,
+              "/adminDashBoard?view=totp-requests"
+            )
+          ],
+          "/adminDashBoard"
+        )
+      );
+    }
+
+    // Thêm item AssistantAI
+    items.push(
+      getItem(
+        "AssistantAI",
+        "9",
+        <RobotOutlined style={{ color: COLORS[8], fontSize: "20px" }} />,
+        undefined,
+        "/assistantAI"
+      )
+    );
+
+    return items;
+  }, [userInfo?.roles, getItem]);
+
+  // Items cho bottom menu
+  const bottomMenuItems = useMemo(() => {
+    const items: MenuItemWithKey[] = [
+      getItem(
+        userInfo?.firstname + " " + userInfo?.lastname,
+        "profile",
+        <Avatar
+          size={collapsed ? 20 : 20}
+          icon={<UserOutlined />}
+          style={{
+            backgroundColor: COLORS[14],
+            alignItems: "center",
+            justifyContent: "center",
+            display: "flex",
+            alignSelf: "center"
+          }}
+        />,
+        undefined,
+        "/profile"
+      ),
+      getItem(
+        "Setting",
+        "settings",
+        <SettingOutlined style={{ color: COLORS[5], fontSize: "20px" }} />,
+        undefined,
+        "/settings"
+      ),
+      getItem(
+        "Notification",
+        "notification",
+        <BellOutlined style={{ color: COLORS[4], fontSize: "20px" }} />,
+        undefined,
+        "/notifications"
+      ),
+      {
+        key: "logout",
+        label: "Logout",
+        icon: <LogoutOutlined style={{ color: COLORS[1], fontSize: "20px" }} />,
+        onClick: handleLogout
+      },
+      {
+        key: "copyright",
+        label: (
+          <div style={{ fontSize: "11px", lineHeight: "1.2" }}>
+            <div>The Application ©2024</div>
+            <div>Created by Tu Phung</div>
+          </div>
+        ),
+        icon: (
+          <CopyrightOutlined style={{ color: COLORS[9], fontSize: "20px" }} />
+        ),
+        style: { opacity: 0.7 }
+      }
+    ];
+
+    return items;
+  }, [
+    userInfo?.firstname,
+    userInfo?.lastname,
+    collapsed,
+    handleLogout,
+    getItem
+  ]);
+
+  // Tìm key hoạt động dựa trên location hiện tại
   const findActiveKey = () => {
-    // First check for exact matches including query parameters
-    for (const item of filteredMenuItems) {
-      if (item.children) {
+    // Kiểm tra các path có query params
+    for (let i = 0; i < mainMenuItems.length; i++) {
+      const item = mainMenuItems[i];
+      if (item && item.children) {
         for (const child of item.children) {
-          if (isPathActive(child.path)) {
+          if (
+            child &&
+            typeof child.key === "string" &&
+            child.onClick &&
+            isPathActive(child.key)
+          ) {
             return child.key;
           }
         }
       }
-      if (isPathActive(item.path)) {
+      if (
+        item &&
+        typeof item.key === "string" &&
+        item.onClick &&
+        isPathActive(item.key)
+      ) {
         return item.key;
       }
     }
 
-    // If no exact match with query params, check just the pathname
-    const activeItem = filteredMenuItems.find(
-      (item) => item.path === location.pathname
-    );
-    return activeItem?.key || defaultSelectedKey || "1";
+    // Kiểm tra pathname chính xác
+    const activeItemKey = mainMenuItems.find(
+      (item) =>
+        item && typeof item.key === "string" && item.key === location.pathname
+    )?.key;
+
+    return activeItemKey || defaultSelectedKey || "1";
   };
 
-  // Find which submenu should be open based on current path
+  // Xác định submenu nào nên mở dựa trên path hiện tại
   useEffect(() => {
-    // Check if we're on a page that has a submenu
-    for (const item of filteredMenuItems) {
-      if (item.children) {
+    for (const item of mainMenuItems) {
+      if (item && item.children) {
         for (const child of item.children) {
-          if (isPathActive(child.path)) {
-            // If we're on a page with a submenu item active, open its parent menu
-            setOpenKeys([item.key]);
+          if (
+            child &&
+            typeof child.key === "string" &&
+            isPathActive(child.key)
+          ) {
+            setOpenKeys([item.key.toString()]);
             return;
           }
         }
       }
     }
-  }, [filteredMenuItems, isPathActive]);
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const submenus = document.querySelectorAll(".dock-submenu-container");
-      const clickedElement = e.target as HTMLElement;
+  }, [mainMenuItems, isPathActive]);
 
-      // Kiểm tra click có phải là tooltip không
-      if (clickedElement.closest(".ant-tooltip")) return;
+  // Handle menu item click
 
-      let isClickInside = false;
-      submenus.forEach((container) => {
-        if (container.contains(clickedElement)) {
-          isClickInside = true;
-        }
-      });
-
-      if (!isClickInside) {
-        setOpenSubmenuKey(null);
-      }
-    };
-
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
-
-  // Handle menu item click to close submenus
-  const handleMenuClick = (key: string) => {
-    // Check if the clicked item is a submenu item (e.g., "8-1", "8-2")
-    const isSubmenuItem = key.includes("-");
-
-    if (!isSubmenuItem) {
-      // If clicked on a parent item, toggle its submenu
-      if (openKeys.includes(key)) {
-        setOpenKeys(openKeys.filter((k) => k !== key));
-      } else {
-        setOpenKeys([key]);
-      }
-    }
-    // Don't reset openKeys when clicking a submenu item
-  };
-
-  // Handle submenu open/close events
+  // Handle submenu open/close
   const onOpenChange = (keys: string[]) => {
     setOpenKeys(keys);
-  };
-
-  // Render menu items with support for submenus
-  const renderMenuItems = (items: MenuItem[]): AntMenuItem[] => {
-    return items.map((item) => {
-      // Special handling for Admin Dashboard parent menu
-      const isAdminDashboard = item.path === "/adminDashBoard";
-
-      const menuItem: AntMenuItem = {
-        key: item.key,
-        label: item.label,
-        icon: React.cloneElement(item.icon, {
-          style: {
-            color: COLORS[parseInt(item.key) % COLORS.length],
-            fontSize: "20px"
-          }
-        }),
-        onClick: () => {
-          // Navigate to the specified path
-          if (isAdminDashboard && item.children) {
-            // For Admin Dashboard, just toggle the submenu and don't navigate
-            handleMenuClick(item.key);
-          } else {
-            // For regular menu items, navigate
-            window.location.href = item.path;
-            handleMenuClick(item.key);
-          }
-        },
-        className: item.children ? "admin-submenu" : ""
-      };
-
-      if (item.children) {
-        menuItem.children = item.children.map((child) => ({
-          key: child.key,
-          label: child.label,
-          icon:
-            child.icon &&
-            React.cloneElement(child.icon || item.icon, {
-              style: {
-                color:
-                  COLORS[parseInt(child.key.split("-")[1]) % COLORS.length],
-                fontSize: "20px"
-              }
-            }),
-          onClick: () => {
-            // Always use window.location.href for consistent behavior
-            window.location.href = child.path;
-          },
-          className: "admin-submenu-item"
-        }));
-      }
-
-      return menuItem;
-    });
   };
 
   return (
@@ -434,7 +422,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         />
       </div>
 
-      {/* Regular Menu - visible when not collapsed */}
+      {/* Expanded Menu - visible when not collapsed */}
       {!collapsed && (
         <>
           <Menu
@@ -444,7 +432,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             selectedKeys={[findActiveKey()]}
             openKeys={openKeys}
             onOpenChange={onOpenChange}
-            items={renderMenuItems(filteredMenuItems)}
+            items={mainMenuItems}
             style={{ color: "#ffffff" }}
           />
 
@@ -453,48 +441,28 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
             mode="inline"
             theme="dark"
             selectable={false}
-            items={bottomMenuItems.map((item) => ({
-              key: item.key,
-              label: item.label,
-              icon: React.cloneElement(
-                typeof item.icon === "string" ? (
-                  <span>{item.icon}</span>
-                ) : (
-                  item.icon
-                ),
-                {
-                  style: {
-                    fontSize: "20px",
-                    ...(item.icon.props?.style || {})
-                  }
-                }
-              ),
-              onClick: item.onClick,
-              style: { ...item.style, color: "#ffffff" }
-            }))}
+            items={bottomMenuItems}
           />
         </>
       )}
 
-      {/* Dock Menu - visible only when collapsed */}
+      {/* Dock Menu - khi sidebar thu gọn */}
       <div
         className="sidebar-dock-container"
         style={{ display: collapsed ? "block" : "none" }}
       >
         <div className="main-dock-container">
           <div className="dock-menu">
-            {filteredMenuItems.map((item, index) => {
-              if (item.children) {
+            {mainMenuItems.map((item) => {
+              if (item && item.children) {
+                // Item có submenu
                 return (
                   <div
                     key={item.key}
-                    className={`dock-submenu-container ${
-                      openSubmenuKey === item.key ? "active" : ""
-                    }`}
+                    className="dock-submenu-container"
                     id={`submenu-container-${item.key}`}
                     onMouseEnter={() => {
-                      // Thêm debug log khi hover vào Admin Dashboard
-                      if (item.path === "/adminDashBoard") {
+                      if (item.key === "8") {
                         console.log(
                           "Hovering Admin Dashboard - submenu should appear"
                         );
@@ -504,60 +472,44 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                     <Tooltip title={item.label} placement="right">
                       <div
                         className={`dock-item ${
-                          location.pathname === item.path ||
+                          location.pathname === `/${item.key}` ||
                           (item.children &&
-                            item.children.some((child: ChildMenuItem) =>
-                              isPathActive(child.path)
+                            item.children.some((child) =>
+                              child.key
+                                ? isPathActive(child.key.toString())
+                                : false
                             ))
                             ? "dock-item-active"
                             : ""
                         }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Chỉ navigate khi click vào Admin Dashboard, không toggle submenu
+                        onClick={() => {
+                          // Navigate to first child when clicking parent
                           if (
-                            item.path === "/adminDashBoard" &&
+                            item.key === "8" &&
                             item.children &&
                             item.children.length > 0
                           ) {
-                            window.location.href = item.children[0].path; // Navigate to first child
-                          } else {
-                            window.location.href = item.path;
+                            item.children[0].onClick?.();
                           }
                         }}
                       >
-                        {React.cloneElement(item.icon, {
-                          style: {
-                            color: COLORS[index % COLORS.length]
-                          }
-                        })}
+                        {item.icon}
                       </div>
                     </Tooltip>
                     <div className="dock-submenu">
-                      {item.children.map((child: ChildMenuItem) => (
+                      {item.children.map((child) => (
                         <div
                           key={child.key}
                           className={`dock-submenu-item ${
-                            isPathActive(child.path)
+                            child.key && isPathActive(child.key.toString())
                               ? "dock-submenu-item-active"
                               : ""
                           }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = child.path;
+                          onClick={() => {
+                            child.onClick?.();
                           }}
                         >
-                          {child.icon &&
-                            React.cloneElement(child.icon, {
-                              style: {
-                                marginRight: "8px",
-                                color:
-                                  COLORS[
-                                    parseInt(child.key.split("-")[1]) %
-                                      COLORS.length
-                                  ]
-                              }
-                            })}
+                          {child.icon && child.icon}
                           {child.label}
                         </div>
                       ))}
@@ -566,22 +518,20 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                 );
               }
 
+              // Item không có submenu
               return (
                 <Tooltip key={item.key} title={item.label} placement="right">
                   <div
                     className={`dock-item ${
-                      location.pathname === item.path ? "dock-item-active" : ""
+                      location.pathname === `/${item.key}`
+                        ? "dock-item-active"
+                        : ""
                     }`}
                     onClick={() => {
-                      // Use window.location.href for all navigation to ensure page reloads
-                      window.location.href = item.path;
+                      item.onClick?.();
                     }}
                   >
-                    {React.cloneElement(item.icon, {
-                      style: {
-                        color: COLORS[index % COLORS.length]
-                      }
-                    })}
+                    {item.icon}
                   </div>
                 </Tooltip>
               );
@@ -592,27 +542,18 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         <div className="bottom-dock-container">
           <div className="dock-menu">
             {bottomMenuItems.map((item) => (
-              <Tooltip key={item.key} title={item.tooltip} placement="right">
+              <Tooltip key={item.key} title={item.label} placement="right">
                 <div
                   className={`dock-item ${
                     item.key === "profile" && location.pathname === "/profile"
                       ? "dock-item-active"
                       : ""
                   }`}
-                  onClick={item.onClick}
+                  onClick={() => {
+                    item.onClick?.();
+                  }}
                 >
-                  {React.cloneElement(
-                    typeof item.icon === "string" ? (
-                      <span>{item.icon}</span>
-                    ) : (
-                      item.icon
-                    ),
-                    {
-                      style: {
-                        ...(item.icon.props?.style || {})
-                      }
-                    }
-                  )}
+                  {item.icon}
                 </div>
               </Tooltip>
             ))}
