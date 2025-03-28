@@ -136,7 +136,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         label: "Home",
         onClick: () => {
           window.location.href = "/";
-        }
+        },
+        path: "/"
       },
       {
         key: "2",
@@ -144,7 +145,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         label: "Users",
         onClick: () => {
           window.location.href = "/userList";
-        }
+        },
+        path: "/userList"
       },
       {
         key: "3",
@@ -152,7 +154,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         label: "Roles",
         onClick: () => {
           window.location.href = "/roles";
-        }
+        },
+        path: "/roles"
       },
       {
         key: "4",
@@ -160,7 +163,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         label: "Permissions",
         onClick: () => {
           window.location.href = "/permissions";
-        }
+        },
+        path: "/permissions"
       },
       {
         key: "5",
@@ -170,7 +174,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         label: "Statistics",
         onClick: () => {
           window.location.href = "/statistics";
-        }
+        },
+        path: "/statistics"
       },
       {
         key: "6",
@@ -180,7 +185,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         label: "Calendar",
         onClick: () => {
           window.location.href = "/calendar";
-        }
+        },
+        path: "/calendar"
       },
       {
         key: "7",
@@ -190,7 +196,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         label: "Kanban",
         onClick: () => {
           window.location.href = "/kanban";
-        }
+        },
+        path: "/kanban"
       },
       ...(userInfo?.roles?.some((role) => role.name === "ADMIN")
         ? [
@@ -214,7 +221,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                   label: "Overview",
                   onClick: () => {
                     window.location.href = "/adminDashBoard?view=dashboard";
-                  }
+                  },
+                  path: "/adminDashBoard?view=dashboard"
                 },
                 {
                   key: "8-2",
@@ -226,7 +234,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                   label: "Reset Requests",
                   onClick: () => {
                     window.location.href = "/adminDashBoard?view=totp-requests";
-                  }
+                  },
+                  path: "/adminDashBoard?view=totp-requests"
                 }
               ]
             }
@@ -238,7 +247,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         label: "AssistantAI",
         onClick: () => {
           window.location.href = "/assistantAI";
-        }
+        },
+        path: "/assistantAI"
       }
     ],
     [userInfo]
@@ -315,29 +325,29 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   );
 
   const findActiveKey = () => {
+    // Find the menu item that matches the current path
     for (const item of mainMenuItems) {
       if (item.children) {
         for (const child of item.children) {
-          if (isPathActive(child.key)) {
+          if (child.path && isPathActive(child.path)) {
             return child.key;
           }
         }
       }
-      if (isPathActive(item.key)) {
+      if (item.path && isPathActive(item.path)) {
         return item.key;
       }
     }
-    const activeItem = mainMenuItems.find(
-      (item) => item.key === location.pathname
-    );
-    return activeItem?.key || defaultSelectedKey || "1";
+
+    // If no match found by path, fallback to default
+    return defaultSelectedKey || "1";
   };
 
   useEffect(() => {
     for (const item of mainMenuItems) {
       if (item.children) {
         for (const child of item.children) {
-          if (isPathActive(child.key)) {
+          if (child.path && isPathActive(child.path)) {
             setOpenKeys([item.key]);
             return;
           }
