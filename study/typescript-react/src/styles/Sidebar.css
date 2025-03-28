@@ -571,11 +571,76 @@
   border: none !important;
   background-color: transparent !important;
   outline: none !important;
+  box-shadow: none !important;
 }
 
 .ant-menu-submenu-open .ant-menu-sub.ant-menu-inline .ant-menu-item {
   border: none !important;
   background-color: transparent !important;
   outline: none !important;
-  padding: 0 !important;
+  padding: 8px 16px !important;
+  margin: 4px 0 !important;
+  border-radius: 4px !important;
+}
+
+/* Improved submenu styles for both modes */
+.main-menu .ant-menu-sub,
+.main-menu-collapsed .ant-menu-sub {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* For expanded mode (inline) */
+.main-menu .ant-menu-sub .ant-menu-item {
+  background: transparent !important;
+  border: none !important;
+  margin: 4px 0 !important;
+  padding: 8px 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.main-menu .ant-menu-sub .ant-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: translateX(5px) !important;
+}
+
+.main-menu .ant-menu-sub .ant-menu-item-selected {
+  background: rgba(24, 144, 255, 0.2) !important;
+  box-shadow: none !important;
+  border-right: 3px solid #ffffff !important;
+}
+
+/* For collapsed mode (vertical popup) */
+.main-menu-collapsed .ant-menu-sub {
+  background: linear-gradient(180deg, rgba(53, 84, 165, 0.95), rgba(26, 52, 120, 0.95)) !important;
+  border-radius: 8px !important;
+  padding: 6px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.main-menu-collapsed .ant-menu-sub .ant-menu-item {
+  background: transparent !important;
+  border: none !important;
+  margin: 4px 0 !important;
+  padding: 8px 16px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.main-menu-collapsed .ant-menu-sub .ant-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: translateX(5px) !important;
+}
+
+.main-menu-collapsed .ant-menu-sub .ant-menu-item-selected {
+  background: rgba(24, 144, 255, 0.2) !important;
+  box-shadow: none !important;
+  border-right: 3px solid #ffffff !important;
+}
+
+/* Remove borders between submenu items */
+.main-menu .ant-menu-sub .ant-menu-item:not(:last-child),
+.main-menu-collapsed .ant-menu-sub .ant-menu-item:not(:last-child) {
+  border-bottom: none !important;
 }
