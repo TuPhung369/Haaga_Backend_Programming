@@ -394,8 +394,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 
       <Menu
         className={`main-menu ${collapsed ? "main-menu-collapsed" : ""}`}
-        mode="vertical"
-        theme="dark"
+        mode={collapsed ? "vertical" : "inline"}
         selectedKeys={[findActiveKey()]}
         openKeys={openKeys}
         onOpenChange={onOpenChange}
@@ -405,10 +404,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 
       <Menu
         className={`bottom-menu ${collapsed ? "bottom-menu-collapsed" : ""}`}
-        mode="vertical"
-        theme="dark"
+        mode={collapsed ? "vertical" : "inline"}
         selectable={false}
         items={bottomMenuItems}
+        style={{ color: "#ffffff" }}
       />
 
       <style>{`

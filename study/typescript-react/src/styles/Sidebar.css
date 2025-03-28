@@ -129,7 +129,7 @@
 .ant-menu {
   transition: width 0.3s ease !important;
 
-  &.ant-menu-dark.ant-menu-inline {
+  &.ant-menu.ant-menu-inline {
     & .ant-menu-item {
       padding: 0 10px !important;
       position: relative;
@@ -340,7 +340,7 @@
 .main-menu .ant-menu-item:hover .ant-menu-title-content,
 .main-menu .ant-menu-submenu-title:hover .ant-menu-title-content,
 .bottom-menu .ant-menu-item:hover .ant-menu-title-content {
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   color: var(--hover-color) !important;
 }
 
@@ -349,6 +349,14 @@
 .bottom-menu .ant-menu-item-selected .ant-menu-title-content {
   font-weight: 500 !important;
   color: #ffffff !important;
+  font-size: 16px !important;
+}
+
+.ant-menu-item-selected {
+  & .ant-menu-item-icon {
+    color: #FFFFFF !important;
+  }
+  background-color: #2a68dcc1 !important;
 }
 
 /* Ant Design tooltip overrides */
@@ -362,16 +370,9 @@
 }
 
 /* Style cho Ant Design Menu */
-.ant-menu-dark.ant-menu-inline .ant-menu-sub.ant-menu-inline {
-  background: rgba(0, 0, 0, 0.15) !important;
-}
 
-.ant-menu-item-selected {
-  background-color: #1890ff !important;
-}
-
-.ant-menu-dark .ant-menu-item:hover,
-.ant-menu-dark .ant-menu-submenu-title:hover {
+.ant-menu .ant-menu-item:hover,
+.ant-menu .ant-menu-submenu-title:hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
@@ -559,4 +560,22 @@
 .bottom-menu-collapsed .ant-menu-title-content,
 .bottom-menu-collapsed .ant-menu-submenu-title .ant-menu-title-content {
   display: none !important;
+}
+
+.main-menu-collapsed .ant-menu-submenu .ant-menu-submenu-title,
+.bottom-menu-collapsed .ant-menu-submenu .ant-menu-submenu-title {
+  width: 100% !important;
+}
+.ant-menu-submenu-open .ant-menu-sub.ant-menu-inline {
+  width: 90% !important;
+  border: none !important;
+  background-color: transparent !important;
+  outline: none !important;
+}
+
+.ant-menu-submenu-open .ant-menu-sub.ant-menu-inline .ant-menu-item {
+  border: none !important;
+  background-color: transparent !important;
+  outline: none !important;
+  padding: 0 !important;
 }

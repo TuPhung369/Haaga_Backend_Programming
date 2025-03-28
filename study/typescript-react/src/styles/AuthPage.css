@@ -31,12 +31,12 @@
   border-radius: var(--border-radius);
   padding: var(--border-width);
   background-image: var(--background-radial-gradient);
-  background-size: 300% 300%;
-  background-position: 20% 30%;
+  background-size: 100% 300%;
+  background-position: 30% 30%;
   mask: var(--mask-linear-gradient);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  z-index: 10;
+  z-index: 0;
 }
 
 
