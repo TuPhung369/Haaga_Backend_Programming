@@ -135,7 +135,7 @@ export const SparklesCore = (props: ParticlesProps) => {
                   width: 1500,
                   height: 1500
                 },
-                value: particleDensity || 80
+                value: particleDensity || 50
               },
               opacity: {
                 value: { min: 0.1, max: 0.9 },

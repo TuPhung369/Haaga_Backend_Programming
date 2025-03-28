@@ -502,12 +502,12 @@ const AuthPage: React.FC = () => {
           <SparklesCore
             id="auth-sparkles"
             background="transparent"
-            minSize={0.6}
-            maxSize={2}
-            particleDensity={150}
+            minSize={0.5}
+            maxSize={1.5}
+            particleDensity={100}
             className="w-full h-full"
             particleColor="#00e5ff"
-            speed={0.8}
+            speed={0.6}
           />
         </div>
 
@@ -515,7 +515,7 @@ const AuthPage: React.FC = () => {
           borderRadius={20}
           borderWidth={2}
           duration={10}
-          color={["#00e5ff", "#9E7AFF", "#FE8BBB"]}
+          color={["#9E7AFF", "#00e5ff", "#9E7AFF", "#FE8BBB", "#FEE000"]}
           className="auth-shine-border"
         >
           <div
@@ -532,11 +532,11 @@ const AuthPage: React.FC = () => {
                       <SparklesText
                         text="Welcome Back!"
                         className="welcome-title"
-                        sparklesCount={8}
+                        sparklesCount={5}
                         colors={{ first: "#9E7AFF", second: "#FE8BBB" }}
                         shimmer={true}
-                        duration={1.2}
-                        spread={2}
+                        duration={1.8}
+                        spread={1.5}
                         textColor="#9E7AFF"
                       />
                       <Text className="panel-text">Don't have an account?</Text>
@@ -858,11 +858,11 @@ const AuthPage: React.FC = () => {
                       <SparklesText
                         text="Welcome Back!"
                         className="welcome-title"
-                        sparklesCount={8}
+                        sparklesCount={5}
                         colors={{ first: "#9E7AFF", second: "#FE8BBB" }}
                         shimmer={true}
-                        duration={1.2}
-                        spread={2}
+                        duration={1.8}
+                        spread={1.5}
                         textColor="#9E7AFF"
                       />
                       <Text className="panel-text">

@@ -275,28 +275,6 @@
     }
   }
 
-  &.dock-item-active {
-    background-color: rgba(24, 144, 255, 0.25) !important;
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.5);
-    position: relative;
-    overflow: hidden;
-  }
-
-  &.dock-item-active::after {
-    content: "";
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.3),
-      transparent
-    );
-    animation: shine 1.5s infinite;
-  }
 }
 
 @keyframes shine {
@@ -395,6 +373,7 @@
 .ant-menu-dark .ant-menu-item:hover,
 .ant-menu-dark .ant-menu-submenu-title:hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Menu transitions */
@@ -480,12 +459,19 @@
 
 /* Submenu styles (same for both modes) */
 .main-menu .ant-menu-sub {
-  background-color: rgba(27, 32, 43, 0.95) !important;
+    background: linear-gradient(
+    180deg,
+    rgba(53, 84, 165, 0.95),
+    rgba(26, 52, 120, 0.95)
+  ) !important;
   border-radius: 8px !important;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
   padding: 6px 0 !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(10px) !important;
+  left: 100% !important;
+  margin-left: 8px !important;
+  top: -10px !important;
 }
 
 .main-menu .ant-menu-sub .ant-menu-item {
@@ -497,7 +483,11 @@
 }
 
 .main-menu .ant-menu-sub .ant-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+    background: linear-gradient(
+    90deg,
+    rgba(53, 84, 165, 0.3),
+    rgba(26, 52, 120, 0.3)
+  ) !important;
   transform: translateX(5px) !important;
 }
 
