@@ -74,6 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   const { userInfo } = useSelector((state: RootState) => state.user);
   // State to manage open submenus
   const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const [openSubmenuKey, setOpenSubmenuKey] = useState<string | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -292,6 +293,29 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       }
     }
   }, [filteredMenuItems, isPathActive]);
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const submenus = document.querySelectorAll(".dock-submenu-container");
+      const clickedElement = e.target as HTMLElement;
+
+      // Kiểm tra click có phải là tooltip không
+      if (clickedElement.closest(".ant-tooltip")) return;
+
+      let isClickInside = false;
+      submenus.forEach((container) => {
+        if (container.contains(clickedElement)) {
+          isClickInside = true;
+        }
+      });
+
+      if (!isClickInside) {
+        setOpenSubmenuKey(null);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   // Handle menu item click to close submenus
   const handleMenuClick = (key: string) => {
@@ -464,8 +488,18 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                 return (
                   <div
                     key={item.key}
-                    className="dock-submenu-container"
+                    className={`dock-submenu-container ${
+                      openSubmenuKey === item.key ? "active" : ""
+                    }`}
                     id={`submenu-container-${item.key}`}
+                    onMouseEnter={() => {
+                      // Thêm debug log khi hover vào Admin Dashboard
+                      if (item.path === "/adminDashBoard") {
+                        console.log(
+                          "Hovering Admin Dashboard - submenu should appear"
+                        );
+                      }
+                    }}
                   >
                     <Tooltip title={item.label} placement="right">
                       <div
@@ -478,28 +512,17 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                             ? "dock-item-active"
                             : ""
                         }`}
-                        onClick={() => {
-                          // For Admin Dashboard, we don't navigate - just show the submenu
-                          console.log("Clicked dock parent item:", item.path);
-                          if (item.path !== "/adminDashBoard") {
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Chỉ navigate khi click vào Admin Dashboard, không toggle submenu
+                          if (
+                            item.path === "/adminDashBoard" &&
+                            item.children &&
+                            item.children.length > 0
+                          ) {
+                            window.location.href = item.children[0].path; // Navigate to first child
+                          } else {
                             window.location.href = item.path;
-                          }
-                        }}
-                        onMouseEnter={() => {
-                          if (item.path === "/adminDashBoard") {
-                            console.log(
-                              "Hovering on Admin Dashboard item, submenu should appear"
-                            );
-                            // Force show submenu on hover
-                            const submenu = document.querySelector(
-                              `#submenu-container-${item.key} .dock-submenu`
-                            );
-                            if (submenu) {
-                              (submenu as HTMLElement).style.display = "block";
-                              (submenu as HTMLElement).style.opacity = "1";
-                              (submenu as HTMLElement).style.visibility =
-                                "visible";
-                            }
                           }
                         }}
                       >
@@ -519,16 +542,12 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                               ? "dock-submenu-item-active"
                               : ""
                           }`}
-                          onClick={() => {
-                            console.log(
-                              "Navigating to submenu item:",
-                              child.path
-                            );
-                            // Force full page reload for submenu items
+                          onClick={(e) => {
+                            e.stopPropagation();
                             window.location.href = child.path;
                           }}
                         >
-                          {child.icon ? (
+                          {child.icon &&
                             React.cloneElement(child.icon, {
                               style: {
                                 marginRight: "8px",
@@ -538,12 +557,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                                       COLORS.length
                                   ]
                               }
-                            })
-                          ) : (
-                            <span
-                              style={{ width: "16px", display: "inline-block" }}
-                            ></span>
-                          )}
+                            })}
                           {child.label}
                         </div>
                       ))}
