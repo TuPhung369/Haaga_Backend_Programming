@@ -2,7 +2,7 @@
 import axios, { AxiosInstance } from "axios";
 import { notification } from "antd";
 import { ErrorType } from "../services/baseService";
-import { getRecaptchaToken, isDevEnvironment } from "./recaptchaUtils";
+import { getRecaptchaToken } from "./recaptchaUtils";
 
 // Define the type for our custom error rejection data
 interface CustomErrorData {
@@ -56,7 +56,7 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
                   data.recaptchaToken = recaptchaToken;
                   config.data = JSON.stringify(data);
                 }
-              } catch (e) {
+              } catch {
                 // If not valid JSON, skip
                 console.warn('Unable to add reCAPTCHA token to non-JSON data');
               }
@@ -140,7 +140,6 @@ export const setupAxiosInterceptors = (axiosInstance: AxiosInstance) => {
 
           // Validation errors (400)
           if (status === 400) {
-            // Thêm kiểm tra đặc biệt cho lỗi RECAPTCHA_REQUIRED
             if (data?.message === "RECAPTCHA_REQUIRED" || errorCode === 4000) {
               const customError: CustomErrorData = {
                 isHandled: false,

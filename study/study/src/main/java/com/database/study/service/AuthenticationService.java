@@ -468,25 +468,28 @@ public class AuthenticationService implements AuthenticationUtilities {
 
       // Create new tokens only if no valid tokens exist
       String jwtId = UUID.randomUUID().toString();
-      String token = generateToken(user, jwtId);
-      String refreshToken = generateRefreshToken(user, jwtId);
+      String plainToken = generateToken(user, jwtId); // JWT gốc cho token
+      String plainRefreshToken = generateRefreshToken(user, jwtId); // JWT gốc cho refreshToken
 
-      // Store the token in the active token table
+      // Mã hóa cả hai
+      String encryptedToken = encryptionService.encryptToken(plainToken);
+      String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
+
       ActiveToken activeToken = ActiveToken.builder()
           .id(jwtId)
-          .token(token)
-          .refreshToken(refreshToken)
+          .token(encryptedToken)
+          .refreshToken(encryptedRefreshToken)
           .username(user.getUsername())
-          .expiryTime(extractTokenExpiry(token))
-          .expiryRefreshTime(extractTokenExpiry(refreshToken))
+          .expiryTime(extractTokenExpiry(plainToken))
+          .expiryRefreshTime(extractTokenExpiry(plainRefreshToken))
           .description("Login with TOTP at " + new Date())
           .build();
 
       activeTokenRepository.save(activeToken);
 
       return AuthenticationResponse.builder()
-          .token(token)
-          .refreshToken(refreshToken)
+          .token(encryptedToken)
+          .refreshToken(encryptedRefreshToken)
           .authenticated(true)
           .build();
     } catch (AppException e) {
@@ -1948,17 +1951,20 @@ public class AuthenticationService implements AuthenticationUtilities {
 
     // Generate token pair for the authenticated user
     String jwtId = UUID.randomUUID().toString();
-    String accessToken = generateToken(user, jwtId);
-    String refreshToken = generateRefreshToken(user, jwtId);
+    String plainToken = generateToken(user, jwtId);
+    String plainRefreshToken = generateRefreshToken(user, jwtId);
+
+    String encryptedToken = encryptionService.encryptToken(plainToken);
+    String encryptedRefreshToken = encryptionService.encryptToken(plainRefreshToken);
 
     // Save the refresh token in the ActiveToken repository
     ActiveToken activeToken = ActiveToken.builder()
         .username(user.getUsername())
-        .refreshToken(refreshToken)
-        .token(accessToken)
+        .refreshToken(encryptedRefreshToken)
+        .token(encryptedToken)
         .id(jwtId)
-        .expiryTime(extractTokenExpiry(accessToken))
-        .expiryRefreshTime(extractTokenExpiry(refreshToken))
+        .expiryTime(extractTokenExpiry(plainToken))
+        .expiryRefreshTime(extractTokenExpiry(plainRefreshToken))
         .description("Email OTP authentication at " + new Date())
         .build();
 
@@ -1973,8 +1979,8 @@ public class AuthenticationService implements AuthenticationUtilities {
 
     log.info("Email OTP authentication successful for user: {}", user.getUsername());
     return AuthenticationResponse.builder()
-        .token(accessToken)
-        .refreshToken(refreshToken)
+        .token(encryptedToken)
+        .refreshToken(encryptedRefreshToken)
         .authenticated(true)
         .build();
   }
@@ -2038,7 +2044,6 @@ public class AuthenticationService implements AuthenticationUtilities {
   }
 
   private AuthenticationResponse completeAuthentication(User user, boolean rememberMe) {
-    log.info("Completing authentication for user: {}", user.getUsername());
 
     // Clean up expired tokens
     // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
@@ -2053,7 +2058,6 @@ public class AuthenticationService implements AuthenticationUtilities {
 
       // If access token is still valid, reuse it
       if (existingToken.getExpiryTime().after(currentTime)) {
-        log.info("Reusing existing valid token for user: {}", user.getUsername());
 
         // Return the stored encrypted tokens to client
         return AuthenticationResponse.builder()
