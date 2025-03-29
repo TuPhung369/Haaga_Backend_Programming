@@ -31,6 +31,8 @@ import StatisticPage from "./pages/StatisticPage";
 import AdminDashBoardPage from "./pages/AdminDashBoardPage";
 import AssistantAIPage from "./pages/AssistantAIPage";
 import Sidebar from "./components/Sidebar";
+import ProfilePage from "./pages/ProfilePage";
+import SettingPage from "./pages/SettingPage";
 import {
   introspectToken,
   refreshTokenFromCookie
@@ -244,6 +246,8 @@ const App: React.FC = () => {
                         path="/adminDashBoard"
                         element={<AdminDashBoardPage />}
                       />
+                      <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="/setting" element={<SettingPage />} />
                       <Route path="*" element={<HomePage />} />
                     </Routes>
                   </MainLayout>

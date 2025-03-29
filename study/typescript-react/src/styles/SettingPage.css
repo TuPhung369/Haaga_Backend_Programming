@@ -1,11 +1,11 @@
-/* HomePage Layout */
-.home-page-layout {
+
+
+.setting-page-layout {
   background-color: transparent !important;
   padding: 0;
 }
 
-/* HomePage Content */
-.home-page-content {
+.setting-page-content {
   background-color: transparent !important;
   margin-top: 0;
   min-height: 100vh; /* Ensure it takes the full height */

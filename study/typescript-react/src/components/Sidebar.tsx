@@ -107,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     setIsAdminSubmenuOpen(false);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       clearTokenRefresh();
       await logoutUserWithCookies();
@@ -125,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         description: "You have been logged out of the application."
       });
     }
-  };
+  }, [dispatch, navigate]);
 
   // Use useMemo to prevent mainMenuItems from being recreated on every render
   const mainMenuItems = useMemo(
@@ -254,62 +254,70 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     [userInfo]
   );
 
-  const bottomMenuItems = [
-    {
-      key: "profile",
-      label: userInfo?.firstname + " " + userInfo?.lastname,
-      icon: (
-        <Avatar
-          size={collapsed ? 24 : 24}
-          icon={<UserOutlined style={{ fontSize: "14px" }} />}
-          style={{
-            backgroundColor: COLORS[14],
-            alignItems: "center",
-            justifyContent: "center",
-            display: "flex"
-          }}
-        />
-      ),
-      onClick: () => {
-        window.location.href = "/profile";
+  const bottomMenuItems = useMemo(
+    () => [
+      {
+        key: "profile",
+        label: userInfo?.firstname + " " + userInfo?.lastname,
+        icon: (
+          <Avatar
+            size={collapsed ? 24 : 24}
+            icon={<UserOutlined style={{ fontSize: "14px" }} />}
+            style={{
+              backgroundColor: COLORS[14],
+              alignItems: "center",
+              justifyContent: "center",
+              display: "flex"
+            }}
+          />
+        ),
+        onClick: () => {
+          window.location.href = "/profile";
+        },
+        path: "/profile"
+      },
+      {
+        key: "settings",
+        label: "Setting",
+        icon: (
+          <SettingOutlined style={{ color: COLORS[5], fontSize: "20px" }} />
+        ),
+        onClick: () => {
+          window.location.href = "/setting";
+        },
+        path: "/setting"
+      },
+      {
+        key: "notification",
+        label: "Notification",
+        icon: <BellOutlined style={{ color: COLORS[4], fontSize: "20px" }} />,
+        onClick: () => {
+          window.location.href = "/notification";
+        },
+        path: "/notification"
+      },
+      {
+        key: "logout",
+        label: "Logout",
+        icon: <LogoutOutlined style={{ color: COLORS[1], fontSize: "20px" }} />,
+        onClick: handleLogout
+      },
+      {
+        key: "copyright",
+        label: (
+          <div style={{ fontSize: "12px", lineHeight: "1.2" }}>
+            <div>The Application ©2024</div>
+            <div>Created by Tu Phung</div>
+          </div>
+        ),
+        icon: (
+          <CopyrightOutlined style={{ color: COLORS[9], fontSize: "20px" }} />
+        ),
+        style: { opacity: 0.7 }
       }
-    },
-    {
-      key: "settings",
-      label: "Setting",
-      icon: <SettingOutlined style={{ color: COLORS[5], fontSize: "20px" }} />,
-      onClick: () => {
-        window.location.href = "/settings";
-      }
-    },
-    {
-      key: "notification",
-      label: "Notification",
-      icon: <BellOutlined style={{ color: COLORS[4], fontSize: "20px" }} />,
-      onClick: () => {
-        window.location.href = "/notifications";
-      }
-    },
-    {
-      key: "logout",
-      label: "Logout",
-      icon: <LogoutOutlined style={{ color: COLORS[1], fontSize: "20px" }} />,
-      onClick: handleLogout
-    },
-    {
-      key: "copyright",
-      label: (
-        <div style={{ fontSize: "12px", lineHeight: "1.2" }}>
-          <div>The Application ©2024</div>
-          <div>Created by Tu Phung</div>
-        </div>
-      ),
-      icon: (
-        <CopyrightOutlined style={{ color: COLORS[9], fontSize: "20px" }} />
-      ),
-      style: { opacity: 0.7 }
-    }
-  ];
+    ],
+    [userInfo, collapsed, handleLogout]
+  );
 
   const isPathActive = useCallback(
     (path: string) => {
@@ -325,7 +333,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
   );
 
   const findActiveKey = () => {
-    // Find the menu item that matches the current path
+    // Find the menu item that matches the current path in mainMenuItems
     for (const item of mainMenuItems) {
       if (item.children) {
         for (const child of item.children) {
@@ -339,22 +347,35 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       }
     }
 
+    // Also check in bottomMenuItems
+    for (const item of bottomMenuItems) {
+      if (item.path && isPathActive(item.path)) {
+        return item.key;
+      }
+    }
+
     // If no match found by path, fallback to default
     return defaultSelectedKey || "1";
   };
 
   useEffect(() => {
-    for (const item of mainMenuItems) {
-      if (item.children) {
-        for (const child of item.children) {
-          if (child.path && isPathActive(child.path)) {
-            setOpenKeys([item.key]);
-            return;
-          }
-        }
-      }
+    // Xử lý mainMenuItems
+    const activeMainMenuItem = mainMenuItems.find((item) =>
+      item.children?.some((child) => child.path && isPathActive(child.path))
+    );
+    if (activeMainMenuItem) {
+      setOpenKeys([activeMainMenuItem.key]);
+      return;
     }
-  }, [mainMenuItems, isPathActive]);
+
+    // Xử lý bottomMenuItems
+    const activeBottomMenuItem = bottomMenuItems.find(
+      (item) => item.path && isPathActive(item.path)
+    );
+    if (activeBottomMenuItem) {
+      setOpenKeys([activeBottomMenuItem.key]);
+    }
+  }, [mainMenuItems, bottomMenuItems, isPathActive]);
 
   const onOpenChange = (keys: string[]) => {
     setOpenKeys(keys);
@@ -415,7 +436,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       <Menu
         className={`bottom-menu ${collapsed ? "bottom-menu-collapsed" : ""}`}
         mode={collapsed ? "vertical" : "inline"}
-        selectable={false}
+        selectable={true}
+        selectedKeys={[findActiveKey()]}
         items={bottomMenuItems}
         style={{ color: "#ffffff" }}
       />
