@@ -110,7 +110,9 @@ public enum ErrorCode {
 
         // 500 - INTERNAL SERVER ERROR
         GENERAL_EXCEPTION(5000, ENUMS.ErrorMessages.GENERAL_EXCEPTION.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR,
-                        "500", ENUMS.Severity.HIGH.name());
+                        "500", ENUMS.Severity.HIGH.name()),
+        EXTERNAL_API_ERROR(5002, "External API error", HttpStatus.INTERNAL_SERVER_ERROR, "500",
+                        ENUMS.Severity.HIGH.name());
 
         ErrorCode(int code, String message, HttpStatus httpStatus, String httpCode, String severity) {
                 this.code = code;

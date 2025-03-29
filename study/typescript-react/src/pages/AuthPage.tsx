@@ -379,17 +379,20 @@ const AuthPage: React.FC = () => {
 
   const handleFacebookLogin = () => {
     setFacebookLoading(true);
-    const scope = "openid email profile";
+    const scope = "email,public_profile";
     const responseType = "code";
-    const authorizationUri = `https://www.facebook.com/v18.0/dialog/oauth?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
+    const fbClientId = import.meta.env.VITE_FACEBOOK_CLIENT_ID;
+    const fbRedirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
+    const authorizationUri = `https://www.facebook.com/v18.0/dialog/oauth?response_type=${responseType}&client_id=${fbClientId}&redirect_uri=${fbRedirectUri}&scope=${scope}`;
     window.location.href = authorizationUri;
   };
 
   const handleGithubLogin = () => {
     setGithubLoading(true);
-    const scope = "openid email profile";
-    const responseType = "code";
-    const authorizationUri = `https://github.com/login/oauth/authorize?response_type=${responseType}&client_id=${oauth2ClientId}&redirect_uri=${oauth2RedirectUri}&scope=${scope}`;
+    const scope = "user:email read:user";
+    const githubClientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+    const githubRedirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
+    const authorizationUri = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&redirect_uri=${githubRedirectUri}&scope=${scope}`;
     window.location.href = authorizationUri;
   };
 

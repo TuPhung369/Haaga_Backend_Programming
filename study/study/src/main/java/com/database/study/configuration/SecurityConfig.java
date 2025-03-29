@@ -39,6 +39,12 @@ public class SecurityConfig {
   @Value("${OAUTH2_REDIRECT_URI}")
   private String oauth2RedirectUrl;
 
+  @Value("${GITHUB_REDIRECT_URI}")
+  private String githubRedirectUri;
+
+  @Value("${FACEBOOK_REDIRECT_URI")
+  private String facebookRedirectUri;
+
   private final String[] PUBLIC_ENDPOINTS = {
       "/users/**",
       "/auth/token",
@@ -58,13 +64,23 @@ public class SecurityConfig {
       "/auth/totp/token",
       "/auth/totp/token/cookie",
       "/auth/google/token",
+      "/auth/github/token",
+      "/auth/facebook/token",
       "/oauth2/**",
       "https://accounts.google.com/o/oauth2/**",
+      "https://github.com/login/oauth/**",
+      "https://www.facebook.com/v18.0/dialog/**",
       "/oauth2/**",
+      "/oauth2/github/redirect",
+      "/oauthGit/**",
+      "/oauthGit/redirect",
+      "/oauthFacebook/**",
       "/o/oauth2**",
       "/login/oauth2/**",
       "/protected/**",
       "/google/token",
+      "/github/token",
+      "/facebook/token",
       "/api/chat/**",
 
       // Development mode endpoints - allow all _dev_ prefixed paths

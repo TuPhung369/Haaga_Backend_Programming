@@ -35,7 +35,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -47,7 +46,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
-@RequestMapping("/oauth2")
 public class OAuth2TokenController {
   @Autowired
   private UserService userService;
@@ -67,10 +65,35 @@ public class OAuth2TokenController {
   @Value("${CLIENT_REDIRECT_URI}")
   private String clientRedirectUrl;
 
+  @Value("${GITHUB_CLIENT_ID}")
+  private String githubClientId;
+
+  @Value("${GITHUB_CLIENT_SECRET}")
+  private String githubClientSecret;
+
+  @Value("${GITHUB_REDIRECT_URI}")
+  private String githubRedirectUri;
+
+  @Value("${CLIENT_GIT_REDIRECT_URI:${CLIENT_REDIRECT_URI}}")
+  private String clientGitRedirectUri;
+
+  @Value("${FACEBOOK_CLIENT_ID:your-facebook-app-id}")
+  private String facebookClientId;
+
+  @Value("${FACEBOOK_CLIENT_SECRET:your-facebook-app-secret}")
+  private String facebookClientSecret;
+
+  @Value("${FACEBOOK_REDIRECT_URI:http://localhost:9095/identify_service/oauth2/facebook/redirect}")
+  private String facebookRedirectUri;
+
+  @Value("${CLIENT_FB_REDIRECT_URI:${CLIENT_REDIRECT_URI}}")
+  private String clientFbRedirectUri;
+
   private final GoogleTokenValidation googleTokenValidation;
   private final AuthenticationService authenticationService;
   private final UserRepository userRepository;
   private final UserMapper userMapper;
+  private final RestTemplate restTemplate = new RestTemplate();
 
   public OAuth2TokenController(
       GoogleTokenValidation googleTokenValidation,
@@ -87,7 +110,7 @@ public class OAuth2TokenController {
    * Step 1: Initiate Google Authorization
    */
   @Transactional
-  @GetMapping("/authorization/google")
+  @GetMapping("/oauth2/authorization/google")
   public ResponseEntity<?> initiateGoogleAuthorization() {
     log.info("STEP 1: Initiating Google Authorization");
     String authorizationUri = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=" +
@@ -100,9 +123,9 @@ public class OAuth2TokenController {
    * Step 2: Handle Google Redirect
    */
   @Transactional
-  @GetMapping("/redirect")
+  @GetMapping("/oauth2/redirect")
   public ResponseEntity<?> handleGoogleRedirect(@RequestParam("code") String code,
-        HttpServletRequest request, HttpServletResponse response) {
+      HttpServletRequest request, HttpServletResponse response) {
     log.info("STEP 2: Received authorization code from Google: {}", code);
 
     // Step 2.1: Prepare Token Exchange Request
@@ -183,25 +206,25 @@ public class OAuth2TokenController {
 
         // Step 5: Authenticate User and Return Tokens
         log.info("STEP 10: Authenticating user");
-        
+
         // Use the cookie-based authentication
         AuthenticationResponse authResponse = authenticationService.authenticateWithCookies(
             user.getUsername(),
-            response
-        );
-        
+            response);
+
         log.info("STEP 11: Authentication successful");
 
         // Step 6: Redirect to Client-Side with Access Token in URL
         // (Refresh token is now in a cookie)
         log.info("STEP 12: Redirecting to client with token");
         String redirectUrl = String.format("%s?token=%s",
-                            clientRedirectUrl,
-                            URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
+            clientRedirectUrl,
+            URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       } else {
         log.error("STEP 3: Token exchange failed with response: {}", tokenResponse.getStatusCode());
-        throw new AppException(ErrorCode.INVALID_OPERATION, "Token exchange failed with response: " + tokenResponse.getStatusCode());
+        throw new AppException(ErrorCode.INVALID_OPERATION,
+            "Token exchange failed with response: " + tokenResponse.getStatusCode());
       }
     } catch (HttpClientErrorException | HttpServerErrorException e) {
       log.error("STEP 3: Error exchanging token: {}", e.getResponseBodyAsString(), e);
@@ -211,4 +234,294 @@ public class OAuth2TokenController {
       return ResponseEntity.status(500).body("An unexpected error occurred: " + e.getMessage());
     }
   }
+
+  /**
+   * GitHub OAuth Callback - This is the endpoint GitHub is actually calling
+   */
+  @Transactional
+  @GetMapping("/oauth2/github/redirect")
+  public ResponseEntity<?> handleGithubRedirect(@RequestParam("code") String code,
+      HttpServletRequest request, HttpServletResponse response) {
+    log.info("GitHub OAuth: Received authorization code: {}", code);
+
+    try {
+      // Log detailed debugging information
+      log.info("GitHub OAuth: Using client ID: {}", githubClientId);
+      log.info("GitHub OAuth: Using client secret: {}",
+          githubClientSecret != null ? "[REDACTED]" : "null");
+      log.info("GitHub OAuth: Using redirect URI: {}", githubRedirectUri);
+
+      // Exchange code for token
+      MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
+      parameters.add("code", code);
+      parameters.add("client_id", githubClientId);
+      parameters.add("client_secret", githubClientSecret);
+      parameters.add("redirect_uri", githubRedirectUri);
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+      headers.set("Accept", "application/json");
+
+      HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(parameters, headers);
+
+      log.info("GitHub OAuth: Exchanging code for token at https://github.com/login/oauth/access_token");
+
+      try {
+        ResponseEntity<Map<String, Object>> response1 = restTemplate.exchange(
+            "https://github.com/login/oauth/access_token",
+            HttpMethod.POST,
+            requestEntity,
+            new ParameterizedTypeReference<Map<String, Object>>() {
+            });
+
+        log.info("GitHub OAuth: Token response status: {}", response1.getStatusCode());
+        log.info("GitHub OAuth: Token response received: {}", response1.getBody());
+
+        Map<String, Object> tokenResponse = response1.getBody();
+
+        if (tokenResponse == null || !tokenResponse.containsKey("access_token")) {
+          log.error("GitHub OAuth: No access_token found in response: {}", tokenResponse);
+          String redirectUrl = String.format("%s?error=%s",
+              clientGitRedirectUri,
+              URLEncoder.encode("GitHub authentication failed: No access token in response",
+                  StandardCharsets.UTF_8));
+          return ResponseEntity.status(302).header("Location", redirectUrl).build();
+        }
+
+        String accessToken = (String) tokenResponse.get("access_token");
+        log.info("GitHub OAuth: Access token obtained successfully (token starts with): {}",
+            accessToken.substring(0, Math.min(5, accessToken.length())) + "...");
+
+        // Get user info using the access token
+        log.info("GitHub OAuth: Getting user info");
+        Map<String, Object> userInfo = authenticationService.validateGithubToken(accessToken);
+        log.info("GitHub OAuth: User info received: {}", userInfo);
+
+        // Extract user information
+        // String githubId = String.valueOf(userInfo.get("id"));
+        String name = (String) userInfo.get("name");
+        String emailFromGithub = (String) userInfo.get("email"); // Use a separate variable
+        String login = (String) userInfo.get("login");
+
+        // Compute the final email value
+        String finalEmail = (emailFromGithub != null) ? emailFromGithub : login + "@github.user";
+        log.info("GitHub OAuth: Final email computed: {}", finalEmail);
+
+        // Find or create user
+        log.info("GitHub OAuth: Checking if user exists");
+        User user = userRepository.findByEmail(finalEmail)
+            .orElseGet(() -> {
+              log.info("GitHub OAuth: User not found, creating new user");
+
+              UserCreationRequest userCreationRequest = new UserCreationRequest();
+              userCreationRequest.setUsername(login);
+              userCreationRequest.setPassword(UUID.randomUUID().toString());
+
+              if (name != null) {
+                String[] nameParts = name.split("\\s+", 2);
+                userCreationRequest.setFirstname(nameParts[0]);
+                if (nameParts.length > 1) {
+                  userCreationRequest.setLastname(nameParts[1] + "GitHub");
+                } else {
+                  userCreationRequest.setLastname("GitHubUser");
+                }
+              } else {
+                userCreationRequest.setFirstname(login);
+                userCreationRequest.setLastname("GitHubUser");
+              }
+
+              userCreationRequest.setDob(LocalDate.of(1999, 9, 9));
+              userCreationRequest.setEmail(finalEmail); // Use finalEmail here
+              userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
+              userCreationRequest.setActive(true);
+
+              UserResponse newUserResponse = userService.createUser(userCreationRequest);
+              User newUser = userMapper.toUser(newUserResponse);
+
+              log.info("GitHub OAuth: User created successfully: {}", newUser);
+              return newUser;
+            });
+
+        log.info("GitHub OAuth: User retrieved or created: {}", user);
+
+        // Authenticate user
+        log.info("GitHub OAuth: Authenticating user");
+        AuthenticationResponse authResponse = authenticationService.authenticateWithCookies(
+            user.getUsername(),
+            response);
+
+        log.info("GitHub OAuth: Authentication successful");
+
+        // Redirect to Client-Side with Access Token in URL
+        log.info("GitHub OAuth: Redirecting to client with token");
+        String redirectUrl = String.format("%s?token=%s",
+            clientGitRedirectUri,
+            URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+
+      } catch (Exception e) {
+        log.error("GitHub OAuth: Error during token exchange", e);
+        String redirectUrl = String.format("%s?error=%s",
+            clientGitRedirectUri,
+            URLEncoder.encode("GitHub token exchange error: " + e.getMessage(),
+                StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+      }
+
+    } catch (Exception e) {
+      log.error("GitHub OAuth: Error during authentication", e);
+      String redirectUrl = String.format("%s?error=%s",
+          clientGitRedirectUri,
+          URLEncoder.encode("GitHub authentication failed: " + e.getMessage(), StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    }
+  }
+
+  /**
+   * GitHub OAuth Callback - Alternative endpoint for backward compatibility
+   */
+  @Transactional
+  @GetMapping("/oauthGit/redirect")
+  public ResponseEntity<?> handleGithubRedirectAlt(@RequestParam("code") String code,
+      HttpServletRequest request, HttpServletResponse response) {
+    log.info("GitHub OAuth (Alt Endpoint): Received authorization code: {}", code);
+    log.info("GitHub OAuth (Alt Endpoint): Request URI: {}", request.getRequestURI());
+    log.info("GitHub OAuth (Alt Endpoint): Full URL: {}", request.getRequestURL().toString());
+
+    // Log headers
+    Collections.list(request.getHeaderNames()).forEach(headerName -> log
+        .info("GitHub OAuth (Alt Endpoint): Header - {}: {}", headerName, request.getHeader(headerName)));
+
+    // Log parameters
+    request.getParameterMap().forEach(
+        (key, value) -> log.info("GitHub OAuth (Alt Endpoint): Parameter - {}: {}", key, String.join(", ", value)));
+
+    // Dump environment variables for debugging
+    log.info("GitHub OAuth (Alt Endpoint): Environment - GITHUB_CLIENT_ID: {}", githubClientId);
+    log.info("GitHub OAuth (Alt Endpoint): Environment - GITHUB_REDIRECT_URI: {}", githubRedirectUri);
+
+    // Delegate to the primary GitHub handler
+    return handleGithubRedirect(code, request, response);
+  }
+
+  /**
+   * Facebook OAuth Callback
+   */
+  @Transactional
+  @GetMapping("/oauth2/facebook/redirect")
+  public ResponseEntity<?> handleFacebookRedirect(@RequestParam("code") String code,
+      HttpServletRequest request, HttpServletResponse response) {
+    log.info("Facebook OAuth: Received authorization code");
+
+    try {
+      // Exchange code for token
+      MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
+      parameters.add("code", code);
+      parameters.add("client_id", facebookClientId);
+      parameters.add("client_secret", facebookClientSecret);
+      parameters.add("redirect_uri", facebookRedirectUri);
+      parameters.add("grant_type", "authorization_code");
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+      HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(parameters, headers);
+
+      log.info("Facebook OAuth: Exchanging code for token");
+      ResponseEntity<Map<String, Object>> response1 = restTemplate.exchange(
+          "https://graph.facebook.com/v18.0/oauth/access_token",
+          HttpMethod.POST,
+          requestEntity,
+          new ParameterizedTypeReference<Map<String, Object>>() {
+          });
+
+      log.info("Facebook OAuth: Token response received: {}", response1.getBody());
+      Map<String, Object> tokenResponse = response1.getBody();
+
+      if (tokenResponse == null || !tokenResponse.containsKey("access_token")) {
+        log.error("Facebook OAuth: No access_token found in response");
+        String redirectUrl = String.format("%s?error=%s",
+            clientFbRedirectUri,
+            URLEncoder.encode("Facebook authentication failed: No access token", StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+      }
+
+      String accessToken = (String) tokenResponse.get("access_token");
+      log.info("Facebook OAuth: Access token obtained successfully");
+
+      // Get user info using the access token
+      log.info("Facebook OAuth: Getting user info");
+      Map<String, Object> userInfo = authenticationService.validateFacebookToken(accessToken);
+      log.info("Facebook OAuth: User info received: {}", userInfo);
+
+      // Extract user information
+      String facebookId = (String) userInfo.get("id");
+      String name = (String) userInfo.get("name");
+      String emailFromFacebook = (String) userInfo.get("email"); // Use a separate variable
+
+      // Compute the final email value
+      String finalEmail = (emailFromFacebook != null) ? emailFromFacebook : facebookId + "@facebook.user";
+      log.info("Facebook OAuth: Final email computed: {}", finalEmail);
+
+      // Find or create user
+      log.info("Facebook OAuth: Checking if user exists");
+      User user = userRepository.findByEmail(finalEmail)
+          .orElseGet(() -> {
+            log.info("Facebook OAuth: User not found, creating new user");
+
+            UserCreationRequest userCreationRequest = new UserCreationRequest();
+            userCreationRequest.setUsername(finalEmail.substring(0, finalEmail.indexOf('@')));
+            userCreationRequest.setPassword(UUID.randomUUID().toString());
+
+            if (name != null) {
+              String[] nameParts = name.split("\\s+", 2);
+              userCreationRequest.setFirstname(nameParts[0]);
+              if (nameParts.length > 1) {
+                userCreationRequest.setLastname(nameParts[1] + "Facebook");
+              } else {
+                userCreationRequest.setLastname("FacebookUser");
+              }
+            } else {
+              userCreationRequest.setFirstname(facebookId);
+              userCreationRequest.setLastname("FacebookUser");
+            }
+
+            userCreationRequest.setDob(LocalDate.of(1999, 9, 9));
+            userCreationRequest.setEmail(finalEmail); // Use finalEmail here
+            userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
+            userCreationRequest.setActive(true);
+
+            UserResponse newUserResponse = userService.createUser(userCreationRequest);
+            User newUser = userMapper.toUser(newUserResponse);
+
+            log.info("Facebook OAuth: User created successfully: {}", newUser);
+            return newUser;
+          });
+
+      log.info("Facebook OAuth: User retrieved or created: {}", user);
+
+      // Authenticate user
+      log.info("Facebook OAuth: Authenticating user");
+      AuthenticationResponse authResponse = authenticationService.authenticateWithCookies(
+          user.getUsername(),
+          response);
+
+      log.info("Facebook OAuth: Authentication successful");
+
+      // Redirect to Client-Side with Access Token in URL
+      log.info("Facebook OAuth: Redirecting to client with token");
+      String redirectUrl = String.format("%s?token=%s",
+          clientFbRedirectUri,
+          URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+
+    } catch (Exception e) {
+      log.error("Facebook OAuth: Error during authentication", e);
+      String redirectUrl = String.format("%s?error=%s",
+          clientFbRedirectUri,
+          URLEncoder.encode("Facebook authentication failed: " + e.getMessage(), StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    }
+  }
+
 }

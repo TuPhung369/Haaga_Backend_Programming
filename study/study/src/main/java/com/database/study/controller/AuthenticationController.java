@@ -262,6 +262,34 @@ public class AuthenticationController {
     }
   }
 
+  // Validate GitHub token
+  @PostMapping("/github/token")
+  public ResponseEntity<?> validateGithubToken(@RequestBody Map<String, String> body) {
+    String accessToken = body.get("access_token");
+    try {
+      // For GitHub, we obtain user information from the GitHub API
+      Map<String, Object> userInfo = authenticationService.validateGithubToken(accessToken);
+      return ResponseEntity.ok(userInfo);
+    } catch (RuntimeException e) {
+      log.error("GitHub token validation error", e);
+      return ResponseEntity.badRequest().body(e.getMessage());
+    }
+  }
+
+  // Validate Facebook token
+  @PostMapping("/facebook/token")
+  public ResponseEntity<?> validateFacebookToken(@RequestBody Map<String, String> body) {
+    String accessToken = body.get("access_token");
+    try {
+      // For Facebook, we obtain user information from the Facebook Graph API
+      Map<String, Object> userInfo = authenticationService.validateFacebookToken(accessToken);
+      return ResponseEntity.ok(userInfo);
+    } catch (RuntimeException e) {
+      log.error("Facebook token validation error", e);
+      return ResponseEntity.badRequest().body(e.getMessage());
+    }
+  }
+
   // Cookie-based authentication endpoints
   @PostMapping("/token/cookie")
   public ApiResponse<AuthenticationResponse> authenticateWithCookies(

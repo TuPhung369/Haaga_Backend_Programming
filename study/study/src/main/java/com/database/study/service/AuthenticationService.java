@@ -82,12 +82,14 @@ import java.util.Random;
 
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import com.database.study.interfaces.AuthenticationUtilities;
 import org.springframework.beans.factory.annotation.Value;
+import java.util.Collections;
 
 @Slf4j
 @Service
@@ -2508,4 +2510,102 @@ public class AuthenticationService implements AuthenticationUtilities {
     }
   }
 
+  /**
+   * Validates GitHub access token and retrieves user information
+   * 
+   * @param accessToken GitHub access token
+   * @return Map containing GitHub user information
+   */
+  public Map<String, Object> validateGithubToken(String accessToken) {
+    if (accessToken == null || accessToken.isEmpty()) {
+      throw new AppException(ErrorCode.INVALID_TOKEN, "GitHub access token is required");
+    }
+
+    try {
+      // Use RestTemplate to call GitHub API
+      org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+
+      // Set up headers with authorization
+      org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+      headers.set("Authorization", "token " + accessToken);
+      headers.set("Accept", "application/json");
+
+      // Make request to GitHub API to get user info
+      org.springframework.http.HttpEntity<?> entity = new org.springframework.http.HttpEntity<>(headers);
+      org.springframework.http.ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+          "https://api.github.com/user",
+          org.springframework.http.HttpMethod.GET,
+          entity,
+          new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
+          });
+
+      Map<String, Object> userInfo = response.getBody();
+      if (userInfo == null) {
+        return Collections.emptyMap();
+      }
+
+      // Get email if not public in profile
+      if (userInfo.get("email") == null) {
+        org.springframework.http.ResponseEntity<List<Map<String, Object>>> emailsResponse = restTemplate.exchange(
+            "https://api.github.com/user/emails",
+            org.springframework.http.HttpMethod.GET,
+            entity,
+            new org.springframework.core.ParameterizedTypeReference<List<Map<String, Object>>>() {
+            });
+
+        List<Map<String, Object>> emails = emailsResponse.getBody();
+        // Find primary email
+        if (emails != null && !emails.isEmpty()) {
+          for (Map<String, Object> emailObj : emails) {
+            Boolean isPrimary = (Boolean) emailObj.get("primary");
+            Boolean isVerified = (Boolean) emailObj.get("verified");
+            if (Boolean.TRUE.equals(isPrimary) && Boolean.TRUE.equals(isVerified)) {
+              userInfo.put("email", emailObj.get("email"));
+              break;
+            }
+          }
+        }
+      }
+
+      return userInfo;
+    } catch (Exception ex) {
+      log.error("Error validating GitHub token", ex);
+      throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Failed to validate GitHub token: " + ex.getMessage());
+    }
+  }
+
+  /**
+   * Validates Facebook access token and retrieves user information
+   * 
+   * @param accessToken Facebook access token
+   * @return Map containing Facebook user information
+   */
+  public Map<String, Object> validateFacebookToken(String accessToken) {
+    if (accessToken == null || accessToken.isEmpty()) {
+      throw new AppException(ErrorCode.INVALID_TOKEN, "Facebook access token is required");
+    }
+
+    try {
+      // Use RestTemplate to call Facebook Graph API
+      org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+
+      // Make request to Facebook Graph API to get user info
+      String fields = "id,name,email,picture";
+      String apiUrl = String.format("https://graph.facebook.com/v18.0/me?fields=%s&access_token=%s",
+          fields, accessToken);
+
+      org.springframework.http.ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+          apiUrl,
+          org.springframework.http.HttpMethod.GET,
+          null,
+          new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
+          });
+
+      Map<String, Object> userInfo = response.getBody();
+      return userInfo != null ? userInfo : Collections.emptyMap();
+    } catch (Exception ex) {
+      log.error("Error validating Facebook token", ex);
+      throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Failed to validate Facebook token: " + ex.getMessage());
+    }
+  }
 }

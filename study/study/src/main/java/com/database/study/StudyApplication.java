@@ -76,6 +76,12 @@ public class StudyApplication {
         String dbUsernameDev = dotenv.get("DB_USERNAME_DEV");
         String dbPasswordDev = dotenv.get("DB_PASSWORD_DEV");
         String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
+        String githubClientId = dotenv.get("GITHUB_CLIENT_ID");
+        String githubClientSecret = dotenv.get("GITHUB_CLIENT_SECRET");
+        String githubRedirectUri = dotenv.get("GITHUB_REDIRECT_URI");
+        String facebookClientId = dotenv.get("FACEBOOK_CLIENT_ID");
+        String facebookClientSecret = dotenv.get("FACEBOOK_CLIENT_SECRET");
+        String facebookRedirectUri = dotenv.get("FACEBOOK_REDIRECT_URI");
         String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
         String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
         String emailServerUsername = dotenv.get("EMAIL_SERVER_USERNAME");
@@ -103,6 +109,12 @@ public class StudyApplication {
         setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
         setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
         setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
+        setSystemProperty("FACEBOOK_CLIENT_ID", facebookClientId);
+        setSystemProperty("FACEBOOK_CLIENT_SECRET", facebookClientSecret);
+        setSystemProperty("FACEBOOK_REDIRECT_URI", facebookRedirectUri);
+        setSystemProperty("GITHUB_CLIENT_ID", githubClientId);
+        setSystemProperty("GITHUB_CLIENT_SECRET", githubClientSecret);
+        setSystemProperty("GITHUB_REDIRECT_URI", githubRedirectUri);
         setSystemProperty("EMAIL_SERVER_USERNAME", emailServerUsername);
         setSystemProperty("EMAIL_SERVER_PASSWORD", emailServerPassword);
         setSystemProperty("EMAIL_SERVER_HOST", emailServerHost);
@@ -114,9 +126,6 @@ public class StudyApplication {
 
         // Optional variables
         setSystemProperty("BASE_URL", dotenv.get("BASE_URL"));
-        setSystemProperty("GITHUB_CLIENT_ID", dotenv.get("GITHUB_CLIENT_ID"));
-        setSystemProperty("GITHUB_CLIENT_SECRET", dotenv.get("GITHUB_CLIENT_SECRET"));
-        setSystemProperty("GITHUB_REDIRECT_URI", dotenv.get("GITHUB_REDIRECT_URI"));
         setSystemProperty("APP_BASE_URI", dotenv.get("APP_BASE_URI"));
         setSystemProperty("CLIENT_REDIRECT_URI", dotenv.get("CLIENT_REDIRECT_URI"));
         setSystemProperty("CLIENT_GIT_REDIRECT_URI", dotenv.get("CLIENT_GIT_REDIRECT_URI"));

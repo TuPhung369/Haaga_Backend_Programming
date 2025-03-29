@@ -586,6 +586,34 @@ export const validateGoogleToken = async (
   }
 };
 
+export const validateGithubToken = async (
+  accessToken: string
+): Promise<AuthResponse> => {
+  try {
+    const response = await apiClient.post<AuthResponse>("/github/token", {
+      access_token: accessToken,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error validating GitHub token:", error);
+    throw handleServiceError(error);
+  }
+};
+
+export const validateFacebookToken = async (
+  accessToken: string
+): Promise<AuthResponse> => {
+  try {
+    const response = await apiClient.post<AuthResponse>("/facebook/token", {
+      access_token: accessToken,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error validating Facebook token:", error);
+    throw handleServiceError(error);
+  }
+};
+
 /**
  * Initiates the authentication process checking if TOTP or Email OTP is required
  */
