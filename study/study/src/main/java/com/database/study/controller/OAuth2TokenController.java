@@ -77,13 +77,13 @@ public class OAuth2TokenController {
   @Value("${CLIENT_GIT_REDIRECT_URI:${CLIENT_REDIRECT_URI}}")
   private String clientGitRedirectUri;
 
-  @Value("${FACEBOOK_CLIENT_ID:your-facebook-app-id}")
+  @Value("${FACEBOOK_CLIENT_ID}")
   private String facebookClientId;
 
-  @Value("${FACEBOOK_CLIENT_SECRET:your-facebook-app-secret}")
+  @Value("${FACEBOOK_CLIENT_SECRET}")
   private String facebookClientSecret;
 
-  @Value("${FACEBOOK_REDIRECT_URI:http://localhost:9095/identify_service/oauth2/facebook/redirect}")
+  @Value("${FACEBOOK_REDIRECT_URI}")
   private String facebookRedirectUri;
 
   @Value("${CLIENT_FB_REDIRECT_URI:${CLIENT_REDIRECT_URI}}")
@@ -405,15 +405,70 @@ public class OAuth2TokenController {
   }
 
   /**
+   * Step 1: Initiate Facebook Authorization with proper scopes
+   */
+  @Transactional
+  @GetMapping("/oauth2/authorization/facebook")
+  public ResponseEntity<?> initiateFacebookAuthorization() {
+    log.info("Facebook OAuth: Initiating Facebook Authorization");
+
+    // Encode the redirect URI
+    String encodedRedirectUri = URLEncoder.encode(facebookRedirectUri, StandardCharsets.UTF_8);
+
+    // Use proper scope configuration for Facebook
+    String authorizationUri = "https://www.facebook.com/v22.0/dialog/oauth" +
+        "?response_type=code" +
+        "&client_id=" + facebookClientId +
+        "&redirect_uri=" + encodedRedirectUri +
+        "&scope=email,public_profile";
+
+    log.info("Facebook OAuth: Redirecting to Facebook Authorization URI: {}", authorizationUri);
+    return ResponseEntity.status(302).header("Location", authorizationUri).build();
+  }
+
+  /**
    * Facebook OAuth Callback
    */
   @Transactional
   @GetMapping("/oauth2/facebook/redirect")
-  public ResponseEntity<?> handleFacebookRedirect(@RequestParam("code") String code,
+  public ResponseEntity<?> handleFacebookRedirect(@RequestParam(value = "code", required = false) String code,
+      @RequestParam(value = "error", required = false) String error,
+      @RequestParam(value = "error_reason", required = false) String errorReason,
+      @RequestParam(value = "error_description", required = false) String errorDescription,
       HttpServletRequest request, HttpServletResponse response) {
-    log.info("Facebook OAuth: Received authorization code");
+
+    log.info(
+        "Facebook OAuth: Received callback with params - code: {}, error: {}, error_reason: {}, error_description: {}",
+        code, error, errorReason, errorDescription);
+
+    // Handle error from Facebook
+    if (error != null) {
+      log.error("Facebook OAuth: Error from Facebook - reason: {}, description: {}", errorReason, errorDescription);
+      String redirectUrl = String.format("%s?error=%s&error_description=%s",
+          clientFbRedirectUri,
+          URLEncoder.encode(error, StandardCharsets.UTF_8),
+          URLEncoder.encode(errorDescription != null ? errorDescription : "Unknown error", StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    }
+
+    // Check if code is missing
+    if (code == null || code.isEmpty()) {
+      log.error("Facebook OAuth: No authorization code provided");
+      String redirectUrl = String.format("%s?error=%s",
+          clientFbRedirectUri,
+          URLEncoder.encode("No authorization code provided", StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    }
+
+    log.info("Facebook OAuth: Processing authorization code");
 
     try {
+      // Log detailed debugging information
+      log.info("Facebook OAuth: Using client ID: {}", facebookClientId);
+      log.info("Facebook OAuth: Using client secret: {}",
+          facebookClientSecret != null ? "[REDACTED]" : "null");
+      log.info("Facebook OAuth: Using redirect URI: {}", facebookRedirectUri);
+
       // Exchange code for token
       MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
       parameters.add("code", code);
@@ -427,93 +482,104 @@ public class OAuth2TokenController {
 
       HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(parameters, headers);
 
-      log.info("Facebook OAuth: Exchanging code for token");
+      log.info("Facebook OAuth: Exchanging code for token at https://graph.facebook.com/v22.0/oauth/access_token");
       ResponseEntity<Map<String, Object>> response1 = restTemplate.exchange(
-          "https://graph.facebook.com/v18.0/oauth/access_token",
+          "https://graph.facebook.com/v22.0/oauth/access_token",
           HttpMethod.POST,
           requestEntity,
           new ParameterizedTypeReference<Map<String, Object>>() {
           });
 
+      log.info("Facebook OAuth: Token response status: {}", response1.getStatusCode());
       log.info("Facebook OAuth: Token response received: {}", response1.getBody());
+
       Map<String, Object> tokenResponse = response1.getBody();
 
       if (tokenResponse == null || !tokenResponse.containsKey("access_token")) {
-        log.error("Facebook OAuth: No access_token found in response");
+        log.error("Facebook OAuth: No access_token found in response: {}", tokenResponse);
         String redirectUrl = String.format("%s?error=%s",
             clientFbRedirectUri,
-            URLEncoder.encode("Facebook authentication failed: No access token", StandardCharsets.UTF_8));
+            URLEncoder.encode("Facebook authentication failed: No access token in response", StandardCharsets.UTF_8));
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       }
 
       String accessToken = (String) tokenResponse.get("access_token");
-      log.info("Facebook OAuth: Access token obtained successfully");
+      log.info("Facebook OAuth: Access token obtained successfully (token starts with): {}",
+          accessToken.substring(0, Math.min(5, accessToken.length())) + "...");
 
-      // Get user info using the access token
-      log.info("Facebook OAuth: Getting user info");
-      Map<String, Object> userInfo = authenticationService.validateFacebookToken(accessToken);
-      log.info("Facebook OAuth: User info received: {}", userInfo);
+      // Get user info using the access token with specific fields
+      log.info("Facebook OAuth: Getting user info with fields: id,name,email");
+      try {
+        Map<String, Object> userInfo = authenticationService.validateFacebookToken(accessToken);
+        log.info("Facebook OAuth: User info received: {}", userInfo);
 
-      // Extract user information
-      String facebookId = (String) userInfo.get("id");
-      String name = (String) userInfo.get("name");
-      String emailFromFacebook = (String) userInfo.get("email"); // Use a separate variable
+        // Extract user information
+        String facebookId = (String) userInfo.get("id");
+        String name = (String) userInfo.get("name");
+        String emailFromFacebook = (String) userInfo.get("email"); // Use a separate variable
 
-      // Compute the final email value
-      String finalEmail = (emailFromFacebook != null) ? emailFromFacebook : facebookId + "@facebook.user";
-      log.info("Facebook OAuth: Final email computed: {}", finalEmail);
+        // Compute the final email value
+        String finalEmail = (emailFromFacebook != null) ? emailFromFacebook : facebookId + "@facebook.user";
+        log.info("Facebook OAuth: Final email computed: {}", finalEmail);
 
-      // Find or create user
-      log.info("Facebook OAuth: Checking if user exists");
-      User user = userRepository.findByEmail(finalEmail)
-          .orElseGet(() -> {
-            log.info("Facebook OAuth: User not found, creating new user");
+        // Find or create user
+        log.info("Facebook OAuth: Checking if user exists");
+        User user = userRepository.findByEmail(finalEmail)
+            .orElseGet(() -> {
+              log.info("Facebook OAuth: User not found, creating new user");
 
-            UserCreationRequest userCreationRequest = new UserCreationRequest();
-            userCreationRequest.setUsername(finalEmail.substring(0, finalEmail.indexOf('@')));
-            userCreationRequest.setPassword(UUID.randomUUID().toString());
+              UserCreationRequest userCreationRequest = new UserCreationRequest();
+              userCreationRequest.setUsername(finalEmail.substring(0, finalEmail.indexOf('@')));
+              userCreationRequest.setPassword(UUID.randomUUID().toString());
 
-            if (name != null) {
-              String[] nameParts = name.split("\\s+", 2);
-              userCreationRequest.setFirstname(nameParts[0]);
-              if (nameParts.length > 1) {
-                userCreationRequest.setLastname(nameParts[1] + "Facebook");
+              if (name != null) {
+                String[] nameParts = name.split("\\s+", 2);
+                userCreationRequest.setFirstname(nameParts[0]);
+                if (nameParts.length > 1) {
+                  userCreationRequest.setLastname(nameParts[1] + "Facebook");
+                } else {
+                  userCreationRequest.setLastname("FacebookUser");
+                }
               } else {
+                userCreationRequest.setFirstname(facebookId);
                 userCreationRequest.setLastname("FacebookUser");
               }
-            } else {
-              userCreationRequest.setFirstname(facebookId);
-              userCreationRequest.setLastname("FacebookUser");
-            }
 
-            userCreationRequest.setDob(LocalDate.of(1999, 9, 9));
-            userCreationRequest.setEmail(finalEmail); // Use finalEmail here
-            userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
-            userCreationRequest.setActive(true);
+              userCreationRequest.setDob(LocalDate.of(1999, 9, 9));
+              userCreationRequest.setEmail(finalEmail); // Use finalEmail here
+              userCreationRequest.setRoles(new ArrayList<>(Collections.singletonList(ENUMS.Role.USER.name())));
+              userCreationRequest.setActive(true);
 
-            UserResponse newUserResponse = userService.createUser(userCreationRequest);
-            User newUser = userMapper.toUser(newUserResponse);
+              UserResponse newUserResponse = userService.createUser(userCreationRequest);
+              User newUser = userMapper.toUser(newUserResponse);
 
-            log.info("Facebook OAuth: User created successfully: {}", newUser);
-            return newUser;
-          });
+              log.info("Facebook OAuth: User created successfully: {}", newUser);
+              return newUser;
+            });
 
-      log.info("Facebook OAuth: User retrieved or created: {}", user);
+        log.info("Facebook OAuth: User retrieved or created: {}", user);
 
-      // Authenticate user
-      log.info("Facebook OAuth: Authenticating user");
-      AuthenticationResponse authResponse = authenticationService.authenticateWithCookies(
-          user.getUsername(),
-          response);
+        // Authenticate user
+        log.info("Facebook OAuth: Authenticating user");
+        AuthenticationResponse authResponse = authenticationService.authenticateWithCookies(
+            user.getUsername(),
+            response);
 
-      log.info("Facebook OAuth: Authentication successful");
+        log.info("Facebook OAuth: Authentication successful");
 
-      // Redirect to Client-Side with Access Token in URL
-      log.info("Facebook OAuth: Redirecting to client with token");
-      String redirectUrl = String.format("%s?token=%s",
-          clientFbRedirectUri,
-          URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
-      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+        // Redirect to Client-Side with Access Token in URL
+        log.info("Facebook OAuth: Redirecting to client with token");
+        String redirectUrl = String.format("%s?token=%s",
+            clientFbRedirectUri,
+            URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+      } catch (Exception e) {
+        log.error("Facebook OAuth: Error getting user info", e);
+        String redirectUrl = String.format("%s?error=%s",
+            clientFbRedirectUri,
+            URLEncoder.encode("Facebook user info error: " + e.getMessage(), StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+      }
 
     } catch (Exception e) {
       log.error("Facebook OAuth: Error during authentication", e);

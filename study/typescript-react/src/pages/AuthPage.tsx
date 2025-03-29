@@ -378,13 +378,17 @@ const AuthPage: React.FC = () => {
   };
 
   const handleFacebookLogin = () => {
-    setFacebookLoading(true);
-    const scope = "email,public_profile";
-    const responseType = "code";
-    const fbClientId = import.meta.env.VITE_FACEBOOK_CLIENT_ID;
-    const fbRedirectUri = import.meta.env.VITE_FACEBOOK_REDIRECT_URI;
-    const authorizationUri = `https://www.facebook.com/v18.0/dialog/oauth?response_type=${responseType}&client_id=${fbClientId}&redirect_uri=${fbRedirectUri}&scope=${scope}`;
-    window.location.href = authorizationUri;
+    // Log the action
+    console.log("Initiating Facebook login");
+
+    // Get the API base URI from environment variables
+    const apiBaseUri = import.meta.env.VITE_API_BASE_URI || "";
+
+    // Use the backend endpoint that will handle the OAuth flow
+    const redirectUrl = `${apiBaseUri}/oauth2/authorization/facebook`;
+
+    // Navigate to the Facebook OAuth authorization endpoint
+    window.location.href = redirectUrl;
   };
 
   const handleGithubLogin = () => {

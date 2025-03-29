@@ -64,8 +64,8 @@ spring:
             scope: user:email, read:user
             redirect-uri: "${GITHUB_REDIRECT_URI}"
           facebook:
-            client-id: ${FACEBOOK_CLIENT_ID:your-facebook-app-id}
-            client-secret: ${FACEBOOK_CLIENT_SECRET:your-facebook-app-secret}
+            client-id: ${FACEBOOK_CLIENT_ID}
+            client-secret: ${FACEBOOK_CLIENT_SECRET}
             scope: email, public_profile
             redirect-uri: ${FACEBOOK_REDIRECT_URI:http://localhost:9095/identify_service/oauth2/facebook/redirect}
         provider:

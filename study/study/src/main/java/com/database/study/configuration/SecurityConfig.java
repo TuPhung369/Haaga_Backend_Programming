@@ -42,7 +42,7 @@ public class SecurityConfig {
   @Value("${GITHUB_REDIRECT_URI}")
   private String githubRedirectUri;
 
-  @Value("${FACEBOOK_REDIRECT_URI")
+  @Value("${FACEBOOK_REDIRECT_URI}")
   private String facebookRedirectUri;
 
   private final String[] PUBLIC_ENDPOINTS = {

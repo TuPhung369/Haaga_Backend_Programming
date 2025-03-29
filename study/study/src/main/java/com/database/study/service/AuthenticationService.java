@@ -2589,10 +2589,15 @@ public class AuthenticationService implements AuthenticationUtilities {
       // Use RestTemplate to call Facebook Graph API
       org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
 
-      // Make request to Facebook Graph API to get user info
-      String fields = "id,name,email,picture";
-      String apiUrl = String.format("https://graph.facebook.com/v18.0/me?fields=%s&access_token=%s",
+      // Explicitly request the fields we need, including email which requires the
+      // email permission
+      // The fields parameter is important - id and name come from public_profile,
+      // email requires the email permission
+      String fields = "id,name,email,picture.type(large)";
+      String apiUrl = String.format("https://graph.facebook.com/v22.0/me?fields=%s&access_token=%s",
           fields, accessToken);
+
+      log.info("Calling Facebook Graph API with URL: {}", apiUrl.replace(accessToken, "REDACTED_TOKEN"));
 
       org.springframework.http.ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
           apiUrl,
@@ -2602,6 +2607,18 @@ public class AuthenticationService implements AuthenticationUtilities {
           });
 
       Map<String, Object> userInfo = response.getBody();
+
+      if (userInfo != null) {
+        log.info("Received Facebook user info with fields: {}", String.join(", ", userInfo.keySet()));
+
+        // Check if we got an email (might be missing due to permissions)
+        if (!userInfo.containsKey("email")) {
+          log.warn(
+              "Email field missing from Facebook response. This may indicate the user didn't grant email permission " +
+                  "or the app doesn't have email permission configured correctly.");
+        }
+      }
+
       return userInfo != null ? userInfo : Collections.emptyMap();
     } catch (Exception ex) {
       log.error("Error validating Facebook token", ex);
