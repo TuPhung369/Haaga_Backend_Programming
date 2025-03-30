@@ -378,16 +378,9 @@ const AuthPage: React.FC = () => {
   };
 
   const handleFacebookLogin = () => {
-    // Log the action
-    console.log("Initiating Facebook login");
-
-    // Get the API base URI from environment variables
+    setFacebookLoading(true);
     const apiBaseUri = import.meta.env.VITE_API_BASE_URI || "";
-
-    // Use the backend endpoint that will handle the OAuth flow
     const redirectUrl = `${apiBaseUri}/oauth2/authorization/facebook`;
-
-    // Navigate to the Facebook OAuth authorization endpoint
     window.location.href = redirectUrl;
   };
 

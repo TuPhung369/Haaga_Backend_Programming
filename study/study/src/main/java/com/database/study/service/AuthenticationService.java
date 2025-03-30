@@ -338,7 +338,12 @@ public class AuthenticationService implements AuthenticationUtilities {
       // 2. Check if TOTP is required
       boolean totpEnabled = totpService.isTotpEnabled(user.getUsername());
 
+      // Using Reset Login for AdminRole with Email
+      // boolean isAdmin = user.getRoles().stream()
+      //     .anyMatch(role -> role.getName().equals("ADMIN"));
       // 3. If TOTP is enabled, verify the TOTP code
+      //if (totpEnabled && !isAdmin) {
+
       if (totpEnabled) {
         String totpCode = request.getTotpCode();
 

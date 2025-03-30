@@ -106,7 +106,7 @@ cleanup:
     expression: "0 0 2 * * ?" # 2AM every day
 totp:
   encryption:
-    key: "2fl9V3Xl0ks5yX9dGuVHRV1H6ld9F0OjhrYhP7QvxqJrB/1OLKJHpPoMxSBcUe3EEC6hq0kseMfUQlhK2w2yQA=="
+    key: "Z3x4y5z6A7b8c9d0E1f2g3h4i5j6k9l8m9n0o1p2q3r6s5t6u7v8w9x0y1z2"
 n8n:
   webhook:
     url: http://localhost:5678/webhook/c1784e69-2d89-45fb-b47d-dd13dddcf31e/chat

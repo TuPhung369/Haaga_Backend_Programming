@@ -13,6 +13,7 @@ import com.database.study.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -105,7 +106,6 @@ public class TotpService {
      */
     @Transactional
     public boolean verifyCode(String username, String code) {
-        // Get the TOTP secret entity with encryption status
         TotpSecret totpSecretEntity = totpSecretRepository.findByUsernameAndActive(username, true)
                 .orElse(null);
 
@@ -114,17 +114,15 @@ public class TotpService {
             return false;
         }
 
-        // Get the stored secret key (which may be encrypted)
         String secretKey = totpSecretEntity.getSecretKey();
 
-        // Decrypt if the secret is encrypted
         if (totpSecretEntity.isSecretEncrypted()) {
             try {
                 secretKey = encryptionService.decryptTotpSecret(secretKey);
-                log.debug("Successfully decrypted TOTP secret for verification");
+                log.debug("Successfully decrypted TOTP secret for user: {}", username);
             } catch (Exception e) {
-                log.error("Failed to decrypt TOTP secret: {}", e.getMessage(), e);
-                return false; // Fail securely if decryption fails
+                log.error("Failed to decrypt TOTP secret for user: {}: {}", username, e.getMessage(), e);
+                return false;
             }
         }
 
@@ -137,23 +135,19 @@ public class TotpService {
             Base32 base32 = new Base32();
             byte[] bytes = base32.decode(secretKey);
 
-            // Get current timestamp and convert to time units
             long currentTimeMillis = Instant.now().toEpochMilli();
             long currentTimeWindow = currentTimeMillis / 1000 / TIME_STEP;
 
-            // Try current and adjacent time windows
             for (int i = -WINDOW_SIZE; i <= WINDOW_SIZE; i++) {
                 long timeWindow = currentTimeWindow + i;
                 String calculatedCode = generateTOTP(bytes, timeWindow);
 
                 if (calculatedCode.equals(code)) {
-                    // Check if code has been used before in this time window
                     if (totpUsedCodeRepository.existsByUsernameAndCodeAndTimeWindow(username, code, timeWindow)) {
                         log.warn("TOTP code replay attempt detected for user: {}", username);
                         return false;
                     }
 
-                    // Record the used code
                     TotpUsedCode usedCode = TotpUsedCode.builder()
                             .username(username)
                             .code(code)
@@ -188,23 +182,17 @@ public class TotpService {
         mac.init(signKey);
         byte[] hash = mac.doFinal(data);
 
-        // Get offset
         int offset = hash[hash.length - 1] & 0xF;
 
-        // Get 4 bytes at the offset
         long truncatedHash = 0;
         for (int i = 0; i < 4; ++i) {
             truncatedHash <<= 8;
             truncatedHash |= (hash[offset + i] & 0xFF);
         }
 
-        // Remove the most significant bit
         truncatedHash &= 0x7FFFFFFF;
-
-        // Get only the required number of digits
         truncatedHash %= Math.pow(10, CODE_DIGITS);
 
-        // Format with leading zeros
         return String.format("%0" + CODE_DIGITS + "d", truncatedHash);
     }
 
@@ -228,20 +216,14 @@ public class TotpService {
 
     /**
      * Create a new TOTP secret for a user
-     * If user already has an active device, this will fail and require verification
-     * first
      */
     @Transactional
     public TotpSecret createTotpSecret(String username, String deviceName) {
-        // Generate the TOTP secret
         String plainSecretKey = generateSecretKey();
         log.debug("Generated plaintext secret key for user {}", username);
 
-        // Store plaintext version for returning to UI
         String encryptedSecretKey;
-
         try {
-            // Explicitly encrypt the secret
             encryptedSecretKey = encryptionService.encryptTotpSecret(plainSecretKey);
             log.debug("Successfully encrypted TOTP secret key");
         } catch (Exception e) {
@@ -249,37 +231,27 @@ public class TotpService {
             throw new AppException(ErrorCode.GENERAL_EXCEPTION, "Failed to secure TOTP secret");
         }
 
-        // Mark as encrypted
-        // Verify the user exists before proceeding
         userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
-        // Check if user already has an active TOTP device
         Optional<TotpSecret> activeSecretOpt = totpSecretRepository.findByUsernameAndActive(username, true);
         if (activeSecretOpt.isPresent()) {
-            // If an active device exists, don't allow creating a new one directly
             throw new AppException(ErrorCode.TOTP_ALREADY_ENABLED);
         }
 
-        // Check for pending setup that hasn't been verified yet
         List<TotpSecret> inactiveSecrets = totpSecretRepository.findAllByUsernameAndActive(username, false);
         if (!inactiveSecrets.isEmpty()) {
-            // If there is a pending setup, delete it
             log.info("Removing pending TOTP setup for user: {}", username);
             totpSecretRepository.deleteAll(inactiveSecrets);
             totpSecretRepository.flush();
         }
 
-        // Generate backup codes
         List<String> backupCodes = generateBackupCodes();
-
-        // Hash backup codes for storage
         List<String> hashedBackupCodes = new ArrayList<>();
         for (String code : backupCodes) {
             hashedBackupCodes.add(passwordEncoder.encode(code));
         }
 
-        // Convert to JSON
         String backupCodesJson;
         try {
             backupCodesJson = objectMapper.writeValueAsString(hashedBackupCodes);
@@ -287,20 +259,17 @@ public class TotpService {
             throw new AppException(ErrorCode.GENERAL_EXCEPTION);
         }
 
-        // Use encrypted value in the entity
         TotpSecret totpSecret = TotpSecret.builder()
                 .username(username)
-                .secretKey(encryptedSecretKey) // Store encrypted version
+                .secretKey(encryptedSecretKey)
                 .deviceName(deviceName)
                 .active(false)
                 .backupCodes(backupCodesJson)
-                .secretEncrypted(true) // Only set true because encryption succeeded
+                .secretEncrypted(true)
                 .build();
 
-        // Save entity with encrypted secret
         TotpSecret savedEntity = totpSecretRepository.save(totpSecret);
 
-        // Create a copy for returning to the UI with plaintext secret
         TotpSecret responseEntity = new TotpSecret();
         BeanUtils.copyProperties(savedEntity, responseEntity);
         responseEntity.setSecretKey(plainSecretKey);
@@ -316,15 +285,11 @@ public class TotpService {
         TotpSecret totpSecret = totpSecretRepository.findById(secretId)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_OPERATION));
 
-        // Check if already verified
         if (totpSecret.isActive()) {
             throw new AppException(ErrorCode.TOTP_ALREADY_ENABLED);
         }
 
-        // Get the secret key from the inactive device
         String secretKey = totpSecret.getSecretKey();
-
-        // Decrypt if needed
         if (totpSecret.isSecretEncrypted()) {
             try {
                 secretKey = encryptionService.decryptTotpSecret(secretKey);
@@ -335,18 +300,14 @@ public class TotpService {
             }
         }
 
-        // Verify directly against this specific device's secret
         try {
             Base32 base32 = new Base32();
             byte[] bytes = base32.decode(secretKey);
 
-            // Get current timestamp and convert to time units
             long currentTimeMillis = Instant.now().toEpochMilli();
             long currentTimeWindow = currentTimeMillis / 1000 / TIME_STEP;
 
             boolean codeValid = false;
-
-            // Try current and adjacent time windows
             for (int i = -WINDOW_SIZE; i <= WINDOW_SIZE; i++) {
                 long timeWindow = currentTimeWindow + i;
                 String calculatedCode = generateTOTP(bytes, timeWindow);
@@ -358,23 +319,16 @@ public class TotpService {
             }
 
             if (codeValid) {
-                // Proceed with activation as in your original code
-                // Check for existing active devices and delete them
                 List<TotpSecret> activeSecrets = totpSecretRepository
                         .findAllByUsernameAndActive(totpSecret.getUsername(), true);
                 for (TotpSecret activeSecret : activeSecrets) {
                     totpSecretRepository.delete(activeSecret);
                 }
 
-                // Activate this secret
                 totpSecret.setActive(true);
                 totpSecretRepository.save(totpSecret);
 
-                // Generate new backup codes and continue with your existing logic...
                 List<String> backupCodes = generateBackupCodes();
-
-                // Rest of backup code generation and storage...
-
                 return Map.of("success", true, "backupCodes", backupCodes);
             }
 
@@ -388,25 +342,20 @@ public class TotpService {
     /**
      * Creates a new TOTP device after verifying with the current device or backup
      * code
-     * This is used when a user wants to change their TOTP device
      */
     @Transactional
     public TotpSecret changeDevice(String username, String verificationCode, String newDeviceName) {
-        // First verify the user has authorization with current device or backup code
         if (!validateCode(username, verificationCode)) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
-        // Get current active device
         TotpSecret currentDevice = totpSecretRepository.findByUsernameAndActive(username, true)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_OPERATION));
 
-        // Delete the existing device
         log.info("Deleting existing TOTP device for user: {} after verification", username);
         totpSecretRepository.delete(currentDevice);
         totpSecretRepository.flush();
 
-        // Create and return a new inactive device
         return createTotpSecret(username, newDeviceName);
     }
 
@@ -423,12 +372,10 @@ public class TotpService {
 
         TotpSecret totpSecret = totpSecretOpt.get();
 
-        // First try as TOTP code
         if (verifyCode(username, code)) {
             return true;
         }
 
-        // Then try as backup code
         try {
             List<String> hashedBackupCodes = objectMapper.readValue(
                     totpSecret.getBackupCodes(),
@@ -438,13 +385,10 @@ public class TotpService {
             for (Iterator<String> iterator = hashedBackupCodes.iterator(); iterator.hasNext();) {
                 String hashedCode = iterator.next();
                 if (passwordEncoder.matches(code, hashedCode)) {
-                    // Backup code is valid - remove it after use
                     iterator.remove();
                     totpSecret.setBackupCodes(objectMapper.writeValueAsString(hashedBackupCodes));
                     totpSecretRepository.save(totpSecret);
 
-                    // Record the used backup code to prevent replay attacks
-                    // Since backup codes aren't time-based, use a special marker for timeWindow
                     long specialBackupCodeTimeWindow = -1;
                     TotpUsedCode usedCode = TotpUsedCode.builder()
                             .username(username)
@@ -483,12 +427,10 @@ public class TotpService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
-        // Verify user authority with TOTP or backup code
         if (!validateCode(username, verificationCode)) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
-        // Delete the device
         totpSecretRepository.delete(totpSecret);
         log.info("TOTP device deactivated for user: {} after verification", username);
     }
@@ -505,7 +447,6 @@ public class TotpService {
      */
     @Transactional
     public List<String> regenerateBackupCodes(String username, String verificationCode) {
-        // First verify the user authority with current code
         if (!validateCode(username, verificationCode)) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -519,13 +460,11 @@ public class TotpService {
         TotpSecret totpSecret = totpSecretOpt.get();
         List<String> backupCodes = generateBackupCodes();
 
-        // Hash backup codes for storage
         List<String> hashedBackupCodes = new ArrayList<>();
         for (String code : backupCodes) {
             hashedBackupCodes.add(passwordEncoder.encode(code));
         }
 
-        // Convert to JSON and store
         try {
             totpSecret.setBackupCodes(objectMapper.writeValueAsString(hashedBackupCodes));
             totpSecretRepository.save(totpSecret);
@@ -538,18 +477,13 @@ public class TotpService {
 
     /**
      * Request admin to reset TOTP
-     * This is used when a user has lost access to their TOTP device and backup
-     * codes
      */
     @Transactional
     public UUID requestAdminReset(String username, String email) {
         log.info("TOTP reset request initiated for username: {}, email: {}", username, email);
 
-        // Verify the user exists and the email matches
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-
-        log.info("User found for TOTP reset: {}", username);
 
         if (!user.getEmail().equalsIgnoreCase(email)) {
             log.warn("Email mismatch for TOTP reset request. User: {}, Provided email: {}, Actual email: {}",
@@ -557,9 +491,6 @@ public class TotpService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
-        log.info("Email validated for user: {}", username);
-
-        // Check if there's already a pending request
         List<TotpResetRequest> pendingRequests = totpResetRequestRepository
                 .findByUsernameOrderByRequestTimeDesc(username);
         if (!pendingRequests.isEmpty() &&
@@ -568,7 +499,6 @@ public class TotpService {
             return pendingRequests.get(0).getId();
         }
 
-        // Create a new request
         TotpResetRequest resetRequest = TotpResetRequest.builder()
                 .username(username)
                 .email(email)
@@ -577,51 +507,30 @@ public class TotpService {
                 .processed(false)
                 .build();
 
-        // Save the request first to get its ID
         resetRequest = totpResetRequestRepository.save(resetRequest);
         log.info("TOTP reset request created with ID: {}", resetRequest.getId());
 
-        // Add log before calling sendAdminNotification
-        log.info("About to send admin notification for request ID: {}", resetRequest.getId());
-
-        // Send notification to admin about the new request
         sendAdminNotification(resetRequest, user);
 
         return resetRequest.getId();
     }
 
     private void sendAdminNotification(TotpResetRequest resetRequest, User user) {
-        log.info("sendAdminNotification method called for user: {}, request ID: {}",
+        log.info("Sending admin notification for user: {}, request ID: {}",
                 resetRequest.getUsername(), resetRequest.getId());
 
         try {
-            // Get admin email from configuration or use a default
-            String adminEmail = "tuphung010787@gmail.com"; // Use a configurable admin email in production
-            log.info("Admin email for notification: {}", adminEmail);
-
+            String adminEmail = "tuphung010787@gmail.com"; // Replace with configurable value in production
             String subject = "TOTP Reset Request for " + resetRequest.getUsername();
-            log.info("Preparing email with subject: {}", subject);
-
-            // Create the email content using the template
-            log.info("About to generate email template for user: {}", resetRequest.getUsername());
             String htmlContent = emailService.getAdminNotificationTemplate(
                     resetRequest.getUsername(),
                     user.getId().toString(),
                     resetRequest.getEmail(),
                     resetRequest.getId().toString());
-            log.info("Email template generated successfully, content length: {} characters",
-                    htmlContent != null ? htmlContent.length() : 0);
-
-            // Send the email
-            log.info("About to send email to admin: {}", adminEmail);
             emailService.sendSimpleMessage(adminEmail, subject, htmlContent);
-
             log.info("Admin notification sent successfully for TOTP reset request ID: {}", resetRequest.getId());
         } catch (Exception e) {
-            // Log the exception but don't throw it - we don't want to block the user flow
-            log.error("Failed to send admin notification for TOTP reset: {}", e.getMessage());
-            log.error("Exception type: {}", e.getClass().getName());
-            log.debug("Detailed error information:", e);
+            log.error("Failed to send admin notification for TOTP reset: {}", e.getMessage(), e);
         }
     }
 
@@ -652,12 +561,10 @@ public class TotpService {
         TotpResetRequest request = totpResetRequestRepository.findById(requestId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
 
-        // Check if request is already processed
         if (request.isProcessed() || request.getStatus() != TotpResetRequest.RequestStatus.PENDING) {
             throw new AppException(ErrorCode.INVALID_OPERATION);
         }
 
-        // Update request status
         request.setProcessed(true);
         request.setProcessedBy(adminUsername);
         request.setProcessedTime(LocalDateTime.now());
@@ -666,25 +573,16 @@ public class TotpService {
 
         totpResetRequestRepository.save(request);
 
-        // Reset TOTP for the user
         adminResetTotp(request.getUsername());
 
-        // Notify user with HTML template
         try {
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-
             String subject = "TOTP Reset Request Approved";
-
-            // Get HTML template and replace placeholder variables
             String htmlContent = emailService.getTotpResetApprovedTemplate(user.getFirstname());
-
-            // Send email using the HTML template
             emailService.sendSimpleMessage(user.getEmail(), subject, htmlContent);
-
         } catch (Exception e) {
             log.error("Failed to send user notification for TOTP reset approval: {}", e.getMessage());
-            // Continue execution even if email fails
         }
 
         log.info("TOTP reset request {} for user {} approved by admin {}",
@@ -699,12 +597,10 @@ public class TotpService {
         TotpResetRequest request = totpResetRequestRepository.findById(requestId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
 
-        // Check if request is already processed
         if (request.isProcessed() || request.getStatus() != TotpResetRequest.RequestStatus.PENDING) {
             throw new AppException(ErrorCode.INVALID_OPERATION);
         }
 
-        // Update request status
         request.setProcessed(true);
         request.setProcessedBy(adminUsername);
         request.setProcessedTime(LocalDateTime.now());
@@ -713,22 +609,14 @@ public class TotpService {
 
         totpResetRequestRepository.save(request);
 
-        // Notify user with HTML template
         try {
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
-
             String subject = "TOTP Reset Request Rejected";
-
-            // Get HTML template
             String htmlContent = emailService.getTotpResetRejectedTemplate(user.getFirstname());
-
-            // Send email using the HTML template
             emailService.sendSimpleMessage(user.getEmail(), subject, htmlContent);
-
         } catch (Exception e) {
             log.error("Failed to send user notification for TOTP reset rejection: {}", e.getMessage());
-            // Continue execution even if email fails
         }
 
         log.info("TOTP reset request {} for user {} rejected by admin {}",
@@ -737,11 +625,9 @@ public class TotpService {
 
     /**
      * Admin reset of TOTP
-     * This should only be accessible by admin users
      */
     @Transactional
     public void adminResetTotp(String username) {
-        // Delete all TOTP devices for the user
         List<TotpSecret> userDevices = totpSecretRepository.findAllByUsername(username);
         if (!userDevices.isEmpty()) {
             totpSecretRepository.deleteAll(userDevices);
@@ -756,9 +642,7 @@ public class TotpService {
     @Transactional
     public void cleanupOldResetRequests() {
         try {
-            // Clean up processed requests older than 24 hours
             LocalDateTime cutoffDate = LocalDateTime.now().minusHours(USED_CODES_RETENTION_HOURS);
-
             List<TotpResetRequest> oldRequests = totpResetRequestRepository
                     .findByProcessedTrueAndProcessedTimeBefore(cutoffDate);
 
@@ -770,5 +654,4 @@ public class TotpService {
             log.error("Error during TOTP reset request cleanup", e);
         }
     }
-
 }

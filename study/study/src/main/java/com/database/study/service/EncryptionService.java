@@ -17,7 +17,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
@@ -41,10 +40,8 @@ public class EncryptionService {
     @Value("${ENCRYPTION_KEY}")
     private String encryptionKey;
 
-    @Value("${totp.encryption.key:${ENCRYPTION_KEY}}")
+    @Value("${totp.encryption.key}")
     private String totpEncryptionKey;
-
-    private SecretKey totpSecretKey;
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12; // 96 bits, standard for GCM
@@ -52,21 +49,15 @@ public class EncryptionService {
     private static final int AES_KEY_LENGTH_BYTES = 32; // 256 bits for AES-256
 
     // PBKDF2 parameters
-    private static final int PBKDF2_ITERATIONS = 100000; // Higher iterations = more secure but slower
+    private static final int PBKDF2_ITERATIONS = 456789;
+    private static final int PBKDF2_ITERATIONS_TOKEN = 123456;
     private static final int PBKDF2_KEY_LENGTH = 256; // 256 bits for AES-256
+    private static final int SALT_LENGTH = 16; // 128 bits for AES-256
 
     @PostConstruct
     public void init() {
-        try {
-            // Initialize TOTP secret key
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] keyBytes = digest.digest(totpEncryptionKey.getBytes(StandardCharsets.UTF_8));
-            totpSecretKey = new SecretKeySpec(keyBytes, "AES");
-            log.debug("TOTP encryption key initialized successfully");
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Failed to initialize TOTP encryption service", e);
-            throw new RuntimeException("Failed to initialize encryption service", e);
-        }
+        // No need to derive a global key here anymore
+        log.info("EncryptionService initialized");
     }
 
     /**
@@ -83,7 +74,7 @@ public class EncryptionService {
             new SecureRandom().nextBytes(salt);
 
             // Derive dynamic key from ENCRYPTION_KEY using PBKDF2
-            byte[] dynamicKey = deriveKeyWithPBKDF2(encryptionKey, salt);
+            byte[] dynamicKey = deriveKeyWithPBKDF2Token(encryptionKey, salt);
             SecretKeySpec secretKey = new SecretKeySpec(dynamicKey, "AES");
 
             // Initialize the cipher for encryption
@@ -114,9 +105,9 @@ public class EncryptionService {
      */
     public String decryptToken(String encryptedToken) {
         try {
-            if (encryptedToken == null || encryptedToken.isEmpty()) {
-                log.warn("Attempted to decrypt null or empty token");
-                throw new IllegalArgumentException("Token cannot be null or empty");
+            if (encryptedToken == null || !encryptedToken.matches("[A-Za-z0-9+/=]+") || encryptedToken.isEmpty()) {
+                log.warn("Attempted to decrypt null or not encoded token");
+                throw new IllegalArgumentException("Token cannot be null or not encoded");
             }
 
             // Clean the token and handle URL-safe encoding
@@ -158,7 +149,7 @@ public class EncryptionService {
                 byteBuffer.get(cipherText);
 
                 // Derive the same key using the embedded salt
-                byte[] dynamicKey = deriveKeyWithPBKDF2(encryptionKey, salt);
+                byte[] dynamicKey = deriveKeyWithPBKDF2Token(encryptionKey, salt);
                 SecretKeySpec secretKey = new SecretKeySpec(dynamicKey, "AES");
 
                 // Initialize cipher for decryption
@@ -197,45 +188,63 @@ public class EncryptionService {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             byte[] iv = new byte[GCM_IV_LENGTH];
             new SecureRandom().nextBytes(iv);
+
+            // Generate a random salt for each encryption
+            byte[] salt = new byte[SALT_LENGTH];
+            new SecureRandom().nextBytes(salt);
+
+            // Derive a unique key for this secret
+            SecretKey secretKey = new SecretKeySpec(deriveKeyWithPBKDF2(totpEncryptionKey, salt), "AES");
+            ;
+
             GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-            cipher.init(Cipher.ENCRYPT_MODE, totpSecretKey, parameterSpec);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
 
             byte[] encryptedData = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
 
-            // Combine IV and encrypted data
-            ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + encryptedData.length);
-            byteBuffer.put(iv);
-            byteBuffer.put(encryptedData);
+            // Combine salt, IV, and encrypted data: [salt][iv][encrypted]
+            ByteBuffer byteBuffer = ByteBuffer.allocate(salt.length + iv.length + encryptedData.length);
+            byteBuffer.put(salt); // 16 bytes
+            byteBuffer.put(iv); // 12 bytes
+            byteBuffer.put(encryptedData); // variable length
 
             return Base64.getEncoder().encodeToString(byteBuffer.array());
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
-                | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Error encrypting TOTP secret", e);
         }
     }
 
     /**
-     * Decrypt TOTP secret key
+     * Decrypt TOTP secret key with fallback to legacy method
      */
     public String decryptTotpSecret(String encryptedText) {
         try {
             byte[] data = Base64.getDecoder().decode(encryptedText);
             ByteBuffer byteBuffer = ByteBuffer.wrap(data);
 
+            // Extract salt
+            byte[] salt = new byte[SALT_LENGTH]; // 16 bytes
+            byteBuffer.get(salt);
+
+            // Extract IV
             byte[] iv = new byte[GCM_IV_LENGTH];
             byteBuffer.get(iv);
 
+            // Extract encrypted data
             byte[] encryptedData = new byte[byteBuffer.remaining()];
             byteBuffer.get(encryptedData);
 
+            // Derive the same key using the stored salt
+            SecretKey secretKey = new SecretKeySpec(deriveKeyWithPBKDF2(totpEncryptionKey, salt), "AES");
+
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-            cipher.init(Cipher.DECRYPT_MODE, totpSecretKey, parameterSpec);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
 
             byte[] decryptedData = cipher.doFinal(encryptedData);
             return new String(decryptedData, StandardCharsets.UTF_8);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
-                | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (Exception e) {
+            log.error("Failed to decrypt TOTP secret: {}", e.getMessage(), e);
             throw new RuntimeException("Error decrypting TOTP secret", e);
         }
     }
@@ -247,7 +256,7 @@ public class EncryptionService {
      */
     private byte[] deriveKeyWithPBKDF2(String masterKey, byte[] salt) {
         try {
-            // Setup PBKDF2 to derive a secure key
+            // Always use the provided salt - essential for TOTP and token decryption
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             KeySpec spec = new PBEKeySpec(
                     masterKey.toCharArray(),
@@ -267,22 +276,38 @@ public class EncryptionService {
             }
 
             return keyBytes;
-        } catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             log.error("Error deriving key with PBKDF2: {}", e.getMessage(), e);
-
-            // Fallback to simple SHA-256
-            try {
-                MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                byte[] hash = digest.digest(masterKey.getBytes(StandardCharsets.UTF_8));
-                for (int i = 0; i < hash.length && i < salt.length; i++) {
-                    hash[i] ^= salt[i % salt.length];
-                }
-                return hash;
-            } catch (NoSuchAlgorithmException ex) {
-                throw new RuntimeException("Cannot derive key using fallback: " + ex.getMessage(), ex);
-            }
-        } catch (InvalidKeySpecException e) {
             throw new RuntimeException("Error deriving key with PBKDF2: {}", e);
         }
     }
+
+    private byte[] deriveKeyWithPBKDF2Token(String masterKey, byte[] salt) {
+        try {
+            // Always use the provided salt - essential for TOTP and token decryption
+            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            KeySpec spec = new PBEKeySpec(
+                    masterKey.toCharArray(),
+                    salt,
+                    PBKDF2_ITERATIONS_TOKEN,
+                    PBKDF2_KEY_LENGTH);
+
+            // Generate the key
+            SecretKey key = factory.generateSecret(spec);
+            byte[] keyBytes = key.getEncoded();
+
+            // Ensure we have exactly 32 bytes for AES-256
+            if (keyBytes.length != AES_KEY_LENGTH_BYTES) {
+                byte[] resizedKey = new byte[AES_KEY_LENGTH_BYTES];
+                System.arraycopy(keyBytes, 0, resizedKey, 0, Math.min(keyBytes.length, AES_KEY_LENGTH_BYTES));
+                return resizedKey;
+            }
+
+            return keyBytes;
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            log.error("Error deriving key with PBKDF2: {}", e.getMessage(), e);
+            throw new RuntimeException("Error deriving key with PBKDF2: {}", e);
+        }
+    }
+
 }
