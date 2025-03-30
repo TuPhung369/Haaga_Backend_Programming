@@ -19,7 +19,8 @@ export interface TotpDeviceResponse {
   id: string;
   deviceName: string;
   createdAt: string;
-  active: boolean;
+  enabled?: boolean;
+  active?: boolean;
 }
 
 // Request interfaces

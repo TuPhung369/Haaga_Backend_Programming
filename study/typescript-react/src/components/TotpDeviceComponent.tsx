@@ -78,6 +78,7 @@ const StyledCard = styled(Card)`
     padding: 12px 0;
     border-bottom: 1px solid #e8e8e8;
     margin-bottom: 16px;
+    cursor: pointer; /* Add cursor pointer for collapsible header */
   }
 
   .section-title {
@@ -100,9 +101,12 @@ const StyledCard = styled(Card)`
 
   .action-buttons {
     margin-bottom: 24px;
+    display: flex; /* Use flexbox for better alignment */
+    flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+    gap: 12px; /* Add gap between buttons */
 
     .ant-btn {
-      margin-right: 12px;
+      /* margin-right: 12px; Remove fixed margin, use gap */
       border-radius: 4px;
       font-weight: 500;
     }
@@ -110,7 +114,7 @@ const StyledCard = styled(Card)`
     .ant-btn-primary {
       background: ${COLORS[3]};
       border-color: ${COLORS[3]};
-      color: ${COLORS[13]};
+      color: ${COLORS[13]}; /* Ensure text is visible */
     }
   }
 
@@ -205,12 +209,14 @@ const DeviceCard = styled.div`
     color: #ffffff;
     border-radius: 8px;
     padding: 8px 16px;
-    font-weight: 600;
+    font-weight: 500;
     transition: background 0.3s ease, transform 0.3s ease;
 
     &:hover {
       background: #ff6666;
       transform: scale(1.05);
+      color: #073a60 !important;
+      font-weight: 600;
     }
 
     &:active {
@@ -228,23 +234,18 @@ interface TotpDeviceComponentProps {
 }
 
 const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
-  onUpdate,
-  totpSecurity
+  onUpdate
 }) => {
   const [expanded, setExpanded] = useState<boolean>(false);
   const [devices, setDevices] = useState<TotpDeviceResponse[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState<boolean>(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState<boolean>(false);
   const [regeneratingCodes, setRegeneratingCodes] = useState<boolean>(false);
   const [deletingDevice, setDeletingDevice] = useState<string | null>(null);
-  const [isTotpEnabled, setIsTotpEnabled] = useState<boolean>(
-    totpSecurity?.enabled || false
-  );
-  const device = devices[0];
-  // New state for verification modals
+
   const [showDeleteVerification, setShowDeleteVerification] =
     useState<boolean>(false);
   const [showRegenerateVerification, setShowRegenerateVerification] =
@@ -258,122 +259,126 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
   const [adminResetEmail, setAdminResetEmail] = useState<string>("");
   const [isRequestingReset, setIsRequestingReset] = useState<boolean>(false);
   const verificationInputRef = useRef<HTMLInputElement>(null);
+  // const dispatch = useDispatch();
 
   const { token } = useSelector((state: RootState) => state.auth);
-  const { userInfo } = useSelector((state: RootState) => state.user);
-  // Add a ref to track initial load
-
-  // Define a fetchDevices function to be used by multiple methods
-  const fetchDevices = useCallback(
-    async (forceRefresh = false) => {
-      if (!token) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        if (forceRefresh) {
-          sessionStorage.removeItem("totpDevicesFetched");
-        }
-
-        const devicesResponse = await getTotpDevices(token);
-        setDevices(devicesResponse.result || []);
-
-        sessionStorage.setItem("totpDevicesFetched", "true");
-      } catch (error) {
-        handleServiceError(error);
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch TOTP devices";
-        setError(errorMessage);
-        notification.error({
-          message: "Error",
-          description: errorMessage
-        });
-        console.error("Fetch devices error:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [token]
+  const { userInfo, isUserInfoInvalidated } = useSelector(
+    (state: RootState) => state.user
   );
 
-  // Update state when props change and fetch devices if needed
-  useEffect(() => {
-    const isEnabled = totpSecurity?.enabled || false;
-    setIsTotpEnabled(isEnabled);
+  const prevTotpEnabledRef = useRef<boolean | undefined>();
+  const [isTotpEnabled, setIsTotpEnabled] = useState<boolean>(
+    userInfo?.totpSecurity?.enabled || false
+  );
 
-    if (isEnabled) {
-      fetchDevices();
-    } else {
-      setDevices([]);
+  // --- Fetch Function ---
+  const fetchDevices = useCallback(async () => {
+    if (!token) return false;
+    setLoading(true);
+    setError(null);
+    let success = false;
+    try {
+      console.log("TOTPDeviceComponent: Executing fetchDevices API call...");
+      const devicesResponse = await getTotpDevices(token);
+      setDevices(devicesResponse.result || []);
+      success = true;
+    } catch (error) {
+      handleServiceError(error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch TOTP devices";
+      setError(errorMessage);
+      console.error("Fetch devices error:", error);
+      success = false;
+    } finally {
       setLoading(false);
     }
-  }, [totpSecurity, fetchDevices]);
+    return success;
+  }, [token]);
 
-  const handleAddDevice = () => {
-    setShowSetup(true);
-  };
+  // --- Effect to Sync Local State with Redux ---
+  useEffect(() => {
+    const currentIsEnabled = userInfo?.totpSecurity?.enabled || false;
+    if (currentIsEnabled !== isTotpEnabled) {
+      setIsTotpEnabled(currentIsEnabled);
+    }
+  }, [userInfo?.totpSecurity?.enabled, isTotpEnabled]);
 
-  // Updated to show verification modal instead of direct deletion
+  // --- Effect for Fetching Logic ---
+  useEffect(() => {
+    const previousIsEnabled = prevTotpEnabledRef.current;
+    const justInvalidated = isUserInfoInvalidated;
+
+    if (!isTotpEnabled) {
+      // Clear state only if necessary when disabled
+      if (devices.length > 0 || loading || error) {
+        setDevices([]);
+        setLoading(false);
+        setError(null);
+      }
+      prevTotpEnabledRef.current = false;
+      return;
+    }
+
+    // Determine if a fetch is needed: ONLY if state changed from false->true OR explicitly invalidated.
+    const needsFetch =
+      (previousIsEnabled === false && isTotpEnabled === true) ||
+      justInvalidated;
+
+    if (needsFetch) {
+      fetchDevices();
+    } else {
+      if (loading) {
+        setLoading(false);
+      } // Ensure loading indicator is off
+    }
+
+    // Update ref for the next render cycle
+    prevTotpEnabledRef.current = isTotpEnabled;
+  }, [
+    isTotpEnabled,
+    isUserInfoInvalidated,
+    fetchDevices,
+    devices.length,
+    loading,
+    error
+  ]);
+
+  // --- Handlers --- (Keep the implementations from the previous version)
+  const handleAddDevice = () => setShowSetup(true);
+
+  const focusVerificationInput = useCallback(() => {
+    // Try focusing after a short delay to allow modal rendering
+    setTimeout(() => {
+      // Method 1: Use the ref
+      if (verificationInputRef.current) {
+        verificationInputRef.current.focus();
+        return;
+      }
+      // Method 2: Query selector for the first input in the specific container
+      const firstInput = document.querySelector(
+        ".verification-code-container .code-input" // Target input within the VerificationCodeInput component
+      );
+      if (firstInput instanceof HTMLInputElement) {
+        firstInput.focus();
+        return;
+      }
+      // Method 3: Try to find any visible input within the active modal as a fallback
+      const modalInput = document.querySelector(
+        '.ant-modal-wrap:not(.ant-modal-hidden) input:not([type="hidden"])' // More specific selector for visible input in active modal
+      );
+      if (modalInput instanceof HTMLInputElement) {
+        modalInput.focus();
+      }
+    }, 150); // Delay allows modal transition to complete before focusing
+  }, []);
+
   const handleDeleteDevice = (deviceId: string) => {
     setDeviceToDelete(deviceId);
     setVerificationCode("");
     setVerificationError(false);
     setShowDeleteVerification(true);
-    focusVerificationInput();
-    // Focus after a small delay to ensure the modal is rendered
-    setTimeout(() => {
-      const firstInput = document.querySelector(
-        ".verification-code-container .code-input"
-      );
-      if (firstInput instanceof HTMLInputElement) {
-        firstInput.focus();
-      }
-    }, 300);
-  };
-  const focusVerificationInput = useCallback(() => {
-    // Try immediately
-    tryFocus();
-
-    // Try after modal animation should be complete
-    setTimeout(tryFocus, 500);
-  }, []);
-
-  // Effect that runs when the verification modal visibility changes
-  useEffect(() => {
-    if (showDeleteVerification) {
-      focusVerificationInput();
-    }
-  }, [showDeleteVerification, focusVerificationInput]);
-  // Function to try various focus methods
-  const tryFocus = () => {
-    // Method 1: Use the ref
-    if (verificationInputRef.current) {
-      verificationInputRef.current.focus();
-      return;
-    }
-
-    // Method 2: Query selector for the first input
-    const firstInput = document.querySelector(
-      ".verification-code-container .code-input"
-    );
-    if (firstInput instanceof HTMLInputElement) {
-      firstInput.focus();
-      return;
-    }
-
-    // Method 3: Try to find any input within the modal
-    const modalInput = document.querySelector(
-      ".ant-modal-wrap:not(.ant-modal-hidden) input"
-    );
-    if (modalInput instanceof HTMLInputElement) {
-      modalInput.focus();
-    }
   };
 
-  // New function to handle the actual deletion after verification
   const handleVerifyAndDeleteDevice = async () => {
     if (!token || !deviceToDelete) return;
     setIsVerifying(true);
@@ -381,14 +386,13 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
     setDeletingDevice(deviceToDelete);
     try {
       await deactivateTotpDevice(deviceToDelete, verificationCode, token);
+      setDevices(devices.filter((device) => device.id !== deviceToDelete)); // Update local state on success
       notification.success({
         message: "Device Removed",
         description: "2FA device removed successfully."
       });
       setShowDeleteVerification(false);
-      // Use fetchDevices with forceRefresh=true to ensure we get fresh data
-      await fetchDevices(true);
-      if (onUpdate) onUpdate();
+      if (onUpdate) onUpdate(); // Signal parent
     } catch (error) {
       handleServiceError(error);
       setVerificationError(true);
@@ -399,54 +403,32 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
     } finally {
       setIsVerifying(false);
       setDeletingDevice(null);
+      setDeviceToDelete(null);
     }
   };
-
-  // Updated to show verification modal first
   const handleRegenerateBackupCodes = () => {
+    /* ... set state, show modal ... */
     setVerificationCode("");
     setVerificationError(false);
     setShowRegenerateVerification(true);
-
-    // Focus after a small delay to ensure the modal is rendered
-    setTimeout(() => {
-      const firstInput = document.querySelector(
-        ".verification-code-container .code-input"
-      );
-      if (firstInput instanceof HTMLInputElement) {
-        firstInput.focus();
-      }
-    }, 300);
   };
-
-  // Function to handle opening the admin reset modal with focus
   const handleOpenAdminResetModal = () => {
-    setAdminResetEmail(""); // Reset the email input
+    /* ... set state, show modal ... */
+    setAdminResetEmail("");
     setShowAdminResetModal(true);
-
-    // Focus on the email input after a slight delay
-    setTimeout(() => {
-      const emailInput = document.querySelector('input[type="email"]');
-      if (emailInput instanceof HTMLInputElement) {
-        emailInput.focus();
-      }
-    }, 300);
+    focusVerificationInput();
   };
-
-  // New function to handle the actual regeneration after verification
   const handleVerifyAndRegenerateCodes = async () => {
+    /* ... same verification and API call logic ... */
     if (!token) return;
     setIsVerifying(true);
     setVerificationError(false);
     setRegeneratingCodes(true);
-
     try {
       const response = await regenerateBackupCodes(verificationCode, token);
       setBackupCodes(response.result);
       setShowRegenerateVerification(false);
       setShowBackupCodes(true);
-      // Refresh the devices data with forceRefresh=true
-      await fetchDevices(true);
       notification.success({
         message: "Codes Regenerated",
         description: "New backup codes generated. Save them securely."
@@ -463,18 +445,21 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
       setRegeneratingCodes(false);
     }
   };
-
-  // New function to request admin reset
   const handleRequestAdminReset = async () => {
+    /* ... same verification and API call logic ... */
     if (!userInfo?.username || !adminResetEmail) return;
     setIsRequestingReset(true);
-
     try {
-      if (!token) return;
+      if (!token) {
+        notification.error({
+          message: "Error",
+          description: "Authentication token not found."
+        });
+        setIsRequestingReset(false);
+        return;
+      }
       await requestAdminReset(userInfo.username, adminResetEmail, token);
       setShowAdminResetModal(false);
-      // Refresh devices data with forceRefresh=true
-      await fetchDevices(true);
       notification.success({
         message: "Reset Request Submitted",
         description:
@@ -490,18 +475,46 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
       setIsRequestingReset(false);
     }
   };
-
   const handleSetupComplete = () => {
     setShowSetup(false);
-    // Use fetchDevices with forceRefresh=true
-    fetchDevices(true);
     if (onUpdate) onUpdate();
   };
-
-  const toggleExpand = () => {
-    setExpanded(!expanded);
+  const toggleExpand = () => setExpanded(!expanded);
+  const formatDate = (
+    dateInput: string | number[] | undefined | null
+  ): string => {
+    /* ... same safe formatting logic ... */
+    if (Array.isArray(dateInput)) {
+      if (dateInput.length < 3) return "Invalid Date";
+      const [year, month, day, hour = 0, minute = 0, second = 0, ms = 0] =
+        dateInput;
+      try {
+        const numericMs = Number(String(ms).slice(0, 3));
+        const date = new Date(
+          Date.UTC(
+            year,
+            month - 1,
+            day,
+            hour,
+            minute,
+            second,
+            isNaN(numericMs) ? 0 : numericMs
+          )
+        );
+        if (isNaN(date.getTime())) return "Invalid Date";
+        return moment(date).format("MMM DD, YYYY");
+      } catch (e) {
+        console.error("Error parsing date array:", e);
+        return "Invalid Date";
+      }
+    } else if (dateInput) {
+      const date = moment(dateInput);
+      return date.isValid() ? date.format("MMM DD, YYYY") : "Invalid Date";
+    }
+    return "N/A";
   };
 
+  // --- Render Functions (Modals - RESTORED) ---
   const renderBackupCodesModal = () => (
     <Modal
       title={
@@ -512,7 +525,7 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
           Backup Codes
         </div>
       }
-      open={showBackupCodes}
+      open={showBackupCodes} // Use state variable
       onCancel={() => setShowBackupCodes(false)}
       footer={[
         <Button key="close" onClick={() => setShowBackupCodes(false)}>
@@ -520,6 +533,7 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
         </Button>
       ]}
       width={400}
+      destroyOnClose
     >
       <Alert
         message="Secure Your Codes"
@@ -529,13 +543,16 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
         style={{ marginBottom: 16 }}
       />
       <div style={{ maxHeight: "250px", overflow: "auto", marginBottom: 16 }}>
-        <List
+        <List // Use List component
           grid={{ gutter: 12, column: 2 }}
-          dataSource={backupCodes}
+          dataSource={backupCodes} // Use state variable
           renderItem={(code) => (
             <List.Item>
               <Card size="small" style={{ borderRadius: 4 }}>
-                <Text copyable style={{ fontSize: 14 }}>
+                <Text // Use Text component
+                  copyable={{ tooltips: ["Copy", "Copied!"] }}
+                  style={{ fontSize: 14 }}
+                >
                   {code}
                 </Text>
               </Card>
@@ -551,7 +568,6 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
     </Modal>
   );
 
-  // New modal for device deletion verification
   const renderDeleteVerificationModal = () => (
     <Modal
       title={
@@ -560,38 +576,41 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
           Verify Identity
         </div>
       }
-      open={showDeleteVerification}
+      open={showDeleteVerification} // Use state variable
       onCancel={() => setShowDeleteVerification(false)}
       footer={[
-        <Button key="cancel" onClick={() => setShowDeleteVerification(false)}>
+        <Button
+          key="cancel"
+          onClick={() => setShowDeleteVerification(false)}
+          disabled={isVerifying}
+        >
           Cancel
         </Button>,
         <Button
           key="submit"
           type="primary"
+          danger
           onClick={handleVerifyAndDeleteDevice}
           loading={isVerifying}
           disabled={verificationCode.length !== 6 || isVerifying}
         >
-          Verify & Remove
+          Verify & Remove Device
         </Button>
       ]}
       width={400}
+      destroyOnClose
       afterOpenChange={(visible) => {
-        if (visible) {
-          focusVerificationInput();
-        }
+        if (visible) focusVerificationInput();
       }}
     >
       <Alert
         message="Verification Required"
-        description="Please enter your current 2FA code to confirm your identity."
+        description="Enter your current 2FA code (or a backup code) to remove this device."
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
       />
-
-      <VerificationCodeInput
+      <VerificationCodeInput // Use VerificationCodeInput
         value={verificationCode}
         onChange={setVerificationCode}
         isError={verificationError}
@@ -600,17 +619,8 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
         onResendCode={undefined}
         inputRef={verificationInputRef}
       />
-
       <Divider />
-
-      <Paragraph>
-        <Text>
-          Lost access to your authenticator app? You can also use one of your
-          backup codes.
-        </Text>
-      </Paragraph>
-
-      <Space style={{ marginTop: 16 }}>
+      <Paragraph style={{ textAlign: "center" }}>
         <Button
           type="link"
           icon={<QuestionCircleOutlined />}
@@ -618,14 +628,14 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
             setShowDeleteVerification(false);
             handleOpenAdminResetModal();
           }}
+          disabled={isVerifying}
         >
           Lost access to authenticator and backup codes?
         </Button>
-      </Space>
+      </Paragraph>
     </Modal>
   );
 
-  // New modal for backup code regeneration verification
   const renderRegenerateVerificationModal = () => (
     <Modal
       title={
@@ -634,12 +644,13 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
           Verify Identity
         </div>
       }
-      open={showRegenerateVerification}
+      open={showRegenerateVerification} // Use state variable
       onCancel={() => setShowRegenerateVerification(false)}
       footer={[
         <Button
           key="cancel"
           onClick={() => setShowRegenerateVerification(false)}
+          disabled={isVerifying}
         >
           Cancel
         </Button>,
@@ -650,37 +661,26 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
           loading={isVerifying}
           disabled={verificationCode.length !== 6 || isVerifying}
         >
-          Verify & Regenerate
+          Verify & Regenerate Codes
         </Button>
       ]}
       width={400}
+      destroyOnClose
       afterOpenChange={(visible) => {
         if (visible) {
-          // Reset verification state when modal opens
           setVerificationCode("");
           setVerificationError(false);
-
-          // Short delay for focus to work reliably
-          setTimeout(() => {
-            // Find the first input field in the modal and focus it
-            const firstInput = document.querySelector(
-              ".verification-code-container .code-input"
-            );
-            if (firstInput instanceof HTMLInputElement) {
-              firstInput.focus();
-            }
-          }, 100);
+          focusVerificationInput();
         }
       }}
     >
       <Alert
         message="Verification Required"
-        description="Please enter your current 2FA code to confirm your identity."
+        description="Enter your current 2FA code (or a backup code) to generate new backup codes."
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
       />
-
       <VerificationCodeInput
         value={verificationCode}
         onChange={setVerificationCode}
@@ -688,33 +688,25 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
         isSubmitting={isVerifying}
         autoFocus={true}
         onResendCode={undefined}
+        inputRef={verificationInputRef}
       />
-
       <Divider />
-
-      <Paragraph>
-        <Text>
-          Lost access to your authenticator app? You can also use one of your
-          backup codes.
-        </Text>
-      </Paragraph>
-
-      <Space style={{ marginTop: 16 }}>
+      <Paragraph style={{ textAlign: "center" }}>
         <Button
           type="link"
           icon={<QuestionCircleOutlined />}
           onClick={() => {
             setShowRegenerateVerification(false);
-            setShowAdminResetModal(true);
+            handleOpenAdminResetModal();
           }}
+          disabled={isVerifying}
         >
           Lost access to authenticator and backup codes?
         </Button>
-      </Space>
+      </Paragraph>
     </Modal>
   );
 
-  // New modal for admin reset request
   const renderAdminResetModal = () => (
     <Modal
       title={
@@ -723,10 +715,14 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
           Request Admin Assistance
         </div>
       }
-      open={showAdminResetModal}
+      open={showAdminResetModal} // Use state variable
       onCancel={() => setShowAdminResetModal(false)}
       footer={[
-        <Button key="cancel" onClick={() => setShowAdminResetModal(false)}>
+        <Button
+          key="cancel"
+          onClick={() => setShowAdminResetModal(false)}
+          disabled={isRequestingReset}
+        >
           Cancel
         </Button>,
         <Button
@@ -740,19 +736,16 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
         </Button>
       ]}
       width={400}
+      destroyOnClose
       afterOpenChange={(visible) => {
         if (visible) {
-          // Reset email state when modal opens
           setAdminResetEmail("");
-
-          // Short delay for focus to work reliably
           setTimeout(() => {
-            // Find the email input in this modal and focus it
-            const emailInput = document.querySelector('input[type="email"]');
-            if (emailInput instanceof HTMLInputElement) {
-              emailInput.focus();
-            }
-          }, 100);
+            const emailInput = document.querySelector(
+              '.ant-modal-wrap:not(.ant-modal-hidden) input[type="email"]'
+            );
+            if (emailInput instanceof HTMLInputElement) emailInput.focus();
+          }, 150);
         }
       }}
     >
@@ -763,23 +756,29 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
         showIcon
         style={{ marginBottom: 16 }}
       />
-
-      <Form layout="vertical">
-        <Form.Item
+      <Form // Use Form
+        layout="vertical"
+        onFinish={handleRequestAdminReset}
+      >
+        <Form.Item // Use Form.Item
           label="Confirm Email Address"
+          name="adminResetEmail"
           required
-          help="Please provide your email address for verification and communication."
+          rules={[
+            { required: true, message: "Please enter your email address" },
+            { type: "email", message: "Please enter a valid email address" }
+          ]}
+          help="Provide your account's email for verification."
         >
-          <Input
+          <Input // Use Input
             value={adminResetEmail}
             onChange={(e) => setAdminResetEmail(e.target.value)}
-            placeholder="Enter your email address"
+            placeholder="Enter your account email"
             type="email"
           />
         </Form.Item>
       </Form>
-
-      <Paragraph>
+      <Paragraph style={{ marginTop: 16 }}>
         <Text type="secondary">
           Note: An administrator will verify your identity before resetting your
           2FA. This may take some time.
@@ -787,6 +786,9 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
       </Paragraph>
     </Modal>
   );
+
+  // --- Main Return ---
+  const currentDevice = devices[0] || userInfo?.totpSecurity;
 
   if (showSetup) {
     return (
@@ -799,14 +801,15 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
 
   return (
     <StyledCard>
+      {/* Render modals */}
       {renderBackupCodesModal()}
       {renderDeleteVerificationModal()}
       {renderRegenerateVerificationModal()}
       {renderAdminResetModal()}
 
       <div className="section-header" onClick={toggleExpand}>
-        <Title level={4} className="section-title">
-          <SecurityScanOutlined /> Two-Factor Authentication
+        <Title level={4} className="section-title" style={{ margin: 0 }}>
+          <SecurityScanOutlined /> Two-Factor Authentication (2FA)
           {isTotpEnabled && <Tag color="success">Enabled</Tag>}
         </Title>
         {expanded ? <DownOutlined /> : <RightOutlined />}
@@ -814,13 +817,14 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
 
       {expanded && (
         <>
+          {/* Show loading indicator only when actively fetching */}
           {loading ? (
             <LoadingState tip="Loading 2FA settings..." fullscreen={false} />
           ) : (
             <>
-              {error && (
+              {error /* Display fetch error if any */ && (
                 <Alert
-                  message="Error"
+                  message="Error Loading 2FA Details"
                   description={error}
                   type="error"
                   showIcon
@@ -830,9 +834,11 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
                 />
               )}
 
-              <Paragraph style={{ fontSize: 14, color: COLORS[12] }}>
-                Increase security with a second verification step. Only one
-                device can be registered at a time.
+              <Paragraph
+                style={{ fontSize: 14, color: COLORS[12], marginBottom: 24 }}
+              >
+                Increase security with a second verification step using an
+                authenticator app. Only one device can be active at a time.
               </Paragraph>
 
               <Space className="action-buttons">
@@ -845,78 +851,59 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
                     Regenerate Backup Codes
                   </Button>
                 )}
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddDevice}
-                  disabled={isTotpEnabled}
-                >
-                  {isTotpEnabled ? "Device Already Activated" : "Add Device"}
-                </Button>
+                {!isTotpEnabled && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleAddDevice}
+                  >
+                    Activate 2FA / Add Device
+                  </Button>
+                )}
                 {isTotpEnabled && (
                   <Button
                     type="dashed"
                     icon={<QuestionCircleOutlined />}
                     onClick={handleOpenAdminResetModal}
                   >
-                    Lost Access?
+                    Lost Access Help
                   </Button>
                 )}
               </Space>
 
-              {isTotpEnabled && device ? (
+              <Divider />
+
+              {/* Display logic based on isTotpEnabled and if device data exists */}
+              {isTotpEnabled && currentDevice ? (
                 <DeviceCard>
                   <MobileOutlined className="device-icon" />
                   <div className="device-info">
-                    <div className="device-title">{device.deviceName}</div>
+                    <div className="device-title">
+                      {currentDevice.deviceName || "Registered Device"}
+                    </div>
                     <div className="device-details">
-                      <Text type="secondary" style={{ color: "#b0b0b0" }}>
-                        <ClockCircleOutlined />{" "}
-                        {(() => {
-                          if (Array.isArray(device.createdAt)) {
-                            if (device.createdAt.length < 3) {
-                              return "Ngày không hợp lệ";
-                            }
-                            const [
-                              year,
-                              month,
-                              day,
-                              hour = 0,
-                              minute = 0,
-                              second = 0,
-                              ms = 0
-                            ] = device.createdAt;
-                            const milliseconds = Number(String(ms).slice(0, 3));
-                            const date = new Date(
-                              year,
-                              month - 1, // tháng bắt đầu từ 0
-                              day,
-                              hour,
-                              minute,
-                              second,
-                              milliseconds
-                            );
-                            return moment(date).format("MMM DD, YYYY");
-                          }
-                          return moment(device.createdAt).format(
-                            "MMM DD, YYYY"
-                          );
-                        })()}
-                      </Text>
-                      <Tag color={device.active ? "success" : "error"}>
-                        {device.active ? "Active" : "Inactive"}
-                      </Tag>
+                      <Space size="middle">
+                        <span>
+                          <ClockCircleOutlined /> Activated:{" "}
+                          {formatDate(currentDevice.createdAt)}
+                        </span>
+                        <Tag
+                          color={currentDevice.enabled ? "success" : "error"}
+                        >
+                          {currentDevice.enabled ? "Active" : "Inactive"}
+                        </Tag>
+                      </Space>
                     </div>
                   </div>
                   <Button
                     danger
                     icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteDevice(device.id)}
-                    loading={deletingDevice === device.id}
+                    onClick={() => handleDeleteDevice(currentDevice.id)}
+                    loading={deletingDevice === currentDevice.id}
                     className="action-button"
                     size="small"
                   >
-                    Delete
+                    Remove
                   </Button>
                 </DeviceCard>
               ) : (
@@ -925,13 +912,13 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
                   className="empty-state"
                   description={
                     <span style={{ color: COLORS[12] }}>
-                      Chưa có thiết bị nào được thiết lập.{" "}
+                      2FA is not currently active.{" "}
                       <Button
                         type="link"
                         onClick={handleAddDevice}
                         style={{ padding: 0, color: COLORS[2] }}
                       >
-                        Thêm ngay
+                        Activate Now
                       </Button>
                     </span>
                   }

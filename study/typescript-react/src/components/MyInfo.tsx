@@ -1212,10 +1212,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
       <>
         <PersonalInfoCard userInfo={userInfo} onEdit={showModalUpdate} />
         <PermissionsCard userInfo={userInfo} />
-        <TotpDeviceComponent
-          onUpdate={onUpdateSuccess}
-          totpSecurity={userInfo?.totpSecurity}
-        />
+        <TotpDeviceComponent onUpdate={onUpdateSuccess} />
       </>
     );
   };
