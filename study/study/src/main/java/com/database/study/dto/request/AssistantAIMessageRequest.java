@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatMessageRequest {
+public class AssistantAIMessageRequest {
   private String userId;
   private String message;
   private String sessionId;

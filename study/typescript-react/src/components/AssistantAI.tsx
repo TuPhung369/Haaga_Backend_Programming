@@ -12,88 +12,199 @@ import { PlayCircleOutlined } from "@mui/icons-material";
 import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../type/types";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import "../styles/AssistantAI.css";
+import store from "../store/store";
+import {
+  setMessages,
+  addMessage,
+  addAIResponse,
+  setLoading,
+  setHasMore,
+  incrementPage
+} from "../store/assistantAISlice";
+import { ChatMessage } from "../types/assistantAI";
 
-interface ChatMessage {
-  id?: number;
-  content: string;
-  sender: string;
-  timestamp?: number[] | string;
-  sessionId: string;
+// Update the RootState type by extending it
+declare module "../type/types" {
+  interface RootState {
+    assistantAI: {
+      messages: ChatMessage[];
+      loading: boolean;
+      hasMore: boolean;
+      page: number;
+      size: number;
+    };
+  }
 }
 
 const AssistantAI: React.FC = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState("");
-  const [loading, setLoading] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const loaderRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<number | null>(null);
+  const dispatch = useDispatch();
   const { token } = useSelector((state: RootState) => state.auth);
   const { userInfo } = useSelector((state: RootState) => state.user);
+  const { messages, loading, hasMore, page, size } = useSelector(
+    (state: RootState) => state.assistantAI
+  );
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const loadChatHistory = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
-      const recaptchaToken = getRecaptchaToken();
+  const loadChatHistory = useCallback(
+    async (pageToLoad = 0) => {
+      if (!userInfo?.id || loading || (pageToLoad > 0 && !hasMore)) return;
 
-      const response = await axios.get(
-        `/api/chat/${userInfo?.id}?recaptchaToken=${encodeURIComponent(
-          recaptchaToken
-        )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
+      try {
+        dispatch(setLoading(true));
+        const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
+        const recaptchaToken = getRecaptchaToken();
+
+        console.log(`Loading chat history: page=${pageToLoad}, size=${size}`);
+
+        const response = await axios.get(
+          `/api/assistant/${
+            userInfo.id
+          }?page=${pageToLoad}&size=${size}&recaptchaToken=${encodeURIComponent(
+            recaptchaToken
+          )}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        }
-      );
+        );
 
-      if (
-        response.data &&
-        Array.isArray(response.data) &&
-        response.data.length > 0
-      ) {
-        setMessages(response.data);
-        const lastMessage = response.data[response.data.length - 1];
-        if (lastMessage.sessionId) {
-          setSessionId(lastMessage.sessionId);
+        console.log("API Response:", response.data);
+
+        if (
+          response.data &&
+          Array.isArray(response.data) &&
+          response.data.length > 0
+        ) {
+          if (pageToLoad === 0) {
+            // For first page, replace all messages
+            console.log("Setting messages from API:", response.data);
+            dispatch(setMessages(response.data));
+            const lastMessage = response.data[response.data.length - 1];
+            if (lastMessage.sessionId) {
+              setSessionId(lastMessage.sessionId);
+            }
+          } else {
+            // Prepend older messages when loading more
+            console.log("Adding older messages:", response.data);
+            // We need to concatenate in the correct order: older messages first, then existing messages
+            const currentMessages = store.getState().assistantAI.messages;
+            dispatch(setMessages([...response.data, ...currentMessages]));
+          }
+
+          dispatch(setHasMore(response.data.length === size));
+        } else if (pageToLoad === 0) {
+          // If it's the first load and no messages, set default welcome message
+          console.log("No messages found, setting welcome message");
+          const newSessionId = uuidv4();
+          setSessionId(newSessionId);
+          dispatch(
+            setMessages([
+              {
+                content:
+                  "Hello! I am your AI assistant. How can I help you today?",
+                sender: "AI",
+                sessionId: newSessionId,
+                timestamp: new Date().toISOString()
+              }
+            ])
+          );
+          dispatch(setHasMore(false));
+        } else {
+          console.log("No more messages to load");
+          dispatch(setHasMore(false));
         }
+      } catch (error) {
+        console.error("Error loading chat history:", error);
+        if (pageToLoad === 0) {
+          // Only set welcome message on first load error
+          const newSessionId = uuidv4();
+          setSessionId(newSessionId);
+          dispatch(
+            setMessages([
+              {
+                content:
+                  "Hello! I am your AI assistant. How can I help you today?",
+                sender: "AI",
+                sessionId: newSessionId,
+                timestamp: new Date().toISOString()
+              }
+            ])
+          );
+        }
+        dispatch(setHasMore(false));
+      } finally {
+        dispatch(setLoading(false));
       }
-      setLoading(false);
-    } catch (error) {
-      console.error("Error loading chat history:", error);
-      setLoading(false);
-      setMessages([]);
-    }
-  }, [token, userInfo?.id]);
+    },
+    // Remove 'messages' from the dependency array to break the loop
+    [token, userInfo?.id, loading, hasMore, size, dispatch]
+  );
 
+  // Initial data load - only runs once when component mounts
   useEffect(() => {
-    setSessionId(uuidv4());
-    setMessages([
-      {
-        content: "Hello! I am your AI assistant. How can I help you today?",
-        sender: "AI",
-        sessionId: uuidv4(),
-        timestamp: new Date().toISOString()
-      }
-    ]);
+    // Force initial data load on component mount only if the messages array is empty
+    const currentState = store.getState().assistantAI;
 
-    if (userInfo?.id) {
-      loadChatHistory();
+    if (
+      userInfo?.id &&
+      (!currentState.messages || currentState.messages.length === 0)
+    ) {
+      console.log(
+        "Component mounted with empty messages, loading initial chat data"
+      );
+      loadChatHistory(0);
+    } else {
+      console.log(
+        "Using cached messages from store:",
+        currentState.messages?.length || 0
+      );
     }
-  }, [userInfo?.id, loadChatHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
+
+  // Handle user changes - runs only when userInfo changes, not on every render
+  useEffect(() => {
+    // Only load chat history if userInfo changes and there are no messages
+    const currentMessages = store.getState().assistantAI.messages;
+
+    if (userInfo?.id && (!currentMessages || currentMessages.length === 0)) {
+      console.log("User changed or no messages in store, loading chat data");
+      loadChatHistory(0);
+    } else if (!userInfo?.id) {
+      // Set default welcome message if no user is logged in
+      const newSessionId = uuidv4();
+      setSessionId(newSessionId);
+      dispatch(
+        setMessages([
+          {
+            content: "Hello! I am your AI assistant. How can I help you today?",
+            sender: "AI",
+            sessionId: newSessionId,
+            timestamp: new Date().toISOString()
+          }
+        ])
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userInfo?.id]); // Only depend on userInfo.id changing
 
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
@@ -102,14 +213,31 @@ const AssistantAI: React.FC = () => {
     }
   };
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } =
         chatContainerRef.current;
+
+      // Show/hide scroll button based on position
       const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
       setShowScrollButton(isScrolledUp);
+
+      // Check if user scrolled to top to load more messages
+      if (scrollTop < 100 && !loading && hasMore) {
+        // Use a debounce technique to avoid multiple rapid calls
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+
+        debounceTimerRef.current = setTimeout(() => {
+          console.log("Scroll reached top, loading more messages");
+          dispatch(incrementPage());
+          loadChatHistory(page + 1);
+          debounceTimerRef.current = null;
+        }, 300) as unknown as number; // 300ms debounce
+      }
     }
-  };
+  }, [loading, hasMore, page, dispatch, loadChatHistory]);
 
   useEffect(() => {
     const chatContainer = chatContainerRef.current;
@@ -117,11 +245,7 @@ const AssistantAI: React.FC = () => {
       chatContainer.addEventListener("scroll", handleScroll);
       return () => chatContainer.removeEventListener("scroll", handleScroll);
     }
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  }, [handleScroll]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !userInfo?.id) return;
@@ -133,16 +257,16 @@ const AssistantAI: React.FC = () => {
       timestamp: new Date().toISOString()
     };
 
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    dispatch(addMessage(userMessage));
     setInput("");
-    setLoading(true);
+    dispatch(setLoading(true));
 
     try {
       const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
       const recaptchaToken = getRecaptchaToken();
 
       const response = await axios.post(
-        "/api/chat/send",
+        "/api/assistant/send",
         {
           userId: userInfo.id,
           message: input,
@@ -157,18 +281,16 @@ const AssistantAI: React.FC = () => {
       );
 
       if (response.data) {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            content:
-              typeof response.data.content === "string"
-                ? response.data.content
-                : response.data.content || "No response",
-            sender: "AI",
-            sessionId: sessionId,
-            timestamp: new Date().toISOString()
-          }
-        ]);
+        const aiResponse = {
+          content:
+            typeof response.data.content === "string"
+              ? response.data.content
+              : response.data.content || "No response",
+          sender: "AI",
+          sessionId: sessionId,
+          timestamp: new Date().toISOString()
+        };
+        dispatch(addAIResponse(aiResponse));
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -178,9 +300,9 @@ const AssistantAI: React.FC = () => {
         sessionId: sessionId,
         timestamp: new Date().toISOString()
       };
-      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+      dispatch(addAIResponse(errorMessage));
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
@@ -218,6 +340,15 @@ const AssistantAI: React.FC = () => {
     <Box className="root-container">
       <Paper elevation={3} className="chat-card">
         <Box className="chat-container" ref={chatContainerRef}>
+          {loading && page > 0 && (
+            <Box ref={loaderRef} className="loading-earlier-messages">
+              <CircularProgress size={20} />
+              <Typography variant="body2">
+                Loading earlier messages...
+              </Typography>
+            </Box>
+          )}
+
           {Array.isArray(messages) && messages.length === 0 ? (
             <Box className="empty-chat">
               <Typography variant="h6">No messages yet</Typography>
@@ -245,8 +376,6 @@ const AssistantAI: React.FC = () => {
                       : "AI Assistant"}
                   </Typography>
                   <div className="markdown">
-                    {" "}
-                    {/* Add this div */}
                     <ReactMarkdown
                       rehypePlugins={[rehypeRaw]}
                       components={{
@@ -279,7 +408,7 @@ const AssistantAI: React.FC = () => {
                   )}
                 </Box>
               ))}
-              {loading && (
+              {loading && page === 0 && (
                 <Box className="loading-message">
                   <CircularProgress size={20} />
                   <Typography variant="body1">AI is thinking...</Typography>

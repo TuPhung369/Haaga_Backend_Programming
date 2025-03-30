@@ -6,6 +6,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -13,14 +17,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import com.database.study.dto.request.ChatMessageRequest;
-import com.database.study.dto.response.ChatMessageResponse;
-import com.database.study.entity.ChatMessage;
-import com.database.study.entity.ChatMessage.MessageSender;
+import com.database.study.dto.request.AssistantAIMessageRequest;
+import com.database.study.dto.response.AssistantAIMessageResponse;
+import com.database.study.entity.AssistantAIMessage;
+import com.database.study.entity.AssistantAIMessage.MessageSender;
 import com.database.study.entity.User;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
-import com.database.study.repository.ChatMessageRepository;
+import com.database.study.repository.AssistantAIMessageRepository;
 import com.database.study.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,9 +36,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ChatService {
+public class AssistantAIService {
 
-    private final ChatMessageRepository chatMessageRepository;
+    private final AssistantAIMessageRepository assistantAIMessageRepository;
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -43,48 +47,67 @@ public class ChatService {
     private String n8nWebhookUrl;
 
     @Transactional(readOnly = true)
-    public List<ChatMessageResponse> getChatHistory(String userId) {
+    public List<AssistantAIMessageResponse> getChatHistory(String userId, int page, int size) {
         User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        return chatMessageRepository.findByUserOrderByTimestampAsc(user)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        log.info("Getting chat history for user {} with page {} and size {}", userId, page, size);
+
+        if (page >= 0 && size > 0) {
+            // Use pagination if page and size are specified
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+            Page<AssistantAIMessage> messages = assistantAIMessageRepository.findByUserOrderByTimestampDesc(user,
+                    pageable);
+
+            // Reverse the list to get chronological order for the client (oldest first)
+            List<AssistantAIMessage> chronologicalMessages = messages.getContent();
+            return chronologicalMessages.stream()
+                    .sorted((m1, m2) -> m1.getTimestamp().compareTo(m2.getTimestamp()))
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        } else {
+            // Fall back to get all messages if pagination parameters are invalid
+            return assistantAIMessageRepository.findByUserOrderByTimestampAsc(user)
+                    .stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        }
     }
 
     @Transactional
-    public ChatMessageResponse sendMessage(ChatMessageRequest request) {
+    public AssistantAIMessageResponse sendMessage(AssistantAIMessageRequest request) {
         User user = userRepository.findById(UUID.fromString(request.getUserId()))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        log.info("Sending message for user {} with session {}", request.getUserId(), request.getSessionId());
+
         // Save user message
-        ChatMessage userMessage = ChatMessage.builder()
+        AssistantAIMessage userMessage = AssistantAIMessage.builder()
                 .user(user)
                 .content(request.getMessage())
                 .sender(MessageSender.USER)
                 .timestamp(LocalDateTime.now())
                 .sessionId(request.getSessionId())
                 .build();
-        chatMessageRepository.save(userMessage);
+        assistantAIMessageRepository.save(userMessage);
 
         // Send message to n8n webhook and get response
         String aiResponse = callN8nWebhook(request);
 
         // Save AI response
-        ChatMessage aiMessage = ChatMessage.builder()
+        AssistantAIMessage aiMessage = AssistantAIMessage.builder()
                 .user(user)
                 .content(aiResponse)
                 .sender(MessageSender.AI)
                 .timestamp(LocalDateTime.now())
                 .sessionId(request.getSessionId())
                 .build();
-        chatMessageRepository.save(aiMessage);
+        assistantAIMessageRepository.save(aiMessage);
 
         return mapToResponse(aiMessage);
     }
 
-    private String callN8nWebhook(ChatMessageRequest request) {
+    private String callN8nWebhook(AssistantAIMessageRequest request) {
         try {
             // Create request body
             ObjectNode requestBody = objectMapper.createObjectNode();
@@ -97,6 +120,8 @@ public class ChatService {
 
             // Create the request entity
             HttpEntity<String> entity = new HttpEntity<>(requestBody.toString(), headers);
+
+            log.info("Calling n8n webhook for message processing");
 
             // Call n8n webhook
             String response = restTemplate.postForObject(n8nWebhookUrl, entity, String.class);
@@ -118,8 +143,8 @@ public class ChatService {
         }
     }
 
-    private ChatMessageResponse mapToResponse(ChatMessage message) {
-        return ChatMessageResponse.builder()
+    private AssistantAIMessageResponse mapToResponse(AssistantAIMessage message) {
+        return AssistantAIMessageResponse.builder()
                 .id(message.getId())
                 .content(message.getContent())
                 .sender(message.getSender().name())

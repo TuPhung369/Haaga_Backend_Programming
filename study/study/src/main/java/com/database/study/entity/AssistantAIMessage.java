@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "chat_messages")
-public class ChatMessage {
+@Table(name = "assistant_ai_messages")
+public class AssistantAIMessage {
 
   public enum MessageSender {
     USER,

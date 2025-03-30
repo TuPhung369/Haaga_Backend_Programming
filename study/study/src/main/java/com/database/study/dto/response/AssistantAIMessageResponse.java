@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatMessageResponse {
+public class AssistantAIMessageResponse {
   private Long id;
   private String content;
   private String sender; // "USER" or "AI"

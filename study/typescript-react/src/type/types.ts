@@ -213,6 +213,23 @@ export interface RootState {
   auth: AuthState;
   user: UserState;
   kanban: KanbanState;
+  assistantAI: AssistantAIState;
+}
+
+export interface AssistantAIState {
+  messages: ChatMessage[];
+  loading: boolean;
+  hasMore: boolean;
+  page: number;
+  size: number;
+}
+
+export interface ChatMessage {
+  id?: number;
+  content: string;
+  sender: string;
+  timestamp?: number[] | string;
+  sessionId: string;
 }
 
 export interface Permission {

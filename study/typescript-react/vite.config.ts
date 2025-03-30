@@ -20,6 +20,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/chat/, '/identify_service/api/chat')
       },
+      "/api/assistant": {
+        target: "http://localhost:9095",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/assistant/, '/identify_service/api/assistant')
+      },
     },
   },
 });
