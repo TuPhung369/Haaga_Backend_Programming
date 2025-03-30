@@ -11,7 +11,7 @@ import {
 import { PlayCircleOutlined } from "@mui/icons-material";
 import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
 import { v4 as uuidv4 } from "uuid";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../type/types";
 import ReactMarkdown from "react-markdown";
@@ -47,6 +47,7 @@ const AssistantAI: React.FC = () => {
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [aiThinking, setAiThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -163,6 +164,13 @@ const AssistantAI: React.FC = () => {
     // Force initial data load on component mount only if the messages array is empty
     const currentState = store.getState().assistantAI;
 
+    // Ensure we have a session ID even if there are no messages
+    if (!sessionId) {
+      const newSessionId = uuidv4();
+      console.log("Initializing new session:", newSessionId);
+      setSessionId(newSessionId);
+    }
+
     if (
       userInfo?.id &&
       (!currentState.messages || currentState.messages.length === 0)
@@ -176,6 +184,19 @@ const AssistantAI: React.FC = () => {
         "Using cached messages from store:",
         currentState.messages?.length || 0
       );
+
+      // If we have messages, make sure we have set the session ID from the last message
+      if (currentState.messages && currentState.messages.length > 0) {
+        const lastMessage =
+          currentState.messages[currentState.messages.length - 1];
+        if (lastMessage.sessionId) {
+          console.log(
+            "Using existing session from last message:",
+            lastMessage.sessionId
+          );
+          setSessionId(lastMessage.sessionId);
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on mount
@@ -250,27 +271,46 @@ const AssistantAI: React.FC = () => {
   const handleSendMessage = async () => {
     if (!input.trim() || !userInfo?.id) return;
 
+    // Generate new sessionId if it doesn't exist
+    if (!sessionId) {
+      const newId = uuidv4();
+      setSessionId(newId);
+      console.log("Created new sessionId:", newId);
+    }
+
+    // Use a local variable to ensure consistent sessionId throughout this function call
+    const currentSessionId = sessionId || uuidv4();
+    console.log("Sending message with sessionId:", currentSessionId);
+
+    const currentMessage = input.trim(); // Save current input
     const userMessage: ChatMessage = {
-      content: input,
+      content: currentMessage,
       sender: "USER",
-      sessionId: sessionId,
+      sessionId: currentSessionId,
       timestamp: new Date().toISOString()
     };
 
     dispatch(addMessage(userMessage));
     setInput("");
     dispatch(setLoading(true));
+    setAiThinking(true);
 
     try {
       const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
       const recaptchaToken = getRecaptchaToken();
 
+      console.log("Sending API request with data:", {
+        userId: userInfo.id,
+        message: currentMessage,
+        sessionId: currentSessionId
+      });
+
       const response = await axios.post(
         "/api/assistant/send",
         {
           userId: userInfo.id,
-          message: input,
-          sessionId: sessionId,
+          message: currentMessage,
+          sessionId: currentSessionId,
           recaptchaToken
         },
         {
@@ -280,29 +320,70 @@ const AssistantAI: React.FC = () => {
         }
       );
 
+      console.log("API Response:", response.data);
+
       if (response.data) {
+        let content = "No response";
+
+        if (typeof response.data.content === "string") {
+          content = response.data.content;
+        } else if (response.data.content) {
+          content = JSON.stringify(response.data.content);
+        }
+
+        if (!content || content.trim() === "") {
+          content = "I couldn't process your request. Please try again.";
+        }
+
         const aiResponse = {
-          content:
-            typeof response.data.content === "string"
-              ? response.data.content
-              : response.data.content || "No response",
+          content: content,
           sender: "AI",
-          sessionId: sessionId,
+          sessionId: currentSessionId,
           timestamp: new Date().toISOString()
         };
+
+        console.log("Adding AI response to store:", aiResponse);
         dispatch(addAIResponse(aiResponse));
+      } else {
+        throw new Error("Empty response from server");
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      const errorMessage: ChatMessage = {
-        content: "Sorry, something went wrong. Please try again.",
+      const errorMessage = "Sorry, something went wrong. Please try again.";
+
+      // If we can get a more specific error message, use it
+      let detailedError = errorMessage;
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        console.log("Error response status:", axiosError.response?.status);
+        console.log("Error response data:", axiosError.response?.data);
+
+        if (axiosError.response?.data) {
+          // Safely access the message property if it exists
+          const errorData = axiosError.response.data;
+          if (
+            typeof errorData === "object" &&
+            errorData !== null &&
+            "message" in errorData
+          ) {
+            const message = (errorData as Record<string, unknown>).message;
+            if (typeof message === "string") {
+              detailedError = message;
+            }
+          }
+        }
+      }
+
+      const errorResponse: ChatMessage = {
+        content: detailedError,
         sender: "AI",
-        sessionId: sessionId,
+        sessionId: currentSessionId,
         timestamp: new Date().toISOString()
       };
-      dispatch(addAIResponse(errorMessage));
+      dispatch(addAIResponse(errorResponse));
     } finally {
       dispatch(setLoading(false));
+      setAiThinking(false);
     }
   };
 
@@ -408,7 +489,7 @@ const AssistantAI: React.FC = () => {
                   )}
                 </Box>
               ))}
-              {loading && page === 0 && (
+              {aiThinking && (
                 <Box className="loading-message">
                   <CircularProgress size={20} />
                   <Typography variant="body1">AI is thinking...</Typography>
@@ -439,14 +520,14 @@ const AssistantAI: React.FC = () => {
             onKeyDown={handleKeyPress}
             placeholder="Type your message here..."
             variant="outlined"
-            disabled={loading}
+            disabled={aiThinking}
           />
 
           <Button
             className="send-button"
             variant="contained"
             onClick={handleSendMessage}
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || aiThinking}
           >
             <PlayCircleOutlined fontSize="large" />
           </Button>
