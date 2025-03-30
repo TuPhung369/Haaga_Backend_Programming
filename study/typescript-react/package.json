@@ -57,6 +57,7 @@
     "recharts": "^2.15.1",
     "redux": "^5.0.1",
     "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
     "styled-components": "^6.1.15",
     "uuid": "^11.1.0"
   },

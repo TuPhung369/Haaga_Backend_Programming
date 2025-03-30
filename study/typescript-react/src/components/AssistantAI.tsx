@@ -15,6 +15,7 @@ import axios, { AxiosError } from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../type/types";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -459,6 +460,7 @@ const AssistantAI: React.FC = () => {
                   <div className="markdown">
                     <ReactMarkdown
                       rehypePlugins={[rehypeRaw]}
+                      remarkPlugins={[remarkGfm]}
                       components={{
                         code({ className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || "");
@@ -476,7 +478,17 @@ const AssistantAI: React.FC = () => {
                               {children}
                             </code>
                           );
-                        }
+                        },
+                        table: (props) => (
+                          <table className="markdown-table" {...props} />
+                        ),
+                        thead: (props) => (
+                          <thead className="markdown-thead" {...props} />
+                        ),
+                        th: (props) => (
+                          <th className="markdown-th" {...props} />
+                        ),
+                        td: (props) => <td className="markdown-td" {...props} />
                       }}
                     >
                       {message.content}
