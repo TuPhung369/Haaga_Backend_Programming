@@ -64,13 +64,30 @@ declare module "../type/types" {
 }
 
 // Create a Mermaid component to render diagrams
-const MermaidDiagram = ({ content }: { content: string }) => {
+const MermaidDiagram = React.memo(({ content }: { content: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [svg, setSvg] = useState<string | null>(null);
+  const [isRendered, setIsRendered] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Create a deterministic ID based on content hash
+  const getDiagramId = useCallback(() => {
+    // Simple hash function for generating a stable ID
+    let hash = 0;
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return `mermaid-${Math.abs(hash).toString(16)}`;
+  }, [content]);
+
+  const diagramId = useRef(getDiagramId());
 
   useEffect(() => {
-    let mounted = true;
+    // Skip if already rendered or no container
+    if (isRendered || !containerRef.current) return;
+
     const renderDiagram = async () => {
       if (!containerRef.current) return;
 
@@ -79,95 +96,99 @@ const MermaidDiagram = ({ content }: { content: string }) => {
         containerRef.current.innerHTML = "";
         setError(null);
 
-        if (content.trim().startsWith("sequenceDiagram")) {
-          // For sequence diagrams, use the direct rendering approach
-          try {
-            const { svg } = await mermaid.render(
-              "mermaid-diagram-" + Date.now(),
-              content
-            );
-            if (mounted) {
-              setSvg(svg);
-            }
-            return;
-          } catch (sequenceError) {
-            console.error(
-              "Failed with direct rendering, falling back to standard method:",
-              sequenceError
-            );
-          }
+        // Initialize mermaid with larger diagram sizes
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "default",
+          securityLevel: "loose",
+          flowchart: {
+            htmlLabels: true,
+            curve: "basis",
+            useMaxWidth: false // Prevent width limitation
+          },
+          sequence: {
+            diagramMarginX: 50,
+            diagramMarginY: 10,
+            actorMargin: 80, // Increased actor margin
+            width: 250, // Increased width
+            height: 100, // Increased height
+            boxMargin: 10,
+            boxTextMargin: 5,
+            noteMargin: 10,
+            messageMargin: 35
+          },
+          fontSize: 16, // Increase font size
+          fontFamily: "Roboto, sans-serif" // Consistent font
+        });
+
+        // Use the modern render method instead of deprecated init
+        const { svg } = await mermaid.render(diagramId.current, content);
+
+        // Create container and insert SVG
+        const container = document.createElement("div");
+        container.className = "mermaid-svg-container";
+
+        // Modify SVG for better sizing
+        let modifiedSvg = svg;
+        if (!modifiedSvg.includes("width=")) {
+          modifiedSvg = modifiedSvg.replace("<svg ", '<svg width="100%" ');
+        }
+        if (!modifiedSvg.includes("height=")) {
+          modifiedSvg = modifiedSvg.replace("<svg ", '<svg height="auto" ');
         }
 
-        // Create a container with the mermaid class
-        const diagramContainer = document.createElement("pre");
-        diagramContainer.className = "mermaid";
-        diagramContainer.textContent = content;
-        containerRef.current.appendChild(diagramContainer);
+        container.innerHTML = modifiedSvg;
 
-        // Reset mermaid to avoid previous state issues
-        if (typeof mermaid.initialize === "function") {
-          mermaid.initialize({
-            startOnLoad: false,
-            theme: "default",
-            securityLevel: "loose",
-            flowchart: {
-              htmlLabels: true,
-              curve: "basis"
-            },
-            sequence: {
-              diagramMarginX: 50,
-              diagramMarginY: 10,
-              actorMargin: 50,
-              width: 150,
-              height: 65
-            }
-          });
-        }
+        // Append to DOM
+        containerRef.current.appendChild(container);
 
-        // Add a small delay to ensure DOM is ready
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        if (
-          mounted &&
-          containerRef.current &&
-          containerRef.current.querySelector(".mermaid")
-        ) {
-          // Render the diagram
-          await mermaid.run({
-            querySelector: ".mermaid",
-            suppressErrors: true
-          });
-        }
-      } catch (error) {
-        console.error("Failed to render mermaid diagram:", error);
-        if (mounted && containerRef.current) {
-          setError(
-            error instanceof Error ? error.message : "Failed to render diagram"
+        // Add event listener to ensure diagram is properly sized
+        const svgElement = containerRef.current.querySelector("svg");
+        if (svgElement) {
+          svgElement.setAttribute(
+            "style",
+            "width: 100%; min-width: 300px; min-height: 200px;"
           );
+          svgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
         }
+
+        // Mark as rendered to prevent future renders
+        setIsRendered(true);
+      } catch (err) {
+        console.error("Failed to render mermaid diagram:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to render diagram"
+        );
       }
     };
 
-    renderDiagram();
+    // Use a timeout to ensure the DOM is stable before rendering
+    timeoutRef.current = setTimeout(() => {
+      renderDiagram();
+    }, 150);
 
     return () => {
-      mounted = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [content]);
+  }, [content, isRendered, getDiagramId]); // Include isRendered in dependencies
+
+  // Reset rendered state if content changes
+  useEffect(() => {
+    setIsRendered(false);
+    diagramId.current = getDiagramId();
+  }, [content, getDiagramId]);
 
   return (
     <div className="mermaid-diagram-container">
-      {svg ? (
-        <div dangerouslySetInnerHTML={{ __html: svg }} />
-      ) : (
-        <div ref={containerRef} />
-      )}
+      <div ref={containerRef} className="mermaid-render-target" />
       {error && (
         <div className="mermaid-error">Diagram rendering failed: {error}</div>
       )}
     </div>
   );
-};
+});
 
 const AssistantAI: React.FC = () => {
   const [input, setInput] = useState("");
@@ -184,6 +205,25 @@ const AssistantAI: React.FC = () => {
   const { messages, loading, hasMore, page, size } = useSelector(
     (state: RootState) => state.assistantAI
   );
+
+  // Check for valid authentication on component mount and token changes
+  useEffect(() => {
+    if (!token && userInfo?.id) {
+      console.warn(
+        "Token is missing but user info exists - possible session expiration"
+      );
+      // You can add a redirect to login page or show a message here
+      dispatch(
+        addAIResponse({
+          content:
+            "Your session appears to have expired. Please refresh the page and log in again.",
+          sender: "AI",
+          sessionId: sessionId || uuidv4(),
+          timestamp: new Date().toISOString()
+        })
+      );
+    }
+  }, [token, userInfo, sessionId, dispatch]);
 
   useEffect(() => {
     scrollToBottom();
@@ -397,6 +437,21 @@ const AssistantAI: React.FC = () => {
   const handleSendMessage = async () => {
     if (!input.trim() || !userInfo?.id) return;
 
+    // Verify token exists before proceeding
+    if (!token) {
+      console.error("Authentication token is missing");
+      dispatch(
+        addAIResponse({
+          content:
+            "You are not properly authenticated. Please try logging in again.",
+          sender: "AI",
+          sessionId: sessionId || uuidv4(),
+          timestamp: new Date().toISOString()
+        })
+      );
+      return;
+    }
+
     // Generate new sessionId if it doesn't exist
     if (!sessionId) {
       const newId = uuidv4();
@@ -407,6 +462,7 @@ const AssistantAI: React.FC = () => {
     // Use a local variable to ensure consistent sessionId throughout this function call
     const currentSessionId = sessionId || uuidv4();
     console.log("Sending message with sessionId:", currentSessionId);
+    console.log("Using auth token:", token ? "Token exists" : "Token missing");
 
     const currentMessage = input.trim(); // Save current input
     const userMessage: ChatMessage = {
@@ -422,6 +478,17 @@ const AssistantAI: React.FC = () => {
     setAiThinking(true);
 
     try {
+      // Try to refresh token if needed (implement based on your auth system)
+      const currentToken = token;
+      try {
+        // This is a placeholder - implement according to your auth system
+        // For example, you might check token expiration and refresh if needed
+        // const tokenData = await checkAndRefreshToken(token);
+        // if (tokenData.refreshed) currentToken = tokenData.newToken;
+      } catch (tokenError) {
+        console.error("Error refreshing token:", tokenError);
+      }
+
       const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
       const recaptchaToken = getRecaptchaToken();
 
@@ -430,6 +497,15 @@ const AssistantAI: React.FC = () => {
         message: currentMessage,
         sessionId: currentSessionId
       });
+
+      // Ensure authorization header is properly formatted with token
+      const authHeader = currentToken.trim()
+        ? `Bearer ${currentToken.trim()}`
+        : "";
+
+      if (!authHeader) {
+        throw new Error("Authentication token is empty");
+      }
 
       const response = await axios.post(
         "/api/assistant/send",
@@ -441,7 +517,7 @@ const AssistantAI: React.FC = () => {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: authHeader
           }
         }
       );
@@ -603,6 +679,7 @@ const AssistantAI: React.FC = () => {
                                     style={vscDarkPlus}
                                     language="mermaid"
                                     PreTag="div"
+                                    wrapLongLines={true}
                                   >
                                     {String(children).replace(/\n$/, "")}
                                   </SyntaxHighlighter>
@@ -615,6 +692,7 @@ const AssistantAI: React.FC = () => {
                               style={vscDarkPlus}
                               language={match[1]}
                               PreTag="div"
+                              wrapLongLines={true}
                               {...props}
                             >
                               {String(children).replace(/\n$/, "")}
