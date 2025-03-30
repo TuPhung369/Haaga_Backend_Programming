@@ -30,6 +30,25 @@ import {
   incrementPage
 } from "../store/assistantAISlice";
 import { ChatMessage } from "../types/assistantAI";
+import mermaid from "mermaid";
+
+// Initialize mermaid configuration globally
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "default",
+  securityLevel: "loose",
+  flowchart: {
+    htmlLabels: true,
+    curve: "basis"
+  },
+  sequence: {
+    diagramMarginX: 50,
+    diagramMarginY: 10,
+    actorMargin: 50,
+    width: 150,
+    height: 65
+  }
+});
 
 // Update the RootState type by extending it
 declare module "../type/types" {
@@ -43,6 +62,112 @@ declare module "../type/types" {
     };
   }
 }
+
+// Create a Mermaid component to render diagrams
+const MermaidDiagram = ({ content }: { content: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [svg, setSvg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const renderDiagram = async () => {
+      if (!containerRef.current) return;
+
+      try {
+        // Clear any previous content
+        containerRef.current.innerHTML = "";
+        setError(null);
+
+        if (content.trim().startsWith("sequenceDiagram")) {
+          // For sequence diagrams, use the direct rendering approach
+          try {
+            const { svg } = await mermaid.render(
+              "mermaid-diagram-" + Date.now(),
+              content
+            );
+            if (mounted) {
+              setSvg(svg);
+            }
+            return;
+          } catch (sequenceError) {
+            console.error(
+              "Failed with direct rendering, falling back to standard method:",
+              sequenceError
+            );
+          }
+        }
+
+        // Create a container with the mermaid class
+        const diagramContainer = document.createElement("pre");
+        diagramContainer.className = "mermaid";
+        diagramContainer.textContent = content;
+        containerRef.current.appendChild(diagramContainer);
+
+        // Reset mermaid to avoid previous state issues
+        if (typeof mermaid.initialize === "function") {
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: "default",
+            securityLevel: "loose",
+            flowchart: {
+              htmlLabels: true,
+              curve: "basis"
+            },
+            sequence: {
+              diagramMarginX: 50,
+              diagramMarginY: 10,
+              actorMargin: 50,
+              width: 150,
+              height: 65
+            }
+          });
+        }
+
+        // Add a small delay to ensure DOM is ready
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        if (
+          mounted &&
+          containerRef.current &&
+          containerRef.current.querySelector(".mermaid")
+        ) {
+          // Render the diagram
+          await mermaid.run({
+            querySelector: ".mermaid",
+            suppressErrors: true
+          });
+        }
+      } catch (error) {
+        console.error("Failed to render mermaid diagram:", error);
+        if (mounted && containerRef.current) {
+          setError(
+            error instanceof Error ? error.message : "Failed to render diagram"
+          );
+        }
+      }
+    };
+
+    renderDiagram();
+
+    return () => {
+      mounted = false;
+    };
+  }, [content]);
+
+  return (
+    <div className="mermaid-diagram-container">
+      {svg ? (
+        <div dangerouslySetInnerHTML={{ __html: svg }} />
+      ) : (
+        <div ref={containerRef} />
+      )}
+      {error && (
+        <div className="mermaid-error">Diagram rendering failed: {error}</div>
+      )}
+    </div>
+  );
+};
 
 const AssistantAI: React.FC = () => {
   const [input, setInput] = useState("");
@@ -464,6 +589,27 @@ const AssistantAI: React.FC = () => {
                       components={{
                         code({ className, children, ...props }) {
                           const match = /language-(\w+)/.exec(className || "");
+                          if (match && match[1] === "mermaid") {
+                            return (
+                              <div className="mermaid-with-code">
+                                <MermaidDiagram content={String(children)} />
+                                <div className="mermaid-source">
+                                  <div className="mermaid-source-header">
+                                    <Typography variant="caption">
+                                      Mermaid Syntax
+                                    </Typography>
+                                  </div>
+                                  <SyntaxHighlighter
+                                    style={vscDarkPlus}
+                                    language="mermaid"
+                                    PreTag="div"
+                                  >
+                                    {String(children).replace(/\n$/, "")}
+                                  </SyntaxHighlighter>
+                                </div>
+                              </div>
+                            );
+                          }
                           return match ? (
                             <SyntaxHighlighter
                               style={vscDarkPlus}

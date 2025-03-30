@@ -436,6 +436,128 @@
   }
 }
 
+/* Mermaid Diagram Styles */
+.mermaid-diagram-container {
+  margin: 16px 0;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  overflow-x: auto;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mermaid-diagram-container svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  background-color: white;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+/* Enhanced SVG rendering for sequence diagrams */
+.mermaid-diagram-container svg .actor {
+  fill: #e3f2fd !important;
+  stroke: #1976d2 !important;
+}
+
+.mermaid-diagram-container svg .messageText {
+  fill: #1e293b !important;
+  stroke: none !important;
+}
+
+.mermaid-diagram-container svg .messageLine0,
+.mermaid-diagram-container svg .messageLine1 {
+  stroke: #0277bd !important;
+}
+
+.mermaid-diagram-container svg .note {
+  fill: #fff8e1 !important;
+  stroke: #ffc107 !important;
+}
+
+.mermaid-diagram-container svg .noteText {
+  fill: #5d4037 !important;
+}
+
+.mermaid-error {
+  color: #e53e3e;
+  padding: 12px;
+  text-align: center;
+  font-family: 'Source Code Pro', monospace;
+  background-color: #fff5f5;
+  border: 1px dashed #fc8181;
+  border-radius: 4px;
+  margin-top: 12px;
+}
+
+/* Make sure diagrams are visible */
+.mermaid-diagram-container .mermaid {
+  width: 100%;
+  overflow: visible;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Make text in diagrams readable */
+.mermaid-diagram-container .mermaid text {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 14px;
+}
+
+/* Style mermaid diagram elements */
+.mermaid-diagram-container .node rect,
+.mermaid-diagram-container .node circle,
+.mermaid-diagram-container .node ellipse,
+.mermaid-diagram-container .node polygon,
+.mermaid-diagram-container .node path {
+  fill: #e1f5fe;
+  stroke: #03a9f4;
+  stroke-width: 1px;
+}
+
+.mermaid-diagram-container .edgePath .path {
+  stroke: #2196f3;
+  stroke-width: 1.5px;
+}
+
+.mermaid-diagram-container .arrowheadPath {
+  fill: #2196f3;
+}
+
+.mermaid-diagram-container .edgeLabel {
+  background-color: #ffffff;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.mermaid-diagram-container .cluster rect {
+  fill: #fffde7;
+  stroke: #ffc107;
+  stroke-width: 1px;
+  rx: 5px;
+  ry: 5px;
+}
+
+.mermaid-diagram-container .cluster text {
+  fill: #795548;
+}
+
+/* Responsive adjustments for diagrams */
+@media screen and (max-width: 768px) {
+  .mermaid-diagram-container {
+    padding: 8px;
+  }
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -456,4 +578,43 @@
   100% {
     opacity: 0.6;
   }
+}
+
+/* Mermaid with code display */
+.mermaid-with-code {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+  width: 100%;
+}
+
+.mermaid-source {
+  background-color: #282c34;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1px solid #444;
+}
+
+.mermaid-source-header {
+  background-color: #1e222a;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #444;
+}
+
+.mermaid-source-header .MuiTypography-caption {
+  color: #a0a0a0;
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 600;
+}
+
+.mermaid-source pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-left: none !important;
 }
