@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -175,7 +175,7 @@ const FlowDiagram: React.FC<FlowDiagramProps> = ({
   const [isEditable, setIsEditable] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
+  const hiding = useRef(false);
   // Process initialEdges to add required handles if missing
   const processedInitialEdges = React.useMemo(() => {
     return initialEdges.map((edge) => ({
@@ -228,13 +228,15 @@ const FlowDiagram: React.FC<FlowDiagramProps> = ({
         <Background />
       </ReactFlow>
       <div style={{ position: "absolute", top: 10, right: 10, zIndex: 10 }}>
-        <Button
-          variant="contained"
-          onClick={() => setIsEditable((prev) => !prev)}
-          style={{ marginRight: "10px" }}
-        >
-          {isEditable ? "Switch to Read-Only" : "Edit Diagram"}
-        </Button>
+        {hiding.current && (
+          <Button
+            variant="contained"
+            onClick={() => setIsEditable((prev) => !prev)}
+            style={{ marginRight: "10px" }}
+          >
+            {isEditable ? "Switch to Read-Only" : "Edit Diagram"}
+          </Button>
+        )}
         {isEditable && (
           <Button variant="contained" onClick={addNode}>
             Add Node
