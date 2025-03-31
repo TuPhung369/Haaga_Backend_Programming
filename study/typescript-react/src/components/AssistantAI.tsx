@@ -45,6 +45,13 @@ import { MarkerType, Edge } from "reactflow";
 const preprocessMarkdown = (markdown: string): string => {
   // First, handle common cases where pipe characters aren't meant to be tables
   // For example, convert lines with a single pipe that aren't table rows to escaped pipes
+  markdown = markdown.replace(/\*\*(\S.*?\S|\S)\*\*/g, "<strong>$1</strong>");
+
+  // Convert italic *text* to <em>text</em>
+  markdown = markdown.replace(/\*(\S.*?\S|\S)\*/g, "<em>$1</em>");
+
+  // Convert inline code `code` to <code>code</code>
+  markdown = markdown.replace(/`([^`]+)`/g, "<code>$1</code>");
   const processedContent = markdown
     // If a line has a single pipe and it's not surrounded by spaces like in a table, escape it
     // This helps with Vietnamese text that uses pipes as separators
@@ -421,7 +428,6 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
       }
     }, [viewMode, diagramId]);
 
-
     // Process ReactFlow data if available
     const parsedData = useMemo(() => {
       if (!reactFlowContent) return null;
@@ -774,7 +780,6 @@ const AssistantAI: React.FC = () => {
       );
       loadChatHistory(0);
     } else {
-
       // If we have messages, make sure we have set the session ID from the last message
       if (currentState.messages && currentState.messages.length > 0) {
         const lastMessage =
