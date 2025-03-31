@@ -247,4 +247,4 @@ const FlowDiagram: React.FC<FlowDiagramProps> = ({
   );
 };
 
-export default FlowDiagram;
+export default React.memo(FlowDiagram);

@@ -238,10 +238,6 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
 
         // Trim and clean up the content
         const cleanedContent = contentRef.current.trim();
-        console.log(
-          "Rendering mermaid with content:",
-          cleanedContent.substring(0, 50) + "..."
-        );
 
         if (!cleanedContent) {
           setError("Empty diagram content");
@@ -425,15 +421,6 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
       }
     }, [viewMode, diagramId]);
 
-    // Debug information when the component mounts or changes props - keep for troubleshooting
-    useEffect(() => {
-      console.log("DiagramViewer rendering with:", {
-        hasMermaid: !!mermaidContent,
-        hasReactFlow: !!reactFlowContent,
-        viewMode,
-        diagramId
-      });
-    }, [mermaidContent, reactFlowContent, viewMode, diagramId]);
 
     // Process ReactFlow data if available
     const parsedData = useMemo(() => {
@@ -462,7 +449,7 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
         style: { stroke: "#007bff", strokeWidth: 2 },
         animated: false
       }));
-    }, [parsedData?.edges]);
+    }, [parsedData]);
 
     // Check if diagram has been rendered already and cache SVG
     const [renderCache, setRenderCache] = useState(() => {
@@ -513,9 +500,6 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
       }
 
       // Otherwise, render the MermaidDiagram component to generate the SVG
-      console.log(
-        `Rendering MermaidDiagram component for ${diagramId} to get SVG`
-      );
       return (
         <MermaidDiagram
           content={mermaidContent}
@@ -778,7 +762,6 @@ const AssistantAI: React.FC = () => {
     // Ensure we have a session ID even if there are no messages
     if (!sessionId) {
       const newSessionId = uuidv4();
-      console.log("Initializing new session:", newSessionId);
       setSessionId(newSessionId);
     }
 
@@ -791,20 +774,12 @@ const AssistantAI: React.FC = () => {
       );
       loadChatHistory(0);
     } else {
-      console.log(
-        "Using cached messages from store:",
-        currentState.messages?.length || 0
-      );
 
       // If we have messages, make sure we have set the session ID from the last message
       if (currentState.messages && currentState.messages.length > 0) {
         const lastMessage =
           currentState.messages[currentState.messages.length - 1];
         if (lastMessage.sessionId) {
-          console.log(
-            "Using existing session from last message:",
-            lastMessage.sessionId
-          );
           setSessionId(lastMessage.sessionId);
         }
       }
@@ -906,8 +881,6 @@ const AssistantAI: React.FC = () => {
 
     // Use a local variable to ensure consistent sessionId throughout this function call
     const currentSessionId = sessionId || uuidv4();
-    console.log("Sending message with sessionId:", currentSessionId);
-    console.log("Using auth token:", token ? "Token exists" : "Token missing");
 
     const currentMessage = input.trim(); // Save current input
     const userMessage: ChatMessage = {
@@ -937,12 +910,6 @@ const AssistantAI: React.FC = () => {
       const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
       const recaptchaToken = getRecaptchaToken();
 
-      console.log("Sending API request with data:", {
-        userId: userInfo.id,
-        message: currentMessage,
-        sessionId: currentSessionId
-      });
-
       // Ensure authorization header is properly formatted with token
       const authHeader = currentToken.trim()
         ? `Bearer ${currentToken.trim()}`
@@ -967,8 +934,6 @@ const AssistantAI: React.FC = () => {
         }
       );
 
-      console.log("API Response:", response.data);
-
       if (response.data) {
         let content = "No response";
 
@@ -989,7 +954,6 @@ const AssistantAI: React.FC = () => {
           timestamp: new Date().toISOString()
         };
 
-        console.log("Adding AI response to store:", aiResponse);
         dispatch(addAIResponse(aiResponse));
       } else {
         throw new Error("Empty response from server");
@@ -1142,10 +1106,6 @@ const AssistantAI: React.FC = () => {
 
                             // Mermaid diagram (fenced code block)
                             if (lang === "mermaid") {
-                              console.log(
-                                "Rendering Mermaid from code block:",
-                                content.substring(0, 50) + "..."
-                              );
                               return (
                                 <div className="diagram-container">
                                   <DiagramViewer mermaidContent={content} />
@@ -1155,10 +1115,6 @@ const AssistantAI: React.FC = () => {
 
                             // Combined Mermaid and ReactFlow diagram (fenced code block, deprecated but keep for compatibility)
                             if (lang === "diagram") {
-                              console.log(
-                                "Rendering combined diagram from 'diagram' code block:",
-                                content.substring(0, 50) + "..."
-                              );
                               try {
                                 // Handle both formats:
                                 // 1. <diagram mermaid='...' reactflow='...' /> (inside code block - less ideal)
@@ -1232,12 +1188,6 @@ const AssistantAI: React.FC = () => {
                                   mermaidContent = processedContent;
                                 }
 
-                                console.log("Parsed 'diagram' code block:", {
-                                  mermaidContent:
-                                    mermaidContent.substring(0, 50) + "...",
-                                  hasReactFlow: !!reactFlowContent
-                                });
-
                                 return (
                                   <div className="diagram-container prominent-toolbar">
                                     <DiagramViewer
@@ -1279,12 +1229,6 @@ const AssistantAI: React.FC = () => {
                             const mermaidContent = props["mermaid"] || "";
                             const reactFlowContent =
                               props["reactflow"] || undefined;
-
-                            console.log("Rendering <diagram> tag:", {
-                              mermaidContent:
-                                mermaidContent.substring(0, 50) + "...",
-                              hasReactFlow: !!reactFlowContent
-                            });
 
                             if (!mermaidContent) {
                               console.warn(
