@@ -8,7 +8,8 @@ import ReactFlow, {
   Node,
   Edge,
   Handle,
-  Position
+  Position,
+  Connection
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { Button } from "@mui/material";
@@ -195,7 +196,7 @@ const FlowDiagram: React.FC<FlowDiagramProps> = ({
   }, [initialNodes, processedInitialEdges, setNodes, setEdges]);
 
   const onConnect = useCallback(
-    (params: any) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
 

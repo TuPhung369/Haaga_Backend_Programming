@@ -183,16 +183,19 @@ declare module "../type/types" {
 interface MermaidDiagramProps {
   content: string;
   className?: string;
+  onRenderComplete?: (svg: string) => void;
 }
 
 const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
   content,
-  className
+  className,
+  onRenderComplete
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRendered, setIsRendered] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const contentRef = useRef<string>(content);
 
   // Log when component mounts with content
   useEffect(() => {
@@ -200,19 +203,24 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
       "MermaidDiagram received content:",
       content.substring(0, 50) + "..."
     );
+    // Only update contentRef if the content has actually changed
+    if (contentRef.current !== content) {
+      contentRef.current = content;
+      setIsRendered(false);
+    }
   }, [content]);
 
   // Create a deterministic ID based on content hash
   const getDiagramId = useCallback(() => {
     // Simple hash function for generating a stable ID
     let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
+    for (let i = 0; i < contentRef.current.length; i++) {
+      const char = contentRef.current.charCodeAt(i);
       hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return `mermaid-${Math.abs(hash).toString(16)}`;
-  }, [content]);
+  }, []);
 
   const diagramId = useRef(getDiagramId());
 
@@ -229,7 +237,7 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
         setError(null);
 
         // Trim and clean up the content
-        const cleanedContent = content.trim();
+        const cleanedContent = contentRef.current.trim();
         console.log(
           "Rendering mermaid with content:",
           cleanedContent.substring(0, 50) + "..."
@@ -266,8 +274,9 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
         });
 
         // Use the modern render method instead of deprecated init
-        console.log("Calling mermaid.render with ID:", diagramId.current);
-        const { svg } = await mermaid.render(diagramId.current, cleanedContent);
+        const uniqueId = `${diagramId.current}-${Date.now()}`;
+        console.log("Calling mermaid.render with ID:", uniqueId);
+        const { svg } = await mermaid.render(uniqueId, cleanedContent);
         console.log("Mermaid render successful, got SVG");
 
         // Create container and insert SVG
@@ -286,21 +295,32 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
         container.innerHTML = modifiedSvg;
 
         // Append to DOM
-        containerRef.current.appendChild(container);
-        console.log("Appended SVG to container");
+        if (containerRef.current) {
+          containerRef.current.appendChild(container);
+          console.log("Appended SVG to container");
 
-        // Add event listener to ensure diagram is properly sized
-        const svgElement = containerRef.current.querySelector("svg");
-        if (svgElement) {
-          svgElement.setAttribute(
-            "style",
-            "width: 100%; min-width: 300px; min-height: 200px;"
-          );
-          svgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
+          // Add event listener to ensure diagram is properly sized
+          const svgElement = containerRef.current.querySelector("svg");
+          if (svgElement) {
+            svgElement.setAttribute(
+              "style",
+              "width: 100%; min-width: 300px; min-height: 200px;"
+            );
+            svgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
+          }
+
+          // Call the callback with the rendered SVG
+          if (onRenderComplete) {
+            console.log("Calling onRenderComplete");
+            onRenderComplete(modifiedSvg);
+          }
+
+          // Mark as rendered to prevent future renders of this instance
+          setIsRendered(true);
+        } else {
+          console.warn("MermaidDiagram containerRef became null during render");
+          setError("Container disappeared during rendering");
         }
-
-        // Mark as rendered to prevent future renders
-        setIsRendered(true);
       } catch (err) {
         console.error("Failed to render mermaid diagram:", err);
         setError(
@@ -310,22 +330,24 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
     };
 
     // Use a timeout to ensure the DOM is stable before rendering
+    // Clear previous timeout if exists
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     timeoutRef.current = setTimeout(() => {
       renderDiagram();
-    }, 150);
+    }, 150); // Reduced timeout slightly
 
+    // Cleanup timeout on unmount
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [content, isRendered, getDiagramId]); // Include isRendered in dependencies
+  }, [isRendered, onRenderComplete]); // Re-run if isRendered changes or callback changes
 
-  // Reset rendered state if content changes
-  useEffect(() => {
-    setIsRendered(false);
-    diagramId.current = getDiagramId();
-  }, [content, getDiagramId]);
+  // No longer reset rendered state on every content change
+  // Only update diagramId if content changes (managed in the first useEffect)
 
   return (
     <div className={`mermaid-diagram-container ${className || ""}`}>
@@ -334,7 +356,7 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
         <div className="mermaid-error">
           Diagram rendering failed: {error}
           <div className="mermaid-source-code">
-            <pre>{content}</pre>
+            <pre>{contentRef.current}</pre>
           </div>
         </div>
       )}
@@ -349,177 +371,269 @@ interface DiagramViewerProps {
 }
 
 // DiagramViewer component for toggling between Mermaid, ReactFlow and source code view
-const DiagramViewer: React.FC<DiagramViewerProps> = ({
-  mermaidContent,
-  reactFlowContent
-}) => {
-  // Generate a stable ID based on the content for localStorage key
-  const diagramId = useMemo(() => {
-    // Simple hash function to create a stable ID for this diagram content
-    let hash = 0;
-    const content = mermaidContent + (reactFlowContent || "");
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return `diagram-${Math.abs(hash).toString(16).substring(0, 8)}`;
-  }, [mermaidContent, reactFlowContent]);
-
-  // Get the stored view mode from localStorage or use default
-  const getStoredViewMode = useCallback(() => {
-    try {
-      const stored = localStorage.getItem(`viewMode-${diagramId}`);
-      if (
-        stored &&
-        ["mermaid", "reactflow", "mermaid-code", "reactflow-code"].includes(
-          stored
-        )
-      ) {
-        return stored as
-          | "mermaid"
-          | "reactflow"
-          | "mermaid-code"
-          | "reactflow-code";
+const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
+  ({ mermaidContent, reactFlowContent }) => {
+    // Generate a stable ID based on the content for localStorage key
+    const diagramId = useMemo(() => {
+      // Simple hash function to create a stable ID for this diagram content
+      let hash = 0;
+      const content = mermaidContent + (reactFlowContent || "");
+      for (let i = 0; i < content.length; i++) {
+        const char = content.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash; // Convert to 32bit integer
       }
-    } catch (e) {
-      console.warn("Failed to retrieve stored view mode from localStorage", e);
-    }
-    return "mermaid"; // Default view
-  }, [diagramId]);
+      return `diagram-${Math.abs(hash).toString(16).substring(0, 8)}`;
+    }, [mermaidContent, reactFlowContent]);
 
-  // State for the current view mode, initialized from storage
-  const [viewMode, setViewMode] = useState<
-    "mermaid" | "reactflow" | "mermaid-code" | "reactflow-code"
-  >(getStoredViewMode);
+    // Get the stored view mode from localStorage or use default
+    const getStoredViewMode = useCallback(() => {
+      try {
+        const stored = localStorage.getItem(`viewMode-${diagramId}`);
+        if (
+          stored &&
+          ["mermaid", "reactflow", "mermaid-code", "reactflow-code"].includes(
+            stored
+          )
+        ) {
+          return stored as
+            | "mermaid"
+            | "reactflow"
+            | "mermaid-code"
+            | "reactflow-code";
+        }
+      } catch (e) {
+        console.warn(
+          "Failed to retrieve stored view mode from localStorage",
+          e
+        );
+      }
+      return "mermaid"; // Default view
+    }, [diagramId]);
 
-  // Store the viewMode in localStorage when it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(`viewMode-${diagramId}`, viewMode);
-    } catch (e) {
-      console.warn("Failed to store view mode in localStorage", e);
-    }
-  }, [viewMode, diagramId]);
+    // State for the current view mode, initialized from storage
+    const [viewMode, setViewMode] = useState<
+      "mermaid" | "reactflow" | "mermaid-code" | "reactflow-code"
+    >(getStoredViewMode);
 
-  // Debug information when the component mounts or changes props
-  useEffect(() => {
-    console.log("DiagramViewer rendering with:", {
-      hasMermaid: !!mermaidContent,
-      hasReactFlow: !!reactFlowContent,
-      viewMode,
-      diagramId
+    // Store the viewMode in localStorage when it changes
+    useEffect(() => {
+      try {
+        localStorage.setItem(`viewMode-${diagramId}`, viewMode);
+      } catch (e) {
+        console.warn("Failed to store view mode in localStorage", e);
+      }
+    }, [viewMode, diagramId]);
+
+    // Debug information when the component mounts or changes props - keep for troubleshooting
+    useEffect(() => {
+      console.log("DiagramViewer rendering with:", {
+        hasMermaid: !!mermaidContent,
+        hasReactFlow: !!reactFlowContent,
+        viewMode,
+        diagramId
+      });
+    }, [mermaidContent, reactFlowContent, viewMode, diagramId]);
+
+    // Process ReactFlow data if available
+    const parsedData = useMemo(() => {
+      if (!reactFlowContent) return null;
+      try {
+        return JSON.parse(reactFlowContent);
+      } catch (err) {
+        console.error("Failed to parse ReactFlow data:", err);
+        return null;
+      }
+    }, [reactFlowContent]);
+
+    // Wrap the nodes assignment in its own useMemo to fix the linter warning
+    const nodes = useMemo(() => parsedData?.nodes || [], [parsedData]);
+
+    // Modify edges to include arrow markers before passing them to FlowDiagram
+    const edgesWithArrows = useMemo(() => {
+      return (parsedData?.edges || []).map((edge: Edge) => ({
+        ...edge,
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 20,
+          height: 20,
+          color: "#007bff"
+        },
+        style: { stroke: "#007bff", strokeWidth: 2 },
+        animated: false
+      }));
+    }, [parsedData?.edges]);
+
+    // Check if diagram has been rendered already and cache SVG
+    const [renderCache, setRenderCache] = useState(() => {
+      try {
+        const cached = localStorage.getItem(`diagram-cache-${diagramId}`);
+        return cached ? JSON.parse(cached) : { rendered: false, svg: null };
+      } catch {
+        return { rendered: false, svg: null };
+      }
     });
-  }, [mermaidContent, reactFlowContent, viewMode, diagramId]);
 
-  // Process ReactFlow data if available
-  const parsedData = useMemo(() => {
-    if (!reactFlowContent) return null;
-    try {
-      return JSON.parse(reactFlowContent);
-    } catch (err) {
-      console.error("Failed to parse ReactFlow data:", err);
-      return null;
-    }
-  }, [reactFlowContent]);
+    // Save rendering state and SVG to localStorage
+    useEffect(() => {
+      if (renderCache.rendered && renderCache.svg) {
+        try {
+          localStorage.setItem(
+            `diagram-cache-${diagramId}`,
+            JSON.stringify(renderCache)
+          );
+        } catch (error) {
+          console.warn("Failed to store diagram cache in localStorage", error);
+        }
+      }
+    }, [renderCache, diagramId]);
 
-  const nodes = parsedData?.nodes || [];
-
-  // Modify edges to include arrow markers before passing them to FlowDiagram
-  const edgesWithArrows = useMemo(() => {
-    return (parsedData?.edges || []).map((edge: Edge) => ({
-      ...edge,
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        width: 20,
-        height: 20,
-        color: "#007bff"
+    // Callback to receive the rendered SVG from MermaidDiagram
+    const handleMermaidRenderComplete = useCallback(
+      (svg: string) => {
+        console.log(`Received SVG for ${diagramId}, setting cache.`);
+        setRenderCache({ rendered: true, svg: svg });
       },
-      style: { stroke: "#007bff", strokeWidth: 2 },
-      animated: false
-    }));
-  }, [parsedData?.edges]);
+      [diagramId]
+    );
 
-  return (
-    <div className="diagram-viewer-container">
-      <div className="diagram-toolbar">
-        <Button
-          variant={viewMode === "mermaid" ? "contained" : "outlined"}
-          color="primary"
-          size="small"
-          onClick={() => setViewMode("mermaid")}
-          sx={{ mr: 1 }}
-        >
-          Mermaid
-        </Button>
+    // Memoize the diagram content to prevent unnecessary re-renders
+    const mermaidDiagram = useMemo(() => {
+      if (viewMode !== "mermaid") return null;
 
-        {reactFlowContent && (
+      // If already rendered and we have the SVG, display it directly
+      if (renderCache.rendered && renderCache.svg) {
+        console.log(`Using cached SVG for ${diagramId}`);
+        return (
+          <div
+            className="mermaid-diagram-container mermaid-centered"
+            dangerouslySetInnerHTML={{ __html: renderCache.svg }}
+          />
+        );
+      }
+
+      // Otherwise, render the MermaidDiagram component to generate the SVG
+      console.log(
+        `Rendering MermaidDiagram component for ${diagramId} to get SVG`
+      );
+      return (
+        <MermaidDiagram
+          content={mermaidContent}
+          className="mermaid-centered"
+          onRenderComplete={handleMermaidRenderComplete}
+        />
+      );
+    }, [
+      mermaidContent,
+      viewMode,
+      renderCache,
+      handleMermaidRenderComplete,
+      diagramId
+    ]);
+
+    const reactFlowDiagram = useMemo(() => {
+      if (viewMode !== "reactflow" || !reactFlowContent) return null;
+      return (
+        <div className="react-flow-container">
+          <FlowDiagram initialNodes={nodes} initialEdges={edgesWithArrows} />
+        </div>
+      );
+    }, [viewMode, reactFlowContent, nodes, edgesWithArrows]);
+
+    const mermaidCodeView = useMemo(() => {
+      if (viewMode !== "mermaid-code") return null;
+      return (
+        <div className="code-container">
+          <SyntaxHighlighter language="markdown" style={dracula}>
+            {mermaidContent}
+          </SyntaxHighlighter>
+        </div>
+      );
+    }, [mermaidContent, viewMode]);
+
+    const reactFlowCodeView = useMemo(() => {
+      if (viewMode !== "reactflow-code" || !reactFlowContent) return null;
+      return (
+        <div className="code-container">
+          <SyntaxHighlighter language="json" style={dracula}>
+            {reactFlowContent}
+          </SyntaxHighlighter>
+        </div>
+      );
+    }, [reactFlowContent, viewMode]);
+
+    // Stop render cycles for diagrams after initial rendering
+    const diagramContent = useMemo(() => {
+      // We no longer need the hasRendered logic here as individual components handle caching
+      return (
+        <>
+          {mermaidDiagram}
+          {reactFlowDiagram}
+          {mermaidCodeView}
+          {reactFlowCodeView}
+        </>
+      );
+    }, [mermaidDiagram, reactFlowDiagram, mermaidCodeView, reactFlowCodeView]);
+
+    return (
+      <div className="diagram-viewer-container">
+        <div className="diagram-toolbar">
           <Button
-            variant={viewMode === "reactflow" ? "contained" : "outlined"}
+            variant={viewMode === "mermaid" ? "contained" : "outlined"}
             color="primary"
             size="small"
-            onClick={() => setViewMode("reactflow")}
+            onClick={() => setViewMode("mermaid")}
             sx={{ mr: 1 }}
           >
-            Flow Diagram
+            Mermaid
           </Button>
-        )}
 
-        <Button
-          variant={viewMode === "mermaid-code" ? "contained" : "outlined"}
-          color="primary"
-          size="small"
-          onClick={() => setViewMode("mermaid-code")}
-          sx={{ mr: 1 }}
-        >
-          Mermaid Code
-        </Button>
+          {reactFlowContent && (
+            <Button
+              variant={viewMode === "reactflow" ? "contained" : "outlined"}
+              color="primary"
+              size="small"
+              onClick={() => setViewMode("reactflow")}
+              sx={{ mr: 1 }}
+            >
+              Flow Diagram
+            </Button>
+          )}
 
-        {reactFlowContent && (
           <Button
-            variant={viewMode === "reactflow-code" ? "contained" : "outlined"}
+            variant={viewMode === "mermaid-code" ? "contained" : "outlined"}
             color="primary"
             size="small"
-            onClick={() => setViewMode("reactflow-code")}
+            onClick={() => setViewMode("mermaid-code")}
+            sx={{ mr: 1 }}
           >
-            Flow Data
+            Mermaid Code
           </Button>
-        )}
+
+          {reactFlowContent && (
+            <Button
+              variant={viewMode === "reactflow-code" ? "contained" : "outlined"}
+              color="primary"
+              size="small"
+              onClick={() => setViewMode("reactflow-code")}
+            >
+              Flow Data
+            </Button>
+          )}
+        </div>
+
+        <div className="diagram-content">{diagramContent}</div>
       </div>
-
-      <div className="diagram-content">
-        {viewMode === "mermaid" && (
-          <MermaidDiagram
-            content={mermaidContent}
-            className="mermaid-centered"
-          />
-        )}
-
-        {viewMode === "reactflow" && reactFlowContent && (
-          <div className="react-flow-container">
-            <FlowDiagram initialNodes={nodes} initialEdges={edgesWithArrows} />
-          </div>
-        )}
-
-        {viewMode === "mermaid-code" && (
-          <div className="code-container">
-            <SyntaxHighlighter language="markdown" style={dracula}>
-              {mermaidContent}
-            </SyntaxHighlighter>
-          </div>
-        )}
-
-        {viewMode === "reactflow-code" && reactFlowContent && (
-          <div className="code-container">
-            <SyntaxHighlighter language="json" style={dracula}>
-              {reactFlowContent}
-            </SyntaxHighlighter>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function to prevent unnecessary re-renders
+    return (
+      prevProps.mermaidContent === nextProps.mermaidContent &&
+      prevProps.reactFlowContent === nextProps.reactFlowContent
+    );
+  }
+);
 
 const AssistantAI: React.FC = () => {
   const [input, setInput] = useState("");
