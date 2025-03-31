@@ -349,89 +349,69 @@
   padding: 10px 20px;
 }
 
-/* Markdown Table Styles */
+/* Markdown Table Styles - Enhanced */
+.table-responsive {
+  overflow-x: auto;
+  margin: 16px 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
 .markdown-table {
   width: 100%;
-  margin: 16px 0;
   border-collapse: collapse;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  border-radius: 8px;
-  overflow: hidden;
+  border-spacing: 0;
   font-size: 0.9em;
   background-color: #fff;
+  margin: 0;
 }
 
 .markdown-thead {
-  background-color: #f5f5f5;
+  background-color: #f3f4f6;
+  color: #1e40af;
 }
 
 .markdown-th,
 .markdown-td {
-  padding: 12px 15px;
+  padding: 12px 16px;
   text-align: left;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
+  line-height: 1.5;
 }
 
 .markdown-th {
   font-weight: 600;
-  color: #1e3a8a;
-  background-color: #f8fafc;
+  text-transform: uppercase;
+  font-size: 0.85em;
+  letter-spacing: 0.05em;
 }
 
-.markdown-table tr:nth-child(even) {
-  background-color: #f8fafc;
+.markdown-tbody tr {
+  transition: background-color 0.2s;
 }
 
-.markdown-table tr:hover {
-  background-color: #f1f5f9;
+.markdown-tbody tr:nth-child(even) {
+  background-color: #f9fafb;
 }
 
-/* Responsive table */
-@media screen and (max-width: 768px) {
-  .markdown-table,
-  .markdown-thead,
-  .markdown-tbody,
+.markdown-tbody tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* For mobile tables */
+@media (max-width: 768px) {
+  .table-responsive {
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .markdown-table {
+    font-size: 0.8em;
+  }
+  
   .markdown-th,
-  .markdown-td,
-  .markdown-tr {
-    display: block;
-  }
-
-  /* Hide table headers on mobile */
-  .markdown-thead {
-    display: none;
-  }
-
-  /* Style rows as stacked cards */
-  .markdown-table tr {
-    margin-bottom: 15px;
-    border: 1px solid #e2e8f0;
-    border-radius: 5px;
-    background-color: #fff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Style cells as rows */
   .markdown-td {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 12px;
-    border-bottom: none;
-    text-align: right;
-    position: relative;
-  }
-
-  /* Add labels for each cell using the data-label attribute */
-  .markdown-td:before {
-    content: attr(data-label);
-    font-weight: bold;
-    color: #1e3a8a;
-    text-align: left;
-    flex: 1;
-  }
-
-  .markdown-td:last-child {
-    border-bottom: none;
+    padding: 8px 10px;
   }
 }
 
@@ -649,4 +629,143 @@
     min-width: 100% !important;
     min-height: 250px !important;
   }
+}
+
+/* DiagramViewer Styles - enhanced for better visibility */
+.diagram-container {
+  min-width: 800px;
+  height: 100%;
+  width: 100%;
+  margin: 20px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+}
+
+.diagram-viewer-container {
+  min-width: 800px;
+  width: 100%;
+  margin: 10px 0;
+  background-color: #f5f8fa;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  border: 1px solid #d0e0f7;
+}
+
+/* Make the diagram content more prominent */
+.diagram-content {
+  padding: 20px;
+  background-color: white;
+  min-height: 250px;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Make the Mermaid diagram more visible */
+.mermaid-centered .mermaid-diagram-container {
+  min-height: 300px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #e6edf5;
+}
+
+/* ReactFlow container styling */
+.react-flow-container {
+  width: 100%;
+  height: 400px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Code container for source view */
+.code-container {
+  max-height: 500px;
+  overflow: auto;
+  border-radius: 4px;
+  background-color: #282a36;
+}
+
+.code-separator {
+  padding: 5px 10px;
+  background-color: #44475a;
+  color: #f8f8f2;
+  font-size: 0.9em;
+  font-family: monospace;
+  border-top: 1px solid #6272a4;
+}
+
+/* Mermaid diagram styling for better visibility */
+.mermaid-centered {
+  display: flex;
+  justify-content: center;
+}
+
+.mermaid-diagram-container {
+  width: 100%;
+  margin: 0 auto;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mermaid-svg-container {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.mermaid-svg-container svg {
+  max-width: 100%;
+  height: auto !important;
+}
+
+/* Error styling */
+.diagram-error {
+  padding: 10px;
+  color: #d32f2f;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  margin: 10px 0;
+}
+
+.diagram-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background-color: #2196f3;
+  border-bottom: 2px solid #1976d2;
+  z-index: 10;
+  color: white;
+  font-weight: bold;
+  justify-content: center;
+}
+
+.diagram-toolbar button {
+  margin: 0 5px !important;
+  min-width: 100px !important;
+  color: white !important;
+  border-color: white !important;
+}
+
+.diagram-toolbar button.MuiButton-contained {
+  background-color: white !important;
+  color: #2196f3 !important;
+  font-weight: bold !important;
+}
+
+/* Style to specifically make the toolbar more noticeable */
+.prominent-toolbar .diagram-toolbar {
+  background-color: #2196f3;
+  border-bottom: 3px solid #1976d2;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }

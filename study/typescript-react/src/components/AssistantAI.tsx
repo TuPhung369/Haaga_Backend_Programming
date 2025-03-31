@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo
+} from "react";
 import {
   Button,
   TextField,
@@ -8,17 +14,18 @@ import {
   Typography,
   Fab
 } from "@mui/material";
+import "reactflow/dist/style.css";
 import { PlayCircleOutlined } from "@mui/icons-material";
 import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
 import { v4 as uuidv4 } from "uuid";
 import axios, { AxiosError } from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../type/types";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import ReactMarkdown, { Components } from "react-markdown";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeRaw from "rehype-raw";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+// import remarkGfm from 'remark-gfm'; // Commented out as we'll handle tables via custom renderers
 import "../styles/AssistantAI.css";
 import store from "../store/store";
 import {
@@ -31,6 +38,115 @@ import {
 } from "../store/assistantAISlice";
 import { ChatMessage } from "../types/assistantAI";
 import mermaid from "mermaid";
+import FlowDiagram from "./FlowDiagram";
+import { MarkerType, Edge } from "reactflow";
+
+// Custom function to preprocess markdown text and convert tables to HTML
+const preprocessMarkdown = (markdown: string): string => {
+  // First, handle common cases where pipe characters aren't meant to be tables
+  // For example, convert lines with a single pipe that aren't table rows to escaped pipes
+  const processedContent = markdown
+    // If a line has a single pipe and it's not surrounded by spaces like in a table, escape it
+    // This helps with Vietnamese text that uses pipes as separators
+    .replace(/^([^|\n]+)\|([^|\n]+)$/gm, (match, p1, p2) => {
+      // If this looks like single-pipe text (not a table row), escape the pipe
+      if (
+        p1.trim().length > 0 &&
+        p2.trim().length > 0 &&
+        !match.includes("|--|")
+      ) {
+        return `${p1}\\|${p2}`;
+      }
+      return match;
+    });
+
+  // Regular expression to find markdown tables - must have 3+ rows (header, separator, data)
+  // and must have proper separator row with dashes
+  const tableRegex = /^\|(.+)\|\r?\n\|([\s-:]+\|)+\r?\n(\|(?:.+\|)+\r?\n)+/gm;
+
+  // Process tables: transform markdown table to HTML
+  return processedContent.replace(tableRegex, (tableMatch) => {
+    // Check if this is a true table (has header separator with dashes)
+    const rows = tableMatch.trim().split("\n");
+
+    // Verify the second row contains separator cells with dashes (---)
+    const separatorRow = rows[1];
+    const validSeparator = separatorRow
+      .split("|")
+      .filter((cell) => cell.trim().length > 0)
+      .every((cell) => /^[\s:-]+$/.test(cell.trim()));
+
+    if (!validSeparator || rows.length < 3) {
+      // Not a proper table, return unchanged
+      return tableMatch;
+    }
+
+    // Process table rows
+    // Extract headers (first row)
+    const headers = rows[0]
+      .split("|")
+      .filter((cell) => cell.trim().length > 0)
+      .map((cell) => cell.trim());
+
+    // Process alignment row (second row)
+    const alignments = separatorRow
+      .split("|")
+      .filter((cell) => cell.trim().length > 0)
+      .map((align) => {
+        if (align.startsWith(":") && align.endsWith(":")) return "center";
+        if (align.endsWith(":")) return "right";
+        return "left";
+      });
+
+    // Build table HTML with more defensive processing
+    let tableHtml = '<table class="markdown-table">\n<thead>\n<tr>\n';
+
+    // Add headers
+    headers.forEach((header, index) => {
+      const alignment = index < alignments.length ? alignments[index] : "left";
+      tableHtml += `<th class="markdown-th" style="text-align: ${alignment}">${header}</th>\n`;
+    });
+
+    tableHtml += "</tr>\n</thead>\n<tbody>\n";
+
+    // Add data rows (skip header and alignment rows)
+    for (let i = 2; i < rows.length; i++) {
+      if (!rows[i].trim()) continue; // Skip empty rows
+
+      const cells = rows[i]
+        .split("|")
+        .filter(
+          (cell, idx, arr) =>
+            // Keep cells that have content or are between cells with content
+            // This ensures empty cells in the middle of a row aren't filtered out
+            idx === 0 ||
+            idx === arr.length - 1 ||
+            cell.trim().length > 0 ||
+            arr[idx - 1].trim().length > 0
+        )
+        .map((cell) => cell.trim());
+
+      if (cells.length <= 1) continue; // Skip invalid rows
+
+      tableHtml += '<tr class="markdown-tr">\n';
+      cells.forEach((cell, index) => {
+        // Skip first and last empty cells (from split operation)
+        if ((index === 0 || index === cells.length - 1) && cell.length === 0)
+          return;
+
+        const alignment =
+          index < alignments.length ? alignments[index] : "left";
+        tableHtml += `<td class="markdown-td" style="text-align: ${alignment}">${cell}</td>\n`;
+      });
+      tableHtml += "</tr>\n";
+    }
+
+    tableHtml += "</tbody>\n</table>";
+
+    // Wrap in responsive container
+    return `<div class="table-responsive">${tableHtml}</div>`;
+  });
+};
 
 // Initialize mermaid configuration globally
 mermaid.initialize({
@@ -64,11 +180,27 @@ declare module "../type/types" {
 }
 
 // Create a Mermaid component to render diagrams
-const MermaidDiagram = React.memo(({ content }: { content: string }) => {
+interface MermaidDiagramProps {
+  content: string;
+  className?: string;
+}
+
+const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
+  content,
+  className
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRendered, setIsRendered] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Log when component mounts with content
+  useEffect(() => {
+    console.log(
+      "MermaidDiagram received content:",
+      content.substring(0, 50) + "..."
+    );
+  }, [content]);
 
   // Create a deterministic ID based on content hash
   const getDiagramId = useCallback(() => {
@@ -96,7 +228,19 @@ const MermaidDiagram = React.memo(({ content }: { content: string }) => {
         containerRef.current.innerHTML = "";
         setError(null);
 
-        // Initialize mermaid with larger diagram sizes
+        // Trim and clean up the content
+        const cleanedContent = content.trim();
+        console.log(
+          "Rendering mermaid with content:",
+          cleanedContent.substring(0, 50) + "..."
+        );
+
+        if (!cleanedContent) {
+          setError("Empty diagram content");
+          return;
+        }
+
+        // Initialize mermaid with best settings
         mermaid.initialize({
           startOnLoad: false,
           theme: "default",
@@ -122,7 +266,9 @@ const MermaidDiagram = React.memo(({ content }: { content: string }) => {
         });
 
         // Use the modern render method instead of deprecated init
-        const { svg } = await mermaid.render(diagramId.current, content);
+        console.log("Calling mermaid.render with ID:", diagramId.current);
+        const { svg } = await mermaid.render(diagramId.current, cleanedContent);
+        console.log("Mermaid render successful, got SVG");
 
         // Create container and insert SVG
         const container = document.createElement("div");
@@ -141,6 +287,7 @@ const MermaidDiagram = React.memo(({ content }: { content: string }) => {
 
         // Append to DOM
         containerRef.current.appendChild(container);
+        console.log("Appended SVG to container");
 
         // Add event listener to ensure diagram is properly sized
         const svgElement = containerRef.current.querySelector("svg");
@@ -181,14 +328,198 @@ const MermaidDiagram = React.memo(({ content }: { content: string }) => {
   }, [content, getDiagramId]);
 
   return (
-    <div className="mermaid-diagram-container">
+    <div className={`mermaid-diagram-container ${className || ""}`}>
       <div ref={containerRef} className="mermaid-render-target" />
       {error && (
-        <div className="mermaid-error">Diagram rendering failed: {error}</div>
+        <div className="mermaid-error">
+          Diagram rendering failed: {error}
+          <div className="mermaid-source-code">
+            <pre>{content}</pre>
+          </div>
+        </div>
       )}
     </div>
   );
-});
+};
+
+// Create a DiagramViewer component to handle diagrams with toggle options
+interface DiagramViewerProps {
+  mermaidContent: string;
+  reactFlowContent?: string;
+}
+
+// DiagramViewer component for toggling between Mermaid, ReactFlow and source code view
+const DiagramViewer: React.FC<DiagramViewerProps> = ({
+  mermaidContent,
+  reactFlowContent
+}) => {
+  // Generate a stable ID based on the content for localStorage key
+  const diagramId = useMemo(() => {
+    // Simple hash function to create a stable ID for this diagram content
+    let hash = 0;
+    const content = mermaidContent + (reactFlowContent || "");
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return `diagram-${Math.abs(hash).toString(16).substring(0, 8)}`;
+  }, [mermaidContent, reactFlowContent]);
+
+  // Get the stored view mode from localStorage or use default
+  const getStoredViewMode = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(`viewMode-${diagramId}`);
+      if (
+        stored &&
+        ["mermaid", "reactflow", "mermaid-code", "reactflow-code"].includes(
+          stored
+        )
+      ) {
+        return stored as
+          | "mermaid"
+          | "reactflow"
+          | "mermaid-code"
+          | "reactflow-code";
+      }
+    } catch (e) {
+      console.warn("Failed to retrieve stored view mode from localStorage", e);
+    }
+    return "mermaid"; // Default view
+  }, [diagramId]);
+
+  // State for the current view mode, initialized from storage
+  const [viewMode, setViewMode] = useState<
+    "mermaid" | "reactflow" | "mermaid-code" | "reactflow-code"
+  >(getStoredViewMode);
+
+  // Store the viewMode in localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(`viewMode-${diagramId}`, viewMode);
+    } catch (e) {
+      console.warn("Failed to store view mode in localStorage", e);
+    }
+  }, [viewMode, diagramId]);
+
+  // Debug information when the component mounts or changes props
+  useEffect(() => {
+    console.log("DiagramViewer rendering with:", {
+      hasMermaid: !!mermaidContent,
+      hasReactFlow: !!reactFlowContent,
+      viewMode,
+      diagramId
+    });
+  }, [mermaidContent, reactFlowContent, viewMode, diagramId]);
+
+  // Process ReactFlow data if available
+  const parsedData = useMemo(() => {
+    if (!reactFlowContent) return null;
+    try {
+      return JSON.parse(reactFlowContent);
+    } catch (err) {
+      console.error("Failed to parse ReactFlow data:", err);
+      return null;
+    }
+  }, [reactFlowContent]);
+
+  const nodes = parsedData?.nodes || [];
+
+  // Modify edges to include arrow markers before passing them to FlowDiagram
+  const edgesWithArrows = useMemo(() => {
+    return (parsedData?.edges || []).map((edge: Edge) => ({
+      ...edge,
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 20,
+        height: 20,
+        color: "#007bff"
+      },
+      style: { stroke: "#007bff", strokeWidth: 2 },
+      animated: false
+    }));
+  }, [parsedData?.edges]);
+
+  return (
+    <div className="diagram-viewer-container">
+      <div className="diagram-toolbar">
+        <Button
+          variant={viewMode === "mermaid" ? "contained" : "outlined"}
+          color="primary"
+          size="small"
+          onClick={() => setViewMode("mermaid")}
+          sx={{ mr: 1 }}
+        >
+          Mermaid
+        </Button>
+
+        {reactFlowContent && (
+          <Button
+            variant={viewMode === "reactflow" ? "contained" : "outlined"}
+            color="primary"
+            size="small"
+            onClick={() => setViewMode("reactflow")}
+            sx={{ mr: 1 }}
+          >
+            Flow Diagram
+          </Button>
+        )}
+
+        <Button
+          variant={viewMode === "mermaid-code" ? "contained" : "outlined"}
+          color="primary"
+          size="small"
+          onClick={() => setViewMode("mermaid-code")}
+          sx={{ mr: 1 }}
+        >
+          Mermaid Code
+        </Button>
+
+        {reactFlowContent && (
+          <Button
+            variant={viewMode === "reactflow-code" ? "contained" : "outlined"}
+            color="primary"
+            size="small"
+            onClick={() => setViewMode("reactflow-code")}
+          >
+            Flow Data
+          </Button>
+        )}
+      </div>
+
+      <div className="diagram-content">
+        {viewMode === "mermaid" && (
+          <MermaidDiagram
+            content={mermaidContent}
+            className="mermaid-centered"
+          />
+        )}
+
+        {viewMode === "reactflow" && reactFlowContent && (
+          <div className="react-flow-container">
+            <FlowDiagram initialNodes={nodes} initialEdges={edgesWithArrows} />
+          </div>
+        )}
+
+        {viewMode === "mermaid-code" && (
+          <div className="code-container">
+            <SyntaxHighlighter language="markdown" style={dracula}>
+              {mermaidContent}
+            </SyntaxHighlighter>
+          </div>
+        )}
+
+        {viewMode === "reactflow-code" && reactFlowContent && (
+          <div className="code-container">
+            <SyntaxHighlighter language="json" style={dracula}>
+              {reactFlowContent}
+            </SyntaxHighlighter>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const AssistantAI: React.FC = () => {
   const [input, setInput] = useState("");
@@ -643,7 +974,11 @@ const AssistantAI: React.FC = () => {
             <Box className="messages-container">
               {messages.map((message, index) => (
                 <Box
-                  key={index}
+                  key={
+                    message.sessionId
+                      ? `${message.sessionId}-${message.timestamp}`
+                      : index
+                  }
                   className={`message ${
                     message.sender === "USER" ? "user-message" : "bot-message"
                   }`}
@@ -661,61 +996,251 @@ const AssistantAI: React.FC = () => {
                   <div className="markdown">
                     <ReactMarkdown
                       rehypePlugins={[rehypeRaw]}
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        code({ className, children, ...props }) {
-                          const match = /language-(\w+)/.exec(className || "");
-                          if (match && match[1] === "mermaid") {
-                            return (
-                              <div className="mermaid-with-code">
-                                <MermaidDiagram content={String(children)} />
-                                <div className="mermaid-source">
-                                  <div className="mermaid-source-header">
-                                    <Typography variant="caption">
-                                      Mermaid Syntax
-                                    </Typography>
-                                  </div>
-                                  <SyntaxHighlighter
-                                    style={vscDarkPlus}
-                                    language="mermaid"
-                                    PreTag="div"
-                                    wrapLongLines={true}
-                                  >
-                                    {String(children).replace(/\n$/, "")}
-                                  </SyntaxHighlighter>
+                      // remarkPlugins={[remarkGfm]} // Commented out until package is installed
+                      components={
+                        {
+                          code({ className, children, ...props }) {
+                            const match = /language-(\w+)/.exec(
+                              className || ""
+                            );
+                            const lang = match && match[1];
+                            const content = String(children).replace(
+                              /\\n$/,
+                              ""
+                            );
+
+                            // Handle inline code safely
+                            const nodeData = props.node as unknown as {
+                              tagName: string;
+                              parentElement?: { tagName: string };
+                            };
+
+                            if (
+                              nodeData?.tagName === "code" &&
+                              nodeData?.parentElement?.tagName !== "pre"
+                            ) {
+                              return (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            }
+
+                            // Mermaid diagram (fenced code block)
+                            if (lang === "mermaid") {
+                              console.log(
+                                "Rendering Mermaid from code block:",
+                                content.substring(0, 50) + "..."
+                              );
+                              return (
+                                <div className="diagram-container">
+                                  <DiagramViewer mermaidContent={content} />
                                 </div>
+                              );
+                            }
+
+                            // Combined Mermaid and ReactFlow diagram (fenced code block, deprecated but keep for compatibility)
+                            if (lang === "diagram") {
+                              console.log(
+                                "Rendering combined diagram from 'diagram' code block:",
+                                content.substring(0, 50) + "..."
+                              );
+                              try {
+                                // Handle both formats:
+                                // 1. <diagram mermaid='...' reactflow='...' /> (inside code block - less ideal)
+                                // 2. Mermaid content with JSON ReactFlow data separated
+
+                                let mermaidContent = "";
+                                let reactFlowContent;
+                                const processedContent = content;
+
+                                // Format 1: Check for HTML-like attributes inside the code block content
+                                const mermaidAttrMatch = processedContent.match(
+                                  /mermaid=(['"])([\\s\\S]*?)\\1/ // Use [\s\S]*? for multiline content
+                                );
+                                if (mermaidAttrMatch && mermaidAttrMatch[2]) {
+                                  mermaidContent = mermaidAttrMatch[2];
+                                }
+
+                                const reactFlowAttrMatch =
+                                  processedContent.match(
+                                    /reactflow=(['"])([\\s\\S]*?)\\1/
+                                  );
+                                if (
+                                  reactFlowAttrMatch &&
+                                  reactFlowAttrMatch[2]
+                                ) {
+                                  reactFlowContent = reactFlowAttrMatch[2];
+                                }
+
+                                // Format 2: Look for nodes and edges directly in JSON format
+                                const nodesMatch = processedContent.match(
+                                  /nodes=(['"])([\\s\\S]*?)\\1/
+                                );
+                                const edgesMatch = processedContent.match(
+                                  /edges=(['"])([\\s\\S]*?)\\1/
+                                );
+
+                                if (nodesMatch && edgesMatch) {
+                                  const flowData = {
+                                    nodes: JSON.parse(nodesMatch[2]), // Parse the JSON string
+                                    edges: JSON.parse(edgesMatch[2]) // Parse the JSON string
+                                  };
+                                  reactFlowContent = JSON.stringify(flowData);
+
+                                  // If we don't have mermaid content, extract it from the beginning
+                                  if (!mermaidContent) {
+                                    const contentBeforeNodes =
+                                      processedContent.split("nodes=")[0];
+                                    if (contentBeforeNodes) {
+                                      mermaidContent =
+                                        contentBeforeNodes.trim();
+                                    }
+                                  }
+                                }
+
+                                // Format 3: Try standard split approach as fallback
+                                if (!mermaidContent && !reactFlowContent) {
+                                  const parts = processedContent.split(
+                                    "---REACTFLOW_DATA---"
+                                  );
+                                  if (parts.length > 0) {
+                                    mermaidContent = parts[0].trim();
+                                    reactFlowContent =
+                                      parts.length > 1
+                                        ? parts[1].trim()
+                                        : undefined;
+                                  }
+                                }
+
+                                // If we still don't have mermaid content, use the whole content
+                                if (!mermaidContent) {
+                                  mermaidContent = processedContent;
+                                }
+
+                                console.log("Parsed 'diagram' code block:", {
+                                  mermaidContent:
+                                    mermaidContent.substring(0, 50) + "...",
+                                  hasReactFlow: !!reactFlowContent
+                                });
+
+                                return (
+                                  <div className="diagram-container prominent-toolbar">
+                                    <DiagramViewer
+                                      mermaidContent={mermaidContent}
+                                      reactFlowContent={reactFlowContent}
+                                    />
+                                  </div>
+                                );
+                              } catch (err) {
+                                console.error(
+                                  "Failed to parse 'diagram' code block data:",
+                                  err
+                                );
+                                return (
+                                  <div className="diagram-error">
+                                    Invalid diagram format in code block
+                                    <pre>{content}</pre>
+                                  </div>
+                                );
+                              }
+                            }
+
+                            // Regular code block
+                            return (
+                              <SyntaxHighlighter
+                                language={lang}
+                                style={dracula}
+                                wrapLongLines={true}
+                                PreTag="div"
+                                {...props}
+                              >
+                                {content}
+                              </SyntaxHighlighter>
+                            );
+                          },
+                          // **** ADDED DIAGRAM HANDLER ****
+                          diagram({ ...props }) {
+                            // Extract attributes from the custom <diagram> tag
+                            const mermaidContent = props["mermaid"] || "";
+                            const reactFlowContent =
+                              props["reactflow"] || undefined;
+
+                            console.log("Rendering <diagram> tag:", {
+                              mermaidContent:
+                                mermaidContent.substring(0, 50) + "...",
+                              hasReactFlow: !!reactFlowContent
+                            });
+
+                            if (!mermaidContent) {
+                              console.warn(
+                                "Diagram tag found but missing 'mermaid' attribute."
+                              );
+                              return (
+                                <div className="diagram-error">
+                                  Invalid diagram: Missing Mermaid data.
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="diagram-container prominent-toolbar">
+                                <DiagramViewer
+                                  mermaidContent={mermaidContent}
+                                  reactFlowContent={reactFlowContent}
+                                />
                               </div>
                             );
+                          },
+                          // **** END ADDED DIAGRAM HANDLER ****
+                          table({ children, ...props }) {
+                            return (
+                              <div className="table-responsive">
+                                <table className="markdown-table" {...props}>
+                                  {children}
+                                </table>
+                              </div>
+                            );
+                          },
+                          thead({ children, ...props }) {
+                            return (
+                              <thead className="markdown-thead" {...props}>
+                                {children}
+                              </thead>
+                            );
+                          },
+                          tbody({ children, ...props }) {
+                            return (
+                              <tbody className="markdown-tbody" {...props}>
+                                {children}
+                              </tbody>
+                            );
+                          },
+                          tr({ children, ...props }) {
+                            return (
+                              <tr className="markdown-tr" {...props}>
+                                {children}
+                              </tr>
+                            );
+                          },
+                          th({ children, ...props }) {
+                            return (
+                              <th className="markdown-th" {...props}>
+                                {children}
+                              </th>
+                            );
+                          },
+                          td({ children, ...props }) {
+                            return (
+                              <td className="markdown-td" {...props}>
+                                {children}
+                              </td>
+                            );
                           }
-                          return match ? (
-                            <SyntaxHighlighter
-                              style={vscDarkPlus}
-                              language={match[1]}
-                              PreTag="div"
-                              wrapLongLines={true}
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, "")}
-                            </SyntaxHighlighter>
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        },
-                        table: (props) => (
-                          <table className="markdown-table" {...props} />
-                        ),
-                        thead: (props) => (
-                          <thead className="markdown-thead" {...props} />
-                        ),
-                        th: (props) => (
-                          <th className="markdown-th" {...props} />
-                        ),
-                        td: (props) => <td className="markdown-td" {...props} />
-                      }}
+                        } as Components
+                      }
                     >
-                      {message.content}
+                      {preprocessMarkdown(message.content)}
                     </ReactMarkdown>
                   </div>
                   {message.timestamp && (
