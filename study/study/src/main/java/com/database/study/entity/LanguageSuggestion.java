@@ -2,7 +2,7 @@ package com.database.study.entity;
 
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
@@ -11,14 +11,13 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "language_suggestions")
 @Data
-@NoArgsConstructor
+@NoArgsConstructor // Fixed typo: was @NoArgsNoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class LanguageSuggestion {
 
   @Id
-  @GeneratedValue(generator = "uuid")
-  @GenericGenerator(name = "uuid", strategy = "uuid2")
+  @UuidGenerator
   @Column(name = "id", columnDefinition = "VARCHAR(36)")
   private String id;
 

@@ -3,7 +3,7 @@ import { Form, Button, Typography } from "antd";
 import {
   CheckCircleFilled,
   ClockCircleOutlined,
-  SyncOutlined,
+  SyncOutlined
 } from "@ant-design/icons";
 import "../styles/VerificationCodeInput.css"; // Your premium CSS file
 
@@ -30,7 +30,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
   isError = false,
   autoFocus = false,
   inputRef,
-  onFocus,
+  onFocus
 }) => {
   // Split the value into an array of digits, padding with empty strings if needed
   const valueArray = value.split("").concat(Array(6 - value.length).fill(""));
@@ -206,7 +206,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
   const handleWrapperClick = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (inputRefs[index]?.current && !isSubmitting) {
-      inputRefs[index].current.focus();
+      inputRefs[index].current?.focus();
       if (onFocus) onFocus();
     }
   };
@@ -329,4 +329,3 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
 };
 
 export default VerificationCodeInput;
-

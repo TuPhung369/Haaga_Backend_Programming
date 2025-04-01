@@ -2,7 +2,7 @@ package com.database.study.entity;
 
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
@@ -17,8 +17,7 @@ import java.time.LocalDateTime;
 public class LanguageCorrection {
 
   @Id
-  @GeneratedValue(generator = "uuid")
-  @GenericGenerator(name = "uuid", strategy = "uuid2")
+  @UuidGenerator // Replaces @GeneratedValue and @GenericGenerator
   @Column(name = "id", columnDefinition = "VARCHAR(36)")
   private String id;
 

@@ -14,6 +14,7 @@ interface ErrorResponseData {
   metadata?: {
     field?: string;
     message?: string;
+    errors?: Array<{ field: string; message: string;[key: string]: unknown }>;
     [key: string]: unknown;
   };
   [key: string]: unknown;
@@ -41,6 +42,7 @@ export class ServiceError extends Error {
   httpStatus?: number;
   severity?: string;
   remainingAttempts?: number;
+  metadata?: ErrorResponseData["metadata"]; // Thêm metadata
 
   constructor(message: string, options?: Partial<ServiceError>) {
     super(message);
@@ -56,9 +58,9 @@ export class ServiceError extends Error {
       this.httpStatus = options.httpStatus;
       this.severity = options.severity;
       this.remainingAttempts = options.remainingAttempts;
+      this.metadata = options.metadata; // Gán metadata
     }
 
-    // Ensure the prototype is set correctly
     Object.setPrototypeOf(this, ServiceError.prototype);
   }
 
@@ -79,24 +81,25 @@ export class ServiceError extends Error {
     return ErrorType.UNKNOWN;
   }
 }
+
 // Add this function to handle 401 errors
 export const handle401Error = async (error: unknown): Promise<boolean> => {
-  // Check if it's a 401 Unauthorized error
-  if (error instanceof Error && "response" in error && (error as { response?: { status?: number } }).response?.status === 401) {
+  if (
+    error instanceof Error &&
+    "response" in error &&
+    (error as { response?: { status?: number } }).response?.status === 401
+  ) {
     console.log("Detected 401 error, attempting token refresh");
     try {
-      // Try to refresh the token
       await refreshToken();
       const newToken = store.getState().auth.token;
 
-      // If we got a new token, return true to indicate retry is possible
       if (newToken) {
         console.log("Token refreshed successfully, retrying request");
         return true;
       }
     } catch (refreshError) {
       console.error("Failed to refresh token:", refreshError);
-      // Token refresh failed, handle logout or redirect to login page
     }
   }
   return false;
@@ -112,19 +115,17 @@ export const handleServiceError = (error: unknown): never => {
     typeof error.response === "object" &&
     "data" in error.response
   ) {
-    // Axios error with response data
     const axiosError = error as AxiosError;
     const responseData = axiosError.response?.data as ErrorResponseData;
 
-    // Log to debug error structure
     console.log("Handle API error response:", responseData);
 
-    // Determine error type and extract field errors
     let field: string | undefined = undefined;
     let errorType = ErrorType.UNKNOWN;
     let errorMessage = "An unexpected error occurred";
     let errorCode: string | undefined = undefined;
     let remainingAttempts: number | undefined = undefined;
+    let metadata: ErrorResponseData["metadata"] | undefined = undefined;
 
     if (
       typeof responseData === "object" &&
@@ -133,7 +134,6 @@ export const handleServiceError = (error: unknown): never => {
     ) {
       errorMessage = responseData.message as string;
 
-      // Check if responseData contains remaining attempts information
       if ("remainingAttempts" in responseData) {
         remainingAttempts = responseData.remainingAttempts as number;
       } else if (
@@ -145,7 +145,6 @@ export const handleServiceError = (error: unknown): never => {
         remainingAttempts = responseData.extraInfo.remainingAttempts as number;
       }
 
-      // Check for errorCode
       if ("errorCode" in responseData) {
         errorCode = responseData.errorCode as string;
       } else if ("code" in responseData) {
@@ -168,9 +167,12 @@ export const handleServiceError = (error: unknown): never => {
         errorType = ErrorType.SERVER_ERROR;
       }
 
-      // Check for field validation errors
-      if (responseData.metadata?.field) {
-        field = responseData.metadata.field as string;
+      // Gán metadata từ responseData
+      if (responseData.metadata) {
+        metadata = responseData.metadata;
+        if (metadata.field) {
+          field = metadata.field as string;
+        }
       }
     }
 
@@ -180,14 +182,13 @@ export const handleServiceError = (error: unknown): never => {
       errorCode,
       originalError: error,
       httpStatus: axiosError.response?.status,
-      remainingAttempts
+      remainingAttempts,
+      metadata, // Thêm metadata vào ServiceError
     });
 
-    // Check if it's an authorization error
     if (axiosError.response?.status === 401) {
       console.error("Authentication error occurred:", error);
-      // Attempt to refresh the token in the background
-      handle401Error(error).catch(err =>
+      handle401Error(error).catch((err) =>
         console.error("Error while handling 401:", err)
       );
     }
@@ -230,4 +231,3 @@ export const handleServiceError = (error: unknown): never => {
     });
   }
 };
-

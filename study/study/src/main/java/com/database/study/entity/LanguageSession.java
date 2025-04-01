@@ -3,7 +3,7 @@ package com.database.study.entity;
 import com.database.study.enums.ProficiencyLevel;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UuidGenerator; // Updated import
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
@@ -20,8 +20,7 @@ import java.util.List;
 public class LanguageSession {
 
     @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
+    @UuidGenerator // Replaces @GeneratedValue and @GenericGenerator
     @Column(name = "id", columnDefinition = "VARCHAR(36)")
     private String id;
 

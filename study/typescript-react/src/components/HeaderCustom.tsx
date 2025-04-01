@@ -1,13 +1,12 @@
 // src/components/HeaderCustom.tsx
 
 import React from "react";
-import { Layout, notification } from "antd";
+import { Button, Layout, notification } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 //import { clearAuthData } from "../store/authSlice";
 //import { clearUserInfo } from "../store/userSlice";
 import { resetAllData } from "../store/resetActions";
-import CustomButton from "./LoginRegisterTitle";
 import { logoutUserWithCookies } from "../services/authService";
 import { RootState } from "../store/RootState";
 import { clearTokenRefresh } from "../utils/tokenRefresh";
@@ -70,11 +69,7 @@ const HeaderCustom: React.FC = () => {
             Welcome Spring Boot and ReactJS - FullStack
           </h1>
         </div>
-        {isAuthenticated && (
-          <CustomButton onClick={handleLogout} type="primary">
-            Logout
-          </CustomButton>
-        )}
+        {isAuthenticated && <Button onClick={handleLogout}>Logout</Button>}
       </div>
     </Header>
   );
