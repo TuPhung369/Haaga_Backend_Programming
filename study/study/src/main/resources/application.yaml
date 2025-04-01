@@ -110,6 +110,9 @@ totp:
 n8n:
   webhook:
     url: http://localhost:5678/webhook/c1784e69-2d89-45fb-b47d-dd13dddcf31e/chat
+speech:
+  service:
+    url: http://localhost:8008
 logging:
   level:
     root: DEBUG # Global log level

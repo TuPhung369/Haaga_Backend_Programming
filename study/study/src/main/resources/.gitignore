@@ -32,3 +32,79 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Python ###
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+venv*/
+env*/
+.venv*/
+
+# Model files and directories
+models/  # Thư mục chứa các model đã tải về
+pretrained_models/
+tmpdir_tts/
+tmpdir_vocoder/
+*.pth
+*.pt
+
+# Log files
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Build/compiled files
+build/
+dist/
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# Audio files generated during testing
+*.wav
+*.mp3
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+### SpeechBrain Specific ###
+.speechbrain_cache/
+hf_cache/
+.cache/
+
+# Ignore all files in the models directory
+models/*
+
+# Ignore all files in the pretrained_models directory
+pretrained_models/*
