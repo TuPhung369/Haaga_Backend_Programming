@@ -14,6 +14,7 @@ import { Layout } from "antd";
 import { Provider } from "react-redux";
 import store from "./store/store";
 import RecaptchaProvider from "./components/RecaptchaProvider";
+import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 
 // Import the new AuthPage component
 import AuthPage from "./pages/AuthPage";
@@ -30,6 +31,7 @@ import OAuth2RedirectHandler from "./components/OAuth2RedirectHandler";
 import StatisticPage from "./pages/StatisticPage";
 import AdminDashBoardPage from "./pages/AdminDashBoardPage";
 import AssistantAIPage from "./pages/AssistantAIPage";
+import LanguageAIPage from "./pages/LanguageAIPage";
 import Sidebar from "./components/Sidebar";
 import ProfilePage from "./pages/ProfilePage";
 import SettingPage from "./pages/SettingPage";
@@ -49,6 +51,22 @@ const { Content } = Layout;
 interface AuthWrapperProps {
   children: ReactNode;
 }
+
+// Create a responsive theme with light/dark mode support
+const theme = createTheme({
+  palette: {
+    mode: "light",
+    primary: {
+      main: "#3f51b5" // Indigo
+    },
+    secondary: {
+      main: "#f50057" // Pink
+    }
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+  }
+});
 
 // AuthWrapper component with the authentication check logic
 // This must be used INSIDE the Router context
@@ -202,60 +220,67 @@ const App: React.FC = () => {
   return (
     <Provider store={store}>
       <RecaptchaProvider>
-        <Router>
-          <Routes>
-            {/* Use our new AuthPage component for login */}
-            <Route path="/login" element={<AuthPage />} />
-            <Route
-              path="/reset-password"
-              element={<ResetPasswordComponent />}
-            />
-            <Route
-              path="/forgot-password"
-              element={<ForgotPasswordComponent />}
-            />
-            <Route
-              path="/oauths/redirect"
-              element={<OAuth2RedirectHandler />}
-            />
-            <Route
-              path="/verify-email"
-              element={<EmailVerificationComponent />}
-            />
-            <Route
-              path="*"
-              element={
-                <AuthWrapper>
-                  <MainLayout>
-                    <Routes>
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/userList" element={<UserListPage />} />
-                      <Route path="/roles" element={<RolesPage />} />
-                      <Route
-                        path="/permissions"
-                        element={<PermissionsPage />}
-                      />
-                      <Route path="/statistics" element={<StatisticPage />} />
-                      <Route path="/calendar" element={<CalendarPage />} />
-                      <Route path="/kanban" element={<KanbanPage />} />
-                      <Route
-                        path="/assistantAI"
-                        element={<AssistantAIPage />}
-                      />
-                      <Route
-                        path="/adminDashBoard"
-                        element={<AdminDashBoardPage />}
-                      />
-                      <Route path="/profile" element={<ProfilePage />} />
-                      <Route path="/setting" element={<SettingPage />} />
-                      <Route path="*" element={<HomePage />} />
-                    </Routes>
-                  </MainLayout>
-                </AuthWrapper>
-              }
-            />
-          </Routes>
-        </Router>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Router>
+            <Routes>
+              {/* Use our new AuthPage component for login */}
+              <Route path="/login" element={<AuthPage />} />
+              <Route
+                path="/reset-password"
+                element={<ResetPasswordComponent />}
+              />
+              <Route
+                path="/forgot-password"
+                element={<ForgotPasswordComponent />}
+              />
+              <Route
+                path="/oauths/redirect"
+                element={<OAuth2RedirectHandler />}
+              />
+              <Route
+                path="/verify-email"
+                element={<EmailVerificationComponent />}
+              />
+              <Route
+                path="*"
+                element={
+                  <AuthWrapper>
+                    <MainLayout>
+                      <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/userList" element={<UserListPage />} />
+                        <Route path="/roles" element={<RolesPage />} />
+                        <Route
+                          path="/permissions"
+                          element={<PermissionsPage />}
+                        />
+                        <Route path="/statistics" element={<StatisticPage />} />
+                        <Route path="/calendar" element={<CalendarPage />} />
+                        <Route path="/kanban" element={<KanbanPage />} />
+                        <Route
+                          path="/assistantAI"
+                          element={<AssistantAIPage />}
+                        />
+                        <Route
+                          path="/languageAI"
+                          element={<LanguageAIPage />}
+                        />
+                        <Route
+                          path="/adminDashBoard"
+                          element={<AdminDashBoardPage />}
+                        />
+                        <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/setting" element={<SettingPage />} />
+                        <Route path="*" element={<HomePage />} />
+                      </Routes>
+                    </MainLayout>
+                  </AuthWrapper>
+                }
+              />
+            </Routes>
+          </Router>
+        </ThemeProvider>
       </RecaptchaProvider>
     </Provider>
   );

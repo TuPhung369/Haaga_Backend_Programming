@@ -110,7 +110,7 @@ public class AuthenticationService implements AuthenticationUtilities {
   final CookieService cookieService;
   final JwtUtils jwtUtils;
   final TotpService totpService;
-  final ReCaptchaService reCaptchaService;
+  final RecaptchaService recaptchaService;
 
   @Autowired
   private SecurityMonitoringService securityMonitoringService;
@@ -340,9 +340,9 @@ public class AuthenticationService implements AuthenticationUtilities {
 
       // Using Reset Login for AdminRole with Email
       // boolean isAdmin = user.getRoles().stream()
-      //     .anyMatch(role -> role.getName().equals("ADMIN"));
+      // .anyMatch(role -> role.getName().equals("ADMIN"));
       // 3. If TOTP is enabled, verify the TOTP code
-      //if (totpEnabled && !isAdmin) {
+      // if (totpEnabled && !isAdmin) {
 
       if (totpEnabled) {
         String totpCode = request.getTotpCode();
@@ -962,7 +962,7 @@ public class AuthenticationService implements AuthenticationUtilities {
       }
 
       log.info("Validating reCAPTCHA for registration of user: {}", request.getUsername());
-      boolean recaptchaValid = reCaptchaService.validateHybrid(
+      boolean recaptchaValid = recaptchaService.validateHybrid(
           request.getRecaptchaToken(),
           request.getRecaptchaV2Token());
 

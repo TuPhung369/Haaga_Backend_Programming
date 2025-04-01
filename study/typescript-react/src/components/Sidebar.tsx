@@ -249,6 +249,15 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
           window.location.href = "/assistantAI";
         },
         path: "/assistantAI"
+      },
+      {
+        key: "10",
+        icon: <RobotOutlined style={{ color: COLORS[10], fontSize: "20px" }} />,
+        label: "Language Practice",
+        onClick: () => {
+          window.location.href = "/languageAI";
+        },
+        path: "/language-ai"
       }
     ],
     [userInfo]
