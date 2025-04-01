@@ -9,7 +9,10 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+import java.util.UUID;
+
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE, 
+        imports = {UUID.class})
 public interface KanbanTaskMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "column", ignore = true)

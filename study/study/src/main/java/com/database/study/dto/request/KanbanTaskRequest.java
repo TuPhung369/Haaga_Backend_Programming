@@ -6,8 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.util.UUID;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,14 +14,16 @@ import java.util.UUID;
 public class KanbanTaskRequest {
     @NotBlank(message = "Task title cannot be blank")
     String title;
-    
+
     String description;
-    
+
     @NotNull(message = "Priority is required")
     String priority;
-    
-    @NotNull(message = "Column ID is required")
-    UUID columnId;
-    
+
+    @NotBlank(message = "Column ID is required")
+    String columnId;
+
     Integer position;
+
+    String recaptchaToken;
 }
