@@ -1,58 +1,51 @@
-// This service handles speech-to-text and text-to-speech conversion
-// In a real application, you would need to set up a proper backend service to handle Google Cloud API calls
+/**
+ * Service for handling speech-to-text and text-to-speech operations
+ */
 
-// Function to convert speech to text
+/**
+ * Convert speech to text
+ * @param audioBlob Audio blob to convert
+ * @param language Language code (e.g., "fi-FI")
+ * @returns Promise with the transcribed text
+ */
 export const convertSpeechToText = async (
   audioBlob: Blob,
   language: string = 'en-US'
 ): Promise<string> => {
   try {
-    // In a real implementation, you would:
-    // 1. Convert the blob to base64 or send it as a FormData object
-    // 2. Send it to your backend API
-    // 3. Your backend would use Google Cloud Speech-to-Text API to transcribe
-    // 4. Return the transcribed text
-
-    // For this example, we'll simulate sending to a backend API
     const formData = new FormData();
-    formData.append('audio', audioBlob);
+    formData.append('file', audioBlob, 'recording.wav');
     formData.append('language', language);
 
-    // Replace with your actual API endpoint
-    const response = await fetch('/api/speech-to-text', {
+    const response = await fetch(`http://localhost:8008/api/speech-to-text`, {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error(`Speech to text conversion failed: ${response.statusText}`);
+      throw new Error(`Speech-to-Text failed: ${response.statusText}`);
     }
 
     const data = await response.json();
     return data.transcript;
   } catch (error) {
     console.error('Error converting speech to text:', error);
-
-    // In development mode, return a mock result so we can test the UI
-    // In production, you would handle this error appropriately
-    console.warn('Returning mock text for development purposes');
-    return "This is a simulated transcript. In a real application, this would be the transcribed text from Google Cloud Speech-to-Text API.";
+    throw error;
   }
 };
 
-// Function to convert text to speech
+/**
+ * Convert text to speech
+ * @param text Text to convert to speech
+ * @param language Language code (e.g., "fi-FI")
+ * @returns Promise with the base64 encoded audio
+ */
 export const convertTextToSpeech = async (
   text: string,
   language: string = 'en-US'
 ): Promise<string> => {
   try {
-    // In a real implementation, you would:
-    // 1. Send the text to your backend API
-    // 2. Your backend would use Google Cloud Text-to-Speech API to synthesize speech
-    // 3. Return the audio URL or audio data
-
-    // For this example, we'll simulate sending to a backend API
-    const response = await fetch('/api/text-to-speech', {
+    const response = await fetch('http://localhost:8008/api/text-to-speech', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,31 +54,70 @@ export const convertTextToSpeech = async (
     });
 
     if (!response.ok) {
-      throw new Error(`Text to speech conversion failed: ${response.statusText}`);
+      throw new Error(`Text-to-Speech failed: ${response.statusText}`);
     }
 
     const data = await response.json();
-    return data.audioUrl;
+    return data.audio;
   } catch (error) {
     console.error('Error converting text to speech:', error);
+    throw error;
+  }
+};
 
-    // In development mode, return a mock result
-    console.warn('Using browser TTS for development purposes');
+/**
+ * Play the audio from a base64 string
+ * @param base64Audio Base64 encoded audio
+ */
+export const playAudio = (base64Audio: string): void => {
+  const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
 
-    // Use browser's built-in TTS as a fallback
-    const utterance = new SpeechSynthesisUtterance(text);
+  audio.play().catch((error) => {
+    console.error('Error playing audio:', error);
+  });
+};
 
-    // Try to find a voice that matches the requested language
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find(v => v.lang.startsWith(language.split('-')[0]));
-    if (voice) {
-      utterance.voice = voice;
-    }
+/**
+ * Record audio from microphone
+ * @param timeLimit Maximum recording time in milliseconds (default: 10 seconds)
+ * @returns Promise with the recorded audio blob
+ */
+export const recordAudio = async (timeLimit: number = 10000): Promise<Blob> => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    window.speechSynthesis.speak(utterance);
+    const mediaRecorder = new MediaRecorder(stream);
+    const audioChunks: BlobPart[] = [];
 
-    // Return an empty string as we're using browser TTS
-    return "";
+    mediaRecorder.addEventListener('dataavailable', (event) => {
+      audioChunks.push(event.data);
+    });
+
+    mediaRecorder.start();
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+      }, timeLimit);
+
+      mediaRecorder.addEventListener('stop', () => {
+        clearTimeout(timeoutId);
+
+        stream.getTracks().forEach(track => track.stop());
+
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        resolve(audioBlob);
+      });
+
+      mediaRecorder.addEventListener('error', (error) => {
+        reject(error);
+      });
+    });
+  } catch (error) {
+    console.error('Error recording audio:', error);
+    throw error;
   }
 };
 

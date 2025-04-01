@@ -1,5 +1,11 @@
 # Haaga_Backend_Programming
 
+## run command to reload environment path for POWER SHELL
+
+`$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")`
+
+- properties `terminal.integrated.env.windows` into setting of Visual Studio Code IDE will integrate PATH .env of Window.
+
 ## Start the program
 
 - Step 1: go to study/study/ src/ main ... -> right click on the `StudyApplication.java` choose `Run Java` -> need to change the application.yaml (profile to dev `Data Base`)
