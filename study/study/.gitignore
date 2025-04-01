@@ -1,5 +1,3 @@
-# Global ignore (áp dụng cho cả React & Spring Boot)
-
 # Logs
 logs/
 *.log
@@ -12,23 +10,22 @@ vite-error.log*
 vercel*.log*
 hs_err_pid*.log # JVM crash logs
 
-# Env files
+# Environment variables
 *.env*
-**/*.env*
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 local.properties # Spring Boot local config
 
 # OS files
 .DS_Store
 Thumbs.db
+ehthumbs.db
 
 # Common dependencies
 node_modules/
 .pnp/
 .pnp.js
+.m2/
+.gradle/
+.mvn/
 
 # Build outputs
 dist/
@@ -52,6 +49,8 @@ coverage/
 *.swp
 *.swo
 *.bak
+temp/
+tmp/
 
 # React-specific ignore
 /public/*.cache
@@ -60,15 +59,36 @@ coverage/
 .storybook/
 storybook-static/
 .next/
-out/
-.vite/
 
 # Spring Boot-specific ignore
 /target/
 /bin/
-/build/
 /BOOT-INF/
-/.m2/
-/.gradle/
-/.mvn/
-spring.log
+
+# Python-specific ignore
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python model files
+models/
+pretrained_models/
+tmpdir_tts/
+tmpdir_vocoder/
+*.pth
+*.pt
+
+# Audio files generated during testing
+*.wav
+*.mp3
+
+# Hugging Face & SpeechBrain Cache
+.speechbrain_cache/
+hf_cache/
+~/.cache/huggingface/
+~/.huggingface/
