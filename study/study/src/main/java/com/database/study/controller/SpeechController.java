@@ -1,5 +1,9 @@
 package com.database.study.controller;
 
+import com.database.study.entity.LanguageMessage;
+import com.database.study.enums.MessageType;
+import com.database.study.enums.ProficiencyLevel;
+import com.database.study.service.LanguageMessageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.client.ResourceAccessException;
+import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
 import java.util.*;
@@ -24,18 +28,16 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/speech")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@RequiredArgsConstructor
 public class SpeechController {
 
   private static final Logger log = LoggerFactory.getLogger(SpeechController.class);
 
+  private final LanguageMessageService languageMessageService;
   private final RestTemplate restTemplate;
 
   @Value("${speech.service.url:http://localhost:8008}")
   private String speechServiceUrl;
-
-  public SpeechController() {
-    this.restTemplate = new RestTemplate();
-  }
 
   /**
    * Health check endpoint
@@ -156,85 +158,93 @@ public class SpeechController {
    */
   @PostMapping("/language-sessions")
   public ResponseEntity<?> createLanguageSession(@RequestBody Map<String, Object> request) {
-    log.info("Create language session request received: {}", request);
+    log.info("Creating new language session with params: {}", request);
+
     try {
-      // Create a new request map that includes the required fields
-      Map<String, Object> enhancedRequest = new HashMap<>(request);
-
-      // Add userId if not present (default to "guest")
-      if (!enhancedRequest.containsKey("userId")) {
-        enhancedRequest.put("userId", "guest");
-        log.info("Added default userId 'guest' to request");
+      // Set default userId and proficiencyLevel if not provided
+      if (!request.containsKey("userId")) {
+        request.put("userId", "guest");
+        log.info("No userId provided, defaulting to 'guest'");
       }
 
-      // Add proficiencyLevel if not present (default to "intermediate")
-      if (!enhancedRequest.containsKey("proficiencyLevel")) {
-        enhancedRequest.put("proficiencyLevel", "intermediate");
-        log.info("Added default proficiencyLevel 'intermediate' to request");
+      if (!request.containsKey("proficiencyLevel")) {
+        request.put("proficiencyLevel", "intermediate");
+        log.info("No proficiencyLevel provided, defaulting to 'intermediate'");
       }
 
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-      HttpEntity<Map<String, Object>> entity = new HttpEntity<>(enhancedRequest, headers);
-
-      // Forward to Python service endpoint (adjust path if needed)
+      // Forward request to Python/AI service to create the session
       ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
           speechServiceUrl + "/api/language-sessions",
           HttpMethod.POST,
-          entity,
+          new HttpEntity<>(request),
           new ParameterizedTypeReference<Map<String, Object>>() {
           });
 
-      log.info("Language session creation response from Python service: {}", response.getStatusCode());
+      log.info("Session response received: {}", response.getBody());
 
-      // Get the response body
-      Map<String, Object> responseBody = response.getBody();
+      if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+        Map<String, Object> responseData = response.getBody();
 
-      // Ensure consistent session ID format (prefix with 'session-' if needed)
-      if (responseBody != null && responseBody.containsKey("id")) {
-        String sessionId = (String) responseBody.get("id");
-        if (!sessionId.startsWith("session-")) {
-          // Convert the session ID to a consistent format
-          String formattedSessionId = "session-" + sessionId;
-          log.info("Reformatting session ID from {} to {}", sessionId, formattedSessionId);
-          responseBody.put("id", formattedSessionId);
+        // Ensure consistent session ID format
+        if (responseData != null) {
+          Object sessionId = responseData.get("id");
+          if (sessionId != null) {
+            String sessionIdStr = sessionId.toString();
+
+            // Save session to our new database model using LanguageMessageService
+            try {
+              // Extract fields from request
+              String userId = request.get("userId").toString();
+              String language = request.get("language").toString();
+              String proficiencyLevelStr = request.get("proficiencyLevel").toString();
+              ProficiencyLevel proficiencyLevel;
+
+              try {
+                proficiencyLevel = ProficiencyLevel.valueOf(proficiencyLevelStr.toUpperCase());
+              } catch (IllegalArgumentException e) {
+                log.warn("Invalid proficiency level: {}, defaulting to BEGINNER", proficiencyLevelStr);
+                proficiencyLevel = ProficiencyLevel.BEGINNER;
+              }
+
+              // Create session metadata using our new LanguageMessage entity
+              LanguageMessage sessionMessage = LanguageMessage.builder()
+                  .sessionId(sessionIdStr)
+                  .userId(userId)
+                  .language(language)
+                  .proficiencyLevel(proficiencyLevel)
+                  .messageType(MessageType.SYSTEM_MESSAGE)
+                  .content("Session created")
+                  .isSessionMetadata(true)
+                  .build();
+
+              // Save the session using our new service
+              languageMessageService.saveSessionMetadata(sessionMessage);
+              log.info("Successfully saved session to database: {}", sessionIdStr);
+            } catch (Exception e) {
+              log.error("Failed to save session to database: {}", e.getMessage(), e);
+              // Continue anyway, as we want to return the session to the frontend
+            }
+
+            // Ensure consistent format in the response
+            if (!sessionIdStr.startsWith("session-")) {
+              responseData.put("id", "session-" + sessionIdStr);
+              log.info("Added 'session-' prefix to session ID in response: {}", responseData.get("id"));
+            }
+          }
         }
+
+        return ResponseEntity.ok(responseData);
+      } else {
+        log.error("Failed to create language session. Status: {}", response.getStatusCode());
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Failed to create language session");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
       }
-
-      // Log the full response for debugging
-      log.info("Final session creation response: {}", responseBody);
-
-      return ResponseEntity.status(response.getStatusCode()).body(responseBody);
-    } catch (HttpClientErrorException e) {
-      log.error("HTTP client error creating language session: {}", e.getMessage());
-      // Return the error response from the Python service if available
-      return ResponseEntity
-          .status(e.getStatusCode())
-          .body(Map.of("error", "Failed to create session via speech service: " + e.getResponseBodyAsString()));
-    } catch (ResourceAccessException e) {
-      log.error("Cannot connect to speech service for session creation: {}", e.getMessage());
-      // Generate a mock session response as fallback
-      String sessionId = "session-" + UUID.randomUUID().toString();
-      Map<String, Object> mockResponse = new HashMap<>();
-      mockResponse.put("id", sessionId); // Use 'id' to match frontend model expectation
-      mockResponse.put("language", request.get("language"));
-      mockResponse.put("userId", "guest"); // Add placeholder userId
-      mockResponse.put("createdAt", new Date());
-      mockResponse.put("updatedAt", new Date());
-      mockResponse.put("note", "Mock session created - speech service unavailable");
-      log.warn("Returning mock session due to ResourceAccessException: {}", mockResponse);
-      return ResponseEntity.ok(mockResponse);
     } catch (Exception e) {
-      log.error("Unexpected error creating language session: {}", e.getMessage(), e);
-      String sessionId = "session-error-" + UUID.randomUUID().toString();
-      Map<String, Object> errorResponse = new HashMap<>();
-      errorResponse.put("id", sessionId);
-      errorResponse.put("error", "Unexpected error creating language session: " + e.getMessage());
-      errorResponse.put("language", request.get("language"));
-      errorResponse.put("userId", request.getOrDefault("userId", "guest"));
-      errorResponse.put("createdAt", new Date());
-      errorResponse.put("updatedAt", new Date());
-      return ResponseEntity.ok(errorResponse); // Return 200 with error info in development
+      log.error("Error creating language session", e);
+      Map<String, String> errorResponse = new HashMap<>();
+      errorResponse.put("error", "Error creating language session: " + e.getMessage());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
   }
 }

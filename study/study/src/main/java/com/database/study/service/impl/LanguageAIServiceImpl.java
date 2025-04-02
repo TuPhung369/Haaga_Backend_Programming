@@ -1,19 +1,15 @@
 package com.database.study.service.impl;
 
-import com.database.study.dto.LanguageInteractionDTO;
-import com.database.study.dto.LanguageSessionDTO;
+import com.database.study.dto.LanguageMessageDTO;
 import com.database.study.dto.request.CreateLanguageSessionRequest;
 import com.database.study.dto.request.ProcessAudioRequest;
 import com.database.study.dto.request.SaveLanguageInteractionRequest;
-import com.database.study.entity.LanguageInteraction;
-import com.database.study.entity.LanguageSession;
+import com.database.study.entity.LanguageMessage;
+import com.database.study.enums.MessageType;
 import com.database.study.enums.ProficiencyLevel;
 import com.database.study.exception.EntityNotFoundException;
-import com.database.study.exception.UnauthorizedAccessException;
-import com.database.study.mapper.LanguageInteractionMapper;
-import com.database.study.mapper.LanguageSessionMapper;
-import com.database.study.repository.LanguageInteractionRepository;
-import com.database.study.repository.LanguageSessionRepository;
+import com.database.study.mapper.LanguageMessageMapper;
+import com.database.study.repository.LanguageMessageRepository;
 import com.database.study.service.LanguageAIService;
 import com.database.study.service.RecaptchaService;
 import com.database.study.validator.AuthValidator;
@@ -24,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -33,16 +30,15 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class LanguageAIServiceImpl implements LanguageAIService {
 
-  private final LanguageSessionRepository sessionRepository;
-  private final LanguageInteractionRepository interactionRepository;
-  private final LanguageSessionMapper sessionMapper;
-  private final LanguageInteractionMapper interactionMapper;
+  private final LanguageMessageRepository messageRepository;
+  private final LanguageMessageMapper messageMapper;
   private final AuthValidator authValidator;
   private final RecaptchaService recaptchaService;
 
@@ -54,7 +50,7 @@ public class LanguageAIServiceImpl implements LanguageAIService {
 
   @Transactional
   @Override
-  public LanguageSessionDTO createSession(CreateLanguageSessionRequest request) {
+  public LanguageMessageDTO createSession(CreateLanguageSessionRequest request) {
     // Validate recaptcha
     recaptchaService.validateRecaptchaToken(request.getRecaptchaToken());
 
@@ -65,77 +61,158 @@ public class LanguageAIServiceImpl implements LanguageAIService {
     ProficiencyLevel proficiencyLevel = Optional.ofNullable(request.getProficiencyLevel())
         .orElse(ProficiencyLevel.BEGINNER);
 
-    // Create new session
-    LanguageSession session = LanguageSession.builder()
+    // Generate a new session ID
+    String sessionId = UUID.randomUUID().toString();
+
+    // Create session metadata message
+    LanguageMessage sessionMessage = LanguageMessage.builder()
+        .sessionId(sessionId)
         .userId(request.getUserId())
         .language(request.getLanguage())
         .proficiencyLevel(proficiencyLevel)
+        .messageType(MessageType.SYSTEM_MESSAGE)
+        .content("Session created")
+        .isSessionMetadata(true)
         .build();
 
-    LanguageSession savedSession = sessionRepository.save(session);
-    return sessionMapper.toDTO(savedSession);
+    LanguageMessage savedMessage = messageRepository.save(sessionMessage);
+    return messageMapper.toDTO(savedMessage);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public Page<LanguageSessionDTO> getUserSessions(String userId, Pageable pageable) {
+  public Page<LanguageMessageDTO> getUserSessions(String userId, Pageable pageable) {
     // Validate user access
     authValidator.validateUserAccess(userId);
 
-    Page<LanguageSession> sessions = sessionRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-    return sessions.map(sessionMapper::toDTO);
+    // Find message entries that represent session metadata
+    Page<LanguageMessage> sessionMessages = messageRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+    return sessionMessages.map(messageMapper::toDTO);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public Page<LanguageSessionDTO> getUserSessionsByLanguage(String userId, String language, Pageable pageable) {
+  public Page<LanguageMessageDTO> getUserSessionsByLanguage(String userId, String language, Pageable pageable) {
     // Validate user access
     authValidator.validateUserAccess(userId);
 
-    Page<LanguageSession> sessions = sessionRepository.findByUserIdAndLanguageOrderByCreatedAtDesc(userId, language,
-        pageable);
-    return sessions.map(sessionMapper::toDTO);
+    Page<LanguageMessage> sessionMessages = messageRepository.findByUserIdAndLanguageOrderByCreatedAtDesc(userId,
+        language, pageable);
+    return sessionMessages.map(messageMapper::toDTO);
   }
 
   @Transactional
   @Override
-  public LanguageInteractionDTO saveInteraction(SaveLanguageInteractionRequest request) {
-    // Validate recaptcha
-    recaptchaService.validateRecaptchaToken(request.getRecaptchaToken());
+  public LanguageMessageDTO saveInteraction(SaveLanguageInteractionRequest request) {
+    log.info("Starting to save interaction for session ID: {}", request.getSessionId());
+    log.info("User message: {}, AI response length: {}",
+        request.getUserMessage().substring(0, Math.min(50, request.getUserMessage().length())),
+        request.getAiResponse() != null ? request.getAiResponse().length() : 0);
 
-    // Find session
-    LanguageSession session = sessionRepository.findById(request.getSessionId())
-        .orElseThrow(() -> new EntityNotFoundException("Session", request.getSessionId()));
+    // Handle session ID format - strip "session-" prefix if present
+    final String adjustedSessionId;
+    if (request.getSessionId() != null && request.getSessionId().startsWith("session-")) {
+      adjustedSessionId = request.getSessionId().substring("session-".length());
+      log.info("Adjusted sessionId from {} to {}", request.getSessionId(), adjustedSessionId);
+    } else {
+      adjustedSessionId = request.getSessionId();
+    }
+
+    // Validate recaptcha
+    log.debug("Validating reCAPTCHA token");
+    recaptchaService.validateRecaptchaToken(request.getRecaptchaToken());
+    log.debug("reCAPTCHA token validation passed");
+
+    // Verify session exists before attempting to find it
+    boolean sessionExists = messageRepository.existsBySessionId(adjustedSessionId);
+    if (!sessionExists) {
+      log.error("Session with ID {} does not exist in the database", adjustedSessionId);
+      throw new EntityNotFoundException("Session", adjustedSessionId);
+    }
+    log.info("Session with ID {} exists in the database", adjustedSessionId);
+
+    // Find session metadata
+    log.info("Finding session with ID: {}", adjustedSessionId);
+    LanguageMessage sessionMetadata = messageRepository.findBySessionIdAndIsSessionMetadataTrue(adjustedSessionId)
+        .orElseThrow(() -> {
+          log.error("Session metadata not found with ID: {} (this should not happen since we verified it exists)",
+              adjustedSessionId);
+          return new EntityNotFoundException("Session", adjustedSessionId);
+        });
+    log.info("Found session: {} for user: {}", sessionMetadata.getSessionId(), sessionMetadata.getUserId());
 
     // Validate user access
-    authValidator.validateUserAccess(session.getUserId());
+    log.debug("Validating user access for userID: {}", sessionMetadata.getUserId());
+    authValidator.validateUserAccess(sessionMetadata.getUserId());
+    log.debug("User access validation passed");
 
-    // Create interaction
-    LanguageInteraction interaction = LanguageInteraction.builder()
-        .session(session)
-        .userMessage(request.getUserMessage())
-        .aiResponse(request.getAiResponse())
-        .audioUrl(request.getAudioUrl())
+    // Create user message
+    log.info("Building user message entity");
+    LanguageMessage userMessage = LanguageMessage.builder()
+        .sessionId(adjustedSessionId)
+        .userId(sessionMetadata.getUserId())
+        .language(sessionMetadata.getLanguage())
+        .proficiencyLevel(sessionMetadata.getProficiencyLevel())
+        .messageType(MessageType.USER_MESSAGE)
+        .content(request.getUserMessage())
         .userAudioUrl(request.getUserAudioUrl())
+        .isSessionMetadata(false)
         .build();
+    log.debug("User message entity built successfully");
 
-    LanguageInteraction savedInteraction = interactionRepository.save(interaction);
-    return interactionMapper.toDTO(savedInteraction);
+    // Save user message
+    log.info("Saving user message to database");
+    LanguageMessage savedUserMessage = messageRepository.save(userMessage);
+    log.info("User message saved successfully with ID: {}", savedUserMessage.getId());
+
+    // Create AI response message
+    log.info("Building AI response entity");
+    LanguageMessage aiResponse = LanguageMessage.builder()
+        .sessionId(adjustedSessionId)
+        .userId(sessionMetadata.getUserId())
+        .language(sessionMetadata.getLanguage())
+        .proficiencyLevel(sessionMetadata.getProficiencyLevel())
+        .messageType(MessageType.AI_RESPONSE)
+        .content(request.getAiResponse())
+        .audioUrl(request.getAudioUrl())
+        .isSessionMetadata(false)
+        .replyToId(savedUserMessage.getId())
+        .build();
+    log.debug("AI response entity built successfully");
+
+    // Save AI response
+    log.info("Saving AI response to database");
+    LanguageMessage savedAiResponse = messageRepository.save(aiResponse);
+    log.info("AI response saved successfully with ID: {}", savedAiResponse.getId());
+
+    // Check if it was really saved by querying the database
+    boolean exists = messageRepository.existsById(savedAiResponse.getId());
+    log.info("Verification - AI response exists in database: {}", exists);
+
+    // Convert to DTO and return
+    LanguageMessageDTO dto = messageMapper.toDTO(savedAiResponse);
+    log.info("Interaction successfully processed and returning DTO with ID: {}", dto.getId());
+    return dto;
   }
 
   @Override
   @Transactional(readOnly = true)
-  public Page<LanguageInteractionDTO> getSessionInteractions(String sessionId, Pageable pageable) {
-    // Find session
-    LanguageSession session = sessionRepository.findById(sessionId)
-        .orElseThrow(() -> new EntityNotFoundException("Session", sessionId));
+  public Page<LanguageMessageDTO> getSessionInteractions(String sessionId, Pageable pageable) {
+    // Check if session exists
+    if (!messageRepository.existsBySessionId(sessionId)) {
+      throw new EntityNotFoundException("Session", sessionId);
+    }
+
+    // Find session metadata
+    LanguageMessage sessionMetadata = messageRepository.findBySessionIdAndIsSessionMetadataTrue(sessionId)
+        .orElseThrow(() -> new EntityNotFoundException("Session metadata", sessionId));
 
     // Validate user access
-    authValidator.validateUserAccess(session.getUserId());
+    authValidator.validateUserAccess(sessionMetadata.getUserId());
 
-    Page<LanguageInteraction> interactions = interactionRepository.findBySessionIdOrderByCreatedAtAsc(sessionId,
-        pageable);
-    return interactions.map(interactionMapper::toDTO);
+    // Get all messages for this session
+    Page<LanguageMessage> messages = messageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId, pageable);
+    return messages.map(messageMapper::toDTO);
   }
 
   @Override
@@ -144,32 +221,37 @@ public class LanguageAIServiceImpl implements LanguageAIService {
     // Validate recaptcha
     recaptchaService.validateRecaptchaToken(request.getRecaptchaToken());
 
-    // Find session
-    LanguageSession session = sessionRepository.findById(request.getSessionId())
-        .orElseThrow(() -> new EntityNotFoundException("Session", request.getSessionId()));
+    // Check if session exists
+    if (!messageRepository.existsBySessionId(request.getSessionId())) {
+      throw new EntityNotFoundException("Session", request.getSessionId());
+    }
+
+    // Find session metadata
+    LanguageMessage sessionMetadata = messageRepository.findBySessionIdAndIsSessionMetadataTrue(request.getSessionId())
+        .orElseThrow(() -> new EntityNotFoundException("Session metadata", request.getSessionId()));
 
     // Validate user access
     authValidator.validateUserAccess(request.getUserId());
 
     // Validate that the session belongs to this user
-    if (!session.getUserId().equals(request.getUserId())) {
-      throw new UnauthorizedAccessException("You do not have access to this session");
+    if (!sessionMetadata.getUserId().equals(request.getUserId())) {
+      throw new EntityNotFoundException("Session for user", request.getUserId());
     }
 
-    // Mock AI processing - in a real implementation, call your AI service
-    String aiResponse = generateAIResponse(
-        request.getMessage(),
-        request.getLanguage(),
-        Optional.ofNullable(request.getProficiencyLevel()).orElse(session.getProficiencyLevel()));
-
-    return aiResponse;
+    try {
+      // Call external AI API
+      return generateAIResponse(request.getMessage(), sessionMetadata.getLanguage(),
+          sessionMetadata.getProficiencyLevel());
+    } catch (Exception e) {
+      log.error("Error generating AI response: {}", e.getMessage(), e);
+      return generateMockResponse(request.getMessage(), sessionMetadata.getProficiencyLevel());
+    }
   }
 
-  /**
-   * Generate a mock AI response based on user's message and proficiency
-   */
   private String generateAIResponse(String userMessage, String language, ProficiencyLevel proficiencyLevel) {
     try {
+      log.info("Calling AI API for response to: {}", userMessage.substring(0, Math.min(50, userMessage.length())));
+
       RestTemplate restTemplate = new RestTemplate();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
@@ -178,87 +260,77 @@ public class LanguageAIServiceImpl implements LanguageAIService {
       Map<String, Object> requestBody = new HashMap<>();
       requestBody.put("message", userMessage);
       requestBody.put("language", language);
-      requestBody.put("proficiencyLevel", proficiencyLevel.toString());
+      requestBody.put("proficiency", proficiencyLevel.toString());
 
-      HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+      HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
-      try {
-        // Try to call the AI API service if available
-        ResponseEntity<String> response = restTemplate.postForEntity(
-            aiApiUrl + "/generate-response",
-            entity,
-            String.class);
+      @SuppressWarnings("rawtypes")
+      ResponseEntity<Map> response = restTemplate.postForEntity(
+          aiApiUrl + "/generate-response",
+          request,
+          Map.class);
 
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-          return response.getBody();
+      if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> responseBody = response.getBody();
+        if (responseBody != null && responseBody.get("response") != null) {
+          String aiResponse = (String) responseBody.get("response");
+          log.info("Received AI response from API: {} characters", aiResponse.length());
+          return aiResponse;
         }
-      } catch (Exception e) {
-        log.warn("Failed to call AI API service, falling back to mock response: {}", e.getMessage());
+        log.warn("AI API response body or 'response' field is null");
+        return generateMockResponse(userMessage, proficiencyLevel);
+      } else {
+        log.warn("AI API returned non-success status code: {}", response.getStatusCode());
+        return generateMockResponse(userMessage, proficiencyLevel);
       }
-
-      // Fallback to mock response if API call fails
-      return generateMockResponse(userMessage, proficiencyLevel);
     } catch (Exception e) {
-      log.error("Error generating AI response", e);
-      return "I'm sorry, I couldn't process your message. Please try again.";
+      log.error("Error calling AI API: {}", e.getMessage(), e);
+      return generateMockResponse(userMessage, proficiencyLevel);
     }
   }
 
-  /**
-   * Generate a mock response for development/testing purposes
-   */
   private String generateMockResponse(String userMessage, ProficiencyLevel proficiencyLevel) {
-    // Simplified mock response generation based on proficiency level
+    log.info("Generating mock response for proficiency level: {}", proficiencyLevel);
     String response;
 
     switch (proficiencyLevel) {
       case BEGINNER:
-        response = "That's a good start! Here's a simpler way to say it: \""
-            + simplifyMessage(userMessage) + "\"";
+        response = simplifyMessage("I understand. " + userMessage);
+        break;
+      case ELEMENTARY:
+        response = simplifyMessage("That's interesting. " + userMessage);
         break;
       case INTERMEDIATE:
-        response = "Well done! Your sentence structure is good. Consider using more varied vocabulary, like: \""
-            + improveVocabulary(userMessage) + "\"";
+        response = improveVocabulary("I see what you mean. " + userMessage);
         break;
       case ADVANCED:
-        response = "Excellent! Your language is quite good. To sound more natural, try: \""
-            + makeMoreNatural(userMessage) + "\"";
+        response = makeMoreNatural(userMessage);
         break;
+      case PROFICIENT:
       case NATIVE:
-        response = "Impressive! Your language skills are excellent. For even more nuance, consider: \""
-            + addNuance(userMessage) + "\"";
+        response = addNuance(userMessage);
         break;
       default:
-        response = "I understood your message. Can you tell me more?";
+        response = "I understand. Please tell me more.";
     }
 
     return response;
   }
 
   private String simplifyMessage(String message) {
-    // Mock implementation - just return slightly modified message
-    return message.replaceAll("\\b(difficult|complex|challenging)\\b", "hard")
-        .replaceAll("\\b(purchase|acquire)\\b", "buy")
-        .replaceAll("\\b(inquire|investigate)\\b", "ask");
+    return "I understand. That's interesting. Can you tell me more about that?";
   }
 
   private String improveVocabulary(String message) {
-    // Mock implementation - replace simple words with more complex ones
-    return message.replaceAll("\\b(good)\\b", "excellent")
-        .replaceAll("\\b(bad)\\b", "inadequate")
-        .replaceAll("\\b(big)\\b", "substantial");
+    return "That's quite fascinating. I'd love to hear additional details about your perspective on this topic.";
   }
 
   private String makeMoreNatural(String message) {
-    // Mock implementation - add conversational elements
-    if (message.length() > 10) {
-      return "Actually, " + message + ", you know?";
-    }
-    return "Well, " + message + ", if you ask me.";
+    return "I see what you're getting at. That's an intriguing point you've raised. Would you mind elaborating a bit more on how you came to that conclusion?";
   }
 
   private String addNuance(String message) {
-    // Mock implementation - add more sophisticated phrasing
-    return "I appreciate your perspective that " + message + ". One might also consider...";
+    return "That's a nuanced perspective. I appreciate your thoughtful approach to this subject. Perhaps we could explore some of the underlying assumptions and see where that leads our conversation?";
   }
 }

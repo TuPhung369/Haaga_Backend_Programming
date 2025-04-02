@@ -158,12 +158,32 @@ export const saveInteraction = async (
       console.warn(`⚠️ Session ${interactionData.sessionId} not found in localStorage`);
     }
 
+    // Handle session ID formatting - backend expects without "session-" prefix
+    let sessionId = interactionData.sessionId;
+    if (sessionId && sessionId.startsWith('session-')) {
+      sessionId = sessionId.substring(8); // Remove "session-" prefix
+      console.log(`🔄 Adjusted sessionId from ${interactionData.sessionId} to ${sessionId} for backend compatibility`);
+    }
+
     const interactionToSave = {
       ...interactionData,
+      sessionId, // Use the adjusted sessionId
       createdAt: new Date()
     };
 
     console.log('📦 Interaction save payload:', interactionToSave);
+
+    // First verify that the session exists
+    try {
+      const sessionExists = await verifySessionExists(interactionData.sessionId);
+      console.log(`🔍 Session verification result: ${sessionExists ? '✅ Session exists' : '❌ Session not found'}`);
+
+      if (!sessionExists) {
+        console.warn(`⚠️ Session ${interactionData.sessionId} not found in database, interaction might not save correctly`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Error verifying session existence: ${error}`);
+    }
 
     // Use the development endpoint that bypasses CAPTCHA validation
     const response = await fetch(`${API_URL}/api/language-ai/interactions/dev`, {
@@ -195,7 +215,15 @@ export const saveInteraction = async (
       // If the session wasn't found, try to retrieve it and display for debugging
       if (responseData.error.includes('Session not found') || responseData.error.includes('not found')) {
         console.warn(`🔍 Session ID format problem detected. The backend might be expecting a different format.`);
-        console.log(`💡 Your current sessionId format: ${interactionData.sessionId}`);
+        console.log(`💡 Your current sessionId format: ${interactionData.sessionId}, adjusted to: ${sessionId}`);
+
+        // Try to retrieve the session from the backend as a diagnostic
+        try {
+          const exists = await verifySessionExists(interactionData.sessionId);
+          console.log(`🔍 Session verification after error: ${exists ? 'Session exists' : 'Session does not exist'}`);
+        } catch (verifyError) {
+          console.error(`❌ Session verification failed: ${verifyError}`);
+        }
       }
 
       // Create a mock interaction but include the server error
@@ -245,7 +273,7 @@ export const saveInteraction = async (
 
     const savedInteraction = {
       id: responseData.id || `saved-${Date.now()}`,
-      sessionId: interactionData.sessionId,
+      sessionId: interactionData.sessionId, // Keep the original session ID for frontend consistency
       userMessage: interactionData.userMessage,
       aiResponse: interactionData.aiResponse,
       audioUrl: interactionData.audioUrl,
@@ -264,15 +292,16 @@ export const saveInteraction = async (
 
     return savedInteraction;
   } catch (error) {
-    console.error('❌ Error saving interaction:', error);
+    console.error("❌ Error saving interaction:", error);
 
-    // More verbose error logging to help diagnose connectivity issues
-    if (error instanceof TypeError && error.message.includes('fetch')) {
+    // Network errors need special handling
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
       console.error(`💥 Network error when connecting to ${API_URL}. Check if the server is running and accessible.`);
     }
 
-    const mockInteraction: LanguageInteraction = {
-      id: `mock-${Date.now()}`,
+    // Create a fallback interaction to maintain UI functionality
+    const fallbackInteraction: LanguageInteraction = {
+      id: `fallback-${Date.now()}`,
       sessionId: interactionData.sessionId,
       userMessage: interactionData.userMessage,
       aiResponse: interactionData.aiResponse,
@@ -281,30 +310,19 @@ export const saveInteraction = async (
       createdAt: new Date(),
     };
 
-    // Store mock interaction in localStorage for fallback retrieval
+    // Store fallback in localStorage
     try {
-      const interactionKey = `interaction_${interactionData.sessionId}_${Date.now()}`;
-      localStorage.setItem(interactionKey, JSON.stringify(mockInteraction));
-      console.log(`💾 Mock interaction saved to localStorage with key: ${interactionKey}`);
-
-      // Also store a summary of all interactions for easier debugging
-      const summaryKey = `interaction_summary`;
-      const existingSummary = localStorage.getItem(summaryKey);
-      const summaryData = existingSummary ? JSON.parse(existingSummary) : [];
-      summaryData.push({
-        id: mockInteraction.id,
-        sessionId: mockInteraction.sessionId,
-        timestamp: new Date().toISOString(),
-        status: 'error',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
-      });
-      localStorage.setItem(summaryKey, JSON.stringify(summaryData));
+      const interactionKey = `interaction_fallback_${interactionData.sessionId}_${Date.now()}`;
+      localStorage.setItem(interactionKey, JSON.stringify({
+        ...fallbackInteraction,
+        error: error instanceof Error ? error.message : String(error)
+      }));
+      console.log(`💾 Fallback interaction saved to localStorage with key: ${interactionKey}`);
     } catch (e) {
-      console.warn("Could not save mock interaction to localStorage:", e);
+      console.warn("Could not save fallback interaction to localStorage:", e);
     }
 
-    console.log('⚠️ Using mock interaction instead:', mockInteraction);
-    return mockInteraction;
+    return fallbackInteraction;
   }
 };
 
@@ -459,23 +477,33 @@ export const getAIResponseFromN8n = async (
 };
 
 /**
- * Get interactions for a specific language session
- * @param sessionId The session ID to fetch interactions for
- * @returns Promise with the list of interactions for the session
+ * Get all interactions for a session
+ * @param sessionId The session ID
+ * @returns Promise with array of interactions
  */
 export const getSessionInteractions = async (
   sessionId: string
 ): Promise<LanguageInteraction[]> => {
   try {
-    console.log(`📡 Fetching interactions for session: ${sessionId}`);
+    console.log(`🔍 Getting interactions for session: ${sessionId}`);
 
-    const response = await fetch(`${API_URL}/api/language-ai/interactions?sessionId=${sessionId}`, {
+    // Handle different session ID formats - ensure it has the "session-" prefix for the backend controller
+    let cleanSessionId = sessionId;
+    if (cleanSessionId && !cleanSessionId.startsWith('session-') && !cleanSessionId.startsWith('mock-')) {
+      cleanSessionId = `session-${cleanSessionId}`;
+      console.log(`🔄 Added prefix to sessionId: ${cleanSessionId}`);
+    }
+
+    const response = await fetch(`${API_URL}/api/language-ai/sessions/${cleanSessionId}/interactions`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
     });
 
+    console.log(`📡 Session interactions response status: ${response.status}`);
+
+    // If not found (404) or other error, try to recover interactions from localStorage
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`❌ Fetching interactions failed with status ${response.status}: ${errorText}`);
@@ -483,68 +511,103 @@ export const getSessionInteractions = async (
     }
 
     const data = await response.json();
-    console.log(`✅ Fetched ${data.length} interactions successfully`);
+    console.log(`✅ Retrieved ${data.content ? data.content.length : 0} interactions from server`);
 
-    // Transform the data to match the LanguageInteraction interface
-    return data.map((item: {
-      id?: string;
-      sessionId?: string;
-      userMessage?: string;
-      aiResponse?: string;
-      audioUrl?: string;
-      feedback?: LanguageFeedback;
-      createdAt?: string | Date;
-    }) => ({
-      id: item.id || `interaction-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      sessionId: item.sessionId || sessionId,
-      userMessage: item.userMessage || '',
-      aiResponse: item.aiResponse || '',
-      audioUrl: item.audioUrl,
-      feedback: item.feedback,
-      createdAt: item.createdAt ? new Date(item.createdAt) : new Date()
-    }));
+    // Process pageable response from Spring
+    if (data.content && Array.isArray(data.content)) {
+      return data.content.map((item: {
+        id: string;
+        sessionId: string;
+        userMessage: string;
+        aiResponse: string;
+        audioUrl?: string;
+        feedback?: LanguageFeedback;
+        createdAt: string;
+      }) => ({
+        id: item.id,
+        sessionId: cleanSessionId, // Keep consistent with what the frontend expects
+        userMessage: item.userMessage,
+        aiResponse: item.aiResponse,
+        audioUrl: item.audioUrl,
+        feedback: item.feedback,
+        createdAt: new Date(item.createdAt)
+      }));
+    }
+
+    // Handle case where we get an array directly
+    if (Array.isArray(data)) {
+      console.log(`✅ Retrieved ${data.length} interactions (array format)`);
+      return data.map((item: {
+        id: string;
+        sessionId: string;
+        userMessage: string;
+        aiResponse: string;
+        audioUrl?: string;
+        feedback?: LanguageFeedback;
+        createdAt: string;
+      }) => ({
+        id: item.id,
+        sessionId: cleanSessionId,
+        userMessage: item.userMessage,
+        aiResponse: item.aiResponse,
+        audioUrl: item.audioUrl,
+        feedback: item.feedback,
+        createdAt: new Date(item.createdAt)
+      }));
+    }
+
+    // If response is not in expected format
+    console.warn('⚠️ Unexpected response format for interactions:', data);
+    return [];
   } catch (error) {
-    console.error('❌ Error fetching interactions:', error);
+    console.error("❌ Error fetching interactions:", error);
 
-    // Return mock interactions from localStorage if available
-    console.log('⚠️ Attempting to recover interactions from localStorage');
-    const mockInteractions: LanguageInteraction[] = [];
+    // Try to recover from localStorage
+    console.warn("⚠️ Attempting to recover interactions from localStorage");
 
-    // Try to find interactions stored in localStorage (from previous saveInteraction calls)
+    // Find all interactions for this session stored in localStorage
+    const localInteractions: LanguageInteraction[] = [];
+
     try {
+      const prefix = `interaction_${sessionId}_`;
+      const fallbackPrefix = `interaction_fallback_${sessionId}_`;
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith(`interaction_${sessionId}`)) {
-          const storedItem = localStorage.getItem(key);
-          if (storedItem) {
-            try {
-              const interaction = JSON.parse(storedItem);
-              mockInteractions.push({
-                id: interaction.id || `mock-${Date.now()}-${i}`,
-                sessionId: interaction.sessionId || sessionId,
-                userMessage: interaction.userMessage || '',
-                aiResponse: interaction.aiResponse || '',
-                audioUrl: interaction.audioUrl,
-                feedback: interaction.feedback,
-                createdAt: interaction.createdAt ? new Date(interaction.createdAt) : new Date()
-              });
-            } catch (e) {
-              console.warn(`Failed to parse interaction from localStorage: ${key}`, e);
+        if (key && (key.startsWith(prefix) || key.startsWith(fallbackPrefix))) {
+          try {
+            const item = localStorage.getItem(key);
+            if (item) {
+              const interaction = JSON.parse(item);
+              if (interaction.sessionId === sessionId) {
+                localInteractions.push({
+                  id: interaction.id,
+                  sessionId: interaction.sessionId,
+                  userMessage: interaction.userMessage,
+                  aiResponse: interaction.aiResponse,
+                  audioUrl: interaction.audioUrl,
+                  feedback: interaction.feedback,
+                  createdAt: new Date(interaction.createdAt)
+                });
+              }
             }
+          } catch (e) {
+            console.warn(`Could not parse localStorage item: ${key}`, e);
           }
         }
       }
+
+      if (localInteractions.length > 0) {
+        console.log(`✅ Recovered ${localInteractions.length} interactions from localStorage`);
+        return localInteractions.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      } else {
+        console.warn("⚠️ No interactions found, returning empty array");
+        return [];
+      }
     } catch (e) {
-      console.warn('Error accessing localStorage:', e);
+      console.error("❌ Error recovering from localStorage:", e);
+      return [];
     }
-
-    if (mockInteractions.length > 0) {
-      console.log(`⚠️ Using ${mockInteractions.length} mock interactions from localStorage`);
-      return mockInteractions;
-    }
-
-    console.log('⚠️ No interactions found, returning empty array');
-    return [];
   }
 };
 

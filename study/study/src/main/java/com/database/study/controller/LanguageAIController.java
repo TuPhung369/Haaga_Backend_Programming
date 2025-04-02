@@ -1,7 +1,6 @@
 package com.database.study.controller;
 
-import com.database.study.dto.LanguageInteractionDTO;
-import com.database.study.dto.LanguageSessionDTO;
+import com.database.study.dto.LanguageMessageDTO;
 import com.database.study.dto.request.CreateLanguageSessionRequest;
 import com.database.study.dto.request.ProcessAudioRequest;
 import com.database.study.dto.request.SaveLanguageInteractionRequest;
@@ -29,19 +28,19 @@ public class LanguageAIController {
   private static final Logger log = LoggerFactory.getLogger(LanguageAIController.class);
 
   @PostMapping("/sessions")
-  public ResponseEntity<LanguageSessionDTO> createSession(@Valid @RequestBody CreateLanguageSessionRequest request) {
+  public ResponseEntity<LanguageMessageDTO> createSession(@Valid @RequestBody CreateLanguageSessionRequest request) {
     return ResponseEntity.ok(languageAIService.createSession(request));
   }
 
   @GetMapping("/users/{userId}/sessions")
-  public ResponseEntity<Page<LanguageSessionDTO>> getUserSessions(
+  public ResponseEntity<Page<LanguageMessageDTO>> getUserSessions(
       @PathVariable String userId,
       Pageable pageable) {
     return ResponseEntity.ok(languageAIService.getUserSessions(userId, pageable));
   }
 
   @GetMapping("/users/{userId}/sessions/language/{language}")
-  public ResponseEntity<Page<LanguageSessionDTO>> getUserSessionsByLanguage(
+  public ResponseEntity<Page<LanguageMessageDTO>> getUserSessionsByLanguage(
       @PathVariable String userId,
       @PathVariable String language,
       Pageable pageable) {
@@ -49,16 +48,46 @@ public class LanguageAIController {
   }
 
   @PostMapping("/interactions")
-  public ResponseEntity<LanguageInteractionDTO> saveInteraction(
+  public ResponseEntity<LanguageMessageDTO> saveInteraction(
       @Valid @RequestBody SaveLanguageInteractionRequest request) {
+    log.info("Saving interaction for session: {}", request.getSessionId());
+
+    // Handle session ID formatting (strip "session-" prefix if present)
+    String adjustedSessionId = request.getSessionId();
+    if (adjustedSessionId != null && adjustedSessionId.startsWith("session-")) {
+      adjustedSessionId = adjustedSessionId.substring("session-".length());
+      log.info("Adjusted sessionId from {} to {}", request.getSessionId(), adjustedSessionId);
+
+      // Create a new request with the adjusted session ID
+      SaveLanguageInteractionRequest adjustedRequest = SaveLanguageInteractionRequest.builder()
+          .sessionId(adjustedSessionId)
+          .userMessage(request.getUserMessage())
+          .aiResponse(request.getAiResponse())
+          .audioUrl(request.getAudioUrl())
+          .userAudioUrl(request.getUserAudioUrl())
+          .recaptchaToken(request.getRecaptchaToken())
+          .build();
+
+      return ResponseEntity.ok(languageAIService.saveInteraction(adjustedRequest));
+    }
+
     return ResponseEntity.ok(languageAIService.saveInteraction(request));
   }
 
   @GetMapping("/sessions/{sessionId}/interactions")
-  public ResponseEntity<Page<LanguageInteractionDTO>> getSessionInteractions(
+  public ResponseEntity<Page<LanguageMessageDTO>> getSessionInteractions(
       @PathVariable String sessionId,
       Pageable pageable) {
-    return ResponseEntity.ok(languageAIService.getSessionInteractions(sessionId, pageable));
+    log.info("Getting interactions for session: {}", sessionId);
+
+    // Handle session ID formatting (strip "session-" prefix if present)
+    String adjustedSessionId = sessionId;
+    if (sessionId != null && sessionId.startsWith("session-")) {
+      adjustedSessionId = sessionId.substring("session-".length());
+      log.info("Adjusted sessionId from {} to {}", sessionId, adjustedSessionId);
+    }
+
+    return ResponseEntity.ok(languageAIService.getSessionInteractions(adjustedSessionId, pageable));
   }
 
   @PostMapping("/process-audio")
@@ -110,6 +139,7 @@ public class LanguageAIController {
     }
 
     // Create a SaveLanguageInteractionRequest with default recaptcha token
+    log.info("Creating SaveLanguageInteractionRequest with sessionId: {}", adjustedSessionId);
     SaveLanguageInteractionRequest validRequest = SaveLanguageInteractionRequest.builder()
         .sessionId(adjustedSessionId)
         .userMessage(userMessage)
@@ -120,22 +150,81 @@ public class LanguageAIController {
         .build();
 
     try {
-      LanguageInteractionDTO result = languageAIService.saveInteraction(validRequest);
+      log.info("Calling languageAIService.saveInteraction");
+      LanguageMessageDTO result = languageAIService.saveInteraction(validRequest);
       log.info("Interaction successfully saved with ID: {}", result.getId());
-      return ResponseEntity.ok(result);
+
+      // Enhanced response with more details
+      Map<String, Object> successResponse = new HashMap<>();
+      successResponse.put("success", true);
+      successResponse.put("id", result.getId());
+      successResponse.put("sessionId", result.getSessionId());
+      successResponse.put("originalSessionId", sessionId);
+      successResponse.put("adjustedSessionId", adjustedSessionId);
+      successResponse.put("sessionExistedBeforeSave", true); // Since it was successful, session must exist
+      successResponse.put("createdAt", result.getCreatedAt());
+
+      log.info("Returning success response: {}", successResponse);
+      return ResponseEntity.ok(successResponse);
     } catch (Exception e) {
       log.error("Error saving interaction: {}", e.getMessage(), e);
 
-      Map<String, String> errorResponse = new HashMap<>();
+      Map<String, Object> errorResponse = new HashMap<>();
+      errorResponse.put("success", false);
       errorResponse.put("error", "Failed to save interaction: " + e.getMessage());
+      errorResponse.put("originalSessionId", sessionId);
+      errorResponse.put("adjustedSessionId", adjustedSessionId);
+      errorResponse.put("sessionExistedBeforeSave", false); // Error suggests session may not exist
       errorResponse.put("note", "Using development endpoint that bypasses CAPTCHA");
 
       // For debugging, add info about the actual session ID format expected
       if (e.getMessage() != null && e.getMessage().contains("not found")) {
         errorResponse.put("debug", "Session ID format issue: Expected format may differ. Tried: " + adjustedSessionId);
+
+        // Try to provide more detailed diagnostics
+        try {
+          log.info("Attempting diagnostic query for sessions with similar IDs");
+          // Check if we can find the session by another means
+          errorResponse.put("diagnosticNote",
+              "The system could not find a session with this ID. Make sure the session exists before saving interactions.");
+        } catch (Exception diagEx) {
+          log.error("Diagnostic query failed: {}", diagEx.getMessage());
+        }
       }
 
+      log.info("Returning error response: {}", errorResponse);
       return ResponseEntity.ok(errorResponse); // Return 200 in dev mode even on error
     }
+  }
+
+  @GetMapping("/sessions/{sessionId}/exists")
+  public ResponseEntity<Map<String, Boolean>> checkSessionExists(@PathVariable String sessionId) {
+    log.info("Checking if session exists: {}", sessionId);
+
+    // Handle session ID formatting (strip "session-" prefix if present)
+    String adjustedSessionId = sessionId;
+    if (sessionId != null && sessionId.startsWith("session-")) {
+      adjustedSessionId = sessionId.substring("session-".length());
+      log.info("Adjusted sessionId from {} to {}", sessionId, adjustedSessionId);
+    }
+
+    boolean exists = false;
+
+    try {
+      // Try to get session interactions - if this doesn't throw an exception, the
+      // session exists
+      languageAIService.getSessionInteractions(adjustedSessionId, Pageable.unpaged());
+      exists = true;
+      log.info("Session {} exists", sessionId);
+    } catch (Exception e) {
+      log.info("Session {} does not exist: {}", sessionId, e.getMessage());
+      exists = false;
+    }
+
+    Map<String, Boolean> response = new HashMap<>();
+    response.put("exists", exists);
+    response.put("originalId", sessionId != null && !sessionId.equals(adjustedSessionId));
+
+    return ResponseEntity.ok(response);
   }
 }

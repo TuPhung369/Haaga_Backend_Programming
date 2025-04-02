@@ -33,4 +33,7 @@ public class ProcessAudioRequest {
 
   @NotNull(message = "Recaptcha token is required")
   private String recaptchaToken;
+
+  @NotBlank(message = "Audio transcript is required")
+  private String audioTranscript;
 }

@@ -106,6 +106,23 @@ public class StudyApplication {
         setSystemProperty("DB_URL_DEV", dbUrlDev);
         setSystemProperty("DB_USERNAME_DEV", dbUsernameDev);
         setSystemProperty("DB_PASSWORD_DEV", dbPasswordDev);
+
+        // Explicitly set Spring datasource properties
+        setSystemProperty("spring.datasource.url", dbUrlDev);
+        setSystemProperty("spring.datasource.username", dbUsernameDev);
+        setSystemProperty("spring.datasource.password", dbPasswordDev);
+        setSystemProperty("spring.datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
+
+        // Set custom datasource properties for our AppConfig bean
+        setSystemProperty("datasource.url", dbUrlDev);
+        setSystemProperty("datasource.username", dbUsernameDev);
+        setSystemProperty("datasource.password", dbPasswordDev);
+        setSystemProperty("datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
+
+        // Enable SQL logging for debugging
+        setSystemProperty("logging.level.org.hibernate.SQL", "DEBUG");
+        setSystemProperty("logging.level.org.hibernate.type.descriptor.sql.BasicBinder", "TRACE");
+
         setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
         setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
         setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
