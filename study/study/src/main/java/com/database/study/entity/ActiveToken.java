@@ -18,21 +18,21 @@ import java.util.Date;
 @Entity
 @Table(name = "active_tokens")
 public class ActiveToken {
-    
+
     @Id
     private String id;
-    
+
     @Column(columnDefinition = "LONGTEXT")
     private String token;
-    
+
     @Column(columnDefinition = "LONGTEXT")
     private String refreshToken;
-    
+
     private Date expiryTime;
-    
+
     private Date expiryRefreshTime;
-    
+
     private String username;
-    
+
     private String description;
 }
