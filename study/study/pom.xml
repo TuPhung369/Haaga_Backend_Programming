@@ -256,7 +256,7 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok-mapstruct-binding</artifactId>
-                            <version>0.2.0</version>
+                            <version>${lombok-mapstruct-binding.version}</version>
                         </path>
                         <path>
                             <groupId>org.mapstruct</groupId>
@@ -313,6 +313,16 @@
                         <exclude>com/database/study/mapper/**</exclude>
                         <exclude>com/database/study/repository/**</exclude>
                         <exclude>com/database/study/configuration/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <excludes>
+                        <exclude>scripts/venv/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>

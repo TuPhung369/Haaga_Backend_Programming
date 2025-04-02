@@ -23,6 +23,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @Configuration
 @EnableWebSecurity
@@ -47,43 +48,15 @@ public class SecurityConfig {
 
   private final String[] PUBLIC_ENDPOINTS = {
       "/users/**",
-      "/auth/token",
-      "/auth/introspect",
-      "/auth/initAuthentication",
-      "/auth/logout",
-      "/auth/refreshToken",
-      "/auth/resetPassword",
-      "/auth/forgot-password",
-      "/auth/reset-password-with-token",
-      "/auth/register",
-      "/auth/verify-email",
-      "/auth/request-email-change",
-      "/auth/verify-email-change",
-      "/auth/resend-verification",
-      "/auth/email-otp/token",
-      "/auth/totp/token",
-      "/auth/totp/token/cookie",
-      "/auth/google/token",
-      "/auth/github/token",
-      "/auth/facebook/token",
+      "/auth/**",
       "/oauth2/**",
+      "/login/oauth2/**",
       "https://accounts.google.com/o/oauth2/**",
       "https://github.com/login/oauth/**",
       "https://www.facebook.com/v18.0/dialog/**",
-      "/oauth2/**",
-      "/oauth2/github/redirect",
-      "/oauthGit/**",
-      "/oauthGit/redirect",
-      "/oauthFacebook/**",
-      "/o/oauth2**",
-      "/login/oauth2/**",
-      "/protected/**",
-      "/google/token",
-      "/github/token",
-      "/facebook/token",
-      "/api/chat/**",
-
-      // Development mode endpoints - allow all _dev_ prefixed paths
+      "/test",
+      "/api/speech/**",
+      "/api/language-ai/**",
       "/_dev_/**"
   };
 
@@ -162,7 +135,14 @@ public class SecurityConfig {
   @Bean
   CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of(appBaseUrl));
+    // Explicitly allow the frontend origin, in addition to the configured base URL
+    List<String> allowedOrigins = new ArrayList<>();
+    if (appBaseUrl != null && !appBaseUrl.isEmpty()) {
+      allowedOrigins.add(appBaseUrl);
+    }
+    allowedOrigins.add("http://localhost:3000"); // Add React app origin
+
+    configuration.setAllowedOrigins(allowedOrigins);
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
     configuration.setAllowCredentials(true);
     configuration.addAllowedHeader("*");
@@ -170,6 +150,7 @@ public class SecurityConfig {
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
+    log.info("CORS configured for origins: {}", allowedOrigins); // Log configured origins
     return source;
   }
 

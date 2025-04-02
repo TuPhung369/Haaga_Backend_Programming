@@ -2,6 +2,9 @@
  * Service for handling speech-to-text and text-to-speech operations
  */
 
+// API URL - using the absolute URL of the Spring Boot server as a proxy
+const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
+
 /**
  * Convert speech to text
  * @param audioBlob Audio blob to convert
@@ -13,24 +16,41 @@ export const convertSpeechToText = async (
   language: string = 'en-US'
 ): Promise<string> => {
   try {
+    console.log(`🎤 [Speech-to-Text] Starting conversion for language: ${language}`);
+    console.log(`🎤 [Speech-to-Text] Audio blob size: ${Math.round(audioBlob.size / 1024)} KB, type: ${audioBlob.type}`);
+
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.wav');
     formData.append('language', language);
 
-    const response = await fetch(`http://localhost:8008/api/speech-to-text`, {
+    console.log(`🎤 [Speech-to-Text] Sending request to ${API_BASE_URI}/api/speech/speech-to-text`);
+
+    const response = await fetch(`${API_BASE_URI}/api/speech/speech-to-text`, {
       method: 'POST',
       body: formData,
     });
 
-    if (!response.ok) {
-      throw new Error(`Speech-to-Text failed: ${response.statusText}`);
-    }
+    console.log(`🎤 [Speech-to-Text] Response status: ${response.status} ${response.statusText}`);
 
     const data = await response.json();
-    return data.transcript;
+    console.log(`🎤 [Speech-to-Text] Raw server response:`, data);
+
+    if (data.transcript) {
+      console.log(`🎤 [Speech-to-Text] Transcript received: "${data.transcript.substring(0, 100)}${data.transcript.length > 100 ? '...' : ''}"`);
+
+      if (data.transcript.includes("simulated transcript")) {
+        console.warn(`⚠️ [Speech-to-Text] WARNING: Received simulated transcript instead of actual transcription. The speech-to-text service appears to be returning placeholder data.`);
+      }
+
+      return data.transcript;
+    } else if (data.error) {
+      throw new Error(`Server error: ${data.error}`);
+    } else {
+      throw new Error("Invalid response format");
+    }
   } catch (error) {
-    console.error('Error converting speech to text:', error);
-    throw error;
+    console.error(`❌ [Speech-to-Text] Error:`, error);
+    return "Error transcribing audio. Please try again.";
   }
 };
 
@@ -38,14 +58,14 @@ export const convertSpeechToText = async (
  * Convert text to speech
  * @param text Text to convert to speech
  * @param language Language code (e.g., "fi-FI")
- * @returns Promise with the base64 encoded audio
+ * @returns Promise with the audio URL or base64 string
  */
 export const convertTextToSpeech = async (
   text: string,
   language: string = 'en-US'
 ): Promise<string> => {
   try {
-    const response = await fetch('http://localhost:8008/api/text-to-speech', {
+    const response = await fetch(`${API_BASE_URI}/api/speech/text-to-speech`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,22 +78,48 @@ export const convertTextToSpeech = async (
     }
 
     const data = await response.json();
-    return data.audio;
+
+    // Check if response contains base64 audio data
+    if (data.audio) {
+      return `data:audio/mp3;base64,${data.audio}`;
+    } else if (data.audioUrl) {
+      return data.audioUrl;
+    } else {
+      throw new Error('No audio data received');
+    }
   } catch (error) {
     console.error('Error converting text to speech:', error);
-    throw error;
+    // We can't generate fallback audio, so return null and let the caller handle it
+    return '';
   }
 };
 
 /**
- * Play the audio from a base64 string
- * @param base64Audio Base64 encoded audio
+ * Play the audio from a base64 string or URL
+ * @param audioData Base64 encoded audio or URL
  */
-export const playAudio = (base64Audio: string): void => {
-  const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+export const playAudio = (audioData: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const audio = new Audio(audioData);
 
-  audio.play().catch((error) => {
-    console.error('Error playing audio:', error);
+      audio.onended = () => {
+        resolve();
+      };
+
+      audio.onerror = (error) => {
+        console.error('Error playing audio:', error);
+        reject(error);
+      };
+
+      audio.play().catch((error) => {
+        console.error('Error playing audio:', error);
+        reject(error);
+      });
+    } catch (error) {
+      console.error('Error creating audio element:', error);
+      reject(error);
+    }
   });
 };
 

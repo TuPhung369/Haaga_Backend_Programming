@@ -27,7 +27,10 @@ app = FastAPI(
 # CORS settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow React app to access the API
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],  # Allow React app to access the API
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,6 +74,7 @@ class LanguageInteractionRequest(BaseModel):
     userMessage: str
     aiResponse: str
     audioUrl: str
+    timestamp: Optional[float] = None
 
 
 class LanguageProficiencyRequest(BaseModel):
@@ -247,7 +251,7 @@ async def save_language_interaction(request: LanguageInteractionRequest):
             "userMessage": request.userMessage,
             "aiResponse": request.aiResponse,
             "audioUrl": request.audioUrl,
-            "timestamp": time.time(),
+            "timestamp": request.timestamp or time.time(),
         }
 
         # Store the interaction

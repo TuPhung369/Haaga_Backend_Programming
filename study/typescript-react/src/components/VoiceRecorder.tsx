@@ -1,56 +1,162 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Button, Box, Typography, LinearProgress } from "@mui/material";
+import {
+  Button,
+  Box,
+  CircularProgress,
+  Typography,
+  Paper
+} from "@mui/material";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
-import SendIcon from "@mui/icons-material/Send";
 
-// Define a type for setTimeout/setInterval timers
-type Timer = ReturnType<typeof setTimeout>;
+// Add types for Web Speech API
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+  interpretation: Record<string, unknown>;
+}
+
+interface SpeechRecognitionError extends Event {
+  error: string;
+  message: string;
+}
+
+// Interface for the Speech Recognition API
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionError) => void;
+  onend: () => void;
+}
+
+// Declare the global SpeechRecognition constructor
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
 
 interface VoiceRecorderProps {
-  onAudioRecorded: (audioBlob: Blob) => void;
-  language?: string;
+  onAudioRecorded: (audioBlob: Blob, browserTranscript: string) => void;
+  onSpeechRecognized?: (transcript: string) => void;
+  language: string;
   disabled?: boolean;
 }
 
 const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   onAudioRecorded,
-  language = "en-US",
+  onSpeechRecognized,
+  language,
   disabled = false
 }) => {
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [recordingTime, setRecordingTime] = useState<number>(0);
-  const [hasRecording, setHasRecording] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioURL, setAudioURL] = useState<string | null>(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [browserTranscript, setBrowserTranscript] = useState<string>("");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<Timer | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null); // Properly typed
+  const fullTranscriptRef = useRef<string>(""); // Store complete transcript that won't be affected by re-renders
 
-  // Clean up audio URL when component unmounts
+  // Initialize Web Speech API if available
   useEffect(() => {
-    return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
+    // Check if the SpeechRecognition API is available
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [audioUrl]);
+    if (SpeechRecognition) {
+      try {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
 
-  // Start recording function
+        // Set language when it changes
+        recognitionRef.current.lang = language;
+
+        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+          let interimTranscript = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              // Add final transcript to our full transcript
+              fullTranscriptRef.current += " " + transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          // Use the full transcript + current interim
+          const currentTranscript =
+            fullTranscriptRef.current +
+            (interimTranscript ? " " + interimTranscript : "");
+          setBrowserTranscript(currentTranscript.trim());
+
+          // Send real-time transcript updates to parent
+          if (onSpeechRecognized && currentTranscript) {
+            onSpeechRecognized(currentTranscript.trim());
+          }
+
+          console.log(
+            `🎤 [Browser Speech Recognition] Transcript: ${currentTranscript.trim()}`
+          );
+        };
+
+        recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
+          console.error(
+            `🎤 [Browser Speech Recognition] Error: ${event.error}`
+          );
+        };
+
+        // Handle recognition ending
+        recognitionRef.current.onend = () => {
+          console.log("🎤 [Browser Speech Recognition] Ended");
+        };
+      } catch (e) {
+        console.warn("Browser speech recognition not available:", e);
+      }
+    } else {
+      console.warn("Web Speech API not supported in this browser");
+    }
+  }, [onSpeechRecognized]);
+
+  // Update speech recognition language when language prop changes
+  useEffect(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.lang = language;
+      console.log(
+        `🎤 [Browser Speech Recognition] Language set to: ${language}`
+      );
+    }
+  }, [language]);
+
   const startRecording = async () => {
     try {
-      audioChunksRef.current = [];
-      setHasRecording(false);
-      setAudioUrl(null);
+      console.log("🎙️ Starting recording...");
+
+      // Reset transcripts for a new recording
+      fullTranscriptRef.current = "";
+      setBrowserTranscript("");
+
+      // Clear previous recognized speech when starting a new recording
+      if (onSpeechRecognized) {
+        onSpeechRecognized("");
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      console.log("🎙️ Got media stream:", stream);
 
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -59,18 +165,38 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       };
 
       mediaRecorder.onstop = () => {
+        console.log("🎙️ Recording stopped, processing audio...");
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/wav"
         });
         const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        setHasRecording(true);
+        setAudioURL(url);
+
+        // Get the most complete transcript from our ref
+        const finalTranscript = fullTranscriptRef.current.trim();
+
+        // Log the final transcript we're using
+        console.log(`🎙️ Final browser transcript: "${finalTranscript}"`);
+
+        // Send audio to backend for processing, along with the browser transcript
+        sendRecording(audioBlob, finalTranscript);
+
+        // Clean up the stream tracks
+        stream.getTracks().forEach((track) => track.stop());
       };
 
-      // Start recording
       mediaRecorder.start();
       setIsRecording(true);
-      setRecordingTime(0);
+
+      // Start browser-based speech recognition if available
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          console.log("🎤 [Browser Speech Recognition] Started");
+        } catch (e) {
+          console.warn("Could not start speech recognition:", e);
+        }
+      }
 
       // Start timer
       timerRef.current = setInterval(() => {
@@ -81,123 +207,130 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   };
 
-  // Stop recording function
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    // Stop speech recognition first to ensure final results are captured
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+        // Give a small delay to ensure final recognition results are processed
+        setTimeout(() => {
+          if (mediaRecorderRef.current && isRecording) {
+            console.log("🎙️ Stopping recording...");
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+          }
+        }, 300); // Small delay to ensure recognition completes
+      } catch (e) {
+        console.warn("Error stopping speech recognition:", e);
+        // If error in stopping recognition, still stop recording
+        if (mediaRecorderRef.current && isRecording) {
+          mediaRecorderRef.current.stop();
+          setIsRecording(false);
+        }
+      }
+    } else if (mediaRecorderRef.current && isRecording) {
+      // No recognition, just stop recording
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+    }
 
-      // Stop all tracks on the stream
-      mediaRecorderRef.current.stream
-        .getTracks()
-        .forEach((track) => track.stop());
+    // Clear timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+      setRecordingTime(0);
+    }
+  };
 
-      // Clear interval
+  const sendRecording = (audioBlob: Blob, transcript: string) => {
+    console.log("🎙️ Sending recording to backend...");
+    console.log(`🎙️ Including browser transcript: ${transcript}`);
+    onAudioRecorded(audioBlob, transcript);
+  };
+
+  useEffect(() => {
+    // Cleanup function to stop recording when component unmounts
+    return () => {
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+      }
       if (timerRef.current) {
         clearInterval(timerRef.current);
-        timerRef.current = null;
       }
-    }
-  };
 
-  // Send recording function
-  const sendRecording = () => {
-    if (audioChunksRef.current.length > 0) {
-      const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
-      onAudioRecorded(audioBlob);
-      setHasRecording(false);
-    }
-  };
+      // Stop speech recognition
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore, might not be started
+          console.debug("Error stopping recognition on cleanup:", e);
+        }
+      }
+    };
+  }, [isRecording]);
 
-  // Format time function
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs
       .toString()
       .padStart(2, "0")}`;
   };
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ mr: 1 }}>
-          {isRecording
-            ? "Recording..."
-            : hasRecording
-            ? "Recording complete"
-            : "Ready to record"}
-        </Typography>
+    <Box>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+          mb: 2
+        }}
+      >
+        <Button
+          variant="contained"
+          color={isRecording ? "error" : "primary"}
+          startIcon={isRecording ? <StopIcon /> : <MicIcon />}
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={disabled}
+          sx={{ mb: 2 }}
+        >
+          {isRecording ? "Stop Recording" : "Start Recording"}
+        </Button>
 
         {isRecording && (
-          <Typography variant="body2" color="error">
-            {formatTime(recordingTime)}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+            <CircularProgress size={16} sx={{ mr: 1 }} />
+            <Typography>Recording... {formatTime(recordingTime)}</Typography>
+          </Box>
+        )}
+
+        {browserTranscript && (
+          <Paper
+            elevation={1}
+            sx={{
+              p: 2,
+              mt: 2,
+              width: "100%",
+              backgroundColor: "#f8f9fa",
+              borderLeft: "4px solid #4caf50"
+            }}
+          >
+            <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+              Browser Speech Recognition (Real-time):
+            </Typography>
+            <Typography>{browserTranscript}</Typography>
+          </Paper>
+        )}
+
+        {audioURL && !isRecording && (
+          <Box sx={{ mt: 2, width: "100%" }}>
+            <audio src={audioURL} controls style={{ width: "100%" }} />
+          </Box>
         )}
       </Box>
-
-      {isRecording && <LinearProgress color="error" sx={{ mb: 2 }} />}
-
-      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-        {!isRecording && !hasRecording && (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<MicIcon />}
-            onClick={startRecording}
-            disabled={disabled}
-          >
-            Start Recording
-          </Button>
-        )}
-
-        {isRecording && (
-          <Button
-            variant="contained"
-            color="error"
-            startIcon={<StopIcon />}
-            onClick={stopRecording}
-          >
-            Stop Recording
-          </Button>
-        )}
-
-        {hasRecording && (
-          <>
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<SendIcon />}
-              onClick={sendRecording}
-              disabled={disabled}
-            >
-              Send Recording
-            </Button>
-
-            <Button
-              variant="outlined"
-              color="primary"
-              startIcon={<MicIcon />}
-              onClick={startRecording}
-              disabled={disabled}
-            >
-              Record Again
-            </Button>
-          </>
-        )}
-      </Box>
-
-      {audioUrl && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Preview recording:
-          </Typography>
-          <audio src={audioUrl} controls />
-          <Typography variant="caption" display="block" gutterBottom>
-            Speaking: {language}
-          </Typography>
-        </Box>
-      )}
     </Box>
   );
 };

@@ -112,14 +112,13 @@ n8n:
     url: http://localhost:5678/webhook/c1784e69-2d89-45fb-b47d-dd13dddcf31e/chat
 speech:
   service:
-    url: http://localhost:8008
+    url: ${SPEECH_SERVICE_URL:http://localhost:8008}
 logging:
   level:
-    root: DEBUG # Global log level
-    "[org.springframework]": DEBUG # Spring framework logs
-    "[org.springframework.boot]": DEBUG
-    "[org.springframework.beans.factory]": DEBUG
-    "[org.springframework.security.oauth2]": ERROR
-    "[org.springframework.web.cors]": DEBUG
-    "[com.database.study.service.SecurityMonitoringService]": DEBUG # Thêm debug logging cho SecurityMonitoringService
-
+    root: INFO # Set default to INFO, DEBUG is very verbose
+    org.springframework: INFO
+    org.springframework.web: DEBUG # Log web requests
+    org.springframework.security: INFO # Or DEBUG for more security details
+    org.springframework.web.client.RestTemplate: DEBUG # Log outgoing RestTemplate calls
+    com.database.study.controller: DEBUG # Log our controllers
+    # Add other specific package logs as needed
