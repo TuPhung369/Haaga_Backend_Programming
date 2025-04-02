@@ -152,6 +152,15 @@ export const saveInteraction = async (
         createdAt: new Date(),
       };
 
+      // Store mock interaction in localStorage for fallback retrieval
+      try {
+        const interactionKey = `interaction_${interactionData.sessionId}_${Date.now()}`;
+        localStorage.setItem(interactionKey, JSON.stringify(mockInteraction));
+        console.log(`💾 Mock interaction saved to localStorage with key: ${interactionKey}`);
+      } catch (e) {
+        console.warn("Could not save mock interaction to localStorage:", e);
+      }
+
       console.log('⚠️ Using mock interaction due to server error:', mockInteraction);
       return mockInteraction;
     }
@@ -164,7 +173,7 @@ export const saveInteraction = async (
 
     console.log('✅ Interaction saved successfully:', responseData);
 
-    return {
+    const savedInteraction = {
       id: responseData.id || `saved-${Date.now()}`,
       sessionId: interactionData.sessionId,
       userMessage: interactionData.userMessage,
@@ -173,6 +182,17 @@ export const saveInteraction = async (
       feedback: interactionData.feedback,
       createdAt: responseData.createdAt ? new Date(responseData.createdAt) : new Date()
     };
+
+    // Store successful interaction in localStorage as backup
+    try {
+      const interactionKey = `interaction_${interactionData.sessionId}_${savedInteraction.id}`;
+      localStorage.setItem(interactionKey, JSON.stringify(savedInteraction));
+      console.log(`💾 Interaction saved to localStorage with key: ${interactionKey}`);
+    } catch (e) {
+      console.warn("Could not save interaction to localStorage:", e);
+    }
+
+    return savedInteraction;
   } catch (error) {
     console.error('❌ Error saving interaction:', error);
 
@@ -185,6 +205,15 @@ export const saveInteraction = async (
       feedback: interactionData.feedback,
       createdAt: new Date(),
     };
+
+    // Store mock interaction in localStorage for fallback retrieval
+    try {
+      const interactionKey = `interaction_${interactionData.sessionId}_${Date.now()}`;
+      localStorage.setItem(interactionKey, JSON.stringify(mockInteraction));
+      console.log(`💾 Mock interaction saved to localStorage with key: ${interactionKey}`);
+    } catch (e) {
+      console.warn("Could not save mock interaction to localStorage:", e);
+    }
 
     console.log('⚠️ Using mock interaction instead:', mockInteraction);
     return mockInteraction;
@@ -338,5 +367,95 @@ export const getAIResponseFromN8n = async (
     const fallbackResponse = generateFallbackResponse(userInput, language, level);
     console.log(`⚠️ [STEP 2.X] Using fallback response: "${fallbackResponse.substring(0, 50)}${fallbackResponse.length > 50 ? '...' : ''}"`);
     return fallbackResponse;
+  }
+};
+
+/**
+ * Get interactions for a specific language session
+ * @param sessionId The session ID to fetch interactions for
+ * @returns Promise with the list of interactions for the session
+ */
+export const getSessionInteractions = async (
+  sessionId: string
+): Promise<LanguageInteraction[]> => {
+  try {
+    console.log(`📡 Fetching interactions for session: ${sessionId}`);
+
+    const response = await fetch(`${API_URL}/api/language-ai/interactions?sessionId=${sessionId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Fetching interactions failed with status ${response.status}: ${errorText}`);
+      throw new Error(`Failed to fetch interactions: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ Fetched ${data.length} interactions successfully`);
+
+    // Transform the data to match the LanguageInteraction interface
+    return data.map((item: {
+      id?: string;
+      sessionId?: string;
+      userMessage?: string;
+      aiResponse?: string;
+      audioUrl?: string;
+      feedback?: LanguageFeedback;
+      createdAt?: string | Date;
+    }) => ({
+      id: item.id || `interaction-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      sessionId: item.sessionId || sessionId,
+      userMessage: item.userMessage || '',
+      aiResponse: item.aiResponse || '',
+      audioUrl: item.audioUrl,
+      feedback: item.feedback,
+      createdAt: item.createdAt ? new Date(item.createdAt) : new Date()
+    }));
+  } catch (error) {
+    console.error('❌ Error fetching interactions:', error);
+
+    // Return mock interactions from localStorage if available
+    console.log('⚠️ Attempting to recover interactions from localStorage');
+    const mockInteractions: LanguageInteraction[] = [];
+
+    // Try to find interactions stored in localStorage (from previous saveInteraction calls)
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(`interaction_${sessionId}`)) {
+          const storedItem = localStorage.getItem(key);
+          if (storedItem) {
+            try {
+              const interaction = JSON.parse(storedItem);
+              mockInteractions.push({
+                id: interaction.id || `mock-${Date.now()}-${i}`,
+                sessionId: interaction.sessionId || sessionId,
+                userMessage: interaction.userMessage || '',
+                aiResponse: interaction.aiResponse || '',
+                audioUrl: interaction.audioUrl,
+                feedback: interaction.feedback,
+                createdAt: interaction.createdAt ? new Date(interaction.createdAt) : new Date()
+              });
+            } catch (e) {
+              console.warn(`Failed to parse interaction from localStorage: ${key}`, e);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error accessing localStorage:', e);
+    }
+
+    if (mockInteractions.length > 0) {
+      console.log(`⚠️ Using ${mockInteractions.length} mock interactions from localStorage`);
+      return mockInteractions;
+    }
+
+    console.log('⚠️ No interactions found, returning empty array');
+    return [];
   }
 };
