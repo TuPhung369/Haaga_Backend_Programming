@@ -6,6 +6,52 @@ import { LanguageSession, LanguageInteraction, LanguageFeedback } from '../model
 export const API_URL = 'http://localhost:9095/identify_service'; // Correct Spring Boot URL with context path
 export const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook/c1784e69-2d89-45fb-b47d-dd13dddcf31e/chat';
 
+// Debug utility for localStorage inspection
+export const inspectLocalStorage = () => {
+  console.log('📊 Examining localStorage for stored sessions and interactions:');
+
+  // Count items by type
+  let sessionCount = 0;
+  let interactionCount = 0;
+  const sessions: Array<{ key: string; id?: string; userId?: string; language?: string; error?: string }> = [];
+  const interactions: Array<{ key: string; id?: string; sessionId?: string; messagePreview?: string; error?: string }> = [];
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+
+    if (key.startsWith('session_')) {
+      sessionCount++;
+      try {
+        const sessionData = JSON.parse(localStorage.getItem(key) || '{}');
+        sessions.push({ key, id: sessionData.id || '', userId: sessionData.userId || '', language: sessionData.language || '' });
+      } catch {
+        sessions.push({ key, error: 'Failed to parse' });
+      }
+    } else if (key.startsWith('interaction_')) {
+      interactionCount++;
+      try {
+        const interactionData = JSON.parse(localStorage.getItem(key) || '{}');
+        interactions.push({
+          key,
+          id: interactionData.id || '',
+          sessionId: interactionData.sessionId || '',
+          messagePreview: interactionData.userMessage ?
+            interactionData.userMessage.substring(0, 20) + '...' : 'N/A'
+        });
+      } catch {
+        interactions.push({ key, error: 'Failed to parse' });
+      }
+    }
+  }
+
+  console.log(`Found ${sessionCount} sessions and ${interactionCount} interactions in localStorage`);
+  console.log('Sessions:', sessions);
+  console.log('Recent Interactions:', interactions.slice(-5)); // Show only the last 5 to avoid console flood
+
+  return { sessionCount, interactionCount, sessions, interactions };
+};
+
 /**
  * Create a new language session (via Spring Boot)
  * @param language The language code (e.g., 'fi-FI')
@@ -128,7 +174,18 @@ export const saveInteraction = async (
       body: JSON.stringify(interactionToSave),
     });
 
-    const responseData = await response.json();
+    // Log the raw response for debugging
+    const responseText = await response.text();
+    console.log(`🔍 Raw response from server: ${responseText}`);
+
+    // Try to parse as JSON, but handle text responses too
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      console.warn(`⚠️ Response is not valid JSON: ${responseText}`);
+      responseData = { error: 'Invalid JSON response', rawResponse: responseText };
+    }
 
     // Even with status 200, the dev endpoint might return an error message
     if (responseData.error) {
@@ -168,6 +225,19 @@ export const saveInteraction = async (
     if (!response.ok && !responseData.id) {
       const errorBody = typeof responseData === 'string' ? responseData : JSON.stringify(responseData);
       console.error("❌ Save interaction error response:", errorBody);
+
+      // Check server connectivity
+      try {
+        const pingResponse = await fetch(`${API_URL}/api/health/ping`, { method: 'GET' });
+        if (pingResponse.ok) {
+          console.log("✅ Server is reachable, issue might be with the interaction endpoint");
+        } else {
+          console.error("❌ Server ping failed, potential connectivity issues");
+        }
+      } catch (e) {
+        console.error("❌ Server ping failed with exception:", e);
+      }
+
       throw new Error(`Failed to save interaction: ${response.statusText}`);
     }
 
@@ -196,6 +266,11 @@ export const saveInteraction = async (
   } catch (error) {
     console.error('❌ Error saving interaction:', error);
 
+    // More verbose error logging to help diagnose connectivity issues
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error(`💥 Network error when connecting to ${API_URL}. Check if the server is running and accessible.`);
+    }
+
     const mockInteraction: LanguageInteraction = {
       id: `mock-${Date.now()}`,
       sessionId: interactionData.sessionId,
@@ -211,6 +286,19 @@ export const saveInteraction = async (
       const interactionKey = `interaction_${interactionData.sessionId}_${Date.now()}`;
       localStorage.setItem(interactionKey, JSON.stringify(mockInteraction));
       console.log(`💾 Mock interaction saved to localStorage with key: ${interactionKey}`);
+
+      // Also store a summary of all interactions for easier debugging
+      const summaryKey = `interaction_summary`;
+      const existingSummary = localStorage.getItem(summaryKey);
+      const summaryData = existingSummary ? JSON.parse(existingSummary) : [];
+      summaryData.push({
+        id: mockInteraction.id,
+        sessionId: mockInteraction.sessionId,
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+      localStorage.setItem(summaryKey, JSON.stringify(summaryData));
     } catch (e) {
       console.warn("Could not save mock interaction to localStorage:", e);
     }
@@ -457,5 +545,40 @@ export const getSessionInteractions = async (
 
     console.log('⚠️ No interactions found, returning empty array');
     return [];
+  }
+};
+
+/**
+ * Verify a session exists in the database
+ * @param sessionId Session ID to verify
+ * @returns Promise resolving to boolean indicating if session exists
+ */
+export const verifySessionExists = async (sessionId: string): Promise<boolean> => {
+  try {
+    console.log(`🔍 Verifying session exists in database: ${sessionId}`);
+
+    // Try to fetch interactions for the session - if it returns a valid response, the session exists
+    const response = await fetch(`${API_URL}/api/language-ai/sessions/${sessionId}/exists`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ Session verification result: ${data.exists}`);
+      return data.exists;
+    }
+
+    console.log(`⚠️ Session verification failed with status: ${response.status}`);
+    return false;
+  } catch (error) {
+    console.error('❌ Error verifying session:', error);
+
+    // Fallback to checking localStorage
+    console.log('⚠️ Falling back to localStorage check');
+    const savedSession = localStorage.getItem(`session_${sessionId}`);
+    return !!savedSession;
   }
 };

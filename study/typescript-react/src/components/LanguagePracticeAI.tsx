@@ -27,7 +27,9 @@ import {
   createLanguageSession,
   saveInteraction,
   getAIResponseFromN8n,
-  getSessionInteractions
+  getSessionInteractions,
+  inspectLocalStorage,
+  verifySessionExists
 } from "../services/LanguageService";
 import ReactMarkdown from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -346,14 +348,57 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       console.log(
         `🔍 [STEP 3] Saving interaction with sessionId: ${currentSessionId}`
       );
-      const savedInteraction = await saveInteraction({
+
+      // Check if the session exists before saving
+      let sessionExists = false;
+      try {
+        sessionExists = await verifySessionExists(currentSessionId);
+        console.log(
+          `🔍 [STEP 3.1] Session verification: ${
+            sessionExists ? "✅ Found" : "❌ Not found"
+          }`
+        );
+      } catch (error) {
+        console.warn(
+          `⚠️ [STEP 3.1] Session verification failed, will attempt save anyway:`,
+          error
+        );
+      }
+
+      // If session doesn't exist, log warning but try saving anyway - the backend might handle it differently
+      if (!sessionExists) {
+        console.warn(
+          `⚠️ [STEP 3.2] Attempting to save interaction with potentially invalid sessionId: ${currentSessionId}`
+        );
+      }
+
+      // Proceed with saving the interaction
+      const interactionToSave = {
         sessionId: currentSessionId,
         userMessage: transcribedText,
         aiResponse: aiResponseText
-      });
+      };
+
+      console.log(`📦 [STEP 3.3] Interaction save payload:`, interactionToSave);
+
+      const savedInteraction = await saveInteraction(interactionToSave);
       console.log(
-        `✅ [STEP 3] Interaction saved with ID: ${savedInteraction.id}`
+        `✅ [STEP 3.4] Interaction saved with ID: ${savedInteraction.id}`
       );
+
+      // Verify the interaction was saved
+      console.log(`🔍 [STEP 3.5] Verifying interaction was saved...`);
+      try {
+        const interactions = await getSessionInteractions(currentSessionId);
+        const found = interactions.some((i) => i.id === savedInteraction.id);
+        console.log(
+          `${found ? "✅" : "❌"} [STEP 3.5] Interaction verification: ${
+            found ? "Found in database" : "Not found in database"
+          }`
+        );
+      } catch (error) {
+        console.warn(`⚠️ [STEP 3.5] Interaction verification failed:`, error);
+      }
 
       // 4. Text to Speech
       console.log(`🔍 [STEP 4] Converting AI response to speech...`);
@@ -414,6 +459,47 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       minute: "numeric",
       hour12: true
     });
+  };
+
+  const debugInteractions = async () => {
+    setIsLoading(true);
+    try {
+      console.log("🔍 Starting interaction debugging");
+
+      // 1. Inspect localStorage
+      console.log("📦 Checking localStorage state:");
+      const storageState = inspectLocalStorage();
+
+      // 2. Verify the current session exists
+      console.log(`🔄 Verifying current session: ${currentSessionId}`);
+      if (currentSessionId) {
+        const exists = await verifySessionExists(currentSessionId);
+        console.log(
+          `📡 Session verification result: ${
+            exists ? "✅ Exists in DB" : "❌ Not found in DB"
+          }`
+        );
+
+        // 3. Try to load interactions for the session as a verification
+        console.log(
+          "🔍 Attempting to load session interactions as verification"
+        );
+        const interactions = await getSessionInteractions(currentSessionId);
+        console.log(`📊 Found ${interactions.length} interactions for session`);
+
+        if (interactions.length === 0 && storageState.interactionCount > 0) {
+          console.warn(
+            "⚠️ No interactions found in database, but localStorage contains interactions"
+          );
+        }
+      } else {
+        console.warn("⚠️ No active session to verify");
+      }
+    } catch (error) {
+      console.error("❌ Error during interaction debugging:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -499,6 +585,17 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
                 ))}
               </Select>
             </FormControl>
+
+            {/* Debug button - always visible for now */}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={debugInteractions}
+              disabled={isLoading}
+              sx={{ mt: 1 }}
+            >
+              Debug Interactions
+            </Button>
           </Box>
         </Box>
 
