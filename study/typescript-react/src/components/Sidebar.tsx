@@ -21,12 +21,14 @@ import {
   CopyrightOutlined,
   KeyOutlined
 } from "@ant-design/icons";
+import { SiProbot } from "react-icons/si";
 
 import { COLORS } from "../utils/constant";
 import { resetAllData } from "../store/resetActions";
 import { logoutUserWithCookies } from "../services/authService";
 import { clearTokenRefresh } from "../utils/tokenRefresh";
 import { notification } from "antd";
+
 import "../styles/Sidebar.css";
 
 const { Sider } = Layout;
@@ -252,7 +254,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       },
       {
         key: "10",
-        icon: <RobotOutlined style={{ color: COLORS[10], fontSize: "20px" }} />,
+        icon: <SiProbot style={{ color: COLORS[10], fontSize: "20px" }} />,
         label: "Language Practice",
         onClick: () => {
           window.location.href = "/languageAI";
