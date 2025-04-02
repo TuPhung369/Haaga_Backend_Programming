@@ -257,7 +257,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/languageAI";
         },
-        path: "/language-ai"
+        path: "/languageAI"
       }
     ],
     [userInfo]

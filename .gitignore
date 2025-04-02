@@ -14,11 +14,6 @@ hs_err_pid*.log # JVM crash logs
 
 # Env files
 *.env*
-**/*.env*
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 local.properties # Spring Boot local config
 
 # OS files
@@ -46,6 +41,7 @@ coverage/
 *.iml
 *.ipr
 .idea/**/workspace.xml
+*.txt
 
 # Temporary files
 *.tmp
