@@ -208,12 +208,11 @@ public class SpeechController {
 
               // Create session metadata using our new LanguageMessage entity
               LanguageMessage sessionMessage = LanguageMessage.builder()
-                  .sessionId(sessionIdStr)
                   .userId(userId)
                   .language(language)
                   .proficiencyLevel(proficiencyLevel)
                   .messageType(MessageType.SYSTEM_MESSAGE)
-                  .content("Session created")
+                  .userMessage("Session created")
                   .isSessionMetadata(true)
                   .build();
 

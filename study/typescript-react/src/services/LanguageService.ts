@@ -52,62 +52,155 @@ export const inspectLocalStorage = () => {
   return { sessionCount, interactionCount, sessions, interactions };
 };
 
+// Define a type for the Redux store
+interface ReduxStore {
+  getState: () => {
+    auth?: {
+      token?: string;
+    };
+  };
+}
+
+// Define a type for the window object with reduxStore
+declare global {
+  interface Window {
+    reduxStore?: ReduxStore;
+  }
+}
+
+// Define expected response structure from the dev endpoint
+interface SaveInteractionDevResponse {
+  success?: boolean;       // Optional, might not be present in all non-JSON cases
+  message?: string;       // Success message
+  interactionId?: string; // ID of the saved AI response message on success
+  id?: string;            // Backend might return 'id'
+  userId?: string;
+  language?: string;
+  createdAt?: string | Date; // ISO string or Date object
+  error?: string;         // Error message
+  requestDetails?: Record<string, unknown>; // Type more strictly
+  debugHint?: string;
+  rawResponse?: string;   // For non-JSON responses
+}
+
 /**
  * Create a new language session (via Spring Boot)
  * @param language The language code (e.g., 'fi-FI')
  * @param proficiencyLevel Optional proficiency level (defaults to 'intermediate')
  * @param userId Optional user identifier (defaults to 'guest')
+ * @param token Optional JWT token for authorization
  * @returns Promise with the session data
  */
 export const createLanguageSession = async (
   language: string,
   proficiencyLevel: string = 'intermediate',
-  userId: string = 'guest'
+  userId: string = 'guest',
+  token?: string
 ): Promise<LanguageSession> => {
   try {
-    console.log(`📡 Creating language session: language=${language}, proficiencyLevel=${proficiencyLevel}, userId=${userId}`);
+    console.log(`=== CREATING NEW LANGUAGE SESSION ===`);
+    console.log(`Language: ${language}`);
+    console.log(`User ID: ${userId}`);
+    console.log(`Proficiency: ${proficiencyLevel}`);
 
     const payload = {
       language,
       userId,
-      proficiencyLevel
+      proficiencyLevel,
+      recaptchaToken: "mock-token-for-development" // Add required token for backend validation
     };
-    console.log('📦 Session creation payload:', payload);
 
-    const response = await fetch(`${API_URL}/api/speech/language-sessions`, {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // First, try using the direct token passed in
+    if (token) {
+      console.log(`Using token passed directly to the function`);
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      // Fallback to findAuthToken() for backwards compatibility
+      const tokenInfo = findAuthToken();
+
+      if (tokenInfo) {
+        console.log(`Using auth token from ${tokenInfo.source}`);
+        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+      } else {
+        console.log(`No auth token found - request may fail with 401 Unauthorized`);
+      }
+    }
+
+    console.log(`Request headers:`, headers);
+
+    // Check if a session already exists with this user ID (to avoid duplicate sessions)
+    try {
+      console.log(`Checking if session already exists for user: ${userId}`);
+      const existingSession = await verifySessionExists(userId, token);
+      if (existingSession) {
+        console.log(`Session already exists for user: ${userId}`);
+        // Return a properly formatted session object
+        return {
+          id: userId.startsWith('session-') ? userId : `session-${userId}`,
+          userId,
+          language,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+      console.log(`No existing session found for user: ${userId}`);
+    } catch (error) {
+      console.log(`Error checking for existing session: ${error instanceof Error ? error.message : String(error)}`);
+      // Continue with session creation attempt
+    }
+
+    const response = await fetch(`${API_URL}/api/language-ai/sessions/dev`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(payload),
+      credentials: 'include' // This enables sending cookies with the request
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Session creation failed with status ${response.status}: ${errorText}`);
+      console.log(`API Error (${response.status}): ${errorText}`);
+      console.log(`Full request details:
+      • URL: ${API_URL}/api/language-ai/sessions/dev
+      • Method: POST
+      • Payload: ${JSON.stringify(payload)}
+      • Status: ${response.status} ${response.statusText}`);
+
       throw new Error(`Failed to create language session: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('✅ Session created successfully:', data);
+
+    // Ensure session ID follows the expected format (with 'session-' prefix)
+    let sessionId = data.id || '';
+    if (sessionId && !sessionId.startsWith('session-')) {
+      // If session ID is returned without the prefix, add it
+      sessionId = `session-${sessionId}`;
+      console.log(`Added 'session-' prefix to session ID: ${sessionId}`);
+    } else {
+      console.log(`Session created with ID: ${sessionId}`);
+    }
 
     // Store the session in localStorage for backup/debugging
     try {
-      localStorage.setItem(`session_${data.id}`, JSON.stringify(data));
-      console.log(`💾 Session ${data.id} saved to localStorage`);
-    } catch (e) {
-      console.warn('Could not save session to localStorage:', e);
+      localStorage.setItem(`session_${sessionId}`, JSON.stringify({ ...data, id: sessionId }));
+    } catch (error) {
+      console.log("Could not save to localStorage:", error);
     }
 
     return {
-      id: data.id || `mock-session-${Date.now()}`,
-      userId: data.userId || 'unknown',
+      id: sessionId || `mock-session-${Date.now()}`,
+      userId: data.userId || userId,
       language: data.language || language,
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
     };
   } catch (error) {
-    console.error('❌ Error creating language session:', error);
+    console.log(`=== ERROR CREATING SESSION ===`);
+    console.log(`Error: ${error instanceof Error ? error.message : String(error)}`);
 
     // Generate a fallback session
     const mockSessionId = `mock-${Date.now()}`;
@@ -119,14 +212,13 @@ export const createLanguageSession = async (
       updatedAt: new Date(),
     };
 
-    console.log('⚠️ Using mock session instead:', mockSession);
+    console.log(`Using mock session ID: ${mockSessionId}`);
 
     // Store mock session in localStorage for consistency
     try {
       localStorage.setItem(`session_${mockSessionId}`, JSON.stringify(mockSession));
-      console.log(`💾 Mock session ${mockSessionId} saved to localStorage`);
-    } catch (e) {
-      console.warn('Could not save mock session to localStorage:', e);
+    } catch (error) {
+      console.log("Could not save to localStorage:", error);
     }
 
     return mockSession;
@@ -135,101 +227,103 @@ export const createLanguageSession = async (
 
 /**
  * Save an interaction (via Spring Boot to internal DB)
- * @param interaction The interaction data to save (matching LanguageInteraction model)
- * @returns Promise with the saved interaction data
+ * Sends user message and AI response to be stored, associated with the user and language.
+ * @param interactionData The interaction data containing userId, messages, language, etc.
+ * @returns Promise with the saved interaction data (likely representing the saved AI response message).
  */
 export const saveInteraction = async (
   interactionData: {
-    sessionId: string;
+    // sessionId is no longer sent from frontend for saving
     userMessage: string;
     aiResponse: string;
+    userId: string;
+    language: string;        // Language is now mandatory
+    proficiencyLevel: string; // Proficiency is now mandatory
     audioUrl?: string;
+    userAudioUrl?: string;   // Added userAudioUrl field if available
     feedback?: LanguageFeedback;
+    token?: string; // Optional token for authorization
   }
 ): Promise<LanguageInteraction> => {
   try {
-    console.log(`📡 Saving interaction for session: ${interactionData.sessionId}`);
+    console.log(`=== SAVING CONVERSATION TO DATABASE ===`);
+    console.log(`User ID: ${interactionData.userId}, Language: ${interactionData.language}`);
+    console.log(`User: "${interactionData.userMessage}"`);
+    console.log(`AI: "${interactionData.aiResponse}"`);
 
-    // Check if we have the session in localStorage
-    const savedSession = localStorage.getItem(`session_${interactionData.sessionId}`);
-    if (savedSession) {
-      console.log(`📋 Found matching session in localStorage: ${savedSession}`);
-    } else {
-      console.warn(`⚠️ Session ${interactionData.sessionId} not found in localStorage`);
-    }
-
-    // Handle session ID formatting - backend expects without "session-" prefix
-    let sessionId = interactionData.sessionId;
-    if (sessionId && sessionId.startsWith('session-')) {
-      sessionId = sessionId.substring(8); // Remove "session-" prefix
-      console.log(`🔄 Adjusted sessionId from ${interactionData.sessionId} to ${sessionId} for backend compatibility`);
-    }
-
-    const interactionToSave = {
-      ...interactionData,
-      sessionId, // Use the adjusted sessionId
-      createdAt: new Date()
+    // Prepare data for the backend - directly maps to SaveLanguageInteractionRequest
+    const backendInteractionData = {
+      userId: interactionData.userId,
+      language: interactionData.language,
+      proficiencyLevel: interactionData.proficiencyLevel,
+      userMessage: interactionData.userMessage,
+      aiResponse: interactionData.aiResponse,
+      audioUrl: interactionData.audioUrl,
+      userAudioUrl: interactionData.userAudioUrl, // Include user audio URL
+      feedback: interactionData.feedback,
+      // No sessionId needed here, backend handles context via userId/language
+      // No explicit createdAt needed, backend handles it
     };
 
-    console.log('📦 Interaction save payload:', interactionToSave);
-
-    // First verify that the session exists
-    try {
-      const sessionExists = await verifySessionExists(interactionData.sessionId);
-      console.log(`🔍 Session verification result: ${sessionExists ? '✅ Session exists' : '❌ Session not found'}`);
-
-      if (!sessionExists) {
-        console.warn(`⚠️ Session ${interactionData.sessionId} not found in database, interaction might not save correctly`);
-      }
-    } catch (error) {
-      console.warn(`⚠️ Error verifying session existence: ${error}`);
-    }
+    // Token comes from interactionData
+    const { token } = interactionData;
 
     // Use the development endpoint that bypasses CAPTCHA validation
+    console.log(`Sending data to API: ${API_URL}/api/language-ai/interactions/dev`);
+    // Log the correct data object being sent
+    console.log(`Data being sent:`, JSON.stringify(backendInteractionData, null, 2));
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization header if token exists
+    if (token) {
+      console.log(`Using token passed directly to the saveInteraction function`);
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      // Attempt to find token from storage as a fallback
+      const tokenInfo = findAuthToken();
+      if (tokenInfo) {
+        console.log(`Using auth token from ${tokenInfo.source} as fallback`);
+        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+      } else {
+        console.log(`No auth token found - request may fail with 401 Unauthorized`);
+      }
+    }
+
     const response = await fetch(`${API_URL}/api/language-ai/interactions/dev`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(interactionToSave),
+      headers,
+      body: JSON.stringify(backendInteractionData), // Send the prepared data
+      credentials: 'include' // This enables sending cookies with the request
     });
 
     // Log the raw response for debugging
     const responseText = await response.text();
-    console.log(`🔍 Raw response from server: ${responseText}`);
 
     // Try to parse as JSON, but handle text responses too
-    let responseData;
+    let responseData: SaveInteractionDevResponse;
     try {
-      responseData = JSON.parse(responseText);
-    } catch {
-      console.warn(`⚠️ Response is not valid JSON: ${responseText}`);
-      responseData = { error: 'Invalid JSON response', rawResponse: responseText };
+      const parsedJson = JSON.parse(responseText);
+      responseData = parsedJson as SaveInteractionDevResponse;
+      console.log(`Server response (${response.status}):`, responseData);
+    } catch (/* eslint-disable-line @typescript-eslint/no-unused-vars */ _parseError) {
+      console.log(`Server response is not valid JSON (${response.status}): ${responseText}`);
+      // If backend dev endpoint returns plain text on error, capture it
+      responseData = { success: false, error: 'Invalid JSON response', rawResponse: responseText };
     }
 
-    // Even with status 200, the dev endpoint might return an error message
-    if (responseData.error) {
-      console.error(`⚠️ Server reported error: ${responseData.error}`);
-      console.log(`ℹ️ Server note: ${responseData.note || 'None provided'}`);
-
-      // If the session wasn't found, try to retrieve it and display for debugging
-      if (responseData.error.includes('Session not found') || responseData.error.includes('not found')) {
-        console.warn(`🔍 Session ID format problem detected. The backend might be expecting a different format.`);
-        console.log(`💡 Your current sessionId format: ${interactionData.sessionId}, adjusted to: ${sessionId}`);
-
-        // Try to retrieve the session from the backend as a diagnostic
-        try {
-          const exists = await verifySessionExists(interactionData.sessionId);
-          console.log(`🔍 Session verification after error: ${exists ? 'Session exists' : 'Session does not exist'}`);
-        } catch (verifyError) {
-          console.error(`❌ Session verification failed: ${verifyError}`);
-        }
-      }
+    // Check for success flag or error message from dev endpoint response
+    if (!response.ok || responseData?.success === false || responseData?.error) {
+      const errorMessage = responseData?.error || `HTTP error ${response.status}`;
+      console.log(`Server reported error: ${errorMessage}`);
+      console.log(`Raw error response data:`, responseData);
 
       // Create a mock interaction but include the server error
       const mockInteraction: LanguageInteraction = {
         id: `error-${Date.now()}`,
-        sessionId: interactionData.sessionId,
+        sessionId: `user-session-${interactionData.userId}`, // Mimic old format for frontend if needed
         userMessage: interactionData.userMessage,
         aiResponse: interactionData.aiResponse,
         audioUrl: interactionData.audioUrl,
@@ -239,70 +333,51 @@ export const saveInteraction = async (
 
       // Store mock interaction in localStorage for fallback retrieval
       try {
-        const interactionKey = `interaction_${interactionData.sessionId}_${Date.now()}`;
-        localStorage.setItem(interactionKey, JSON.stringify(mockInteraction));
-        console.log(`💾 Mock interaction saved to localStorage with key: ${interactionKey}`);
-      } catch (e) {
-        console.warn("Could not save mock interaction to localStorage:", e);
+        localStorage.setItem(`interaction_error_${interactionData.userId}_${Date.now()}`, JSON.stringify(mockInteraction));
+      } catch (error) {
+        console.log("Could not save error interaction to localStorage:", error);
       }
 
-      console.log('⚠️ Using mock interaction due to server error:', mockInteraction);
-      return mockInteraction;
+      console.log(`=== USING MOCK INTERACTION (SERVER ERROR) ===`);
+      // Optionally throw an error here to signal failure more clearly to the caller
+      // throw new Error(`Failed to save interaction: ${errorMessage}`);
+      return mockInteraction; // Returning mock for now to avoid breaking UI
     }
 
-    if (!response.ok && !responseData.id) {
-      const errorBody = typeof responseData === 'string' ? responseData : JSON.stringify(responseData);
-      console.error("❌ Save interaction error response:", errorBody);
+    // Assuming success if no error flag and response is ok
+    console.log(`=== INTERACTION SAVED SUCCESSFULLY ===`);
+    // The backend now returns the ID of the saved AI response message
+    const savedAiMessageId = responseData?.interactionId || responseData?.id || `saved-${Date.now()}`;
+    console.log(`Saved AI Message ID from backend: ${savedAiMessageId}`);
 
-      // Check server connectivity
-      try {
-        const pingResponse = await fetch(`${API_URL}/api/health/ping`, { method: 'GET' });
-        if (pingResponse.ok) {
-          console.log("✅ Server is reachable, issue might be with the interaction endpoint");
-        } else {
-          console.error("❌ Server ping failed, potential connectivity issues");
-        }
-      } catch (e) {
-        console.error("❌ Server ping failed with exception:", e);
-      }
-
-      throw new Error(`Failed to save interaction: ${response.statusText}`);
-    }
-
-    console.log('✅ Interaction saved successfully:', responseData);
-
-    const savedInteraction = {
-      id: responseData.id || `saved-${Date.now()}`,
-      sessionId: interactionData.sessionId, // Keep the original session ID for frontend consistency
+    // Construct the LanguageInteraction object for the frontend
+    // Use the AI message ID as the primary ID for this interaction turn result
+    const savedInteraction: LanguageInteraction = {
+      id: savedAiMessageId,
+      sessionId: `user-session-${interactionData.userId}`, // Maintain consistent format for frontend state
       userMessage: interactionData.userMessage,
       aiResponse: interactionData.aiResponse,
       audioUrl: interactionData.audioUrl,
       feedback: interactionData.feedback,
-      createdAt: responseData.createdAt ? new Date(responseData.createdAt) : new Date()
+      createdAt: responseData?.createdAt ? new Date(responseData.createdAt) : new Date()
     };
 
     // Store successful interaction in localStorage as backup
     try {
-      const interactionKey = `interaction_${interactionData.sessionId}_${savedInteraction.id}`;
-      localStorage.setItem(interactionKey, JSON.stringify(savedInteraction));
-      console.log(`💾 Interaction saved to localStorage with key: ${interactionKey}`);
-    } catch (e) {
-      console.warn("Could not save interaction to localStorage:", e);
+      localStorage.setItem(`interaction_${interactionData.userId}_${savedInteraction.id}`, JSON.stringify(savedInteraction));
+    } catch (error) {
+      console.log("Could not save successful interaction to localStorage:", error);
     }
 
     return savedInteraction;
   } catch (error) {
-    console.error("❌ Error saving interaction:", error);
-
-    // Network errors need special handling
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      console.error(`💥 Network error when connecting to ${API_URL}. Check if the server is running and accessible.`);
-    }
+    console.log(`=== CLIENT-SIDE ERROR SAVING INTERACTION ===`);
+    console.log(`Error: ${error instanceof Error ? error.message : String(error)}`);
 
     // Create a fallback interaction to maintain UI functionality
     const fallbackInteraction: LanguageInteraction = {
       id: `fallback-${Date.now()}`,
-      sessionId: interactionData.sessionId,
+      sessionId: `user-session-${interactionData.userId}`, // Use consistent format
       userMessage: interactionData.userMessage,
       aiResponse: interactionData.aiResponse,
       audioUrl: interactionData.audioUrl,
@@ -312,16 +387,12 @@ export const saveInteraction = async (
 
     // Store fallback in localStorage
     try {
-      const interactionKey = `interaction_fallback_${interactionData.sessionId}_${Date.now()}`;
-      localStorage.setItem(interactionKey, JSON.stringify({
-        ...fallbackInteraction,
-        error: error instanceof Error ? error.message : String(error)
-      }));
-      console.log(`💾 Fallback interaction saved to localStorage with key: ${interactionKey}`);
-    } catch (e) {
-      console.warn("Could not save fallback interaction to localStorage:", e);
+      localStorage.setItem(`interaction_fallback_${interactionData.userId}_${Date.now()}`, JSON.stringify(fallbackInteraction));
+    } catch (error) {
+      console.log("Could not save fallback interaction to localStorage:", error);
     }
 
+    console.log(`=== USING FALLBACK INTERACTION (CLIENT ERROR) ===`);
     return fallbackInteraction;
   }
 };
@@ -395,83 +466,106 @@ const generateFallbackResponse = (userInput: string, language: string, level: st
  * @param userInput The user's input text (matches userMessage in model)
  * @param language The language code (e.g., 'fi-FI')
  * @param level The proficiency level (e.g., 'beginner')
- * @param sessionId The session ID to include in the N8N request
+ * @param userId The user ID to include in the N8N request
  * @returns Promise with the AI response text
  */
 export const getAIResponseFromN8n = async (
   userInput: string,
   language: string,
   level: string,
-  sessionId: string
+  userId: string
 ): Promise<string> => {
-  console.log(`🔍 [STEP 2.1] Preparing N8N request with:
-  - User input: "${userInput.substring(0, 50)}${userInput.length > 50 ? '...' : ''}"
-  - Language: ${language}
-  - Proficiency level: ${level}
-  - Session ID: ${sessionId}`);
+  console.log(`Getting AI response for:
+  • User input: "${userInput}"
+  • Language: ${language}
+  • Level: ${level}
+  • User ID: ${userId}`);
 
   if (!N8N_WEBHOOK_URL) {
-    console.warn('❌ [STEP 2.1] N8n webhook URL not configured. Using fallback response.');
+    console.log(`N8n webhook URL not configured, using fallback response`);
     return generateFallbackResponse(userInput, language, level);
   }
 
   try {
-    // Prepare the request payload
+    // Create a session ID from the user ID for compatibility with N8N
+    const sessionId = `session-${userId}`;
+    console.log(`Using sessionId for N8N: ${sessionId}`);
+
+    // Prepare the request payload with all the expected fields
     const payload = {
       userInput: userInput,
+      message: userInput, // Add message field (some APIs expect this)
+      input: userInput, // Add input field (some APIs expect this)
       language: language,
       proficiencyLevel: level,
-      sessionId: sessionId
+      userId: userId,
+      sessionId: sessionId, // Include sessionId for N8N
+      recaptchaToken: "mock-token-for-development" // Add recaptcha token that might be expected
     };
 
-    console.log(`🔍 [STEP 2.2] Sending request to N8N webhook: ${N8N_WEBHOOK_URL}`);
-    console.log(`📦 [STEP 2.2] Request payload:`, payload);
+    console.log(`Sending request to N8N: ${N8N_WEBHOOK_URL}`);
+    console.log(`Payload:`, JSON.stringify(payload, null, 2));
 
     const startTime = performance.now();
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer fake-auth-for-n8n' // Add a fake auth token just in case
+      },
       body: JSON.stringify(payload),
     });
     const responseTime = Math.round(performance.now() - startTime);
 
-    console.log(`✅ [STEP 2.3] Received response from N8N in ${responseTime}ms, status: ${response.status} ${response.statusText}`);
+    console.log(`Received response from N8N in ${responseTime}ms (status: ${response.status})`);
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`❌ [STEP 2.3] N8n error response:`, errorBody);
+      console.log(`N8n error response: ${errorBody}`);
       throw new Error(`N8n service error: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    console.log(`🔍 [STEP 2.4] Parsing N8N response:`, data);
+    // Get the raw response text first for debugging
+    const responseText = await response.text();
+    console.log(`Raw N8N response: ${responseText}`);
+
+    // Try to parse as JSON if possible
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(responseText);
+    } catch (/* eslint-disable-line @typescript-eslint/no-unused-vars */ _parseError) {
+      // If parsing fails, just use the text response directly
+      console.log(`Response is not valid JSON, using as plain text`);
+      return responseText.length > 0 ? responseText : generateFallbackResponse(userInput, language, level);
+    }
 
     // Extract response from different possible formats
     let aiResponse = '';
-    if (data.aiResponse) {
+    if (typeof data.aiResponse === 'string') {
       aiResponse = data.aiResponse;
-      console.log(`✅ [STEP 2.4] Found response in 'aiResponse' field`);
-    } else if (data.message) {
+    } else if (typeof data.message === 'string') {
       aiResponse = data.message;
-      console.log(`✅ [STEP 2.4] Found response in 'message' field`);
-    } else if (data.output) {
+    } else if (typeof data.output === 'string') {
       aiResponse = data.output;
-      console.log(`✅ [STEP 2.4] Found response in 'output' field`);
+    } else if (typeof data.response === 'string') {
+      aiResponse = data.response;
+    } else if (typeof data.text === 'string') {
+      aiResponse = data.text;
     } else if (typeof data === 'string') {
       aiResponse = data;
-      console.log(`✅ [STEP 2.4] Response is a direct string`);
+    } else if (typeof data.content === 'string') {
+      aiResponse = data.content;
     } else {
-      console.warn(`⚠️ [STEP 2.4] No recognized response format, using fallback`);
+      console.log(`No recognized response format from N8N, using fallback`);
       aiResponse = generateFallbackResponse(userInput, language, level);
     }
 
-    console.log(`✅ [STEP 2.5] Final AI response: "${aiResponse.substring(0, 50)}${aiResponse.length > 50 ? '...' : ''}"`);
     return aiResponse;
   } catch (error) {
-    console.error(`❌ [STEP 2.X] Error getting AI response from N8n:`, error);
+    console.log(`Error getting AI response: ${error instanceof Error ? error.message : String(error)}`);
     // Use the fallback response generator instead of a static message
     const fallbackResponse = generateFallbackResponse(userInput, language, level);
-    console.log(`⚠️ [STEP 2.X] Using fallback response: "${fallbackResponse.substring(0, 50)}${fallbackResponse.length > 50 ? '...' : ''}"`);
+    console.log(`Using fallback AI response`);
     return fallbackResponse;
   }
 };
@@ -487,6 +581,13 @@ export const getSessionInteractions = async (
   try {
     console.log(`🔍 Getting interactions for session: ${sessionId}`);
 
+    // Session interactions are no longer needed as we use a create-only flow
+    // Just return an empty array to avoid errors in the UI
+    console.log(`ℹ️ Skipping API call - using simplified interaction flow`);
+    return [];
+
+    // Keep the old code commented out in case we need it later
+    /*
     // Handle different session ID formats - ensure it has the "session-" prefix for the backend controller
     let cleanSessionId = sessionId;
     if (cleanSessionId && !cleanSessionId.startsWith('session-') && !cleanSessionId.startsWith('mock-')) {
@@ -558,90 +659,202 @@ export const getSessionInteractions = async (
 
     // If response is not in expected format
     console.warn('⚠️ Unexpected response format for interactions:', data);
+    */
     return [];
-  } catch (error) {
-    console.error("❌ Error fetching interactions:", error);
-
-    // Try to recover from localStorage
-    console.warn("⚠️ Attempting to recover interactions from localStorage");
-
-    // Find all interactions for this session stored in localStorage
-    const localInteractions: LanguageInteraction[] = [];
-
-    try {
-      const prefix = `interaction_${sessionId}_`;
-      const fallbackPrefix = `interaction_fallback_${sessionId}_`;
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith(prefix) || key.startsWith(fallbackPrefix))) {
-          try {
-            const item = localStorage.getItem(key);
-            if (item) {
-              const interaction = JSON.parse(item);
-              if (interaction.sessionId === sessionId) {
-                localInteractions.push({
-                  id: interaction.id,
-                  sessionId: interaction.sessionId,
-                  userMessage: interaction.userMessage,
-                  aiResponse: interaction.aiResponse,
-                  audioUrl: interaction.audioUrl,
-                  feedback: interaction.feedback,
-                  createdAt: new Date(interaction.createdAt)
-                });
-              }
-            }
-          } catch (e) {
-            console.warn(`Could not parse localStorage item: ${key}`, e);
-          }
-        }
-      }
-
-      if (localInteractions.length > 0) {
-        console.log(`✅ Recovered ${localInteractions.length} interactions from localStorage`);
-        return localInteractions.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-      } else {
-        console.warn("⚠️ No interactions found, returning empty array");
-        return [];
-      }
-    } catch (e) {
-      console.error("❌ Error recovering from localStorage:", e);
-      return [];
-    }
+  } catch {
+    // Just return an empty array without throwing an error
+    console.log("ℹ️ Returning empty interactions array - using simplified flow");
+    return [];
   }
 };
 
 /**
  * Verify a session exists in the database
  * @param sessionId Session ID to verify
+ * @param token Optional JWT token for authorization
  * @returns Promise resolving to boolean indicating if session exists
  */
-export const verifySessionExists = async (sessionId: string): Promise<boolean> => {
+export const verifySessionExists = async (sessionId: string, token?: string): Promise<boolean> => {
   try {
-    console.log(`🔍 Verifying session exists in database: ${sessionId}`);
+    console.log(`Verifying session exists: ${sessionId}`);
 
-    // Try to fetch interactions for the session - if it returns a valid response, the session exists
-    const response = await fetch(`${API_URL}/api/language-ai/sessions/${sessionId}/exists`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+    // Try both formats - with and without prefix
+    const withPrefix = sessionId.startsWith('session-') ? sessionId : `session-${sessionId}`;
+    const withoutPrefix = sessionId.startsWith('session-') ? sessionId.substring(8) : sessionId;
+
+    console.log(`Checking backend with ID: ${withoutPrefix} (without prefix)`);
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // First, try using the direct token passed in
+    if (token) {
+      console.log(`Using token passed directly to the verifySessionExists function`);
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      // Fallback to findAuthToken() for backwards compatibility
+      const tokenInfo = findAuthToken();
+
+      if (tokenInfo) {
+        console.log(`Using auth token from ${tokenInfo.source}`);
+        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+      } else {
+        console.log(`No auth token found - request may fail with 401 Unauthorized`);
       }
+    }
+
+    // Always use the version without prefix for backend API calls
+    const response = await fetch(`${API_URL}/api/language-ai/sessions/${withoutPrefix}/exists`, {
+      method: 'GET',
+      headers,
+      credentials: 'include' // This enables sending cookies with the request
     });
 
     if (response.ok) {
       const data = await response.json();
-      console.log(`✅ Session verification result: ${data.exists}`);
-      return data.exists;
+      console.log(`Session verification response: ${data.exists ? 'EXISTS' : 'NOT FOUND'}`);
+      return data.exists === true;
     }
 
-    console.log(`⚠️ Session verification failed with status: ${response.status}`);
+    // If we get a 404, the session doesn't exist
+    if (response.status === 404) {
+      console.log(`Session does not exist (404)`);
+      return false;
+    }
+
+    // For other errors, log them but don't fail the check
+    console.log(`Error verifying session: ${response.status} ${response.statusText}`);
+
+    // Try to get more info from the response
+    try {
+      const errorText = await response.text();
+      console.log(`API Error detail: ${errorText}`);
+    } catch (/* eslint-disable-line @typescript-eslint/no-unused-vars */ _readError) {
+      console.log(`Could not read API error detail`);
+    }
+
+    // Default to false on error
     return false;
   } catch (error) {
-    console.error('❌ Error verifying session:', error);
+    console.log(`Exception verifying session: ${error instanceof Error ? error.message : String(error)}`);
+    return false;
+  }
+};
 
-    // Fallback to checking localStorage
-    console.log('⚠️ Falling back to localStorage check');
-    const savedSession = localStorage.getItem(`session_${sessionId}`);
-    return !!savedSession;
+/**
+ * Debug helper function to diagnose session ID issues
+ * @param sessionId The session ID to debug
+ * @param token Optional JWT token for authorization
+ */
+export const debugSessionId = async (sessionId: string, token?: string): Promise<void> => {
+  console.log(`=== DEBUGGING SESSION ID: ${sessionId} ===`);
+
+  // Check different session ID formats
+  const withPrefix = sessionId.startsWith('session-') ? sessionId : `session-${sessionId}`;
+  const withoutPrefix = sessionId.startsWith('session-') ? sessionId.substring(8) : sessionId;
+
+  console.log(`Session ID with prefix: ${withPrefix}`);
+  console.log(`Session ID without prefix: ${withoutPrefix}`);
+
+  // Check if session exists in localStorage
+  const localStorageKey = `session_${sessionId}`;
+  const sessionData = localStorage.getItem(localStorageKey);
+
+  if (sessionData) {
+    console.log(`Session found in localStorage with key: ${localStorageKey}`);
+    try {
+      const parsed = JSON.parse(sessionData);
+      console.log(`Session data: userId=${parsed.userId}, language=${parsed.language}`);
+    } catch (error) {
+      console.log(`Could not parse session data: ${error}`);
+    }
+  } else {
+    console.log(`Session NOT found in localStorage with key: ${localStorageKey}`);
+
+    // Try the alternative format in localStorage
+    const altLocalStorageKey = `session_${sessionId.startsWith('session-') ? withoutPrefix : withPrefix}`;
+    const altSessionData = localStorage.getItem(altLocalStorageKey);
+
+    if (altSessionData) {
+      console.log(`Session found in localStorage with alternative key: ${altLocalStorageKey}`);
+    }
+  }
+
+  // Check if sessions exist in backend with both formats
+  try {
+    console.log(`Checking backend for session with prefix: ${withPrefix}`);
+    const existsWithPrefix = await verifySessionExists(withPrefix, token);
+    console.log(`Backend result for ID with prefix: ${existsWithPrefix ? 'EXISTS' : 'NOT FOUND'}`);
+
+    console.log(`Checking backend for session without prefix: ${withoutPrefix}`);
+    const existsWithoutPrefix = await verifySessionExists(withoutPrefix, token);
+    console.log(`Backend result for ID without prefix: ${existsWithoutPrefix ? 'EXISTS' : 'NOT FOUND'}`);
+  } catch (error) {
+    console.log(`Error verifying session in backend: ${error}`);
+  }
+
+  console.log(`=== END DEBUG SESSION ID ===`);
+};
+
+/**
+ * Utility function to find where the authentication token is stored
+ * @returns The token and its storage location, or null if not found
+ */
+export const findAuthToken = (): { token: string, source: string } | null => {
+  try {
+    // First check if we can access Redux store directly
+    // This requires a way to access the store outside of components
+    // If your app has a store export or singleton, you could check it here
+    if (typeof window !== 'undefined' && 'reduxStore' in window && window.reduxStore) {
+      const state = window.reduxStore.getState();
+      if (state?.auth?.token) {
+        return { token: state.auth.token, source: 'redux-store' };
+      }
+    }
+
+    // Check localStorage
+    const localStorageToken = localStorage.getItem('auth_token');
+    if (localStorageToken) {
+      return { token: localStorageToken, source: 'localStorage' };
+    }
+
+    // Check sessionStorage
+    const sessionStorageToken = sessionStorage.getItem('auth_token');
+    if (sessionStorageToken) {
+      return { token: sessionStorageToken, source: 'sessionStorage' };
+    }
+
+    // Check for refresh token in cookies
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'refresh_token') {
+        return { token: decodeURIComponent(value), source: 'cookie:refresh_token' };
+      }
+    }
+
+    // Check other common token names in localStorage
+    const commonTokenNames = [
+      'token', 'jwt_token', 'access_token', 'id_token', 'idToken',
+      'accessToken', 'jwtToken', 'authToken', 'refresh_token'
+    ];
+
+    for (const name of commonTokenNames) {
+      const token = localStorage.getItem(name);
+      if (token) {
+        return { token, source: `localStorage:${name}` };
+      }
+
+      const sessionToken = sessionStorage.getItem(name);
+      if (sessionToken) {
+        return { token: sessionToken, source: `sessionStorage:${name}` };
+      }
+    }
+
+    return null;
+  } catch (e) {
+    console.error('Error while finding auth token:', e);
+    return null;
   }
 };

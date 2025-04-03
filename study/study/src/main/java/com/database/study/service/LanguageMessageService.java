@@ -15,37 +15,44 @@ import java.util.List;
 public interface LanguageMessageService {
 
   /**
-   * Create a new language practice session
+   * Create a new language practice session (metadata)
+   * Now uses userId and language as context identifiers
    */
   LanguageMessageDTO createSession(CreateSessionRequest request);
 
   /**
-   * Get all sessions for a user
+   * Get all languages a user has interacted with
+   * Returns a list of language codes
    */
   List<String> getUserSessions(String userId);
 
   /**
-   * Get all messages in a session
+   * Get all messages for a user and language
+   * The sessionId parameter may contain userId and language information
    */
   Page<LanguageMessageDTO> getSessionMessages(String sessionId, Pageable pageable);
 
   /**
    * Save a user message and generate AI response
+   * Extracts language from sessionId if available
    */
   LanguageMessageDTO saveUserMessage(SaveMessageRequest request);
 
   /**
    * Check if a session exists
+   * Parses sessionId to extract userId and language
    */
   boolean sessionExists(String sessionId);
 
   /**
    * Get session metadata
+   * Parses sessionId to extract userId and language
    */
   LanguageMessageDTO getSessionMetadata(String sessionId);
 
   /**
    * Save session metadata message
+   * Uses userId and language from the provided message
    */
   LanguageMessageDTO saveSessionMetadata(LanguageMessage sessionMessage);
 }

@@ -13,41 +13,53 @@ import java.util.Optional;
 @Repository
 public interface LanguageMessageRepository extends JpaRepository<LanguageMessage, String> {
 
-    /**
-     * Find all messages in a session ordered by creation time
-     */
-    Page<LanguageMessage> findBySessionIdOrderByCreatedAtAsc(String sessionId, Pageable pageable);
+        /**
+         * Find all messages for a user, ordered by creation date
+         */
+        Page<LanguageMessage> findByUserIdOrderByCreatedAtAsc(String userId, Pageable pageable);
 
-    /**
-     * Find all messages from a specific user ordered by creation time descending
-     */
-    Page<LanguageMessage> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
+        /**
+         * Find the initial metadata message for a specific user and language
+         */
+        Optional<LanguageMessage> findByUserIdAndLanguageAndIsSessionMetadataTrue(String userId, String language);
 
-    /**
-     * Find all messages from a user in a specific language ordered by creation time
-     * descending
-     */
-    Page<LanguageMessage> findByUserIdAndLanguageOrderByCreatedAtDesc(String userId, String language,
-            Pageable pageable);
+        /**
+         * Find all sessions (metadata messages) for a user
+         */
+        Page<LanguageMessage> findByUserIdAndIsSessionMetadataTrueOrderByCreatedAtDesc(String userId,
+                        Pageable pageable);
 
-    /**
-     * Find session metadata for a given session ID
-     */
-    Optional<LanguageMessage> findBySessionIdAndIsSessionMetadataTrue(String sessionId);
+        /**
+         * Find sessions (metadata messages) by user and language
+         */
+        Page<LanguageMessage> findByUserIdAndLanguageAndIsSessionMetadataTrueOrderByCreatedAtDesc(String userId,
+                        String language, Pageable pageable);
 
-    /**
-     * Check if a session exists by looking for messages with that session ID
-     */
-    boolean existsBySessionId(String sessionId);
+        /**
+         * Check if a metadata entry exists for a user and language
+         */
+        boolean existsByUserIdAndLanguageAndIsSessionMetadataTrue(String userId, String language);
 
-    /**
-     * Find all unique session IDs for a user (for listing sessions)
-     */
-    @Query("SELECT DISTINCT m.sessionId FROM LanguageMessage m WHERE m.userId = :userId ORDER BY MAX(m.createdAt) DESC")
-    List<String> findDistinctSessionIdsByUserId(String userId);
+        /**
+         * Find all messages from a specific user ordered by creation time descending
+         */
+        Page<LanguageMessage> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 
-    /**
-     * Find the most recent messages
-     */
-    List<LanguageMessage> findTop5ByOrderByCreatedAtDesc();
+        /**
+         * Find all messages from a user in a specific language ordered by creation time
+         * descending
+         */
+        Page<LanguageMessage> findByUserIdAndLanguageOrderByCreatedAtDesc(String userId, String language,
+                        Pageable pageable);
+
+        /**
+         * Find all unique languages for a user (for listing available languages)
+         */
+        @Query("SELECT DISTINCT m.language FROM LanguageMessage m WHERE m.userId = :userId ORDER BY MAX(m.createdAt) DESC")
+        List<String> findDistinctLanguagesByUserId(String userId);
+
+        /**
+         * Find the most recent messages
+         */
+        List<LanguageMessage> findTop5ByOrderByCreatedAtDesc();
 }

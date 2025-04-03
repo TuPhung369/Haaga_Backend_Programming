@@ -18,7 +18,7 @@ public class CreateLanguageSessionRequest {
   @NotBlank(message = "User ID cannot be blank")
   private String userId;
 
-  @NotBlank(message = "Language code cannot be blank")
+  @NotBlank(message = "Language cannot be blank")
   private String language;
 
   private ProficiencyLevel proficiencyLevel;

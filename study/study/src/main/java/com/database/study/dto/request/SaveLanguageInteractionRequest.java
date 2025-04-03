@@ -1,5 +1,6 @@
 package com.database.study.dto.request;
 
+import com.database.study.enums.ProficiencyLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,8 +15,13 @@ import jakarta.validation.constraints.NotNull;
 @Builder
 public class SaveLanguageInteractionRequest {
 
-  @NotBlank(message = "Session ID cannot be blank")
-  private String sessionId;
+  @NotBlank(message = "User ID cannot be blank")
+  private String userId;
+
+  @NotBlank(message = "Language cannot be blank")
+  private String language;
+
+  private ProficiencyLevel proficiencyLevel; // Can be optional if derived from metadata
 
   @NotBlank(message = "User message cannot be blank")
   private String userMessage;
@@ -23,9 +29,9 @@ public class SaveLanguageInteractionRequest {
   @NotBlank(message = "AI response cannot be blank")
   private String aiResponse;
 
-  private String audioUrl;
+  private String audioUrl; // URL for AI audio
 
-  private String userAudioUrl;
+  private String userAudioUrl; // URL for user audio
 
   @NotNull(message = "Recaptcha token is required")
   private String recaptchaToken;

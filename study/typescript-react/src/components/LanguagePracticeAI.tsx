@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import {
   Box,
   Typography,
@@ -24,17 +25,33 @@ import {
   getSupportedLanguages
 } from "../services/SpeechService";
 import {
-  createLanguageSession,
   saveInteraction,
   getAIResponseFromN8n,
-  getSessionInteractions,
   inspectLocalStorage,
-  verifySessionExists
+  findAuthToken
 } from "../services/LanguageService";
 import ReactMarkdown from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeRaw from "rehype-raw";
+import store from "../store";
+
+// Define Redux store state interface
+interface RootState {
+  user: {
+    userInfo: {
+      id: string;
+      // Add other userInfo fields as needed
+    };
+    roles: string[];
+    allUsers: Array<{ id: string; name: string }>;
+    isUserInfoInvalidated: boolean;
+    isRolesInvalidated: boolean;
+  };
+  auth: {
+    token: string;
+  };
+}
 
 // Define proficiency levels for the component
 enum ProficiencyLevel {
@@ -76,20 +93,63 @@ const preprocessMarkdown = (markdown: string): string => {
 const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
   userId = "guest"
 }) => {
+  // Get user info from Redux store
+  const { userInfo } = useSelector((state: RootState) => state.user);
+  // Get auth token from Redux store
+  const { token } = useSelector((state: RootState) => state.auth);
+
+  // Get the actual user ID from Redux or fall back to the prop value
+  const actualUserId = userInfo?.id || userId;
+
+  // Debug function to show user info
+  const showUserInfo = () => {
+    console.log(`Current user ID: ${actualUserId}`);
+
+    // Check for authentication token
+    const authTokenInfo = findAuthToken();
+    if (authTokenInfo) {
+      console.log(`Authentication token found in ${authTokenInfo.source}`);
+      console.log(
+        `Token: ${authTokenInfo.token.substring(0, 20)}... (truncated)`
+      );
+    } else {
+      console.log(`No authentication token found in storage`);
+
+      // Check Redux state for auth token
+      try {
+        const reduxState = store.getState();
+        if (reduxState.auth && reduxState.auth.token) {
+          const reduxToken = reduxState.auth.token;
+          console.log(
+            `Found token in Redux store: ${reduxToken.substring(
+              0,
+              20
+            )}... (truncated)`
+          );
+
+          // No need to save to localStorage as token is already verified
+          console.log(`Token is already verified in Redux store`);
+        } else {
+          console.log(`No token found in Redux auth state`);
+        }
+      } catch (e) {
+        console.log(`Error accessing Redux store: ${e}`);
+      }
+
+      // Check cookies
+      console.log(`Cookies available: ${document.cookie ? "Yes" : "No"}`);
+      if (document.cookie) {
+        console.log(`Cookies: ${document.cookie}`);
+      }
+    }
+  };
+
   const [language, setLanguage] = useState<string>("en-US");
-
-  // userMessage state is needed for:
-  // 1. Real-time browser transcript updates via handleSpeechRecognized
-  // 2. Sending to the N8N API in handleAudioRecorded
-  // 3. Maintaining consistency with backend API for new conversation entries
-  // Even though we now load full message history from the database, this state is still required
   const [userMessage, setUserMessage] = useState<string>("");
-
   const [aiResponse, setAiResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [supportedLanguages] = useState(getSupportedLanguages());
-  const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [proficiencyLevel, setProficiencyLevel] = useState<string>(
     ProficiencyLevel.Intermediate
   );
@@ -107,14 +167,9 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Scroll to bottom of chat when messages update
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Refs to track previous language and proficiency level
+  const prevLangRef = useRef<string>(language);
+  const prevLevelRef = useRef<string>(proficiencyLevel);
 
   // Get language name from code - memoized to use in dependencies
   const getLanguageName = useCallback(
@@ -125,114 +180,57 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
     [supportedLanguages]
   );
 
-  // Load previous interactions for a session
-  const loadSessionInteractions = useCallback(
-    async (sessionId: string) => {
-      try {
-        setIsLoading(true);
-        console.log(
-          `🔍 Loading previous interactions for session: ${sessionId}`
-        );
-
-        const interactions = await getSessionInteractions(sessionId);
-        console.log(`✅ Loaded ${interactions.length} previous interactions`);
-
-        if (interactions.length === 0) {
-          // If no previous interactions, add a welcome message
-          const welcomeMessage = {
-            sender: "AI",
-            content: `Welcome to language practice! I'm ready to help you practice ${getLanguageName(
-              language
-            )} at the ${proficiencyLevel} level. Say something to begin our conversation.`,
-            timestamp: new Date().toISOString()
-          };
-          setMessages([welcomeMessage]);
-        } else {
-          // Convert interactions to messages and set them in order
-          const messagesFromInteractions: Array<{
-            sender: string;
-            content: string;
-            timestamp: string;
-          }> = [];
-
-          // Sort interactions by createdAt
-          const sortedInteractions = [...interactions].sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-
-          for (const interaction of sortedInteractions) {
-            // Add user message
-            messagesFromInteractions.push({
-              sender: "User",
-              content: interaction.userMessage,
-              timestamp: new Date(interaction.createdAt).toISOString()
-            });
-
-            // Add AI response (remove simulation prefix for display)
-            messagesFromInteractions.push({
-              sender: "AI",
-              content: interaction.aiResponse.replace("[SIMULATION] ", ""),
-              timestamp: new Date(interaction.createdAt).toISOString()
-            });
-
-            // Keep track of the latest AI response
-            setAiResponse(interaction.aiResponse);
-          }
-
-          setMessages(messagesFromInteractions);
-        }
-      } catch (error) {
-        console.error("Error loading session interactions:", error);
-        // Show a welcome message even on error
-        const welcomeMessage = {
-          sender: "AI",
-          content: `Welcome to language practice! I'm ready to help you practice ${getLanguageName(
-            language
-          )} at the ${proficiencyLevel} level. Say something to begin our conversation.`,
-          timestamp: new Date().toISOString()
-        };
-        setMessages([welcomeMessage]);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [
-      language,
-      proficiencyLevel,
-      setMessages,
-      setIsLoading,
-      setAiResponse,
-      getLanguageName
-    ]
-  );
-
-  // Create a new session when language or proficiency level changes
+  // Initialize chat on mount with welcome message
   useEffect(() => {
-    const initSession = async () => {
-      setIsLoading(true);
-      setError(""); // Clear error on new session init
-      try {
-        const session = await createLanguageSession(
-          language,
-          proficiencyLevel,
-          userId
-        );
-        setCurrentSessionId(session.id);
+    console.log("Initializing chat for user:", actualUserId);
 
-        // Load previous interactions for this session
-        await loadSessionInteractions(session.id);
-      } catch (err) {
-        console.error("Error initializing session:", err);
-        setError("Failed to initialize language session. Please try again.");
-        setCurrentSessionId(""); // Reset session ID on error
-      } finally {
-        setIsLoading(false);
-      }
+    // Set up initial welcome message based on language and proficiency
+    const welcomeMessage = {
+      sender: "AI",
+      content: `Welcome to language practice! I'm ready to help you practice ${getLanguageName(
+        language
+      )} at the ${proficiencyLevel} level. Say something to begin our conversation.`,
+      timestamp: new Date().toISOString()
     };
 
-    initSession();
-  }, [language, proficiencyLevel, userId, loadSessionInteractions]);
+    setMessages([welcomeMessage]);
+
+    // Save references to current language and level
+    prevLangRef.current = language;
+    prevLevelRef.current = proficiencyLevel;
+  }, [actualUserId, language, proficiencyLevel, getLanguageName]);
+
+  // Update welcome message when language or proficiency changes
+  useEffect(() => {
+    // Only update if the language or level actually changed
+    if (
+      prevLangRef.current !== language ||
+      prevLevelRef.current !== proficiencyLevel
+    ) {
+      console.log("Language or proficiency changed, updating welcome message");
+      const updatedWelcomeMessage = {
+        sender: "AI",
+        content: `Language or level changed! Now practicing ${getLanguageName(
+          language
+        )} at the ${proficiencyLevel} level. Say something to continue.`,
+        timestamp: new Date().toISOString()
+      };
+      setMessages([updatedWelcomeMessage]);
+
+      // Update the refs
+      prevLangRef.current = language;
+      prevLevelRef.current = proficiencyLevel;
+    }
+  }, [language, proficiencyLevel, getLanguageName]);
+
+  // Scroll to bottom of chat when messages update
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   // Handle language change
   const handleLanguageChange = (event: SelectChangeEvent) => {
@@ -252,42 +250,27 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
     audioBlob: Blob,
     browserTranscript: string
   ) => {
-    if (!currentSessionId) {
-      setError("Session not initialized. Cannot process recording.");
-      return;
-    }
     setIsLoading(true);
     setError("");
     // Reset any previous response metadata
     setResponseMetadata({});
 
     try {
-      console.log(
-        `🔍 [STEP 0] Starting recording process with sessionId: ${currentSessionId}`
-      );
+      console.log(`=== STARTING NEW CONVERSATION TURN ===`);
+      console.log(`User ID: ${actualUserId}`);
 
       // 1. Speech to Text - Use browser transcript if available
-      console.log(`🔍 [STEP 1] Processing speech to text...`);
+      console.log(`STEP 1: Converting speech to text...`);
       let transcribedText = "";
 
       if (browserTranscript && browserTranscript.trim() !== "") {
         // Use browser's real-time transcript if available
         transcribedText = browserTranscript;
-        console.log(
-          `✅ [STEP 1] Using browser transcript: "${transcribedText.substring(
-            0,
-            50
-          )}${transcribedText.length > 50 ? "..." : ""}"`
-        );
+        console.log(`User message (from browser): "${transcribedText}"`);
       } else {
         // Fallback to server-side transcription
         transcribedText = await convertSpeechToText(audioBlob, language);
-        console.log(
-          `✅ [STEP 1] Using server transcript: "${transcribedText.substring(
-            0,
-            50
-          )}${transcribedText.length > 50 ? "..." : ""}"`
-        );
+        console.log(`User message (from server): "${transcribedText}"`);
       }
 
       setUserMessage(transcribedText);
@@ -301,9 +284,7 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       setMessages((prevMessages) => [...prevMessages, userMessageObj]);
 
       // 2. Get AI Response FROM N8N
-      console.log(
-        `🔍 [STEP 2] Getting AI response from N8N with sessionId: ${currentSessionId}`
-      );
+      console.log(`STEP 2: Getting AI response...`);
 
       // Call N8N with timing
       const startTime = performance.now();
@@ -311,25 +292,19 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
         transcribedText,
         language,
         proficiencyLevel,
-        currentSessionId
+        actualUserId // Use user ID instead of session ID
       );
       const endTime = performance.now();
+      const responseTimeMs = Math.round(endTime - startTime);
 
-      console.log(
-        `✅ [STEP 2] AI response received in ${Math.round(
-          endTime - startTime
-        )}ms: "${aiResponseText.substring(0, 50)}${
-          aiResponseText.length > 50 ? "..." : ""
-        }"`
-      );
+      console.log(`AI response (${responseTimeMs}ms): "${aiResponseText}"`);
 
       // Update response metadata
       setResponseMetadata({
-        responseTime: Math.round(endTime - startTime),
+        responseTime: responseTimeMs,
         responseSource: aiResponseText.includes("[SIMULATION]")
           ? "fallback"
           : "n8n",
-        sessionId: currentSessionId,
         isSimulated: aiResponseText.includes("[SIMULATION]")
       });
 
@@ -344,67 +319,48 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       };
       setMessages((prevMessages) => [...prevMessages, aiResponseObj]);
 
-      // 3. Save Interaction (using fields from LanguageInteraction model)
-      console.log(
-        `🔍 [STEP 3] Saving interaction with sessionId: ${currentSessionId}`
-      );
+      // 3. Save Interaction using user ID
+      console.log(`STEP 3: Saving conversation to database...`);
+      console.log(`Using user ID for saving: ${actualUserId}`);
 
-      // Check if the session exists before saving
-      let sessionExists = false;
-      try {
-        sessionExists = await verifySessionExists(currentSessionId);
-        console.log(
-          `🔍 [STEP 3.1] Session verification: ${
-            sessionExists ? "✅ Found" : "❌ Not found"
-          }`
-        );
-      } catch (error) {
-        console.warn(
-          `⚠️ [STEP 3.1] Session verification failed, will attempt save anyway:`,
-          error
-        );
+      // Log token availability
+      if (token) {
+        console.log(`Using token from Redux store for saveInteraction`);
+      } else {
+        console.log(`No token available in Redux store for saveInteraction`);
       }
 
-      // If session doesn't exist, log warning but try saving anyway - the backend might handle it differently
-      if (!sessionExists) {
-        console.warn(
-          `⚠️ [STEP 3.2] Attempting to save interaction with potentially invalid sessionId: ${currentSessionId}`
-        );
-      }
-
-      // Proceed with saving the interaction
+      // Proceed with saving the interaction - simplified to use userId directly
       const interactionToSave = {
-        sessionId: currentSessionId,
+        userId: actualUserId, // Use user ID as primary identifier
         userMessage: transcribedText,
-        aiResponse: aiResponseText
+        aiResponse: aiResponseText,
+        language: language, // Include language for the database
+        proficiencyLevel: proficiencyLevel, // Include proficiency level for the database
+        token // Pass the token directly to the function
       };
 
-      console.log(`📦 [STEP 3.3] Interaction save payload:`, interactionToSave);
-
-      const savedInteraction = await saveInteraction(interactionToSave);
-      console.log(
-        `✅ [STEP 3.4] Interaction saved with ID: ${savedInteraction.id}`
-      );
-
-      // Verify the interaction was saved
-      console.log(`🔍 [STEP 3.5] Verifying interaction was saved...`);
       try {
-        const interactions = await getSessionInteractions(currentSessionId);
-        const found = interactions.some((i) => i.id === savedInteraction.id);
-        console.log(
-          `${found ? "✅" : "❌"} [STEP 3.5] Interaction verification: ${
-            found ? "Found in database" : "Not found in database"
+        const savedInteraction = await saveInteraction(interactionToSave);
+        console.log(`Interaction saved with ID: ${savedInteraction.id}`);
+      } catch (error) {
+        console.error(
+          `Error saving interaction: ${
+            error instanceof Error ? error.message : String(error)
           }`
         );
-      } catch (error) {
-        console.warn(`⚠️ [STEP 3.5] Interaction verification failed:`, error);
       }
 
       // 4. Text to Speech
-      console.log(`🔍 [STEP 4] Converting AI response to speech...`);
+      console.log(`STEP 4: Converting AI response to speech...`);
       await speakAiResponse(aiResponseText);
+
+      console.log(`=== CONVERSATION TURN COMPLETED ===`);
     } catch (error) {
-      console.error("❌ Error processing audio:", error);
+      console.log(`=== ERROR PROCESSING CONVERSATION ===`);
+      console.log(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
       setError(
         "An error occurred while processing your recording. Please try again."
       );
@@ -461,42 +417,22 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
     });
   };
 
+  // Debug interactions utility
   const debugInteractions = async () => {
     setIsLoading(true);
     try {
-      console.log("🔍 Starting interaction debugging");
+      console.log("=== STARTING DEBUG PROCESS ===");
 
       // 1. Inspect localStorage
-      console.log("📦 Checking localStorage state:");
-      const storageState = inspectLocalStorage();
+      console.log("Checking localStorage state:");
+      inspectLocalStorage();
 
-      // 2. Verify the current session exists
-      console.log(`🔄 Verifying current session: ${currentSessionId}`);
-      if (currentSessionId) {
-        const exists = await verifySessionExists(currentSessionId);
-        console.log(
-          `📡 Session verification result: ${
-            exists ? "✅ Exists in DB" : "❌ Not found in DB"
-          }`
-        );
+      // 2. Show user info
+      showUserInfo();
 
-        // 3. Try to load interactions for the session as a verification
-        console.log(
-          "🔍 Attempting to load session interactions as verification"
-        );
-        const interactions = await getSessionInteractions(currentSessionId);
-        console.log(`📊 Found ${interactions.length} interactions for session`);
-
-        if (interactions.length === 0 && storageState.interactionCount > 0) {
-          console.warn(
-            "⚠️ No interactions found in database, but localStorage contains interactions"
-          );
-        }
-      } else {
-        console.warn("⚠️ No active session to verify");
-      }
+      console.log("=== DEBUG PROCESS COMPLETED ===");
     } catch (error) {
-      console.error("❌ Error during interaction debugging:", error);
+      console.error(`Error during debugging: ${error}`);
     } finally {
       setIsLoading(false);
     }
@@ -595,6 +531,17 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
               sx={{ mt: 1 }}
             >
               Debug Interactions
+            </Button>
+
+            {/* User Info button */}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={showUserInfo}
+              disabled={isLoading}
+              sx={{ mt: 1, ml: 1, bgcolor: "info.light", color: "white" }}
+            >
+              User Info
             </Button>
           </Box>
         </Box>
@@ -788,8 +735,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
                       : "Fallback Simulation"}
                     <br />
                     Response time: {responseMetadata.responseTime}ms
-                    <br />
-                    Session ID: {responseMetadata.sessionId}
                     <br />
                     {responseMetadata.isSimulated && (
                       <Box component="span" sx={{ color: "warning.main" }}>

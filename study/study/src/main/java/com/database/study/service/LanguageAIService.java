@@ -2,7 +2,6 @@ package com.database.study.service;
 
 import com.database.study.dto.LanguageMessageDTO;
 import com.database.study.dto.request.CreateLanguageSessionRequest;
-import com.database.study.dto.request.ProcessAudioRequest;
 import com.database.study.dto.request.SaveLanguageInteractionRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,32 +9,31 @@ import org.springframework.data.domain.Pageable;
 public interface LanguageAIService {
 
   /**
-   * Create a new language practice session
+   * Create or retrieve session metadata for a user and language.
+   * This now represents the start of a conversation context for a specific
+   * language.
    */
-  LanguageMessageDTO createSession(CreateLanguageSessionRequest request);
+  LanguageMessageDTO ensureSessionMetadata(CreateLanguageSessionRequest request);
 
   /**
-   * Get sessions for a user
+   * Get conversation history (messages) for a user and language.
    */
-  Page<LanguageMessageDTO> getUserSessions(String userId, Pageable pageable);
+  Page<LanguageMessageDTO> getUserConversationHistory(String userId, String language, Pageable pageable);
 
   /**
-   * Get sessions for a user with a specific language
-   */
-  Page<LanguageMessageDTO> getUserSessionsByLanguage(String userId, String language, Pageable pageable);
-
-  /**
-   * Save a language interaction
+   * Save a language interaction (both user message and AI response).
+   * This will likely save two LanguageMessage entries.
    */
   LanguageMessageDTO saveInteraction(SaveLanguageInteractionRequest request);
 
   /**
-   * Get interactions for a session
+   * Get all unique languages a user has interacted with.
+   * (Replaces getUserSessions)
    */
-  Page<LanguageMessageDTO> getSessionInteractions(String sessionId, Pageable pageable);
+  Page<LanguageMessageDTO> getUserLanguages(String userId, Pageable pageable);
 
-  /**
-   * Process audio and generate AI response
-   */
-  String processAudio(ProcessAudioRequest request);
+  // Consider if processAudio needs changes - it might now depend on userId and
+  // language
+  // instead of sessionId.
+  // String processAudio(ProcessAudioRequest request);
 }

@@ -108,6 +108,16 @@ public class AIServiceProxyController {
   }
 
   /**
+   * Proxy for getting language interactions using the formatted session ID path
+   * This handles the specific route pattern that was returning 404
+   */
+  @GetMapping("/language-ai/sessions/session-{sessionId}/interactions")
+  public ResponseEntity<Object> getInteractionsByFormattedSessionId(@PathVariable String sessionId) {
+    logger.info("Proxying get language interactions request for formatted session ID: session-{}", sessionId);
+    return proxyRequest("/api/language-ai/sessions/session-" + sessionId + "/interactions", HttpMethod.GET, null);
+  }
+
+  /**
    * Proxy for getting user language proficiency
    */
   @GetMapping("/users/{userId}/language-proficiency")
