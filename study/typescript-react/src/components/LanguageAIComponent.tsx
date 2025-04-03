@@ -13,8 +13,7 @@ import {
   SelectChangeEvent,
   Alert,
   IconButton,
-  Collapse,
-  Divider
+  Collapse
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
@@ -844,25 +843,33 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               display: "flex",
               flexDirection: "column",
               gap: 2,
-              background: "linear-gradient(135deg, #f9fafb 0%, #f0f2f5 100%)"
+              background: "linear-gradient(135deg, #f9fafb 0%, #f0f2f5 100%)",
+              position: "relative" // Add position relative for absolute positioning inside
             }}
           >
-            {/* History toggle button - understated and minimal */}
+            {/* History toggle button - small button positioned on the right side */}
             <Box
               sx={{
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
                 display: "flex",
-                justifyContent: "center",
-                mb: 1
+                alignItems: "center",
+                justifyContent: "flex-end", // Aligns the button to the right
+                mb: 1,
+                py: 1,
+                backgroundColor: "rgba(0, 0, 0, 0)",
+                pr: 2 // Padding-right to add space between the button and the edge
               }}
             >
               <Button
-                variant="text"
+                variant="outlined"
                 size="small"
                 startIcon={
                   showPreviousMessages ? (
-                    <KeyboardArrowUpIcon />
+                    <KeyboardArrowUpIcon fontSize="small" />
                   ) : (
-                    <KeyboardArrowDownIcon />
+                    <KeyboardArrowDownIcon fontSize="small" />
                   )
                 }
                 onClick={() => {
@@ -873,541 +880,546 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 }}
                 sx={{
                   color: "#1890ff",
-                  fontSize: "0.8rem",
+                  borderColor: "#1890ff",
+                  fontSize: "0.75rem",
                   textTransform: "none",
                   padding: "2px 8px",
-                  minWidth: 0
+                  minWidth: 0,
+                  background: "rgba(255, 255, 255, 0.8)"
                 }}
               >
-                {showPreviousMessages ? "Hide history" : "Show history"}
+                {showPreviousMessages
+                  ? "Current Conversation"
+                  : "History Conversation"}
               </Button>
             </Box>
 
-            {/* Previous conversations appear seamlessly in the chat flow when expanded */}
-            <Collapse in={showPreviousMessages}>
-              {isLoadingMessages ? (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    py: 2
-                  }}
-                >
-                  <CircularProgress size={20} />
-                  <Typography
-                    variant="body2"
-                    sx={{ ml: 1, color: "text.secondary" }}
+            {/* Previous conversations appear when history is enabled */}
+            {showPreviousMessages ? (
+              <>
+                {isLoadingMessages ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      py: 2
+                    }}
                   >
-                    Loading history...
-                  </Typography>
-                </Box>
-              ) : previousMessages && previousMessages.length > 0 ? (
-                <>
-                  {previousMessages.map((msg, index) => {
-                    // Skip rendering if message is invalid
-                    if (!msg) return null;
+                    <CircularProgress size={20} />
+                    <Typography
+                      variant="body2"
+                      sx={{ ml: 1, color: "text.secondary" }}
+                    >
+                      Loading history...
+                    </Typography>
+                  </Box>
+                ) : previousMessages && previousMessages.length > 0 ? (
+                  <>
+                    {previousMessages.map((msg, index) => {
+                      // Skip rendering if message is invalid
+                      if (!msg) return null;
 
-                    return (
-                      <React.Fragment key={msg?.id || `prev-${index}`}>
-                        {/* User message - right side */}
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-end",
-                            alignSelf: "flex-end",
-                            maxWidth: "100%",
-                            mb: 2 // Add margin bottom for spacing between message pairs
-                          }}
-                        >
+                      return (
+                        <React.Fragment key={msg?.id || `prev-${index}`}>
+                          {/* User message - right side */}
                           <Box
                             sx={{
-                              p: 1.5,
-                              background:
-                                "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)",
-                              borderRadius: "18px 18px 0 18px",
-                              border: "1px solid #1890ff",
-                              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-end",
+                              alignSelf: "flex-end",
+                              maxWidth: "100%",
+                              mb: 2 // Add margin bottom for spacing between message pairs
                             }}
                           >
-                            <Typography
-                              variant="caption"
+                            <Box
                               sx={{
-                                fontWeight: "bold",
-                                color: "#09132e",
-                                mb: 0.5,
-                                display: "block",
-                                textAlign: "right",
-                                fontSize: "1rem"
+                                p: 1.5,
+                                background:
+                                  "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)",
+                                borderRadius: "18px 18px 0 18px",
+                                border: "1px solid #1890ff",
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
                               }}
                             >
-                              {username}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              sx={{ color: "#09132e" }}
-                            >
-                              {msg.userMessage || "No message"}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                display: "block",
-                                textAlign: "right",
-                                mt: 0.5,
-                                opacity: 0.7
-                              }}
-                            >
-                              {formatDate(msg.createdAt)}
-                            </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontWeight: "bold",
+                                  color: "#09132e",
+                                  mb: 0.5,
+                                  display: "block",
+                                  textAlign: "right",
+                                  fontSize: "1rem"
+                                }}
+                              >
+                                {username}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{ color: "#09132e" }}
+                              >
+                                {msg.userMessage || "No message"}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "block",
+                                  textAlign: "right",
+                                  mt: 0.5,
+                                  opacity: 0.7
+                                }}
+                              >
+                                {formatDate(msg.createdAt)}
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
 
-                        {/* AI response - left side */}
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-start",
-                            alignSelf: "flex-start",
-                            maxWidth: "80%",
-                            mb: 3 // Add extra margin bottom after AI response for spacing between message pairs
-                          }}
-                        >
+                          {/* AI response - left side */}
                           <Box
                             sx={{
-                              p: 1.5,
-                              background: "white",
-                              borderRadius: "18px 18px 18px 0",
-                              border: "1px solid #e0e0e0",
-                              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-start",
+                              alignSelf: "flex-start",
+                              maxWidth: "80%",
+                              mb: 3 // Add extra margin bottom after AI response for spacing between message pairs
                             }}
                           >
-                            <Typography
-                              variant="caption"
+                            <Box
                               sx={{
-                                fontWeight: "bold",
-                                color: "#7c3aed",
-                                mb: 0.5,
-                                display: "block",
-                                textAlign: "left",
-                                fontSize: "1rem"
+                                p: 1.5,
+                                background: "white",
+                                borderRadius: "18px 18px 18px 0",
+                                border: "1px solid #e0e0e0",
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
                               }}
                             >
-                              AI
-                            </Typography>
-                            <div className="markdown">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeRaw]}
-                                children={preprocessMarkdown(
-                                  msg.aiResponse || "No response"
-                                )}
-                                components={{
-                                  code({
-                                    node,
-                                    className,
-                                    children,
-                                    ...props
-                                  }) {
-                                    const match = /language-(\w+)/.exec(
-                                      className || ""
-                                    );
-                                    const value = String(children).replace(
-                                      /\n$/,
-                                      ""
-                                    );
-
-                                    // Specifically detect <diagram> tags in the content
-                                    if (
-                                      value.includes("<diagram>") &&
-                                      value.includes("mermaid")
-                                    ) {
-                                      console.log(
-                                        "Detected <diagram> tag with mermaid content"
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontWeight: "bold",
+                                  color: "#7c3aed",
+                                  mb: 0.5,
+                                  display: "block",
+                                  textAlign: "left",
+                                  fontSize: "1rem"
+                                }}
+                              >
+                                AI
+                              </Typography>
+                              <div className="markdown">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeRaw]}
+                                  children={preprocessMarkdown(
+                                    msg.aiResponse || "No response"
+                                  )}
+                                  components={{
+                                    code({
+                                      node,
+                                      className,
+                                      children,
+                                      ...props
+                                    }) {
+                                      const match = /language-(\w+)/.exec(
+                                        className || ""
+                                      );
+                                      const value = String(children).replace(
+                                        /\n$/,
+                                        ""
                                       );
 
-                                      // Extract the mermaid content from inside <diagram> tags
-                                      let mermaidContent = "";
-                                      const diagramMatch = value.match(
-                                        /<diagram>[\s\S]*?- mermaid:\s*([\s\S]*?)<\/diagram>/
-                                      );
-
-                                      if (diagramMatch && diagramMatch[1]) {
-                                        mermaidContent = diagramMatch[1].trim();
-
-                                        // If the content contains ```mermaid, extract just the content inside
-                                        if (
-                                          mermaidContent.includes("```mermaid")
-                                        ) {
-                                          const codeBlockMatch =
-                                            mermaidContent.match(
-                                              /```mermaid\s*([\s\S]*?)```/
-                                            );
-                                          if (
-                                            codeBlockMatch &&
-                                            codeBlockMatch[1]
-                                          ) {
-                                            mermaidContent =
-                                              codeBlockMatch[1].trim();
-                                          }
-                                        }
-
+                                      // Specifically detect <diagram> tags in the content
+                                      if (
+                                        value.includes("<diagram>") &&
+                                        value.includes("mermaid")
+                                      ) {
                                         console.log(
-                                          "Extracted mermaid content from <diagram> tag:",
-                                          mermaidContent
+                                          "Detected <diagram> tag with mermaid content"
+                                        );
+
+                                        // Extract the mermaid content from inside <diagram> tags
+                                        let mermaidContent = "";
+                                        const diagramMatch = value.match(
+                                          /<diagram>[\s\S]*?- mermaid:\s*([\s\S]*?)<\/diagram>/
+                                        );
+
+                                        if (diagramMatch && diagramMatch[1]) {
+                                          mermaidContent =
+                                            diagramMatch[1].trim();
+
+                                          // If the content contains ```mermaid, extract just the content inside
+                                          if (
+                                            mermaidContent.includes(
+                                              "```mermaid"
+                                            )
+                                          ) {
+                                            const codeBlockMatch =
+                                              mermaidContent.match(
+                                                /```mermaid\s*([\s\S]*?)```/
+                                              );
+                                            if (
+                                              codeBlockMatch &&
+                                              codeBlockMatch[1]
+                                            ) {
+                                              mermaidContent =
+                                                codeBlockMatch[1].trim();
+                                            }
+                                          }
+
+                                          console.log(
+                                            "Extracted mermaid content from <diagram> tag:",
+                                            mermaidContent
+                                          );
+                                          return (
+                                            <MermaidDiagram
+                                              content={mermaidContent}
+                                            />
+                                          );
+                                        }
+                                      }
+
+                                      // Standard detection for language-mermaid class
+                                      if (match && match[1] === "mermaid") {
+                                        console.log(
+                                          "Passing Mermaid content to MermaidDiagram:",
+                                          value
                                         );
                                         return (
-                                          <MermaidDiagram
-                                            content={mermaidContent}
-                                          />
+                                          <MermaidDiagram content={value} />
                                         );
                                       }
-                                    }
 
-                                    // Standard detection for language-mermaid class
-                                    if (match && match[1] === "mermaid") {
-                                      console.log(
-                                        "Passing Mermaid content to MermaidDiagram:",
-                                        value
+                                      // Standard code block rendering for other languages
+                                      const isInline =
+                                        node?.position?.start.line ===
+                                        node?.position?.end.line;
+
+                                      return !isInline ? (
+                                        <SyntaxHighlighter
+                                          style={dracula}
+                                          language={(match && match[1]) || ""}
+                                          PreTag="div"
+                                          {...props}
+                                        >
+                                          {value}
+                                        </SyntaxHighlighter>
+                                      ) : (
+                                        <code className={className} {...props}>
+                                          {children}
+                                        </code>
                                       );
-                                      return <MermaidDiagram content={value} />;
-                                    }
-
-                                    // Standard code block rendering for other languages
-                                    const isInline =
-                                      node?.position?.start.line ===
-                                      node?.position?.end.line;
-
-                                    return !isInline ? (
-                                      <SyntaxHighlighter
-                                        style={dracula}
-                                        language={(match && match[1]) || ""}
-                                        PreTag="div"
-                                        {...props}
-                                      >
-                                        {value}
-                                      </SyntaxHighlighter>
-                                    ) : (
-                                      <code className={className} {...props}>
-                                        {children}
-                                      </code>
-                                    );
-                                  },
-                                  table({ ...props }) {
-                                    return (
-                                      <div
-                                        style={{
-                                          overflowX: "auto",
-                                          marginBottom: "16px"
-                                        }}
-                                      >
-                                        <table
+                                    },
+                                    table({ ...props }) {
+                                      return (
+                                        <div
                                           style={{
-                                            borderCollapse: "collapse",
-                                            width: "100%"
+                                            overflowX: "auto",
+                                            marginBottom: "16px"
+                                          }}
+                                        >
+                                          <table
+                                            style={{
+                                              borderCollapse: "collapse",
+                                              width: "100%"
+                                            }}
+                                            {...props}
+                                          />
+                                        </div>
+                                      );
+                                    },
+                                    thead({ ...props }) {
+                                      return (
+                                        <thead
+                                          style={{ backgroundColor: "#f3f4f6" }}
+                                          {...props}
+                                        />
+                                      );
+                                    },
+                                    th({ ...props }) {
+                                      return (
+                                        <th
+                                          style={{
+                                            padding: "8px 12px",
+                                            textAlign: "left",
+                                            borderBottom: "2px solid #e5e7eb",
+                                            fontWeight: "600"
                                           }}
                                           {...props}
                                         />
-                                      </div>
+                                      );
+                                    },
+                                    td({ ...props }) {
+                                      return (
+                                        <td
+                                          style={{
+                                            padding: "8px 12px",
+                                            borderBottom: "1px solid #e5e7eb"
+                                          }}
+                                          {...props}
+                                        />
+                                      );
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "block",
+                                  textAlign: "right",
+                                  mt: 0.5,
+                                  opacity: 0.7
+                                }}
+                              >
+                                {formatDate(msg.createdAt)}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </React.Fragment>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      py: 2
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      No previous conversations
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            ) : (
+              // Current conversation messages - only visible when history is not showing
+              <>
+                {messages.map((message, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems:
+                        message.sender === "User" ? "flex-end" : "flex-start",
+                      maxWidth: "80%",
+                      alignSelf:
+                        message.sender === "User" ? "flex-end" : "flex-start",
+                      mb: message.sender === "AI" ? 3 : 2 // Additional margin after AI responses
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        background:
+                          message.sender === "User"
+                            ? "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)"
+                            : "white",
+                        borderRadius:
+                          message.sender === "User"
+                            ? "18px 18px 0 18px"
+                            : "18px 18px 18px 0",
+                        border:
+                          message.sender === "User"
+                            ? "1px solid #1890ff"
+                            : "1px solid #e0e0e0",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: "bold",
+                          color:
+                            message.sender === "User" ? "#09132e" : "#7c3aed",
+                          mb: 0.5,
+                          display: "block",
+                          textAlign:
+                            message.sender === "User" ? "right" : "left",
+                          fontSize: "1rem"
+                        }}
+                      >
+                        {message.sender === "User" ? username : message.sender}
+                      </Typography>
+
+                      <div className="markdown">
+                        {message.sender === "User" && isProcessingAudio ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
+                            children={preprocessMarkdown(message.content)}
+                            components={{
+                              code({ node, className, children, ...props }) {
+                                const match = /language-(\w+)/.exec(
+                                  className || ""
+                                );
+                                const value = String(children).replace(
+                                  /\n$/,
+                                  ""
+                                );
+
+                                // Specifically detect <diagram> tags in the content
+                                if (
+                                  value.includes("<diagram>") &&
+                                  value.includes("mermaid")
+                                ) {
+                                  console.log(
+                                    "Detected <diagram> tag with mermaid content"
+                                  );
+
+                                  // Extract the mermaid content from inside <diagram> tags
+                                  let mermaidContent = "";
+                                  const diagramMatch = value.match(
+                                    /<diagram>[\s\S]*?- mermaid:\s*([\s\S]*?)<\/diagram>/
+                                  );
+
+                                  if (diagramMatch && diagramMatch[1]) {
+                                    mermaidContent = diagramMatch[1].trim();
+
+                                    // If the content contains ```mermaid, extract just the content inside
+                                    if (mermaidContent.includes("```mermaid")) {
+                                      const codeBlockMatch =
+                                        mermaidContent.match(
+                                          /```mermaid\s*([\s\S]*?)```/
+                                        );
+                                      if (codeBlockMatch && codeBlockMatch[1]) {
+                                        mermaidContent =
+                                          codeBlockMatch[1].trim();
+                                      }
+                                    }
+
+                                    console.log(
+                                      "Extracted mermaid content from <diagram> tag:",
+                                      mermaidContent
                                     );
-                                  },
-                                  thead({ ...props }) {
                                     return (
-                                      <thead
-                                        style={{ backgroundColor: "#f3f4f6" }}
-                                        {...props}
-                                      />
-                                    );
-                                  },
-                                  th({ ...props }) {
-                                    return (
-                                      <th
-                                        style={{
-                                          padding: "8px 12px",
-                                          textAlign: "left",
-                                          borderBottom: "2px solid #e5e7eb",
-                                          fontWeight: "600"
-                                        }}
-                                        {...props}
-                                      />
-                                    );
-                                  },
-                                  td({ ...props }) {
-                                    return (
-                                      <td
-                                        style={{
-                                          padding: "8px 12px",
-                                          borderBottom: "1px solid #e5e7eb"
-                                        }}
-                                        {...props}
+                                      <MermaidDiagram
+                                        content={mermaidContent}
                                       />
                                     );
                                   }
-                                }}
-                              />
-                            </div>
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                display: "block",
-                                textAlign: "right",
-                                mt: 0.5,
-                                opacity: 0.7
-                              }}
-                            >
-                              {formatDate(msg.createdAt)}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </React.Fragment>
-                    );
-                  })}
+                                }
 
-                  {/* Divider between history and current chat */}
+                                // Standard detection for language-mermaid class
+                                if (match && match[1] === "mermaid") {
+                                  console.log(
+                                    "Passing Mermaid content to MermaidDiagram:",
+                                    value
+                                  );
+                                  return <MermaidDiagram content={value} />;
+                                }
+
+                                // Standard code block rendering for other languages
+                                const isInline =
+                                  node?.position?.start.line ===
+                                  node?.position?.end.line;
+
+                                return !isInline ? (
+                                  <SyntaxHighlighter
+                                    style={dracula}
+                                    language={(match && match[1]) || ""}
+                                    PreTag="div"
+                                    {...props}
+                                  >
+                                    {value}
+                                  </SyntaxHighlighter>
+                                ) : (
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                );
+                              },
+                              table({ ...props }) {
+                                return (
+                                  <div
+                                    style={{
+                                      overflowX: "auto",
+                                      marginBottom: "16px"
+                                    }}
+                                  >
+                                    <table
+                                      style={{
+                                        borderCollapse: "collapse",
+                                        width: "100%"
+                                      }}
+                                      {...props}
+                                    />
+                                  </div>
+                                );
+                              },
+                              thead({ ...props }) {
+                                return (
+                                  <thead
+                                    style={{ backgroundColor: "#f3f4f6" }}
+                                    {...props}
+                                  />
+                                );
+                              },
+                              th({ ...props }) {
+                                return (
+                                  <th
+                                    style={{
+                                      padding: "8px 12px",
+                                      textAlign: "left",
+                                      borderBottom: "2px solid #e5e7eb",
+                                      fontWeight: "600"
+                                    }}
+                                    {...props}
+                                  />
+                                );
+                              },
+                              td({ ...props }) {
+                                return (
+                                  <td
+                                    style={{
+                                      padding: "8px 12px",
+                                      borderBottom: "1px solid #e5e7eb"
+                                    }}
+                                    {...props}
+                                  />
+                                );
+                              }
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: "block",
+                          textAlign: "right",
+                          mt: 0.5,
+                          opacity: 0.7
+                        }}
+                      >
+                        {formatTimestamp(message.timestamp)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+
+                {isGeneratingResponse && (
                   <Box
                     sx={{
                       display: "flex",
                       alignItems: "center",
-                      my: 2
+                      gap: 1,
+                      alignSelf: "flex-start"
                     }}
                   >
-                    <Divider sx={{ flex: 1 }} />
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ px: 1 }}
-                    >
-                      Current Conversation
-                    </Typography>
-                    <Divider sx={{ flex: 1 }} />
+                    <CircularProgress size={16} />
+                    <Typography variant="body2">Processing...</Typography>
                   </Box>
-                </>
-              ) : (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    py: 2
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    No previous conversations
-                  </Typography>
-                </Box>
-              )}
-            </Collapse>
-
-            {/* Current conversation messages */}
-            {messages.map((message, index) => (
-              <Box
-                key={index}
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems:
-                    message.sender === "User" ? "flex-end" : "flex-start",
-                  maxWidth: "80%",
-                  alignSelf:
-                    message.sender === "User" ? "flex-end" : "flex-start",
-                  mb: message.sender === "AI" ? 3 : 2 // Additional margin after AI responses
-                }}
-              >
-                <Box
-                  sx={{
-                    p: 1.5,
-                    background:
-                      message.sender === "User"
-                        ? "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)"
-                        : "white",
-                    borderRadius:
-                      message.sender === "User"
-                        ? "18px 18px 0 18px"
-                        : "18px 18px 18px 0",
-                    border:
-                      message.sender === "User"
-                        ? "1px solid #1890ff"
-                        : "1px solid #e0e0e0",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: "bold",
-                      color: message.sender === "User" ? "#09132e" : "#7c3aed",
-                      mb: 0.5,
-                      display: "block"
-                    }}
-                  >
-                    {message.sender === "User" ? username : message.sender}
-                  </Typography>
-
-                  <div className="markdown">
-                    {message.sender === "User" && isProcessingAudio ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        children={preprocessMarkdown(message.content)}
-                        components={{
-                          code({ node, className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(
-                              className || ""
-                            );
-                            const value = String(children).replace(/\n$/, "");
-
-                            // Specifically detect <diagram> tags in the content
-                            if (
-                              value.includes("<diagram>") &&
-                              value.includes("mermaid")
-                            ) {
-                              console.log(
-                                "Detected <diagram> tag with mermaid content"
-                              );
-
-                              // Extract the mermaid content from inside <diagram> tags
-                              let mermaidContent = "";
-                              const diagramMatch = value.match(
-                                /<diagram>[\s\S]*?- mermaid:\s*([\s\S]*?)<\/diagram>/
-                              );
-
-                              if (diagramMatch && diagramMatch[1]) {
-                                mermaidContent = diagramMatch[1].trim();
-
-                                // If the content contains ```mermaid, extract just the content inside
-                                if (mermaidContent.includes("```mermaid")) {
-                                  const codeBlockMatch = mermaidContent.match(
-                                    /```mermaid\s*([\s\S]*?)```/
-                                  );
-                                  if (codeBlockMatch && codeBlockMatch[1]) {
-                                    mermaidContent = codeBlockMatch[1].trim();
-                                  }
-                                }
-
-                                console.log(
-                                  "Extracted mermaid content from <diagram> tag:",
-                                  mermaidContent
-                                );
-                                return (
-                                  <MermaidDiagram content={mermaidContent} />
-                                );
-                              }
-                            }
-
-                            // Standard detection for language-mermaid class
-                            if (match && match[1] === "mermaid") {
-                              console.log(
-                                "Passing Mermaid content to MermaidDiagram:",
-                                value
-                              );
-                              return <MermaidDiagram content={value} />;
-                            }
-
-                            // Standard code block rendering for other languages
-                            const isInline =
-                              node?.position?.start.line ===
-                              node?.position?.end.line;
-
-                            return !isInline ? (
-                              <SyntaxHighlighter
-                                style={dracula}
-                                language={(match && match[1]) || ""}
-                                PreTag="div"
-                                {...props}
-                              >
-                                {value}
-                              </SyntaxHighlighter>
-                            ) : (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                          table({ ...props }) {
-                            return (
-                              <div
-                                style={{
-                                  overflowX: "auto",
-                                  marginBottom: "16px"
-                                }}
-                              >
-                                <table
-                                  style={{
-                                    borderCollapse: "collapse",
-                                    width: "100%"
-                                  }}
-                                  {...props}
-                                />
-                              </div>
-                            );
-                          },
-                          thead({ ...props }) {
-                            return (
-                              <thead
-                                style={{ backgroundColor: "#f3f4f6" }}
-                                {...props}
-                              />
-                            );
-                          },
-                          th({ ...props }) {
-                            return (
-                              <th
-                                style={{
-                                  padding: "8px 12px",
-                                  textAlign: "left",
-                                  borderBottom: "2px solid #e5e7eb",
-                                  fontWeight: "600"
-                                }}
-                                {...props}
-                              />
-                            );
-                          },
-                          td({ ...props }) {
-                            return (
-                              <td
-                                style={{
-                                  padding: "8px 12px",
-                                  borderBottom: "1px solid #e5e7eb"
-                                }}
-                                {...props}
-                              />
-                            );
-                          }
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: "block",
-                      textAlign: "right",
-                      mt: 0.5,
-                      opacity: 0.7
-                    }}
-                  >
-                    {formatTimestamp(message.timestamp)}
-                  </Typography>
-                </Box>
-              </Box>
-            ))}
-
-            {isGeneratingResponse && (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  alignSelf: "flex-start"
-                }}
-              >
-                <CircularProgress size={16} />
-                <Typography variant="body2">Processing...</Typography>
-              </Box>
+                )}
+              </>
             )}
             <div ref={messagesEndRef} />
           </Box>
