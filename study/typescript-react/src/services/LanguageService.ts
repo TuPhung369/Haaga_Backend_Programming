@@ -246,11 +246,6 @@ export const saveInteraction = async (
   }
 ): Promise<LanguageInteraction> => {
   try {
-    console.log(`=== SAVING CONVERSATION TO DATABASE ===`);
-    console.log(`User ID: ${interactionData.userId}, Language: ${interactionData.language}`);
-    console.log(`User: "${interactionData.userMessage}"`);
-    console.log(`AI: "${interactionData.aiResponse}"`);
-
     // Prepare data for the backend - directly maps to SaveLanguageInteractionRequest
     const backendInteractionData = {
       userId: interactionData.userId,

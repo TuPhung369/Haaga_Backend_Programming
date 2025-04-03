@@ -3,6 +3,7 @@ package com.database.study.controller;
 import com.database.study.dto.LanguageMessageDTO;
 import com.database.study.dto.request.CreateLanguageSessionRequest;
 import com.database.study.dto.request.SaveLanguageInteractionRequest;
+import com.database.study.enums.ProficiencyLevel;
 import com.database.study.service.LanguageAIService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -116,8 +117,7 @@ public class LanguageAIController {
         .aiResponse(aiResponse)
         .audioUrl((String) request.get("audioUrl"))
         .userAudioUrl((String) request.get("userAudioUrl"))
-        // Proficiency might be null, service impl handles default
-        // .proficiencyLevel((ProficiencyLevel) request.get("proficiencyLevel"))
+        .proficiencyLevel(ProficiencyLevel.valueOf((String) request.get("proficiencyLevel")))
         .recaptchaToken("dev_bypass_token") // Bypass token
         .build();
 

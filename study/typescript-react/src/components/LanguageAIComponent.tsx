@@ -54,11 +54,11 @@ interface RootState {
 
 // Define proficiency levels for the component
 enum ProficiencyLevel {
-  Beginner = "beginner",
-  Intermediate = "intermediate",
-  Advanced = "advanced",
-  Fluent = "fluent",
-  Native = "native"
+  Beginner = "BEGINNER",
+  Intermediate = "INTERMEDIATE",
+  Advanced = "ADVANCED",
+  Fluent = "FLUENT",
+  Native = "NATIVE"
 }
 
 // API URL hardcoded to localhost:8080
