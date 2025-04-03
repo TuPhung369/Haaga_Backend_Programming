@@ -214,6 +214,7 @@ export interface RootState {
   user: UserState;
   kanban: KanbanState;
   assistantAI: AssistantAIState;
+  language: LanguageState;
 }
 
 export interface AssistantAIState {
@@ -322,5 +323,19 @@ export interface EmailOtpAuthenticationRequest {
   username: string;
   password: string;
   otpCode: string;
+}
+
+export interface LanguageState {
+  messages: LanguageMessage[];
+  loading: boolean;
+  error: string | null;
+}
+
+export interface LanguageMessage {
+  id: string;
+  sessionId: string;
+  userMessage: string;
+  aiResponse: string;
+  createdAt: Date;
 }
 

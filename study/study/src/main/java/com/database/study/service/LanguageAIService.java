@@ -5,6 +5,7 @@ import com.database.study.dto.request.CreateLanguageSessionRequest;
 import com.database.study.dto.request.SaveLanguageInteractionRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.util.List;
 
 public interface LanguageAIService {
 
@@ -31,6 +32,16 @@ public interface LanguageAIService {
    * (Replaces getUserSessions)
    */
   Page<LanguageMessageDTO> getUserLanguages(String userId, Pageable pageable);
+
+  /**
+   * Get message sessions for a user.
+   * This method retrieves session metadata messages for a specific user.
+   * 
+   * @param userId The ID of the user
+   * @param limit  The maximum number of messages to return
+   * @return A list of language message DTOs
+   */
+  List<LanguageMessageDTO> getUserMessageSessions(String userId, int limit);
 
   // Consider if processAudio needs changes - it might now depend on userId and
   // language

@@ -15,7 +15,11 @@ export interface LanguageInteraction {
   aiResponse: string;
   audioUrl?: string;
   feedback?: LanguageFeedback;
-  createdAt: Date;
+  messageType?: string;
+  language?: string;
+  createdAt: Date | string;
+  userId?: string;
+  content?: string;
 }
 
 // Represents feedback on language usage

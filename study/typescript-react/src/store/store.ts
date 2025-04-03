@@ -8,6 +8,7 @@ import kanbanReducer from "./kanbanSlice";
 import authReducer from "./authSlice";
 import userReducer from "./userSlice";
 import assistantAIReducer from "./assistantAISlice";
+import languageReducer from "../redux/slices/languageSlice";
 import { RootState, AuthState, KanbanState, UserState } from "../type/types";
 import { resetAllData } from "./resetActions";
 
@@ -67,6 +68,17 @@ const loadState = (): Partial<RootState> | undefined => {
       );
     }
 
+    // Add check for language state
+    if (parsedState.language && Array.isArray(parsedState.language.messages)) {
+      console.log('Found language state in localStorage with',
+        parsedState.language.messages.length, 'messages');
+      validState.language = parsedState.language;
+    } else {
+      console.warn(
+        "Invalid language state in localStorage, using initial language state"
+      );
+    }
+
     return validState;
   } catch (err) {
     console.error("Could not load state from localStorage:", err);
@@ -83,9 +95,10 @@ const saveState = (state: RootState): void => {
       state.kanban &&
       Array.isArray(state.kanban.columns) &&
       state.user &&
-      state.assistantAI
+      state.assistantAI &&
+      state.language // Add check for language state
     ) {
-      console.log('Saving state to localStorage, assistantAI messages:', state.assistantAI.messages.length);
+      console.log('Saving state to localStorage, assistantAI messages:', state.assistantAI.messages.length, 'language messages:', state.language.messages.length);
       const serializedState = JSON.stringify(state);
       localStorage.setItem("appState", serializedState);
     } else {
@@ -116,6 +129,7 @@ const appReducer = combineReducers({
     Partial<UserState> | undefined
   >,
   assistantAI: assistantAIReducer,
+  language: languageReducer, // Add language reducer
 });
 
 // Root reducer with logout handling and proper state typing

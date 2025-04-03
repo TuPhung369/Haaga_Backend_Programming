@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
   Typography,
@@ -13,7 +13,8 @@ import {
   SelectChangeEvent,
   Alert,
   IconButton,
-  Collapse
+  Collapse,
+  Divider
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
@@ -27,13 +28,23 @@ import {
 } from "../services/SpeechService";
 import {
   saveInteraction,
-  getAIResponseFromN8n
+  getAIResponseFromN8n,
+  getLanguageConversations
 } from "../services/LanguageService";
 import ReactMarkdown from "react-markdown";
-import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
-import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
 import { stripMarkdown } from "../utils/TextUtils";
+import mermaid from "mermaid";
+import rehypeRaw from "rehype-raw";
+import {
+  fetchMessagesStart,
+  fetchMessagesSuccess,
+  fetchMessagesFailure,
+  addMessage
+} from "../redux/slices/languageSlice";
+import { LanguageInteraction } from "../models/LanguageAI";
 
 // Define Redux store state interface
 interface RootState {
@@ -49,6 +60,15 @@ interface RootState {
   };
   auth: {
     token: string;
+  };
+  language: {
+    messages: Array<{
+      id: string;
+      userMessage: string;
+      aiResponse: string;
+      createdAt: Date;
+    }>;
+    loading: boolean;
   };
 }
 
@@ -77,6 +97,132 @@ interface ResponseMetadata {
   isSimulated?: boolean;
 }
 
+// Add a component for rendering Mermaid diagrams
+const MermaidDiagram: React.FC<{ content: string }> = ({ content }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [svgContent, setSvgContent] = useState<string>("");
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setSvgContent(""); // Clear previous SVG
+
+    // Configure Mermaid with explicit Gantt settings for better rendering
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+      fontFamily: "Arial",
+      gantt: {
+        titleTopMargin: 25,
+        barHeight: 20,
+        barGap: 4,
+        topPadding: 50,
+        leftPadding: 75,
+        gridLineStartPadding: 35,
+        fontSize: 14,
+        axisFormat: "%d %b", // Format the axis to show day and month
+        useWidth: 1200 // Ensure the diagram is wide enough to show all days
+      }
+    });
+
+    // Clean up the Mermaid content
+    let cleanedContent = content.trim();
+    cleanedContent = cleanedContent
+      .replace(/^```mermaid\s*/, "")
+      .replace(/```\s*$/, "");
+
+    // Remove any erroneous [object Object] or trailing commas
+    cleanedContent = cleanedContent.replace(
+      /\${2}\s{3}object Object\s{3}\${2}/g,
+      ""
+    );
+    cleanedContent = cleanedContent.replace(/,\s*$/gm, "");
+
+    // Basic validation
+    const validDiagramTypes = [
+      "gantt",
+      "flowchart",
+      "sequenceDiagram",
+      "classDiagram",
+      "stateDiagram"
+    ];
+    const firstLine = cleanedContent.split("\n")[0].trim();
+    if (!validDiagramTypes.some((type) => firstLine.startsWith(type))) {
+      setError(
+        `Invalid or unrecognized Mermaid diagram type. Content must start with a valid type (e.g., gantt, flowchart). Received: ${firstLine.substring(
+          0,
+          50
+        )}...`
+      );
+      setLoading(false);
+      return;
+    }
+
+    console.log("Cleaned Mermaid content for rendering:", cleanedContent);
+
+    try {
+      const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+      mermaid
+        .render(id, cleanedContent)
+        .then((result) => {
+          setSvgContent(result.svg);
+          setLoading(false);
+          console.log("Mermaid diagram rendered successfully");
+        })
+        .catch((err) => {
+          console.error("Mermaid render failed:", err);
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          setError(`Failed to render diagram: ${errorMessage}`);
+          setLoading(false);
+        });
+    } catch (e) {
+      console.error("Mermaid processing error:", e);
+      setError(
+        `Failed to process diagram: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
+      setLoading(false);
+    }
+  }, [content]);
+
+  return (
+    <div
+      className="mermaid-diagram-container"
+      style={{ marginTop: "10px", marginBottom: "10px", width: "100%" }}
+    >
+      {loading && <div className="loading-indicator">Loading diagram...</div>}
+      {error && (
+        <div
+          className="error-message"
+          style={{ color: "red", whiteSpace: "pre-wrap" }}
+        >
+          Error rendering diagram: {error}
+        </div>
+      )}
+      {svgContent && !error && (
+        <div
+          ref={containerRef}
+          className="mermaid-svg-container"
+          style={{
+            overflowX: "auto", // Allow horizontal scrolling if needed
+            overflowY: "auto", // Allow vertical scrolling if needed
+            maxWidth: "100%", // Ensure it fits within the parent container
+            minHeight: "400px", // Minimum height to ensure visibility
+            maxHeight: "80vh", // Maximum height relative to viewport
+            width: "auto", // Allow the diagram to take its natural width
+            padding: "10px" // Add padding for better spacing
+          }}
+          dangerouslySetInnerHTML={{ __html: svgContent }}
+        />
+      )}
+    </div>
+  );
+};
+
 // Function to preprocess markdown text for better rendering
 const preprocessMarkdown = (markdown: string): string => {
   // Convert bold text
@@ -96,6 +242,12 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   const { userInfo } = useSelector((state: RootState) => state.user);
   // Get auth token from Redux store
   const { token } = useSelector((state: RootState) => state.auth);
+  // Get language messages from Redux store
+  const { messages: previousMessages, loading: isLoadingMessages } =
+    useSelector((state: RootState) => state.language);
+
+  // Initialize dispatch
+  const dispatch = useDispatch();
 
   // Get the actual user ID from Redux or fall back to the prop value
   const actualUserId = userInfo?.id || userId;
@@ -103,8 +255,10 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   const [language, setLanguage] = useState<string>("en-US");
   const [userMessage, setUserMessage] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false);
+  const [isGeneratingResponse, setIsGeneratingResponse] =
+    useState<boolean>(false);
+  const [isRenderingContent, setIsRenderingContent] = useState<boolean>(false);
   const [supportedLanguages] = useState(getSupportedLanguages());
   const [proficiencyLevel, setProficiencyLevel] = useState<string>(
     ProficiencyLevel.Intermediate
@@ -118,6 +272,10 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   const [messages, setMessages] = useState<
     { sender: string; content: string; timestamp: string }[]
   >([]);
+
+  // Add state for previous messages
+  const [showPreviousMessages, setShowPreviousMessages] =
+    useState<boolean>(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -176,14 +334,14 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     }
   }, [language, proficiencyLevel, getLanguageName]);
 
+  // Move scrollToBottom into a useCallback to fix the dependency issue
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messagesEndRef]);
   // Scroll to bottom of chat when messages update
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, [messages, scrollToBottom]);
 
   // Handle language change
   const handleLanguageChange = (event: SelectChangeEvent) => {
@@ -198,25 +356,122 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     }
   };
 
-  // Process audio recording
+  // Fetch previous messages when userId changes or when explicitly requested
+  const fetchPreviousMessages = useCallback(async () => {
+    if (!actualUserId) return;
+
+    dispatch(fetchMessagesStart());
+    try {
+      // Use getLanguageConversations to get user-AI message pairs
+      const conversations = await getLanguageConversations(
+        actualUserId,
+        20,
+        token
+      );
+      dispatch(fetchMessagesSuccess(conversations));
+    } catch (error) {
+      console.error("Error fetching previous messages:", error);
+      dispatch(
+        fetchMessagesFailure(
+          error instanceof Error ? error.message : "Failed to fetch messages"
+        )
+      );
+    }
+  }, [actualUserId, token, dispatch]);
+
+  // Fetch messages when component mounts or user changes
+  useEffect(() => {
+    fetchPreviousMessages();
+  }, [fetchPreviousMessages]);
+
+  // Format date for display
+  const formatDate = (date: Date | string | null | undefined) => {
+    if (!date) {
+      return "Invalid Date";
+    }
+
+    try {
+      // Convert string date to Date object if needed
+      const dateObj = typeof date === "string" ? new Date(date) : date;
+
+      // Check if date is valid
+      if (isNaN(dateObj.getTime())) {
+        return "Invalid Date";
+      }
+
+      return dateObj.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid Date";
+    }
+  };
+
+  // Display a conversation in the chat window with message pairs
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const displayConversationInChat = useCallback(
+    (conversation: LanguageInteraction) => {
+      if (
+        !conversation ||
+        !conversation.userMessage ||
+        !conversation.aiResponse ||
+        !conversation.sessionId
+      ) {
+        console.error("Invalid conversation data:", conversation);
+        return;
+      }
+
+      // Create user message object
+      const userMessageObj = {
+        sender: "User",
+        content: conversation.userMessage,
+        timestamp: new Date(conversation.createdAt).toISOString()
+      };
+
+      // Create AI response object
+      const aiResponseObj = {
+        sender: "AI",
+        content: conversation.aiResponse,
+        timestamp: new Date(conversation.createdAt).toISOString()
+      };
+
+      // Add both messages to chat
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        userMessageObj,
+        aiResponseObj
+      ]);
+
+      // Set the last AI response for potential replay
+      setAiResponse(conversation.aiResponse);
+
+      // Scroll to bottom of chat
+      scrollToBottom();
+    },
+    [setMessages, setAiResponse, scrollToBottom]
+  );
+
+  // Update the handleAudioRecorded to save the new message to Redux
   const handleAudioRecorded = async (
     audioBlob: Blob,
     browserTranscript: string
   ) => {
-    setIsLoading(true);
+    setIsProcessingAudio(true);
     setError("");
     // Reset any previous response metadata
     setResponseMetadata({});
 
     try {
-      // 1. Speech to Text - Use browser transcript if available
+      // 1. Speech to Text
       let transcribedText = "";
-
       if (browserTranscript && browserTranscript.trim() !== "") {
-        // Use browser's real-time transcript if available
         transcribedText = browserTranscript;
       } else {
-        // Fallback to server-side transcription
         transcribedText = await convertSpeechToText(audioBlob, language);
       }
 
@@ -229,55 +484,45 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
         timestamp: new Date().toISOString()
       };
       setMessages((prevMessages) => [...prevMessages, userMessageObj]);
+      setIsProcessingAudio(false);
 
-      // 2. Get AI Response FROM N8N
-
-      // Call N8N with timing
-      const startTime = performance.now();
+      // Get AI response
+      setIsGeneratingResponse(true);
       const aiResponseText = await getAIResponseFromN8n(
         transcribedText,
         language,
         proficiencyLevel,
-        actualUserId // Use user ID instead of session ID
+        actualUserId
       );
-      const endTime = performance.now();
-      const responseTimeMs = Math.round(endTime - startTime);
 
-      // Update response metadata
-      setResponseMetadata({
-        responseTime: responseTimeMs,
-        responseSource: aiResponseText.includes("[SIMULATION]")
-          ? "fallback"
-          : "n8n",
-        isSimulated: aiResponseText.includes("[SIMULATION]")
-      });
+      // Set the AI response for potential reuse
+      setAiResponse(aiResponseText);
 
-      const cleanResponse = aiResponseText.replace("[SIMULATION] ", "");
-      setAiResponse(cleanResponse);
-
-      // Add AI response to chat
+      // Add AI message to chat
       const aiResponseObj = {
         sender: "AI",
-        content: cleanResponse,
+        content: aiResponseText,
         timestamp: new Date().toISOString()
       };
       setMessages((prevMessages) => [...prevMessages, aiResponseObj]);
+      setIsGeneratingResponse(false);
 
-      // 3. Save Interaction using user ID
-
-      // Proceed with saving the interaction - simplified to use userId directly
+      // Save Interaction using user ID
       const interactionToSave = {
-        userId: actualUserId, // Use user ID as primary identifier
+        userId: actualUserId,
         userMessage: transcribedText,
         aiResponse: aiResponseText,
-        language: language, // Include language for the database
-        proficiencyLevel: proficiencyLevel, // Include proficiency level for the database
-        token // Pass the token directly to the function
+        language: language,
+        proficiencyLevel: proficiencyLevel,
+        token
       };
 
       try {
         const savedInteraction = await saveInteraction(interactionToSave);
         console.log(`Interaction saved with ID: ${savedInteraction.id}`);
+
+        // Add to Redux store
+        dispatch(addMessage(savedInteraction));
       } catch (error) {
         console.error(
           `Error saving interaction: ${
@@ -286,7 +531,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
         );
       }
 
-      // 4. Text to Speech
+      // Text to Speech
       await speakAiResponse(aiResponseText);
     } catch (error) {
       console.log(
@@ -296,7 +541,9 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
         "An error occurred while processing your recording. Please try again."
       );
     } finally {
-      setIsLoading(false);
+      // Đảm bảo reset tất cả trạng thái loading
+      setIsProcessingAudio(false);
+      setIsGeneratingResponse(false);
     }
   };
 
@@ -312,7 +559,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
       return;
     }
 
-    setIsSpeaking(true);
+    setIsRenderingContent(true);
     setError(""); // Clear previous errors
 
     try {
@@ -322,7 +569,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
 
       if (!audioData) {
         setError("Could not generate speech audio");
-        setIsSpeaking(false);
+        setIsRenderingContent(false);
         return;
       }
 
@@ -330,11 +577,11 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
 
       // Play audio
       await audioRef.current.play();
-      // The onEnded event handler on the <audio> element will set isSpeaking to false
+      // The onEnded event handler on the <audio> element will set isRenderingContent to false
     } catch (error) {
       console.error("Error in speakAiResponse:", error);
       setError("Failed to generate or play speech. Please check console.");
-      setIsSpeaking(false); // Ensure speaking state is reset on error
+      setIsRenderingContent(false); // Ensure rendering state is reset on error
     }
   };
 
@@ -343,18 +590,29 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      setIsSpeaking(false);
+      setIsRenderingContent(false);
     }
   };
 
   // Format timestamp for display
   const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString("en-US", {
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true
-    });
+    try {
+      const date = new Date(timestamp);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return "";
+      }
+
+      return date.toLocaleString("en-US", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true
+      });
+    } catch (error) {
+      console.error("Error formatting timestamp:", error);
+      return "";
+    }
   };
 
   return (
@@ -419,7 +677,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 value={language}
                 label="Language"
                 onChange={handleLanguageChange}
-                disabled={isLoading || isSpeaking}
+                disabled={isProcessingAudio || isRenderingContent}
               >
                 {supportedLanguages.map((lang) => (
                   <MenuItem key={lang.code} value={lang.code}>
@@ -439,7 +697,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 value={proficiencyLevel}
                 label="Proficiency Level"
                 onChange={(e) => setProficiencyLevel(e.target.value)}
-                disabled={isLoading || isSpeaking}
+                disabled={isProcessingAudio || isRenderingContent}
               >
                 {Object.entries(ProficiencyLevel).map(([key, value]) => (
                   <MenuItem key={value} value={value}>
@@ -456,10 +714,10 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               onAudioRecorded={handleAudioRecorded}
               onSpeechRecognized={handleSpeechRecognized}
               language={language}
-              disabled={isLoading || isSpeaking}
+              disabled={isProcessingAudio || isRenderingContent}
             />
 
-            {isSpeaking && (
+            {isRenderingContent && (
               <Box
                 sx={{
                   display: "flex",
@@ -481,11 +739,11 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               </Box>
             )}
 
-            {!isSpeaking && aiResponse && (
+            {!isRenderingContent && aiResponse && (
               <Button
                 variant="outlined"
                 onClick={() => speakAiResponse(aiResponse)}
-                disabled={isSpeaking}
+                disabled={isRenderingContent}
                 sx={{ mt: 2, display: "block", width: "100%" }}
               >
                 Speak Last Response Again
@@ -547,7 +805,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
           )}
         </Paper>
 
-        {/* Right side panel with chat */}
+        {/* Center panel with chat */}
         <Paper
           elevation={3}
           sx={{
@@ -578,6 +836,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
             sx={{
               flex: 1,
               overflowY: "auto",
+              overflowX: "hidden",
               p: 2,
               display: "flex",
               flexDirection: "column",
@@ -585,6 +844,355 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               background: "linear-gradient(135deg, #f9fafb 0%, #f0f2f5 100%)"
             }}
           >
+            {/* History toggle button - understated and minimal */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                mb: 1
+              }}
+            >
+              <Button
+                variant="text"
+                size="small"
+                startIcon={
+                  showPreviousMessages ? (
+                    <KeyboardArrowUpIcon />
+                  ) : (
+                    <KeyboardArrowDownIcon />
+                  )
+                }
+                onClick={() => {
+                  setShowPreviousMessages(!showPreviousMessages);
+                  if (!showPreviousMessages) {
+                    fetchPreviousMessages();
+                  }
+                }}
+                sx={{
+                  color: "#1890ff",
+                  fontSize: "0.8rem",
+                  textTransform: "none",
+                  padding: "2px 8px",
+                  minWidth: 0
+                }}
+              >
+                {showPreviousMessages ? "Hide history" : "Show history"}
+              </Button>
+            </Box>
+
+            {/* Previous conversations appear seamlessly in the chat flow when expanded */}
+            <Collapse in={showPreviousMessages}>
+              {isLoadingMessages ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    py: 2
+                  }}
+                >
+                  <CircularProgress size={20} />
+                  <Typography
+                    variant="body2"
+                    sx={{ ml: 1, color: "text.secondary" }}
+                  >
+                    Loading history...
+                  </Typography>
+                </Box>
+              ) : previousMessages && previousMessages.length > 0 ? (
+                <>
+                  {previousMessages.map((msg, index) => {
+                    // Skip rendering if message is invalid
+                    if (!msg) return null;
+
+                    return (
+                      <React.Fragment key={msg?.id || `prev-${index}`}>
+                        {/* User message - right side */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-end",
+                            alignSelf: "flex-end",
+                            maxWidth: "100%",
+                            mb: 2 // Add margin bottom for spacing between message pairs
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              background:
+                                "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)",
+                              borderRadius: "18px 18px 0 18px",
+                              border: "1px solid #1890ff",
+                              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: "bold",
+                                color: "#09132e",
+                                mb: 0.5,
+                                display: "block"
+                              }}
+                            >
+                              User
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{ color: "#09132e" }}
+                            >
+                              {msg.userMessage || "No message"}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: "block",
+                                textAlign: "right",
+                                mt: 0.5,
+                                opacity: 0.7
+                              }}
+                            >
+                              {formatDate(msg.createdAt)}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {/* AI response - left side */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            alignSelf: "flex-start",
+                            maxWidth: "80%",
+                            mb: 3 // Add extra margin bottom after AI response for spacing between message pairs
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              background: "white",
+                              borderRadius: "18px 18px 18px 0",
+                              border: "1px solid #e0e0e0",
+                              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: "bold",
+                                color: "#7c3aed",
+                                mb: 0.5,
+                                display: "block"
+                              }}
+                            >
+                              AI
+                            </Typography>
+                            <div className="markdown">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeRaw]}
+                                children={preprocessMarkdown(
+                                  msg.aiResponse || "No response"
+                                )}
+                                components={{
+                                  code({
+                                    node,
+                                    className,
+                                    children,
+                                    ...props
+                                  }) {
+                                    const match = /language-(\w+)/.exec(
+                                      className || ""
+                                    );
+                                    const value = String(children).replace(
+                                      /\n$/,
+                                      ""
+                                    );
+
+                                    // Specifically detect <diagram> tags in the content
+                                    if (
+                                      value.includes("<diagram>") &&
+                                      value.includes("mermaid")
+                                    ) {
+                                      console.log(
+                                        "Detected <diagram> tag with mermaid content"
+                                      );
+
+                                      // Extract the mermaid content from inside <diagram> tags
+                                      let mermaidContent = "";
+                                      const diagramMatch = value.match(
+                                        /<diagram>[\s\S]*?- mermaid:\s*([\s\S]*?)<\/diagram>/
+                                      );
+
+                                      if (diagramMatch && diagramMatch[1]) {
+                                        mermaidContent = diagramMatch[1].trim();
+
+                                        // If the content contains ```mermaid, extract just the content inside
+                                        if (
+                                          mermaidContent.includes("```mermaid")
+                                        ) {
+                                          const codeBlockMatch =
+                                            mermaidContent.match(
+                                              /```mermaid\s*([\s\S]*?)```/
+                                            );
+                                          if (
+                                            codeBlockMatch &&
+                                            codeBlockMatch[1]
+                                          ) {
+                                            mermaidContent =
+                                              codeBlockMatch[1].trim();
+                                          }
+                                        }
+
+                                        console.log(
+                                          "Extracted mermaid content from <diagram> tag:",
+                                          mermaidContent
+                                        );
+                                        return (
+                                          <MermaidDiagram
+                                            content={mermaidContent}
+                                          />
+                                        );
+                                      }
+                                    }
+
+                                    // Standard detection for language-mermaid class
+                                    if (match && match[1] === "mermaid") {
+                                      console.log(
+                                        "Passing Mermaid content to MermaidDiagram:",
+                                        value
+                                      );
+                                      return <MermaidDiagram content={value} />;
+                                    }
+
+                                    // Standard code block rendering for other languages
+                                    const isInline =
+                                      node?.position?.start.line ===
+                                      node?.position?.end.line;
+
+                                    return !isInline ? (
+                                      <SyntaxHighlighter
+                                        style={dracula}
+                                        language={(match && match[1]) || ""}
+                                        PreTag="div"
+                                        {...props}
+                                      >
+                                        {value}
+                                      </SyntaxHighlighter>
+                                    ) : (
+                                      <code className={className} {...props}>
+                                        {children}
+                                      </code>
+                                    );
+                                  },
+                                  table({ ...props }) {
+                                    return (
+                                      <div
+                                        style={{
+                                          overflowX: "auto",
+                                          marginBottom: "16px"
+                                        }}
+                                      >
+                                        <table
+                                          style={{
+                                            borderCollapse: "collapse",
+                                            width: "100%"
+                                          }}
+                                          {...props}
+                                        />
+                                      </div>
+                                    );
+                                  },
+                                  thead({ ...props }) {
+                                    return (
+                                      <thead
+                                        style={{ backgroundColor: "#f3f4f6" }}
+                                        {...props}
+                                      />
+                                    );
+                                  },
+                                  th({ ...props }) {
+                                    return (
+                                      <th
+                                        style={{
+                                          padding: "8px 12px",
+                                          textAlign: "left",
+                                          borderBottom: "2px solid #e5e7eb",
+                                          fontWeight: "600"
+                                        }}
+                                        {...props}
+                                      />
+                                    );
+                                  },
+                                  td({ ...props }) {
+                                    return (
+                                      <td
+                                        style={{
+                                          padding: "8px 12px",
+                                          borderBottom: "1px solid #e5e7eb"
+                                        }}
+                                        {...props}
+                                      />
+                                    );
+                                  }
+                                }}
+                              />
+                            </div>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: "block",
+                                textAlign: "right",
+                                mt: 0.5,
+                                opacity: 0.7
+                              }}
+                            >
+                              {formatDate(msg.createdAt)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </React.Fragment>
+                    );
+                  })}
+
+                  {/* Divider between history and current chat */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      my: 2
+                    }}
+                  >
+                    <Divider sx={{ flex: 1 }} />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ px: 1 }}
+                    >
+                      Current Conversation
+                    </Typography>
+                    <Divider sx={{ flex: 1 }} />
+                  </Box>
+                </>
+              ) : (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    py: 2
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    No previous conversations
+                  </Typography>
+                </Box>
+              )}
+            </Collapse>
+
+            {/* Current conversation messages */}
             {messages.map((message, index) => (
               <Box
                 key={index}
@@ -595,64 +1203,175 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                     message.sender === "User" ? "flex-end" : "flex-start",
                   maxWidth: "80%",
                   alignSelf:
-                    message.sender === "User" ? "flex-end" : "flex-start"
+                    message.sender === "User" ? "flex-end" : "flex-start",
+                  mb: message.sender === "AI" ? 3 : 2 // Additional margin after AI responses
                 }}
               >
-                <Paper
-                  elevation={1}
+                <Box
                   sx={{
-                    p: 2,
+                    p: 1.5,
                     background:
                       message.sender === "User"
                         ? "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)"
-                        : "linear-gradient(45deg, #ffffff 0%, #f5f5f5 100%)",
+                        : "white",
                     borderRadius:
                       message.sender === "User"
                         ? "18px 18px 0 18px"
                         : "18px 18px 18px 0",
-                    color: message.sender === "User" ? "#1e293b" : "#1e293b",
                     border:
                       message.sender === "User"
                         ? "1px solid #1890ff"
-                        : "1px solid #e0e0e0"
+                        : "1px solid #e0e0e0",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
                   }}
                 >
                   <Typography
-                    variant="subtitle1"
+                    variant="caption"
                     sx={{
                       fontWeight: "bold",
                       color: message.sender === "User" ? "#09132e" : "#7c3aed",
-                      mb: 1
+                      mb: 0.5,
+                      display: "block"
                     }}
                   >
                     {message.sender}
                   </Typography>
 
                   <div className="markdown">
-                    <ReactMarkdown
-                      rehypePlugins={[rehypeRaw]}
-                      components={{
-                        code: ({ className, children, ...props }) => {
-                          const match = /language-(\w+)/.exec(className || "");
-                          return match ? (
-                            <SyntaxHighlighter
-                              language={match[1]}
-                              style={dracula}
-                              PreTag="div"
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, "")}
-                            </SyntaxHighlighter>
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-                      }}
-                    >
-                      {preprocessMarkdown(message.content)}
-                    </ReactMarkdown>
+                    {message.sender === "User" && isProcessingAudio ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                        children={preprocessMarkdown(message.content)}
+                        components={{
+                          code({ node, className, children, ...props }) {
+                            const match = /language-(\w+)/.exec(
+                              className || ""
+                            );
+                            const value = String(children).replace(/\n$/, "");
+
+                            // Specifically detect <diagram> tags in the content
+                            if (
+                              value.includes("<diagram>") &&
+                              value.includes("mermaid")
+                            ) {
+                              console.log(
+                                "Detected <diagram> tag with mermaid content"
+                              );
+
+                              // Extract the mermaid content from inside <diagram> tags
+                              let mermaidContent = "";
+                              const diagramMatch = value.match(
+                                /<diagram>[\s\S]*?- mermaid:\s*([\s\S]*?)<\/diagram>/
+                              );
+
+                              if (diagramMatch && diagramMatch[1]) {
+                                mermaidContent = diagramMatch[1].trim();
+
+                                // If the content contains ```mermaid, extract just the content inside
+                                if (mermaidContent.includes("```mermaid")) {
+                                  const codeBlockMatch = mermaidContent.match(
+                                    /```mermaid\s*([\s\S]*?)```/
+                                  );
+                                  if (codeBlockMatch && codeBlockMatch[1]) {
+                                    mermaidContent = codeBlockMatch[1].trim();
+                                  }
+                                }
+
+                                console.log(
+                                  "Extracted mermaid content from <diagram> tag:",
+                                  mermaidContent
+                                );
+                                return (
+                                  <MermaidDiagram content={mermaidContent} />
+                                );
+                              }
+                            }
+
+                            // Standard detection for language-mermaid class
+                            if (match && match[1] === "mermaid") {
+                              console.log(
+                                "Passing Mermaid content to MermaidDiagram:",
+                                value
+                              );
+                              return <MermaidDiagram content={value} />;
+                            }
+
+                            // Standard code block rendering for other languages
+                            const isInline =
+                              node?.position?.start.line ===
+                              node?.position?.end.line;
+
+                            return !isInline ? (
+                              <SyntaxHighlighter
+                                style={dracula}
+                                language={(match && match[1]) || ""}
+                                PreTag="div"
+                                {...props}
+                              >
+                                {value}
+                              </SyntaxHighlighter>
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                          table({ ...props }) {
+                            return (
+                              <div
+                                style={{
+                                  overflowX: "auto",
+                                  marginBottom: "16px"
+                                }}
+                              >
+                                <table
+                                  style={{
+                                    borderCollapse: "collapse",
+                                    width: "100%"
+                                  }}
+                                  {...props}
+                                />
+                              </div>
+                            );
+                          },
+                          thead({ ...props }) {
+                            return (
+                              <thead
+                                style={{ backgroundColor: "#f3f4f6" }}
+                                {...props}
+                              />
+                            );
+                          },
+                          th({ ...props }) {
+                            return (
+                              <th
+                                style={{
+                                  padding: "8px 12px",
+                                  textAlign: "left",
+                                  borderBottom: "2px solid #e5e7eb",
+                                  fontWeight: "600"
+                                }}
+                                {...props}
+                              />
+                            );
+                          },
+                          td({ ...props }) {
+                            return (
+                              <td
+                                style={{
+                                  padding: "8px 12px",
+                                  borderBottom: "1px solid #e5e7eb"
+                                }}
+                                {...props}
+                              />
+                            );
+                          }
+                        }}
+                      />
+                    )}
                   </div>
 
                   <Typography
@@ -660,16 +1379,17 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                     sx={{
                       display: "block",
                       textAlign: "right",
-                      mt: 1,
+                      mt: 0.5,
                       opacity: 0.7
                     }}
                   >
                     {formatTimestamp(message.timestamp)}
                   </Typography>
-                </Paper>
+                </Box>
               </Box>
             ))}
-            {isLoading && (
+
+            {isGeneratingResponse && (
               <Box
                 sx={{
                   display: "flex",
@@ -678,8 +1398,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                   alignSelf: "flex-start"
                 }}
               >
-                <CircularProgress size={20} />
-                <Typography>Processing...</Typography>
+                <CircularProgress size={16} />
+                <Typography variant="body2">Processing...</Typography>
               </Box>
             )}
             <div ref={messagesEndRef} />
@@ -690,10 +1410,10 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
       <audio
         ref={audioRef}
         style={{ display: "none" }}
-        onEnded={() => setIsSpeaking(false)}
+        onEnded={() => setIsRenderingContent(false)}
         onError={() => {
           setError("Error playing audio");
-          setIsSpeaking(false);
+          setIsRenderingContent(false);
         }}
         controls
       />

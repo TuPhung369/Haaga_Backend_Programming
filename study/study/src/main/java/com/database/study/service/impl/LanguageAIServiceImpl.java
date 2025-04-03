@@ -14,11 +14,14 @@ import com.database.study.validator.AuthValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -114,6 +117,28 @@ public class LanguageAIServiceImpl implements LanguageAIService {
         .findByUserIdAndIsSessionMetadataTrueOrderByCreatedAtDesc(userId, pageable);
     log.info("Found {} distinct language sessions for user {}", metadataMessages.getTotalElements(), userId);
     return metadataMessages.map(messageMapper::toDTO);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<LanguageMessageDTO> getUserMessageSessions(String userId, int limit) {
+    log.info("Getting message sessions for user: {}, limit: {}", userId, limit);
+    // Validate user access
+    authValidator.validateUserAccess(userId);
+
+    // Create pageable request with the limit
+    Pageable pageable = PageRequest.of(0, limit);
+
+    // Get user-AI conversation pairs
+    Page<LanguageMessage> messages = messageRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+    log.info("Found {} messages for user {}", messages.getTotalElements(), userId);
+
+    // Convert to DTOs
+    List<LanguageMessageDTO> messageDTOs = messages.getContent().stream()
+        .map(messageMapper::toDTO)
+        .collect(Collectors.toList());
+
+    return messageDTOs;
   }
 
   @Transactional

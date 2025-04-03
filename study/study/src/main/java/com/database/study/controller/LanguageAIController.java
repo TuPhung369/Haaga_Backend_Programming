@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,18 @@ public class LanguageAIController {
       Pageable pageable) {
     log.info("Request received to get conversation history for user: {}, language: {}", userId, language);
     return ResponseEntity.ok(languageAIService.getUserConversationHistory(userId, language, pageable));
+  }
+
+  /**
+   * Endpoint to get all messages for a specific user.
+   * This includes all types of messages (user and AI responses).
+   */
+  @GetMapping("/messages/user/{userId}")
+  public ResponseEntity<List<LanguageMessageDTO>> getUserMessages(
+      @PathVariable String userId,
+      @RequestParam(defaultValue = "40") int limit) {
+    log.info("Request received to get messages for user: {}, limit: {}", userId, limit);
+    return ResponseEntity.ok(languageAIService.getUserMessageSessions(userId, limit));
   }
 
   /**

@@ -246,144 +246,83 @@ export const saveInteraction = async (
   }
 ): Promise<LanguageInteraction> => {
   try {
-    // Prepare data for the backend - directly maps to SaveLanguageInteractionRequest
-    const backendInteractionData = {
-      userId: interactionData.userId,
-      language: interactionData.language,
-      proficiencyLevel: interactionData.proficiencyLevel,
-      userMessage: interactionData.userMessage,
-      aiResponse: interactionData.aiResponse,
-      audioUrl: interactionData.audioUrl,
-      userAudioUrl: interactionData.userAudioUrl, // Include user audio URL
-      feedback: interactionData.feedback,
-      // No sessionId needed here, backend handles context via userId/language
-      // No explicit createdAt needed, backend handles it
-    };
-
-    // Token comes from interactionData
-    const { token } = interactionData;
-
-    // Use the development endpoint that bypasses CAPTCHA validation
-    // console.log(`Sending data to API: ${API_URL}/api/language-ai/interactions/dev`);
-    //  Log the correct data object being sent
-    // console.log(`Data being sent:`, JSON.stringify(backendInteractionData, null, 2));
+    console.log(`Saving interaction for user: ${interactionData.userId}`);
+    console.log(`Message: "${interactionData.userMessage.substring(0, 50)}..."`);
+    console.log(`Response: "${interactionData.aiResponse.substring(0, 50)}..."`);
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    // Add authorization header if token exists
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    // Add authorization if we have a token
+    if (interactionData.token) {
+      headers['Authorization'] = `Bearer ${interactionData.token}`;
+      delete interactionData.token; // Remove token from payload
     } else {
-      // Attempt to find token from storage as a fallback
       const tokenInfo = findAuthToken();
       if (tokenInfo) {
-        console.log(`Using auth token from ${tokenInfo.source} as fallback`);
         headers['Authorization'] = `Bearer ${tokenInfo.token}`;
-      } else {
-        console.log(`No auth token found - request may fail with 401 Unauthorized`);
       }
     }
 
-    const response = await fetch(`${API_URL}/api/language-ai/interactions/dev`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(backendInteractionData), // Send the prepared data
-      credentials: 'include' // This enables sending cookies with the request
-    });
-
-    // Log the raw response for debugging
-    const responseText = await response.text();
-
-    // Try to parse as JSON, but handle text responses too
-    let responseData: SaveInteractionDevResponse;
+    // Attempt to save interaction via API
     try {
-      const parsedJson = JSON.parse(responseText);
-      responseData = parsedJson as SaveInteractionDevResponse;
-      console.log(`Server response (${response.status}):`, responseData);
-    } catch (/* eslint-disable-line @typescript-eslint/no-unused-vars */ _parseError) {
-      console.log(`Server response is not valid JSON (${response.status}): ${responseText}`);
-      // If backend dev endpoint returns plain text on error, capture it
-      responseData = { success: false, error: 'Invalid JSON response', rawResponse: responseText };
-    }
+      const response = await fetch(`${API_URL}/api/language-ai/interactions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(interactionData),
+        credentials: 'include' // This enables sending cookies with the request
+      });
 
-    // Check for success flag or error message from dev endpoint response
-    if (!response.ok || responseData?.success === false || responseData?.error) {
-      const errorMessage = responseData?.error || `HTTP error ${response.status}`;
-      console.log(`Server reported error: ${errorMessage}`);
-      console.log(`Raw error response data:`, responseData);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to save interaction: ${response.status} - ${errorText}`);
+      }
 
-      // Create a mock interaction but include the server error
-      const mockInteraction: LanguageInteraction = {
-        id: `error-${Date.now()}`,
-        sessionId: `user-session-${interactionData.userId}`, // Mimic old format for frontend if needed
+      const savedData = await response.json();
+      console.log(`Interaction saved successfully with ID: ${savedData.id || 'unknown'}`);
+
+      // Return a properly formatted LanguageInteraction object
+      return {
+        id: savedData.id || `local-${Date.now()}`,
+        sessionId: `session-${interactionData.userId}`, // Create a session ID if not provided
         userMessage: interactionData.userMessage,
         aiResponse: interactionData.aiResponse,
-        audioUrl: interactionData.audioUrl,
-        feedback: interactionData.feedback,
         createdAt: new Date(),
+        // Add the optional fields
+        audioUrl: interactionData.audioUrl,
+        feedback: interactionData.feedback
       };
 
-      // Store mock interaction in localStorage for fallback retrieval
-      try {
-        localStorage.setItem(`interaction_error_${interactionData.userId}_${Date.now()}`, JSON.stringify(mockInteraction));
-      } catch (error) {
-        console.log("Could not save error interaction to localStorage:", error);
-      }
+    } catch (apiError) {
+      console.log(`API Error: ${apiError instanceof Error ? apiError.message : String(apiError)}`);
 
-      console.log(`=== USING MOCK INTERACTION (SERVER ERROR) ===`);
-      // Optionally throw an error here to signal failure more clearly to the caller
-      // throw new Error(`Failed to save interaction: ${errorMessage}`);
-      return mockInteraction; // Returning mock for now to avoid breaking UI
+      // For development/demo purposes, return a mock success response with the same data
+      console.log(`Using fallback response - creating local interaction record`);
+
+      // Create a properly formatted LanguageInteraction
+      return {
+        id: `fallback-${Date.now()}`,
+        sessionId: `session-${interactionData.userId}`, // Create a session ID if not provided
+        userMessage: interactionData.userMessage,
+        aiResponse: interactionData.aiResponse,
+        createdAt: new Date(),
+        // Add the optional fields
+        audioUrl: interactionData.audioUrl,
+        feedback: interactionData.feedback
+      };
     }
-
-    // Assuming success if no error flag and response is ok
-    // The backend now returns the ID of the saved AI response message
-    const savedAiMessageId = responseData?.interactionId || responseData?.id || `saved-${Date.now()}`;
-
-    // Construct the LanguageInteraction object for the frontend
-    // Use the AI message ID as the primary ID for this interaction turn result
-    const savedInteraction: LanguageInteraction = {
-      id: savedAiMessageId,
-      sessionId: `user-session-${interactionData.userId}`, // Maintain consistent format for frontend state
-      userMessage: interactionData.userMessage,
-      aiResponse: interactionData.aiResponse,
-      audioUrl: interactionData.audioUrl,
-      feedback: interactionData.feedback,
-      createdAt: responseData?.createdAt ? new Date(responseData.createdAt) : new Date()
-    };
-
-    // Store successful interaction in localStorage as backup
-    try {
-      localStorage.setItem(`interaction_${interactionData.userId}_${savedInteraction.id}`, JSON.stringify(savedInteraction));
-    } catch (error) {
-      console.log("Could not save successful interaction to localStorage:", error);
-    }
-
-    return savedInteraction;
   } catch (error) {
-    console.log(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`Error in saveInteraction: ${error instanceof Error ? error.message : String(error)}`);
 
-    // Create a fallback interaction to maintain UI functionality
-    const fallbackInteraction: LanguageInteraction = {
-      id: `fallback-${Date.now()}`,
-      sessionId: `user-session-${interactionData.userId}`, // Use consistent format
+    // Always return a valid LanguageInteraction even in error cases
+    return {
+      id: `error-${Date.now()}`,
+      sessionId: `session-${interactionData.userId}`,
       userMessage: interactionData.userMessage,
-      aiResponse: interactionData.aiResponse,
-      audioUrl: interactionData.audioUrl,
-      feedback: interactionData.feedback,
-      createdAt: new Date(),
+      aiResponse: interactionData.aiResponse || "Error saving interaction",
+      createdAt: new Date()
     };
-
-    // Store fallback in localStorage
-    try {
-      localStorage.setItem(`interaction_fallback_${interactionData.userId}_${Date.now()}`, JSON.stringify(fallbackInteraction));
-    } catch (error) {
-      console.log("Could not save fallback interaction to localStorage:", error);
-    }
-
-    return fallbackInteraction;
   }
 };
 
@@ -842,4 +781,196 @@ export const findAuthToken = (): { token: string, source: string } | null => {
     console.error('Error while finding auth token:', e);
     return null;
   }
+};
+
+/**
+ * Get recent language messages for a user
+ * @param userId The user ID to fetch messages for
+ * @param limit Optional limit on the number of messages to return (default: 10)
+ * @param token Optional JWT token for authorization
+ * @returns Promise with array of language messages
+ */
+export const getUserLanguageMessages = async (
+  userId: string,
+  limit: number = 10,
+  token?: string
+): Promise<LanguageInteraction[]> => {
+  try {
+    console.log(`Fetching recent language messages for user: ${userId}`);
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization if we have a token
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      const tokenInfo = findAuthToken();
+      if (tokenInfo) {
+        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+      }
+    }
+
+    // Direct query to the language_message table
+    const response = await fetch(`${API_URL}/api/language-ai/messages/user/${userId}?limit=${limit}`, {
+      method: 'GET',
+      headers,
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to fetch user messages: ${errorText}`);
+
+      // If response is not ok, return mock data
+      if (!response.ok) {
+        console.log('Using mock data for language messages');
+        return generateMockLanguageMessages(userId, limit);
+      }
+
+      throw new Error(`Failed to fetch language messages: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Process the data to match our expected format
+    // Map database fields to our model fields
+    const messages = Array.isArray(data) ? data : (data.content || []);
+
+    return messages.map((msg: any) => ({
+      id: msg.id || `mock-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      sessionId: msg.sessionId || `session-${userId}`,
+      userMessage: msg.message_type === 'USER_MESSAGE' ? msg.content : '',
+      aiResponse: msg.message_type === 'AI_RESPONSE' ? msg.content : '',
+      createdAt: msg.created_at ? new Date(msg.created_at) : new Date(),
+      messageType: msg.message_type || ''
+    }));
+  } catch (error) {
+    console.error('Error fetching language messages:', error);
+    return generateMockLanguageMessages(userId, limit);
+  }
+};
+
+/**
+ * Get conversations grouped by user messages and AI responses
+ * This function fetches recent language messages from the API and groups them into pairs.
+ * 
+ * @param userId User ID to fetch messages for
+ * @param limit Maximum number of messages to fetch
+ * @param token Optional JWT token for authorization
+ * @returns Promise with an array of LanguageInteraction objects
+ */
+export const getLanguageConversations = async (
+  userId: string,
+  limit: number = 40,
+  token?: string
+): Promise<LanguageInteraction[]> => {
+  try {
+    console.log(`Fetching language conversations for user: ${userId}, limit: ${limit}`);
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Use either the provided token or try to find one
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      const tokenInfo = findAuthToken();
+      if (tokenInfo) {
+        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+      }
+    }
+
+    // Use the new API endpoint to get messages for a user
+    const response = await fetch(`${API_URL}/api/language-ai/messages/user/${userId}?limit=${limit}`, {
+      method: 'GET',
+      headers,
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      console.error(`Error fetching language conversations: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch language conversations: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Successfully fetched ${data.length} messages for user ${userId}`);
+
+    // Process messages into properly structured LanguageInteraction objects
+    const conversations: LanguageInteraction[] = data.map((message: any) => {
+      // Handle date fields safely
+      let createdAtStr: string;
+      try {
+        // Try to parse a date from various possible formats
+        const dateSource = message.created_at || message.createdAt;
+        if (dateSource) {
+          if (dateSource instanceof Date) {
+            createdAtStr = dateSource.toISOString();
+          } else if (typeof dateSource === 'string') {
+            // Keep the string as is if it's a valid date string
+            const testDate = new Date(dateSource);
+            createdAtStr = isNaN(testDate.getTime()) ? new Date().toISOString() : dateSource;
+          } else {
+            createdAtStr = new Date().toISOString();
+          }
+        } else {
+          createdAtStr = new Date().toISOString();
+        }
+      } catch (error) {
+        console.error("Error processing date:", error);
+        createdAtStr = new Date().toISOString();
+      }
+
+      // Each message should already contain the necessary fields from the backend
+      return {
+        id: message.id || `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        sessionId: message.sessionId || `session-${userId}`, // Ensure sessionId is set
+        userMessage: message.content && message.messageType === 'USER_MESSAGE'
+          ? message.content
+          : message.userMessage || '',
+        aiResponse: message.content && message.messageType === 'AI_RESPONSE'
+          ? message.content
+          : message.aiResponse || '',
+        messageType: message.messageType || '',
+        language: message.language || 'en-US',
+        createdAt: createdAtStr,
+        userId: message.userId || userId
+      };
+    });
+
+    return conversations;
+  } catch (error) {
+    console.error('Error in getLanguageConversations:', error);
+
+    // In case of error, return mock data for development
+    return generateMockLanguageMessages(userId, limit);
+  }
+};
+
+/**
+ * Generate mock language messages for development/testing
+ */
+export const generateMockLanguageMessages = (userId: string, limit: number): LanguageInteraction[] => {
+  const messages: LanguageInteraction[] = [];
+  const mockLanguages = ['en-US', 'es-ES', 'fr-FR', 'de-DE'];
+  const mockLevels = ['beginner', 'intermediate', 'advanced'];
+
+  // Create mock messages
+  for (let i = 0; i < limit; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i); // Each message is one day older
+
+    // Create a complete mock conversation with a sessionId
+    messages.push({
+      id: `mock-msg-${i}`,
+      sessionId: `session-${userId}`,
+      userMessage: `This is user message ${i + 1}. How do I say this in ${mockLanguages[i % mockLanguages.length]}?`,
+      aiResponse: `This is AI response ${i + 1}. You would say: "Example translated text for ${mockLevels[i % mockLevels.length]} level"`,
+      createdAt: date
+    });
+  }
+
+  return messages;
 };
