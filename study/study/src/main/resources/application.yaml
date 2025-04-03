@@ -46,8 +46,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
-        format_sql: true
-        use_sql_comments: true
+        "[format_sql]": true
+        "[use_sql_comments]": true
     hibernate:
       ddl-auto: update # none, update, validate, create, create-drop
     show-sql: true
@@ -118,23 +118,13 @@ speech:
 logging:
   level:
     root: INFO # Set default to INFO, DEBUG is very verbose
-    org.springframework: INFO
-    org.springframework.web: DEBUG # Log web requests
-    org.springframework.security: INFO # Or DEBUG for more security details
-    org.springframework.web.client.RestTemplate: DEBUG # Log outgoing RestTemplate calls
-    com.database.study.controller: DEBUG # Log our controllers
-    com.database.study.service: DEBUG # Log our services
-    com.database.study.repository: DEBUG # Log repository operations
-    org.hibernate.SQL: DEBUG # Log SQL statements
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE # Log SQL parameters
+    "[org.springframework]": INFO
+    "[org.springframework.web]": DEBUG # Log web requests
+    "[org.springframework.security]": INFO # Or DEBUG for more security details
+    "[org.springframework.web.client.RestTemplate]": DEBUG # Log outgoing RestTemplate calls
+    "[com.database.study.controller]": DEBUG # Log our controllers
+    "[com.database.study.service]": DEBUG # Log our services
+    "[com.database.study.repository]": DEBUG # Log repository operations
+    "[org.hibernate.SQL]": DEBUG # Log SQL statements
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE # Log SQL parameters
 
-# Add datasource configuration section for clarity
-datasource:
-  url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/studydb}
-  username: ${SPRING_DATASOURCE_USERNAME:root}
-  password: ${SPRING_DATASOURCE_PASSWORD:password}
-  driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
-  hikari:
-    connection-timeout: 30000
-    maximum-pool-size: 10
-    minimum-idle: 5

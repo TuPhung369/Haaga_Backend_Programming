@@ -4,3 +4,7 @@ spring:
     username: ${DB_USERNAME_DEV}
     password: ${DB_PASSWORD_DEV}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 5
