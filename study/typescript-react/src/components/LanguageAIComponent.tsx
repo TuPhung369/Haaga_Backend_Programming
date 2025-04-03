@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import StopIcon from "@mui/icons-material/Stop";
 import VoiceRecorder from "./VoiceRecorder";
 import ServiceStatusNotification from "./ServiceStatusNotification";
 import {
@@ -337,6 +338,15 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     }
   };
 
+  // Stop AI speech
+  const stopAiSpeech = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsSpeaking(false);
+    }
+  };
+
   // Format timestamp for display
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -459,7 +469,15 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 }}
               >
                 <CircularProgress size={18} sx={{ mr: 1 }} />
-                <Typography>Speaking...</Typography>
+                <Typography sx={{ mr: 2 }}>Speaking...</Typography>
+                <IconButton
+                  color="error"
+                  onClick={stopAiSpeech}
+                  size="small"
+                  aria-label="Stop speaking"
+                >
+                  <StopIcon />
+                </IconButton>
               </Box>
             )}
 

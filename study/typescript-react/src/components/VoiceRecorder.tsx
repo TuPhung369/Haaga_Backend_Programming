@@ -4,10 +4,12 @@ import {
   Box,
   CircularProgress,
   Typography,
-  Paper
+  Paper,
+  IconButton
 } from "@mui/material";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
+import ClearIcon from "@mui/icons-material/Clear";
 
 // Add types for Web Speech API
 interface SpeechRecognitionEvent extends Event {
@@ -230,6 +232,17 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     onAudioRecorded(audioBlob, transcript);
   };
 
+  // Add a function to clear the transcript
+  const clearTranscript = () => {
+    fullTranscriptRef.current = "";
+    setBrowserTranscript("");
+
+    // Notify parent component
+    if (onSpeechRecognized) {
+      onSpeechRecognized("");
+    }
+  };
+
   useEffect(() => {
     // Cleanup function to stop recording when component unmounts
     return () => {
@@ -297,12 +310,33 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               mt: 2,
               width: "100%",
               backgroundColor: "#f8f9fa",
-              borderLeft: "4px solid #4caf50"
+              borderLeft: "4px solid #4caf50",
+              position: "relative"
             }}
           >
-            <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-              Browser Speech Recognition (Real-time):
-            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start"
+              }}
+            >
+              <Typography
+                variant="subtitle2"
+                color="textSecondary"
+                gutterBottom
+              >
+                Browser Speech Recognition (Real-time):
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={clearTranscript}
+                sx={{ padding: 0, marginLeft: 1 }}
+                aria-label="Clear transcript"
+              >
+                <ClearIcon fontSize="small" />
+              </IconButton>
+            </Box>
             <Typography>{browserTranscript}</Typography>
           </Paper>
         )}
