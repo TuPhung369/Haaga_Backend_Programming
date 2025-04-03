@@ -269,9 +269,9 @@ export const saveInteraction = async (
     const { token } = interactionData;
 
     // Use the development endpoint that bypasses CAPTCHA validation
-    console.log(`Sending data to API: ${API_URL}/api/language-ai/interactions/dev`);
-    // Log the correct data object being sent
-    console.log(`Data being sent:`, JSON.stringify(backendInteractionData, null, 2));
+    // console.log(`Sending data to API: ${API_URL}/api/language-ai/interactions/dev`);
+    //  Log the correct data object being sent
+    // console.log(`Data being sent:`, JSON.stringify(backendInteractionData, null, 2));
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

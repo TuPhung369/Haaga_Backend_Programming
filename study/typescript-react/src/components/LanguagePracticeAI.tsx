@@ -35,6 +35,7 @@ import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeRaw from "rehype-raw";
 import store from "../store";
+import { stripMarkdown } from "../utils/TextUtils";
 
 // Define Redux store state interface
 interface RootState {
@@ -182,8 +183,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
 
   // Initialize chat on mount with welcome message
   useEffect(() => {
-    console.log("Initializing chat for user:", actualUserId);
-
     // Set up initial welcome message based on language and proficiency
     const welcomeMessage = {
       sender: "AI",
@@ -207,7 +206,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       prevLangRef.current !== language ||
       prevLevelRef.current !== proficiencyLevel
     ) {
-      console.log("Language or proficiency changed, updating welcome message");
       const updatedWelcomeMessage = {
         sender: "AI",
         content: `Language or level changed! Now practicing ${getLanguageName(
@@ -256,21 +254,15 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
     setResponseMetadata({});
 
     try {
-      console.log(`=== STARTING NEW CONVERSATION TURN ===`);
-      console.log(`User ID: ${actualUserId}`);
-
       // 1. Speech to Text - Use browser transcript if available
-      console.log(`STEP 1: Converting speech to text...`);
       let transcribedText = "";
 
       if (browserTranscript && browserTranscript.trim() !== "") {
         // Use browser's real-time transcript if available
         transcribedText = browserTranscript;
-        console.log(`User message (from browser): "${transcribedText}"`);
       } else {
         // Fallback to server-side transcription
         transcribedText = await convertSpeechToText(audioBlob, language);
-        console.log(`User message (from server): "${transcribedText}"`);
       }
 
       setUserMessage(transcribedText);
@@ -284,7 +276,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       setMessages((prevMessages) => [...prevMessages, userMessageObj]);
 
       // 2. Get AI Response FROM N8N
-      console.log(`STEP 2: Getting AI response...`);
 
       // Call N8N with timing
       const startTime = performance.now();
@@ -296,8 +287,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       );
       const endTime = performance.now();
       const responseTimeMs = Math.round(endTime - startTime);
-
-      console.log(`AI response (${responseTimeMs}ms): "${aiResponseText}"`);
 
       // Update response metadata
       setResponseMetadata({
@@ -320,15 +309,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       setMessages((prevMessages) => [...prevMessages, aiResponseObj]);
 
       // 3. Save Interaction using user ID
-      console.log(`STEP 3: Saving conversation to database...`);
-      console.log(`Using user ID for saving: ${actualUserId}`);
-
-      // Log token availability
-      if (token) {
-        console.log(`Using token from Redux store for saveInteraction`);
-      } else {
-        console.log(`No token available in Redux store for saveInteraction`);
-      }
 
       // Proceed with saving the interaction - simplified to use userId directly
       const interactionToSave = {
@@ -352,12 +332,8 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
       }
 
       // 4. Text to Speech
-      console.log(`STEP 4: Converting AI response to speech...`);
       await speakAiResponse(aiResponseText);
-
-      console.log(`=== CONVERSATION TURN COMPLETED ===`);
     } catch (error) {
-      console.log(`=== ERROR PROCESSING CONVERSATION ===`);
       console.log(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -386,7 +362,8 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
 
     try {
       const cleanText = text.replace("[SIMULATION] ", "");
-      const audioData = await convertTextToSpeech(cleanText, language);
+      const clearText = stripMarkdown(cleanText);
+      const audioData = await convertTextToSpeech(clearText, language);
 
       if (!audioData) {
         setError("Could not generate speech audio");
@@ -398,7 +375,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
 
       // Play audio
       await audioRef.current.play();
-      console.log("Audio playback started");
       // The onEnded event handler on the <audio> element will set isSpeaking to false
     } catch (error) {
       console.error("Error in speakAiResponse:", error);
