@@ -88,7 +88,7 @@ const preprocessMarkdown = (markdown: string): string => {
   return markdown;
 };
 
-const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
+const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   userId = "guest"
 }) => {
   // Get user info from Redux store
@@ -655,4 +655,4 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
   );
 };
 
-export default LanguagePracticeAI;
+export default LanguageAIComponent;

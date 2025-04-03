@@ -279,7 +279,6 @@ export const saveInteraction = async (
 
     // Add authorization header if token exists
     if (token) {
-      console.log(`Using token passed directly to the saveInteraction function`);
       headers['Authorization'] = `Bearer ${token}`;
     } else {
       // Attempt to find token from storage as a fallback
@@ -369,7 +368,6 @@ export const saveInteraction = async (
 
     return savedInteraction;
   } catch (error) {
-    console.log(`=== CLIENT-SIDE ERROR SAVING INTERACTION ===`);
     console.log(`Error: ${error instanceof Error ? error.message : String(error)}`);
 
     // Create a fallback interaction to maintain UI functionality
@@ -390,7 +388,6 @@ export const saveInteraction = async (
       console.log("Could not save fallback interaction to localStorage:", error);
     }
 
-    console.log(`=== USING FALLBACK INTERACTION (CLIENT ERROR) ===`);
     return fallbackInteraction;
   }
 };
@@ -473,11 +470,11 @@ export const getAIResponseFromN8n = async (
   level: string,
   userId: string
 ): Promise<string> => {
-  console.log(`Getting AI response for:
-  • User input: "${userInput}"
-  • Language: ${language}
-  • Level: ${level}
-  • User ID: ${userId}`);
+  // console.log(`Getting AI response for:
+  // • User input: "${userInput}"
+  // • Language: ${language}
+  // • Level: ${level}
+  // • User ID: ${userId}`);
 
   if (!N8N_WEBHOOK_URL) {
     console.log(`N8n webhook URL not configured, using fallback response`);
@@ -487,7 +484,6 @@ export const getAIResponseFromN8n = async (
   try {
     // Create a session ID from the user ID for compatibility with N8N
     const sessionId = `session-${userId}`;
-    console.log(`Using sessionId for N8N: ${sessionId}`);
 
     // Prepare the request payload with all the expected fields
     const payload = {
@@ -501,10 +497,7 @@ export const getAIResponseFromN8n = async (
       recaptchaToken: "mock-token-for-development" // Add recaptcha token that might be expected
     };
 
-    console.log(`Sending request to N8N: ${N8N_WEBHOOK_URL}`);
-    console.log(`Payload:`, JSON.stringify(payload, null, 2));
-
-    const startTime = performance.now();
+    //const startTime = performance.now();
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -513,9 +506,9 @@ export const getAIResponseFromN8n = async (
       },
       body: JSON.stringify(payload),
     });
-    const responseTime = Math.round(performance.now() - startTime);
+    //const responseTime = Math.round(performance.now() - startTime);
 
-    console.log(`Received response from N8N in ${responseTime}ms (status: ${response.status})`);
+    //console.log(`Received response from N8N in ${responseTime}ms (status: ${response.status})`);
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -525,7 +518,6 @@ export const getAIResponseFromN8n = async (
 
     // Get the raw response text first for debugging
     const responseText = await response.text();
-    console.log(`Raw N8N response: ${responseText}`);
 
     // Try to parse as JSON if possible
     let data: Record<string, unknown>;
