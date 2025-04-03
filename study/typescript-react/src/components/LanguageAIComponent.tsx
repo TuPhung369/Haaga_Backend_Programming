@@ -351,34 +351,42 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     <>
       <ServiceStatusNotification onStatusChange={setBackendAvailable} />
 
-      <Paper
-        elevation={3}
+      <Box
         sx={{
-          maxWidth: 800,
-          mx: "auto",
-          mt: 4,
-          height: "calc(100vh - 100px)",
           display: "flex",
-          flexDirection: "column",
-          borderRadius: "12px",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)"
+          maxWidth: "100%",
+          mx: "auto",
+          height: "calc(100vh - 30px)",
+          gap: 2
         }}
       >
-        <Typography
-          variant="h4"
+        {/* Left side panel with controls */}
+        <Paper
+          elevation={3}
           sx={{
+            width: "30%",
             p: 2,
-            textAlign: "center",
-            borderBottom: "1px solid #e0e0e0",
-            background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
-            color: "white",
-            borderRadius: "12px 12px 0 0"
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: "12px",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)"
           }}
         >
-          Language Practice AI
-        </Typography>
+          <Typography
+            variant="h6"
+            sx={{
+              p: 2,
+              textAlign: "center",
+              mb: 2,
+              borderBottom: "1px solid #e0e0e0",
+              background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
+              color: "white",
+              borderRadius: "8px 8px 0 0"
+            }}
+          >
+            Controls
+          </Typography>
 
-        <Box sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}>
           {!backendAvailable && (
             <Alert severity="info" sx={{ mb: 2 }}>
               Language service is unavailable. Using offline mode with simulated
@@ -392,8 +400,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
             </Alert>
           )}
 
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <FormControl fullWidth>
+          <Box sx={{ mb: 3 }}>
+            <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel id="language-select-label">Language</InputLabel>
               <Select
                 labelId="language-select-label"
@@ -411,7 +419,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               </Select>
             </FormControl>
 
-            <FormControl fullWidth>
+            <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel id="proficiency-level-label">
                 Proficiency Level
               </InputLabel>
@@ -431,155 +439,41 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               </Select>
             </FormControl>
           </Box>
-        </Box>
 
-        {/* Chat messages container */}
-        <Box
-          ref={chatContainerRef}
-          sx={{
-            flex: 1,
-            overflowY: "auto",
-            p: 2,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            background: "linear-gradient(135deg, #f9fafb 0%, #f0f2f5 100%)"
-          }}
-        >
-          {messages.map((message, index) => (
-            <Box
-              key={index}
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems:
-                  message.sender === "User" ? "flex-end" : "flex-start",
-                maxWidth: "80%",
-                alignSelf: message.sender === "User" ? "flex-end" : "flex-start"
-              }}
-            >
-              <Paper
-                elevation={1}
+          {/* Voice recorder section */}
+          <Box sx={{ mt: "auto", borderTop: "1px solid #e0e0e0", pt: 2 }}>
+            <VoiceRecorder
+              onAudioRecorded={handleAudioRecorded}
+              onSpeechRecognized={handleSpeechRecognized}
+              language={language}
+              disabled={isLoading || isSpeaking}
+            />
+
+            {isSpeaking && (
+              <Box
                 sx={{
-                  p: 2,
-                  background:
-                    message.sender === "User"
-                      ? "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)"
-                      : "linear-gradient(45deg, #ffffff 0%, #f5f5f5 100%)",
-                  borderRadius:
-                    message.sender === "User"
-                      ? "18px 18px 0 18px"
-                      : "18px 18px 18px 0",
-                  color: message.sender === "User" ? "#1e293b" : "#1e293b",
-                  border:
-                    message.sender === "User"
-                      ? "1px solid #1890ff"
-                      : "1px solid #e0e0e0"
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mt: 2
                 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    fontWeight: "bold",
-                    color: message.sender === "User" ? "#09132e" : "#7c3aed",
-                    mb: 1
-                  }}
-                >
-                  {message.sender}
-                </Typography>
+                <CircularProgress size={18} sx={{ mr: 1 }} />
+                <Typography>Speaking...</Typography>
+              </Box>
+            )}
 
-                <div className="markdown">
-                  <ReactMarkdown
-                    rehypePlugins={[rehypeRaw]}
-                    components={{
-                      code: ({ className, children, ...props }) => {
-                        const match = /language-(\w+)/.exec(className || "");
-                        return match ? (
-                          <SyntaxHighlighter
-                            language={match[1]}
-                            style={dracula}
-                            PreTag="div"
-                            {...props}
-                          >
-                            {String(children).replace(/\n$/, "")}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {preprocessMarkdown(message.content)}
-                  </ReactMarkdown>
-                </div>
-
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: "block",
-                    textAlign: "right",
-                    mt: 1,
-                    opacity: 0.7
-                  }}
-                >
-                  {formatTimestamp(message.timestamp)}
-                </Typography>
-              </Paper>
-            </Box>
-          ))}
-          {isLoading && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                alignSelf: "flex-start"
-              }}
-            >
-              <CircularProgress size={20} />
-              <Typography>Processing...</Typography>
-            </Box>
-          )}
-          <div ref={messagesEndRef} />
-        </Box>
-
-        {/* Voice recorder section */}
-        <Box
-          sx={{ p: 2, borderTop: "1px solid #e0e0e0", background: "#fafafa" }}
-        >
-          <VoiceRecorder
-            onAudioRecorded={handleAudioRecorded}
-            onSpeechRecognized={handleSpeechRecognized}
-            language={language}
-            disabled={isLoading || isSpeaking}
-          />
-
-          {isSpeaking && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mt: 2
-              }}
-            >
-              <CircularProgress size={18} sx={{ mr: 1 }} />
-              <Typography>Speaking...</Typography>
-            </Box>
-          )}
-
-          {!isSpeaking && aiResponse && (
-            <Button
-              variant="outlined"
-              onClick={() => speakAiResponse(aiResponse)}
-              disabled={isSpeaking}
-              sx={{ mt: 2, display: "block", mx: "auto" }}
-            >
-              Speak Last Response Again
-            </Button>
-          )}
+            {!isSpeaking && aiResponse && (
+              <Button
+                variant="outlined"
+                onClick={() => speakAiResponse(aiResponse)}
+                disabled={isSpeaking}
+                sx={{ mt: 2, display: "block", width: "100%" }}
+              >
+                Speak Last Response Again
+              </Button>
+            )}
+          </Box>
 
           {responseMetadata && Object.keys(responseMetadata).length > 0 && (
             <Box sx={{ mt: 2 }}>
@@ -633,24 +527,163 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               </Collapse>
             </Box>
           )}
-        </Box>
+        </Paper>
 
-        <audio
-          ref={audioRef}
-          style={{ display: "none" }}
-          onEnded={() => setIsSpeaking(false)}
-          onError={() => {
-            setError("Error playing audio");
-            setIsSpeaking(false);
+        {/* Right side panel with chat */}
+        <Paper
+          elevation={3}
+          sx={{
+            width: "70%",
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: "12px",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)"
           }}
-          controls
-        />
+        >
+          <Typography
+            variant="h5"
+            sx={{
+              p: 2,
+              textAlign: "center",
+              borderBottom: "1px solid #e0e0e0",
+              background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
+              color: "white",
+              borderRadius: "12px 12px 0 0"
+            }}
+          >
+            Language Practice AI
+          </Typography>
 
-        {/* Hidden element to satisfy linter warning about userMessage being unused */}
-        <div style={{ display: "none" }} data-testid="last-user-message">
-          {userMessage}
-        </div>
-      </Paper>
+          {/* Chat messages container */}
+          <Box
+            ref={chatContainerRef}
+            sx={{
+              flex: 1,
+              overflowY: "auto",
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              background: "linear-gradient(135deg, #f9fafb 0%, #f0f2f5 100%)"
+            }}
+          >
+            {messages.map((message, index) => (
+              <Box
+                key={index}
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems:
+                    message.sender === "User" ? "flex-end" : "flex-start",
+                  maxWidth: "80%",
+                  alignSelf:
+                    message.sender === "User" ? "flex-end" : "flex-start"
+                }}
+              >
+                <Paper
+                  elevation={1}
+                  sx={{
+                    p: 2,
+                    background:
+                      message.sender === "User"
+                        ? "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)"
+                        : "linear-gradient(45deg, #ffffff 0%, #f5f5f5 100%)",
+                    borderRadius:
+                      message.sender === "User"
+                        ? "18px 18px 0 18px"
+                        : "18px 18px 18px 0",
+                    color: message.sender === "User" ? "#1e293b" : "#1e293b",
+                    border:
+                      message.sender === "User"
+                        ? "1px solid #1890ff"
+                        : "1px solid #e0e0e0"
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: "bold",
+                      color: message.sender === "User" ? "#09132e" : "#7c3aed",
+                      mb: 1
+                    }}
+                  >
+                    {message.sender}
+                  </Typography>
+
+                  <div className="markdown">
+                    <ReactMarkdown
+                      rehypePlugins={[rehypeRaw]}
+                      components={{
+                        code: ({ className, children, ...props }) => {
+                          const match = /language-(\w+)/.exec(className || "");
+                          return match ? (
+                            <SyntaxHighlighter
+                              language={match[1]}
+                              style={dracula}
+                              PreTag="div"
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, "")}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+                      }}
+                    >
+                      {preprocessMarkdown(message.content)}
+                    </ReactMarkdown>
+                  </div>
+
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      textAlign: "right",
+                      mt: 1,
+                      opacity: 0.7
+                    }}
+                  >
+                    {formatTimestamp(message.timestamp)}
+                  </Typography>
+                </Paper>
+              </Box>
+            ))}
+            {isLoading && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  alignSelf: "flex-start"
+                }}
+              >
+                <CircularProgress size={20} />
+                <Typography>Processing...</Typography>
+              </Box>
+            )}
+            <div ref={messagesEndRef} />
+          </Box>
+        </Paper>
+      </Box>
+
+      <audio
+        ref={audioRef}
+        style={{ display: "none" }}
+        onEnded={() => setIsSpeaking(false)}
+        onError={() => {
+          setError("Error playing audio");
+          setIsSpeaking(false);
+        }}
+        controls
+      />
+
+      {/* Hidden element to satisfy linter warning about userMessage being unused */}
+      <div style={{ display: "none" }} data-testid="last-user-message">
+        {userMessage}
+      </div>
     </>
   );
 };
