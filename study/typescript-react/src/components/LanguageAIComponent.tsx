@@ -51,6 +51,7 @@ interface RootState {
   user: {
     userInfo: {
       id: string;
+      username: string;
       // Add other userInfo fields as needed
     };
     roles: string[];
@@ -251,6 +252,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
 
   // Get the actual user ID from Redux or fall back to the prop value
   const actualUserId = userInfo?.id || userId;
+  // Get username from Redux or use fallback
+  const username = userInfo?.username || "User";
 
   const [language, setLanguage] = useState<string>("en-US");
   const [userMessage, setUserMessage] = useState<string>("");
@@ -934,10 +937,12 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                                 fontWeight: "bold",
                                 color: "#09132e",
                                 mb: 0.5,
-                                display: "block"
+                                display: "block",
+                                textAlign: "right",
+                                fontSize: "1rem"
                               }}
                             >
-                              User
+                              {username}
                             </Typography>
                             <Typography
                               variant="body2"
@@ -985,7 +990,9 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                                 fontWeight: "bold",
                                 color: "#7c3aed",
                                 mb: 0.5,
-                                display: "block"
+                                display: "block",
+                                textAlign: "left",
+                                fontSize: "1rem"
                               }}
                             >
                               AI
@@ -1234,7 +1241,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                       display: "block"
                     }}
                   >
-                    {message.sender}
+                    {message.sender === "User" ? username : message.sender}
                   </Typography>
 
                   <div className="markdown">
