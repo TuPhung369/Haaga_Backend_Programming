@@ -951,7 +951,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                                   mb: 0.5,
                                   display: "block",
                                   textAlign: "right",
-                                  fontSize: "1rem"
+                                  fontSize: "1rem",
+                                  minWidth: "400px"
                                 }}
                               >
                                 {username}
@@ -1004,7 +1005,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                                   mb: 0.5,
                                   display: "block",
                                   textAlign: "left",
-                                  fontSize: "1rem"
+                                  fontSize: "1rem",
+                                  minWidth: "400px"
                                 }}
                               >
                                 AI
