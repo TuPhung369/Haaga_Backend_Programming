@@ -16,12 +16,18 @@ import java.time.LocalDateTime;
 public class LanguageMessageDTO {
   private String id;
   private String userId;
+  private String sessionId;
   private String language;
   private ProficiencyLevel proficiencyLevel;
   private MessageType messageType;
 
-  // New fields reflecting entity changes
+  // All message types have a content field
+  private String content;
+
+  // User message (same as content for USER_MESSAGE type)
   private String userMessage;
+
+  // AI response (same as content for AI_RESPONSE type)
   private String aiResponse;
 
   private String audioUrl;

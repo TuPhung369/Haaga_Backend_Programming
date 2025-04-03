@@ -48,25 +48,41 @@ public class LanguageAIServiceImpl implements LanguageAIService {
     if (existingMetadata.isPresent()) {
       log.info("Session metadata already exists for user: {}, language: {}", request.getUserId(),
           request.getLanguage());
-      return messageMapper.toDTO(existingMetadata.get());
-    } else {
-      log.info("Creating new session metadata for user: {}, language: {}", request.getUserId(), request.getLanguage());
-      // Use the provided proficiency level or default to BEGINNER
-      ProficiencyLevel proficiencyLevel = Optional.ofNullable(request.getProficiencyLevel())
-          .orElse(ProficiencyLevel.BEGINNER);
 
-      // Create the metadata message
+      // Check if proficiency level needs to be updated
+      LanguageMessage metadata = existingMetadata.get();
+      if (request.getProficiencyLevel() != null && metadata.getProficiencyLevel() != request.getProficiencyLevel()) {
+        log.info("Updating proficiency level from {} to {}", metadata.getProficiencyLevel(),
+            request.getProficiencyLevel());
+        metadata.setProficiencyLevel(request.getProficiencyLevel());
+        metadata = messageRepository.save(metadata);
+      }
+
+      return messageMapper.toDTO(metadata);
+    } else {
+      log.info("Creating new session metadata (in memory only, not stored) for user: {}, language: {}",
+          request.getUserId(), request.getLanguage());
+
+      // Use the provided proficiency level or default to INTERMEDIATE
+      ProficiencyLevel proficiencyLevel = Optional.ofNullable(request.getProficiencyLevel())
+          .orElse(ProficiencyLevel.INTERMEDIATE);
+
+      // Create the metadata message but don't save it to the database
+      // We'll just return a DTO with the necessary information
       LanguageMessage sessionMessage = LanguageMessage.builder()
           .userId(request.getUserId())
           .language(request.getLanguage())
           .proficiencyLevel(proficiencyLevel)
-          .messageType(MessageType.SYSTEM_MESSAGE) // Mark as system message
+          .messageType(MessageType.SYSTEM_MESSAGE)
           .isSessionMetadata(true)
           .build();
 
-      LanguageMessage savedMessage = messageRepository.save(sessionMessage);
-      log.info("Saved new session metadata with ID: {}", savedMessage.getId());
-      return messageMapper.toDTO(savedMessage);
+      // Generate an ID for this virtual metadata
+      String virtualId = java.util.UUID.randomUUID().toString();
+      sessionMessage.setId(virtualId);
+
+      log.info("Created virtual session metadata with ID: {}", virtualId);
+      return messageMapper.toDTO(sessionMessage);
     }
   }
 
@@ -104,7 +120,8 @@ public class LanguageAIServiceImpl implements LanguageAIService {
   @Transactional
   @Override
   public LanguageMessageDTO saveInteraction(SaveLanguageInteractionRequest request) {
-    log.info("Saving interaction for user: {}, language: {}", request.getUserId(), request.getLanguage());
+    log.info("Saving interaction for user: {}, language: {}, proficiency: {}",
+        request.getUserId(), request.getLanguage(), request.getProficiencyLevel());
     log.info("User message length: {}, AI response length: {}",
         request.getUserMessage() != null ? request.getUserMessage().length() : 0,
         request.getAiResponse() != null ? request.getAiResponse().length() : 0);
@@ -115,55 +132,24 @@ public class LanguageAIServiceImpl implements LanguageAIService {
     // Validate user access
     authValidator.validateUserAccess(request.getUserId());
 
-    // Try to find existing session metadata
-    Optional<LanguageMessage> metadataOpt = messageRepository
-        .findByUserIdAndLanguageAndIsSessionMetadataTrue(request.getUserId(), request.getLanguage());
-
-    LanguageMessage sessionMetadata;
-    if (metadataOpt.isPresent()) {
-      sessionMetadata = metadataOpt.get();
-      log.info("Found existing session metadata ID: {}", sessionMetadata.getId());
-    } else {
-      // Metadata not found, attempt to create it automatically
-      log.warn("Session metadata not found for user {} and language {}. Attempting to auto-create.",
-          request.getUserId(), request.getLanguage());
-      try {
-        // Call ensureSessionMetadata to create it (it handles its own validation)
-        LanguageMessageDTO createdMetadataDTO = ensureSessionMetadata(CreateLanguageSessionRequest.builder()
-            .userId(request.getUserId())
-            .language(request.getLanguage())
-            .proficiencyLevel(request.getProficiencyLevel()) // Pass proficiency if available
-            .recaptchaToken(request.getRecaptchaToken()) // Pass token
-            .build());
-        log.info("Successfully auto-created session metadata with ID: {}", createdMetadataDTO.getId());
-        // Now, fetch the newly created entity
-        sessionMetadata = messageRepository.findById(createdMetadataDTO.getId())
-            .orElseThrow(() -> new IllegalStateException(
-                "Could not find session metadata immediately after creation: " + createdMetadataDTO.getId()));
-      } catch (Exception creationEx) {
-        log.error("Failed to auto-create session metadata for user {} and language {}: {}",
-            request.getUserId(), request.getLanguage(), creationEx.getMessage());
-        // If creation fails, we cannot proceed with saving the interaction
-        throw new EntityNotFoundException("Session metadata",
-            "user: " + request.getUserId() + ", lang: " + request.getLanguage()
-                + " (required but not found, auto-creation failed)");
-      }
+    // The proficiency level to use throughout this interaction
+    ProficiencyLevel proficiencyLevel = request.getProficiencyLevel();
+    if (proficiencyLevel == null) {
+      proficiencyLevel = ProficiencyLevel.INTERMEDIATE; // Default to INTERMEDIATE if not specified
+      log.info("No proficiency level specified, defaulting to: {}", proficiencyLevel);
     }
 
-    // --- Proceed with saving interaction messages using the obtained
-    // sessionMetadata ---
-
-    log.info("Using session metadata ID: {}", sessionMetadata.getId());
+    // We don't need to create metadata entry anymore - optimizing storage
+    log.info("Proceeding without explicit metadata storage");
 
     // Create and save user message entity
     log.info("Creating user message entity");
     LanguageMessage userMessage = LanguageMessage.builder()
         .userId(request.getUserId())
         .language(request.getLanguage())
-        .proficiencyLevel(request.getProficiencyLevel() != null ? request.getProficiencyLevel()
-            : sessionMetadata.getProficiencyLevel()) // Use request level or metadata level
+        .proficiencyLevel(proficiencyLevel)
         .messageType(MessageType.USER_MESSAGE)
-        .userMessage(request.getUserMessage()) // Store user message here
+        .content(request.getUserMessage()) // Store directly in content field
         .userAudioUrl(request.getUserAudioUrl())
         .isSessionMetadata(false)
         .build();
@@ -171,16 +157,16 @@ public class LanguageAIServiceImpl implements LanguageAIService {
     log.info("Saving user message to database");
     LanguageMessage savedUserMessage = messageRepository.save(userMessage);
     log.info("User message saved successfully with ID: {}", savedUserMessage.getId());
+    log.debug("User message content: {}", savedUserMessage.getContent());
 
     // Create and save AI response entity
     log.info("Creating AI response entity");
     LanguageMessage aiResponse = LanguageMessage.builder()
         .userId(request.getUserId())
         .language(request.getLanguage())
-        .proficiencyLevel(request.getProficiencyLevel() != null ? request.getProficiencyLevel()
-            : sessionMetadata.getProficiencyLevel()) // Use request level or metadata level
+        .proficiencyLevel(proficiencyLevel)
         .messageType(MessageType.AI_RESPONSE)
-        .aiResponse(request.getAiResponse()) // Store AI response here
+        .content(request.getAiResponse()) // Store directly in content field
         .audioUrl(request.getAudioUrl())
         .isSessionMetadata(false)
         .replyToId(savedUserMessage.getId()) // Link AI response to the user message
@@ -191,10 +177,7 @@ public class LanguageAIServiceImpl implements LanguageAIService {
     log.info("Saving AI response to database");
     LanguageMessage savedAiResponse = messageRepository.save(aiResponse);
     log.info("AI response saved successfully with ID: {}", savedAiResponse.getId());
-
-    // Verification step
-    boolean exists = messageRepository.existsById(savedAiResponse.getId());
-    log.info("Verification - AI response exists in database: {}", exists);
+    log.debug("AI response content: {}", savedAiResponse.getContent());
 
     // Return the DTO of the saved AI response, as it concludes the interaction turn
     LanguageMessageDTO dto = messageMapper.toDTO(savedAiResponse);

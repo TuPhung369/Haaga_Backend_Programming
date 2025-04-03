@@ -42,16 +42,17 @@ public class LanguageMessage {
   @Column(name = "message_type", nullable = false)
   private MessageType messageType;
 
-  // New fields for user and AI messages
-  @Column(name = "user_message", columnDefinition = "TEXT")
-  private String userMessage; // Content from the user
-
-  @Column(name = "ai_response", columnDefinition = "TEXT")
-  private String aiResponse; // Content from the AI
-
-  // Keep content field for database compatibility (will be removed in future)
+  // We use content field as the main storage for messages
   @Column(name = "content", columnDefinition = "TEXT")
   private String content;
+
+  // We keep these fields as transient (not stored in DB)
+  // They're used as convenient accessors in the code
+  @Transient
+  private String userMessage;
+
+  @Transient
+  private String aiResponse;
 
   @Column(name = "audio_url")
   private String audioUrl; // URL for AI-generated audio
@@ -96,30 +97,59 @@ public class LanguageMessage {
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
 
-  // Pre-persist hook to ensure content field is populated
-  @PrePersist
-  @PreUpdate
-  private void ensureContentField() {
-    // If userMessage is set, use it for content
-    if (userMessage != null && !userMessage.isBlank()) {
+  // Getter for userMessage (mapped to content for USER_MESSAGE types)
+  public String getUserMessage() {
+    if (messageType == MessageType.USER_MESSAGE) {
+      return content;
+    }
+    return null;
+  }
+
+  // Setter for userMessage (sets content for USER_MESSAGE types)
+  public void setUserMessage(String userMessage) {
+    if (messageType == MessageType.USER_MESSAGE) {
       this.content = userMessage;
     }
-    // Otherwise if aiResponse is set, use it for content
-    else if (aiResponse != null && !aiResponse.isBlank()) {
+    // For other message types, we ignore this setter
+  }
+
+  // Getter for aiResponse (mapped to content for AI_RESPONSE types)
+  public String getAiResponse() {
+    if (messageType == MessageType.AI_RESPONSE) {
+      return content;
+    }
+    return null;
+  }
+
+  // Setter for aiResponse (sets content for AI_RESPONSE types)
+  public void setAiResponse(String aiResponse) {
+    if (messageType == MessageType.AI_RESPONSE) {
       this.content = aiResponse;
     }
-    // Fallback to empty string
-    else {
-      this.content = "";
-    }
+    // For other message types, we ignore this setter
+  }
 
+  // Pre-persist hook to ensure required fields are set
+  @PrePersist
+  @PreUpdate
+  private void ensureRequiredFields() {
     // Ensure sessionId is set based on userId
     if (sessionId == null || sessionId.isEmpty()) {
       if (userId != null) {
         this.sessionId = "session-" + userId;
       } else {
-        this.sessionId = "session-" + java.util.UUID.randomUUID().toString();
+        this.sessionId = "session-" + UUID.randomUUID().toString();
       }
+    }
+
+    // Ensure proficiencyLevel has a default if not set
+    if (proficiencyLevel == null) {
+      this.proficiencyLevel = ProficiencyLevel.INTERMEDIATE;
+    }
+
+    // Ensure content is not null
+    if (content == null) {
+      this.content = "";
     }
   }
 }
