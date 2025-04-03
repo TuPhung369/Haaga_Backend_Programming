@@ -330,15 +330,22 @@ public class LanguageMessageServiceImpl implements LanguageMessageService {
 
       HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
+      // Using raw type Map to match the RestTemplate API
+      // and avoiding null pointer access by explicit null checks
+      @SuppressWarnings("rawtypes")
       ResponseEntity<Map> response = restTemplate.postForEntity(
           aiApiUrl + "/generate-response",
           request,
           Map.class);
 
       if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-        Object responseText = response.getBody().get("response");
-        if (responseText != null) {
-          return responseText.toString();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
+        if (responseBody != null) {
+          Object responseText = responseBody.get("response");
+          if (responseText != null) {
+            return responseText.toString();
+          }
         }
       }
 

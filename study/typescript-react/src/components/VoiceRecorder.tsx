@@ -104,10 +104,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           if (onSpeechRecognized && currentTranscript) {
             onSpeechRecognized(currentTranscript.trim());
           }
-
-          console.log(
-            `🎤 [Browser Speech Recognition] Transcript: ${currentTranscript.trim()}`
-          );
         };
 
         recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
@@ -126,22 +122,17 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     } else {
       console.warn("Web Speech API not supported in this browser");
     }
-  }, [onSpeechRecognized]);
+  }, [onSpeechRecognized, language]);
 
   // Update speech recognition language when language prop changes
   useEffect(() => {
     if (recognitionRef.current) {
       recognitionRef.current.lang = language;
-      console.log(
-        `🎤 [Browser Speech Recognition] Language set to: ${language}`
-      );
     }
   }, [language]);
 
   const startRecording = async () => {
     try {
-      console.log("🎙️ Starting recording...");
-
       // Reset transcripts for a new recording
       fullTranscriptRef.current = "";
       setBrowserTranscript("");
@@ -152,7 +143,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log("🎙️ Got media stream:", stream);
 
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -165,7 +155,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       };
 
       mediaRecorder.onstop = () => {
-        console.log("🎙️ Recording stopped, processing audio...");
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/wav"
         });
@@ -174,9 +163,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
         // Get the most complete transcript from our ref
         const finalTranscript = fullTranscriptRef.current.trim();
-
-        // Log the final transcript we're using
-        console.log(`🎙️ Final browser transcript: "${finalTranscript}"`);
 
         // Send audio to backend for processing, along with the browser transcript
         sendRecording(audioBlob, finalTranscript);
@@ -192,7 +178,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       if (recognitionRef.current) {
         try {
           recognitionRef.current.start();
-          console.log("🎤 [Browser Speech Recognition] Started");
         } catch (e) {
           console.warn("Could not start speech recognition:", e);
         }
@@ -215,7 +200,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         // Give a small delay to ensure final recognition results are processed
         setTimeout(() => {
           if (mediaRecorderRef.current && isRecording) {
-            console.log("🎙️ Stopping recording...");
             mediaRecorderRef.current.stop();
             setIsRecording(false);
           }
@@ -243,8 +227,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   };
 
   const sendRecording = (audioBlob: Blob, transcript: string) => {
-    console.log("🎙️ Sending recording to backend...");
-    console.log(`🎙️ Including browser transcript: ${transcript}`);
     onAudioRecorded(audioBlob, transcript);
   };
 

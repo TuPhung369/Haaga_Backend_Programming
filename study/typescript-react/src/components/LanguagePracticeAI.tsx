@@ -26,15 +26,12 @@ import {
 } from "../services/SpeechService";
 import {
   saveInteraction,
-  getAIResponseFromN8n,
-  inspectLocalStorage,
-  findAuthToken
+  getAIResponseFromN8n
 } from "../services/LanguageService";
 import ReactMarkdown from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeRaw from "rehype-raw";
-import store from "../store";
 import { stripMarkdown } from "../utils/TextUtils";
 
 // Define Redux store state interface
@@ -101,49 +98,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
 
   // Get the actual user ID from Redux or fall back to the prop value
   const actualUserId = userInfo?.id || userId;
-
-  // Debug function to show user info
-  const showUserInfo = () => {
-    console.log(`Current user ID: ${actualUserId}`);
-
-    // Check for authentication token
-    const authTokenInfo = findAuthToken();
-    if (authTokenInfo) {
-      console.log(`Authentication token found in ${authTokenInfo.source}`);
-      console.log(
-        `Token: ${authTokenInfo.token.substring(0, 20)}... (truncated)`
-      );
-    } else {
-      console.log(`No authentication token found in storage`);
-
-      // Check Redux state for auth token
-      try {
-        const reduxState = store.getState();
-        if (reduxState.auth && reduxState.auth.token) {
-          const reduxToken = reduxState.auth.token;
-          console.log(
-            `Found token in Redux store: ${reduxToken.substring(
-              0,
-              20
-            )}... (truncated)`
-          );
-
-          // No need to save to localStorage as token is already verified
-          console.log(`Token is already verified in Redux store`);
-        } else {
-          console.log(`No token found in Redux auth state`);
-        }
-      } catch (e) {
-        console.log(`Error accessing Redux store: ${e}`);
-      }
-
-      // Check cookies
-      console.log(`Cookies available: ${document.cookie ? "Yes" : "No"}`);
-      if (document.cookie) {
-        console.log(`Cookies: ${document.cookie}`);
-      }
-    }
-  };
 
   const [language, setLanguage] = useState<string>("en-US");
   const [userMessage, setUserMessage] = useState<string>("");
@@ -393,27 +347,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
     });
   };
 
-  // Debug interactions utility
-  const debugInteractions = async () => {
-    setIsLoading(true);
-    try {
-      console.log("=== STARTING DEBUG PROCESS ===");
-
-      // 1. Inspect localStorage
-      console.log("Checking localStorage state:");
-      inspectLocalStorage();
-
-      // 2. Show user info
-      showUserInfo();
-
-      console.log("=== DEBUG PROCESS COMPLETED ===");
-    } catch (error) {
-      console.error(`Error during debugging: ${error}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <>
       <ServiceStatusNotification onStatusChange={setBackendAvailable} />
@@ -497,28 +430,6 @@ const LanguagePracticeAI: React.FC<LanguagePracticeAIProps> = ({
                 ))}
               </Select>
             </FormControl>
-
-            {/* Debug button - always visible for now */}
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={debugInteractions}
-              disabled={isLoading}
-              sx={{ mt: 1 }}
-            >
-              Debug Interactions
-            </Button>
-
-            {/* User Info button */}
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={showUserInfo}
-              disabled={isLoading}
-              sx={{ mt: 1, ml: 1, bgcolor: "info.light", color: "white" }}
-            >
-              User Info
-            </Button>
           </Box>
         </Box>
 

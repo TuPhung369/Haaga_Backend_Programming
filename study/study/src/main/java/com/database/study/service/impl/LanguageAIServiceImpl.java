@@ -6,7 +6,6 @@ import com.database.study.dto.request.SaveLanguageInteractionRequest;
 import com.database.study.entity.LanguageMessage;
 import com.database.study.enums.MessageType;
 import com.database.study.enums.ProficiencyLevel;
-import com.database.study.exception.EntityNotFoundException;
 import com.database.study.mapper.LanguageMessageMapper;
 import com.database.study.repository.LanguageMessageRepository;
 import com.database.study.service.LanguageAIService;

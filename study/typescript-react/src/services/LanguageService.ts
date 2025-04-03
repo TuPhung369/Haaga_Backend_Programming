@@ -345,10 +345,8 @@ export const saveInteraction = async (
     }
 
     // Assuming success if no error flag and response is ok
-    console.log(`=== INTERACTION SAVED SUCCESSFULLY ===`);
     // The backend now returns the ID of the saved AI response message
     const savedAiMessageId = responseData?.interactionId || responseData?.id || `saved-${Date.now()}`;
-    console.log(`Saved AI Message ID from backend: ${savedAiMessageId}`);
 
     // Construct the LanguageInteraction object for the frontend
     // Use the AI message ID as the primary ID for this interaction turn result

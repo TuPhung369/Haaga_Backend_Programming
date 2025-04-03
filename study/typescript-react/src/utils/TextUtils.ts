@@ -22,6 +22,5 @@ export const stripMarkdown = (text: string): string => {
     .replace(/\n{3,}/g, "\n\n")
     .replace(/\s{2,}/g, " ");
 
-  console.log(`STEP CHECKING: Cleaned text: ${cleanText}`);
   return cleanText.trim();
 };
