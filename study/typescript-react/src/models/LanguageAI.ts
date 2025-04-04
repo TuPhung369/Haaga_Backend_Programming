@@ -3,8 +3,8 @@ export interface LanguageSession {
   id: string;
   userId: string;
   language: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 // Represents a single language practice interaction
@@ -43,7 +43,7 @@ export interface UserLanguageProficiency {
   level: ProficiencyLevel;
   strengths: string[];
   areasToImprove: string[];
-  lastAssessed: Date;
+  lastAssessed: string | Date;
 }
 
 // Proficiency level enum

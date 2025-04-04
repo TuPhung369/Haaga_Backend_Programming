@@ -302,7 +302,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           </Box>
         )}
 
-        {browserTranscript && (
+        {isRecording && browserTranscript && (
           <Paper
             elevation={1}
             sx={{

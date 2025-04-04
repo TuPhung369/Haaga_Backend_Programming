@@ -278,10 +278,23 @@ export const saveInteraction = async (
 
     // Attempt to save interaction via API
     try {
+      const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
+      const recaptchaToken = getRecaptchaToken();
+      // Create a payload including the recaptchaToken
+      const requestPayload = {
+        ...interactionData,
+        recaptchaToken: recaptchaToken // Add required token for backend validation
+      };
+
+      // Remove token from the payload as it's already in headers
+      if (requestPayload.token) {
+        delete requestPayload.token;
+      }
+
       const response = await fetch(`${API_URL}/api/language-ai/interactions`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(interactionData),
+        body: JSON.stringify(requestPayload),
         credentials: 'include' // This enables sending cookies with the request
       });
 

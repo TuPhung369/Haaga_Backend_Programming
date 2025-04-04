@@ -555,7 +555,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   }, [fetchPreviousMessages]);
 
   // Format date for display
-  const formatDate = (date: string | null | undefined) => {
+  const formatDate = (date: Date | string | null | undefined) => {
     if (!date) {
       return "Invalid Date";
     }
@@ -1059,8 +1059,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 }}
               >
                 {showPreviousMessages
-                  ? "Current Conversation"
-                  : "History Conversation"}
+                  ? "Hide History Conversation"
+                  : "Show History Conversation"}
               </Button>
             </Box>
 
