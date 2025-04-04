@@ -29,7 +29,8 @@ import ServiceStatusNotification from "./ServiceStatusNotification";
 import {
   convertSpeechToText,
   convertTextToSpeech,
-  getSupportedLanguages
+  getSupportedLanguages,
+  getSupportedVoices
 } from "../services/SpeechService";
 import {
   saveInteraction,
@@ -430,6 +431,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     useState<boolean>(false);
   const [isRenderingContent, setIsRenderingContent] = useState<boolean>(false);
   const [supportedLanguages] = useState(getSupportedLanguages());
+  const [supportedVoices] = useState(getSupportedVoices());
+  const [selectedVoice, setSelectedVoice] = useState<string>("neutral");
   const [proficiencyLevel, setProficiencyLevel] = useState<string>(
     ProficiencyLevel.Intermediate
   );
@@ -740,7 +743,12 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     }
   };
 
-  // Speak the AI response
+  // Method to handle voice selection change
+  const handleVoiceChange = (event: SelectChangeEvent) => {
+    setSelectedVoice(event.target.value);
+  };
+
+  // Update the speakAiResponse function to use the selected voice
   const speakAiResponse = async (text: string) => {
     if (!text) {
       setError("No AI response to speak");
@@ -758,7 +766,11 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     try {
       const cleanText = text.replace("[SIMULATION] ", "");
       const clearText = stripMarkdown(cleanText);
-      const audioData = await convertTextToSpeech(clearText, language);
+      const audioData = await convertTextToSpeech(
+        clearText,
+        language,
+        selectedVoice
+      );
 
       if (!audioData) {
         setError("Could not generate speech audio");
@@ -874,6 +886,25 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 {Object.entries(ProficiencyLevel).map(([key, value]) => (
                   <MenuItem key={value} value={value}>
                     {key}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel id="voice-select-label">Voice</InputLabel>
+              <Select
+                labelId="voice-select-label"
+                id="voice-select"
+                value={selectedVoice}
+                label="Voice"
+                onChange={handleVoiceChange}
+                disabled={isProcessingAudio || isRenderingContent}
+              >
+                {supportedVoices.map((voice) => (
+                  <MenuItem key={voice.id} value={voice.id}>
+                    {voice.name}
+                    {voice.description ? ` - ${voice.description}` : ""}
                   </MenuItem>
                 ))}
               </Select>

@@ -58,11 +58,13 @@ export const convertSpeechToText = async (
  * Convert text to speech
  * @param text Text to convert to speech
  * @param language Language code (e.g., "fi-FI")
+ * @param voice Voice to use (e.g., "male", "female")
  * @returns Promise with the audio URL or base64 string
  */
 export const convertTextToSpeech = async (
   text: string,
-  language: string = 'en-US'
+  language: string = 'en-US',
+  voice: string = 'neutral'
 ): Promise<string> => {
   try {
     const response = await fetch(`${API_BASE_URI}/api/speech/text-to-speech`, {
@@ -70,7 +72,7 @@ export const convertTextToSpeech = async (
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text, language }),
+      body: JSON.stringify({ text, language, voice }),
     });
 
     if (!response.ok) {
@@ -188,5 +190,20 @@ export const getSupportedLanguages = (): Array<{ code: string, name: string }> =
     { code: 'hi-IN', name: 'Hindi' },
     { code: 'vi-VN', name: 'Vietnamese' },
     { code: 'fi-FI', name: 'Finnish' },
+  ];
+};
+
+// Function to get supported voice types
+export const getSupportedVoices = (): Array<{ id: string, name: string, description?: string }> => {
+  // This would typically come from your backend which would query the TTS API
+  // For now, we'll hardcode some common voice types
+  return [
+    { id: 'neutral', name: 'Neutral' },
+    { id: 'male', name: 'Male', description: 'Standard male voice' },
+    { id: 'female', name: 'Female', description: 'Standard female voice' },
+    { id: 'male-1', name: 'Male (Deep)', description: 'Deep male voice' },
+    { id: 'female-1', name: 'Female (Soft)', description: 'Soft female voice' },
+    { id: 'male-2', name: 'Male (British)', description: 'British accent male voice' },
+    { id: 'female-2', name: 'Female (British)', description: 'British accent female voice' },
   ];
 }; 
