@@ -126,19 +126,13 @@ public class LanguageAIServiceImpl implements LanguageAIService {
     // Validate user access
     authValidator.validateUserAccess(userId);
 
-    // Create pageable request with the limit
-    Pageable pageable = PageRequest.of(0, limit);
+    // Use the existing repository method that already sorts by createdAt DESC
+    Page<LanguageMessage> messages = messageRepository.findByUserIdOrderByCreatedAtDesc(userId,
+        PageRequest.of(0, limit));
 
-    // Get user-AI conversation pairs
-    Page<LanguageMessage> messages = messageRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-    log.info("Found {} messages for user {}", messages.getTotalElements(), userId);
-
-    // Convert to DTOs
-    List<LanguageMessageDTO> messageDTOs = messages.getContent().stream()
+    return messages.stream()
         .map(messageMapper::toDTO)
         .collect(Collectors.toList());
-
-    return messageDTOs;
   }
 
   @Transactional

@@ -62,4 +62,7 @@ public interface LanguageMessageRepository extends JpaRepository<LanguageMessage
          * Find the most recent messages
          */
         List<LanguageMessage> findTop5ByOrderByCreatedAtDesc();
+
+        // Option 2: Generic method that can be sorted using the Pageable parameter
+        Page<LanguageMessage> findByUserId(String userId, Pageable pageable);
 }

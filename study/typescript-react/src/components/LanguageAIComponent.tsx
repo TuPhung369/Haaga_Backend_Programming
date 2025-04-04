@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo
+} from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
@@ -98,7 +104,15 @@ interface ResponseMetadata {
 }
 
 // Add a component for rendering Mermaid diagrams
-const MermaidDiagram: React.FC<{ content: string }> = ({ content }) => {
+interface MermaidDiagramProps {
+  content: string;
+  onRenderComplete?: (svg: string) => void;
+}
+
+const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
+  content,
+  onRenderComplete
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,6 +185,11 @@ const MermaidDiagram: React.FC<{ content: string }> = ({ content }) => {
           setSvgContent(result.svg);
           setLoading(false);
           console.log("Mermaid diagram rendered successfully");
+
+          // Call the callback with the rendered SVG if provided
+          if (onRenderComplete) {
+            onRenderComplete(result.svg);
+          }
         })
         .catch((err) => {
           console.error("Mermaid render failed:", err);
@@ -187,7 +206,7 @@ const MermaidDiagram: React.FC<{ content: string }> = ({ content }) => {
       );
       setLoading(false);
     }
-  }, [content]);
+  }, [content, onRenderComplete]);
 
   return (
     <div
@@ -223,6 +242,156 @@ const MermaidDiagram: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
+// Create a DiagramViewer component to handle diagrams with toggle options
+interface DiagramViewerProps {
+  mermaidContent: string;
+}
+
+// DiagramViewer component for toggling between Mermaid diagram and source code view
+const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
+  ({ mermaidContent }) => {
+    // Generate a stable ID based on the content for localStorage key
+    const diagramId = useMemo(() => {
+      // Simple hash function to create a stable ID for this diagram content
+      let hash = 0;
+      const content = mermaidContent;
+      for (let i = 0; i < content.length; i++) {
+        const char = content.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return `diagram-${Math.abs(hash).toString(16).substring(0, 8)}`;
+    }, [mermaidContent]);
+
+    // Get the stored view mode from localStorage or use default
+    const getStoredViewMode = useCallback(() => {
+      try {
+        const stored = localStorage.getItem(`viewMode-${diagramId}`);
+        if (stored && ["mermaid", "mermaid-code"].includes(stored)) {
+          return stored as "mermaid" | "mermaid-code";
+        }
+      } catch (e) {
+        console.warn(
+          "Failed to retrieve stored view mode from localStorage",
+          e
+        );
+      }
+      return "mermaid"; // Default view
+    }, [diagramId]);
+
+    // State for the current view mode, initialized from storage
+    const [viewMode, setViewMode] = useState<"mermaid" | "mermaid-code">(
+      getStoredViewMode()
+    );
+
+    // Store the viewMode in localStorage when it changes
+    useEffect(() => {
+      try {
+        localStorage.setItem(`viewMode-${diagramId}`, viewMode);
+      } catch (e) {
+        console.warn("Failed to store view mode in localStorage", e);
+      }
+    }, [viewMode, diagramId]);
+
+    // Check if diagram has been rendered already and cache SVG
+    const [renderCache, setRenderCache] = useState(() => {
+      try {
+        const cached = localStorage.getItem(`diagram-cache-${diagramId}`);
+        return cached ? JSON.parse(cached) : { rendered: false, svg: null };
+      } catch {
+        return { rendered: false, svg: null };
+      }
+    });
+
+    // Callback to receive the rendered SVG from MermaidDiagram
+    const handleMermaidRenderComplete = useCallback(
+      (svg: string) => {
+        console.log(`Received SVG for ${diagramId}, setting cache.`);
+        setRenderCache({ rendered: true, svg: svg });
+      },
+      [diagramId]
+    );
+
+    // Save rendering state and SVG to localStorage
+    useEffect(() => {
+      if (renderCache.rendered && renderCache.svg) {
+        try {
+          localStorage.setItem(
+            `diagram-cache-${diagramId}`,
+            JSON.stringify(renderCache)
+          );
+        } catch (error) {
+          console.warn("Failed to store diagram cache in localStorage", error);
+        }
+      }
+    }, [renderCache, diagramId]);
+
+    // Memoize the diagram content to prevent unnecessary re-renders
+    const mermaidDiagram = useMemo(() => {
+      if (viewMode !== "mermaid") return null;
+      // If already rendered and we have the SVG, display it directly
+      if (renderCache.rendered && renderCache.svg) {
+        return (
+          <div
+            className="mermaid-diagram-container mermaid-centered"
+            dangerouslySetInnerHTML={{ __html: renderCache.svg }}
+          />
+        );
+      }
+      return (
+        <MermaidDiagram
+          content={mermaidContent}
+          onRenderComplete={handleMermaidRenderComplete}
+        />
+      );
+    }, [mermaidContent, viewMode, renderCache, handleMermaidRenderComplete]);
+
+    const mermaidCodeView = useMemo(() => {
+      if (viewMode !== "mermaid-code") return null;
+      return (
+        <div className="code-container">
+          <SyntaxHighlighter language="markdown" style={dracula}>
+            {mermaidContent}
+          </SyntaxHighlighter>
+        </div>
+      );
+    }, [mermaidContent, viewMode]);
+
+    return (
+      <div
+        className="diagram-viewer-container"
+        style={{ marginTop: "15px", marginBottom: "15px" }}
+      >
+        <div className="diagram-toolbar" style={{ marginBottom: "10px" }}>
+          <Button
+            variant={viewMode === "mermaid" ? "contained" : "outlined"}
+            color="primary"
+            size="small"
+            onClick={() => setViewMode("mermaid")}
+            sx={{ mr: 1 }}
+          >
+            Diagram
+          </Button>
+
+          <Button
+            variant={viewMode === "mermaid-code" ? "contained" : "outlined"}
+            color="primary"
+            size="small"
+            onClick={() => setViewMode("mermaid-code")}
+          >
+            Code View
+          </Button>
+        </div>
+
+        <div className="diagram-content">
+          {mermaidDiagram}
+          {mermaidCodeView}
+        </div>
+      </div>
+    );
+  }
+);
+
 // Function to preprocess markdown text for better rendering
 const preprocessMarkdown = (markdown: string): string => {
   // Convert bold text
@@ -245,7 +414,6 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   // Get language messages from Redux store
   const { messages: previousMessages, loading: isLoadingMessages } =
     useSelector((state: RootState) => state.language);
-
   // Initialize dispatch
   const dispatch = useDispatch();
 
@@ -402,6 +570,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
       }
 
       return dateObj.toLocaleString("en-US", {
+        year: "numeric",
         month: "short",
         day: "numeric",
         hour: "numeric",
@@ -411,6 +580,30 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Invalid Date";
+    }
+  };
+
+  // Format timestamp for display
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return "";
+      }
+
+      return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true
+      });
+    } catch (error) {
+      console.error("Error formatting timestamp:", error);
+      return "";
     }
   };
 
@@ -428,20 +621,18 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
         return;
       }
 
-      // Create user message object
+      // Create user message object Commented
       const userMessageObj = {
         sender: "User",
         content: conversation.userMessage,
         timestamp: new Date(conversation.createdAt).toISOString()
       };
-
-      // Create AI response object
+      // Create AI response object Commented
       const aiResponseObj = {
         sender: "AI",
         content: conversation.aiResponse,
         timestamp: new Date(conversation.createdAt).toISOString()
       };
-
       // Add both messages to chat
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -593,27 +784,6 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       setIsRenderingContent(false);
-    }
-  };
-
-  // Format timestamp for display
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp);
-
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        return "";
-      }
-
-      return date.toLocaleString("en-US", {
-        hour: "numeric",
-        minute: "numeric",
-        hour12: true
-      });
-    } catch (error) {
-      console.error("Error formatting timestamp:", error);
-      return "";
     }
   };
 
@@ -917,6 +1087,11 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 ) : previousMessages && previousMessages.length > 0 ? (
                   <>
                     {previousMessages.map((msg, index) => {
+                      console.log(
+                        "DEBUG: index and msg for rendering",
+                        index,
+                        msg
+                      );
                       // Skip rendering if message is invalid
                       if (!msg) return null;
 
@@ -1076,8 +1251,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                                             mermaidContent
                                           );
                                           return (
-                                            <MermaidDiagram
-                                              content={mermaidContent}
+                                            <DiagramViewer
+                                              mermaidContent={mermaidContent}
                                             />
                                           );
                                         }
@@ -1090,7 +1265,9 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                                           value
                                         );
                                         return (
-                                          <MermaidDiagram content={value} />
+                                          <DiagramViewer
+                                            mermaidContent={value}
+                                          />
                                         );
                                       }
 
@@ -1302,8 +1479,8 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                                       mermaidContent
                                     );
                                     return (
-                                      <MermaidDiagram
-                                        content={mermaidContent}
+                                      <DiagramViewer
+                                        mermaidContent={mermaidContent}
                                       />
                                     );
                                   }
@@ -1315,7 +1492,9 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                                     "Passing Mermaid content to MermaidDiagram:",
                                     value
                                   );
-                                  return <MermaidDiagram content={value} />;
+                                  return (
+                                    <DiagramViewer mermaidContent={value} />
+                                  );
                                 }
 
                                 // Standard code block rendering for other languages

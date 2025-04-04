@@ -68,19 +68,30 @@ declare global {
   }
 }
 
-// Define expected response structure from the dev endpoint
-interface SaveInteractionDevResponse {
-  success?: boolean;       // Optional, might not be present in all non-JSON cases
-  message?: string;       // Success message
-  interactionId?: string; // ID of the saved AI response message on success
-  id?: string;            // Backend might return 'id'
+// Define a type for the API response message
+interface ApiLanguageMessage {
+  id?: string;
+  content?: string;
   userId?: string;
+  sessionId?: string;
+  messageType?: string;
+  userMessage?: string;
+  aiResponse?: string;
   language?: string;
-  createdAt?: string | Date; // ISO string or Date object
-  error?: string;         // Error message
-  requestDetails?: Record<string, unknown>; // Type more strictly
-  debugHint?: string;
-  rawResponse?: string;   // For non-JSON responses
+  created_at?: string | number[] | Date;
+  createdAt?: string | number[] | Date;
+  message_type?: string;
+}
+
+// Add this function at the top of your file or in a utility file
+function convertArrayToDate(dateArray: number[]): Date {
+  if (!Array.isArray(dateArray) || dateArray.length < 3) {
+    return new Date();
+  }
+
+  const [year, month, day, hour = 0, minute = 0, second = 0, ms = 0] = dateArray;
+  // Note: Month is 0-based in JS Date, but 1-based in the array from Java
+  return new Date(year, month - 1, day, hour, minute, second, ms / 1000000);
 }
 
 /**
@@ -838,14 +849,37 @@ export const getUserLanguageMessages = async (
     // Map database fields to our model fields
     const messages = Array.isArray(data) ? data : (data.content || []);
 
-    return messages.map((msg: any) => ({
-      id: msg.id || `mock-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-      sessionId: msg.sessionId || `session-${userId}`,
-      userMessage: msg.message_type === 'USER_MESSAGE' ? msg.content : '',
-      aiResponse: msg.message_type === 'AI_RESPONSE' ? msg.content : '',
-      createdAt: msg.created_at ? new Date(msg.created_at) : new Date(),
-      messageType: msg.message_type || ''
-    }));
+    return messages.map((msg: ApiLanguageMessage) => {
+      // Convert createdAt to Date with proper type handling
+      let createdAtDate: Date;
+      try {
+        if (msg.created_at) {
+          if (Array.isArray(msg.created_at)) {
+            createdAtDate = convertArrayToDate(msg.created_at);
+          } else if (typeof msg.created_at === 'string') {
+            createdAtDate = new Date(msg.created_at);
+          } else if (msg.created_at instanceof Date) {
+            createdAtDate = msg.created_at;
+          } else {
+            createdAtDate = new Date();
+          }
+        } else {
+          createdAtDate = new Date();
+        }
+      } catch (error) {
+        console.error("Error converting date:", error);
+        createdAtDate = new Date();
+      }
+
+      return {
+        id: msg.id || `mock-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        sessionId: msg.sessionId || `session-${userId}`,
+        userMessage: msg.message_type === 'USER_MESSAGE' ? msg.content : '',
+        aiResponse: msg.message_type === 'AI_RESPONSE' ? msg.content : '',
+        createdAt: createdAtDate,
+        messageType: msg.message_type || ''
+      };
+    });
   } catch (error) {
     console.error('Error fetching language messages:', error);
     return generateMockLanguageMessages(userId, limit);
@@ -899,34 +933,36 @@ export const getLanguageConversations = async (
     console.log(`Successfully fetched ${data.length} messages for user ${userId}`);
 
     // Process messages into properly structured LanguageInteraction objects
-    const conversations: LanguageInteraction[] = data.map((message: any) => {
+    const conversations: LanguageInteraction[] = data.map((message: ApiLanguageMessage) => {
       // Handle date fields safely
-      let createdAtStr: string;
+      let createdAtDate: Date;
       try {
         // Try to parse a date from various possible formats
         const dateSource = message.created_at || message.createdAt;
         if (dateSource) {
           if (dateSource instanceof Date) {
-            createdAtStr = dateSource.toISOString();
+            createdAtDate = dateSource;
+          } else if (Array.isArray(dateSource)) {
+            // Use the convertArrayToDate function
+            createdAtDate = convertArrayToDate(dateSource);
           } else if (typeof dateSource === 'string') {
-            // Keep the string as is if it's a valid date string
-            const testDate = new Date(dateSource);
-            createdAtStr = isNaN(testDate.getTime()) ? new Date().toISOString() : dateSource;
+            // Convert string to Date
+            createdAtDate = new Date(dateSource);
           } else {
-            createdAtStr = new Date().toISOString();
+            createdAtDate = new Date();
           }
         } else {
-          createdAtStr = new Date().toISOString();
+          createdAtDate = new Date();
         }
       } catch (error) {
         console.error("Error processing date:", error);
-        createdAtStr = new Date().toISOString();
+        createdAtDate = new Date();
       }
 
-      // Each message should already contain the necessary fields from the backend
+      // Create a properly typed message object
       return {
         id: message.id || `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        sessionId: message.sessionId || `session-${userId}`, // Ensure sessionId is set
+        sessionId: message.sessionId || `session-${userId}`,
         userMessage: message.content && message.messageType === 'USER_MESSAGE'
           ? message.content
           : message.userMessage || '',
@@ -935,7 +971,7 @@ export const getLanguageConversations = async (
           : message.aiResponse || '',
         messageType: message.messageType || '',
         language: message.language || 'en-US',
-        createdAt: createdAtStr,
+        createdAt: createdAtDate,
         userId: message.userId || userId
       };
     });

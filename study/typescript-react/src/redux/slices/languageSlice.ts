@@ -13,20 +13,8 @@ const initialState: LanguageState = {
   error: null,
 };
 
-// Helper function to serialize dates in the LanguageInteraction objects
-const serializeInteraction = (interaction: LanguageInteraction): LanguageInteraction => {
-  if (!interaction) return interaction;
-
-  return {
-    ...interaction,
-    // Convert Date to ISO string if it exists, otherwise use current date string
-    createdAt: interaction.createdAt instanceof Date
-      ? interaction.createdAt.toISOString()
-      : (typeof interaction.createdAt === 'string'
-        ? interaction.createdAt
-        : new Date().toISOString())
-  };
-};
+// We no longer need these functions as the Service layer now handles all date conversions
+// and createdAt is always a Date object
 
 export const languageSlice = createSlice({
   name: 'language',
@@ -37,10 +25,10 @@ export const languageSlice = createSlice({
       state.error = null;
     },
     fetchMessagesSuccess: (state, action: PayloadAction<LanguageInteraction[]>) => {
-      // Serialize each message to ensure dates are stored as strings
-      state.messages = action.payload.map(serializeInteraction);
       state.loading = false;
-      state.error = null;
+
+      // All dates should already be Date objects now coming from the service layer
+      state.messages = action.payload;
     },
     fetchMessagesFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -52,8 +40,17 @@ export const languageSlice = createSlice({
         console.error('Attempted to add message without sessionId');
         return;
       }
-      // Serialize the message before adding to state
-      state.messages.unshift(serializeInteraction(action.payload)); // Add to beginning of array for newest messages first
+
+      // We no longer need serializeInteraction since createdAt is always a Date now
+      // Just ensure createdAt is a Date object
+      const message = {
+        ...action.payload,
+        createdAt: action.payload.createdAt instanceof Date
+          ? action.payload.createdAt
+          : new Date()
+      };
+
+      state.messages.unshift(message); // Add to beginning of array for newest messages first
     },
     clearMessages: (state) => {
       state.messages = [];

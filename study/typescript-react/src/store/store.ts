@@ -98,7 +98,6 @@ const saveState = (state: RootState): void => {
       state.assistantAI &&
       state.language // Add check for language state
     ) {
-      console.log('Saving state to localStorage, assistantAI messages:', state.assistantAI.messages.length, 'language messages:', state.language.messages.length);
       const serializedState = JSON.stringify(state);
       localStorage.setItem("appState", serializedState);
     } else {
