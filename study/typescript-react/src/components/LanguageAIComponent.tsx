@@ -1087,11 +1087,6 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 ) : previousMessages && previousMessages.length > 0 ? (
                   <>
                     {previousMessages.map((msg, index) => {
-                      console.log(
-                        "DEBUG: index and msg for rendering",
-                        index,
-                        msg
-                      );
                       // Skip rendering if message is invalid
                       if (!msg) return null;
 
