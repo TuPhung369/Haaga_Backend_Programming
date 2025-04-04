@@ -41,13 +41,12 @@ export const languageSlice = createSlice({
         return;
       }
 
-      // We no longer need serializeInteraction since createdAt is always a Date now
-      // Just ensure createdAt is a Date object
+      // Ensure createdAt is a string (ISO format)
       const message = {
         ...action.payload,
-        createdAt: action.payload.createdAt instanceof Date
+        createdAt: typeof action.payload.createdAt === 'string'
           ? action.payload.createdAt
-          : new Date()
+          : new Date().toISOString()
       };
 
       state.messages.unshift(message); // Add to beginning of array for newest messages first

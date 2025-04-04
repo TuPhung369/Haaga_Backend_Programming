@@ -17,7 +17,7 @@ export interface LanguageInteraction {
   feedback?: LanguageFeedback;
   messageType?: string;
   language?: string;
-  createdAt: Date;
+  createdAt: string;
   userId?: string;
   content?: string;
 }

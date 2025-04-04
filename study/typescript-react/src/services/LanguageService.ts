@@ -154,8 +154,8 @@ export const createLanguageSession = async (
           id: userId.startsWith('session-') ? userId : `session-${userId}`,
           userId,
           language,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
       }
       console.log(`No existing session found for user: ${userId}`);
@@ -206,8 +206,8 @@ export const createLanguageSession = async (
       id: sessionId || `mock-session-${Date.now()}`,
       userId: data.userId || userId,
       language: data.language || language,
-      createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
-      updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+      createdAt: data.createdAt ? data.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: data.updatedAt ? data.updatedAt.toISOString() : new Date().toISOString(),
     };
   } catch (error) {
     console.log(`=== ERROR CREATING SESSION ===`);
@@ -219,8 +219,8 @@ export const createLanguageSession = async (
       id: mockSessionId,
       userId: 'guest',
       language,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     console.log(`Using mock session ID: ${mockSessionId}`);
@@ -299,7 +299,7 @@ export const saveInteraction = async (
         sessionId: `session-${interactionData.userId}`, // Create a session ID if not provided
         userMessage: interactionData.userMessage,
         aiResponse: interactionData.aiResponse,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         // Add the optional fields
         audioUrl: interactionData.audioUrl,
         feedback: interactionData.feedback
@@ -317,7 +317,7 @@ export const saveInteraction = async (
         sessionId: `session-${interactionData.userId}`, // Create a session ID if not provided
         userMessage: interactionData.userMessage,
         aiResponse: interactionData.aiResponse,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         // Add the optional fields
         audioUrl: interactionData.audioUrl,
         feedback: interactionData.feedback
@@ -332,7 +332,7 @@ export const saveInteraction = async (
       sessionId: `session-${interactionData.userId}`,
       userMessage: interactionData.userMessage,
       aiResponse: interactionData.aiResponse || "Error saving interaction",
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     };
   }
 };
@@ -566,7 +566,7 @@ export const getSessionInteractions = async (
         aiResponse: item.aiResponse,
         audioUrl: item.audioUrl,
         feedback: item.feedback,
-        createdAt: new Date(item.createdAt)
+        createdAt: new Date(item.createdAt).toISOString()
       }));
     }
 
@@ -588,7 +588,7 @@ export const getSessionInteractions = async (
         aiResponse: item.aiResponse,
         audioUrl: item.audioUrl,
         feedback: item.feedback,
-        createdAt: new Date(item.createdAt)
+        createdAt: new Date(item.createdAt).toISOString()
       }));
     }
 
@@ -876,7 +876,7 @@ export const getUserLanguageMessages = async (
         sessionId: msg.sessionId || `session-${userId}`,
         userMessage: msg.message_type === 'USER_MESSAGE' ? msg.content : '',
         aiResponse: msg.message_type === 'AI_RESPONSE' ? msg.content : '',
-        createdAt: createdAtDate,
+        createdAt: createdAtDate.toISOString(),
         messageType: msg.message_type || ''
       };
     });
@@ -971,7 +971,7 @@ export const getLanguageConversations = async (
           : message.aiResponse || '',
         messageType: message.messageType || '',
         language: message.language || 'en-US',
-        createdAt: createdAtDate,
+        createdAt: createdAtDate.toISOString(),
         userId: message.userId || userId
       };
     });
@@ -1004,7 +1004,7 @@ export const generateMockLanguageMessages = (userId: string, limit: number): Lan
       sessionId: `session-${userId}`,
       userMessage: `This is user message ${i + 1}. How do I say this in ${mockLanguages[i % mockLanguages.length]}?`,
       aiResponse: `This is AI response ${i + 1}. You would say: "Example translated text for ${mockLevels[i % mockLevels.length]} level"`,
-      createdAt: date
+      createdAt: date.toISOString()
     });
   }
 

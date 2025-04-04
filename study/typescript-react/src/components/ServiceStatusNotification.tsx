@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { API_URL } from "../services/LanguageService";
-import "./ServiceStatusNotification.css";
+import "../styles/ServiceStatusNotification.css";
 
 interface ServiceStatusProps {
   onStatusChange?: (isAvailable: boolean) => void;

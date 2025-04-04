@@ -555,14 +555,14 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   }, [fetchPreviousMessages]);
 
   // Format date for display
-  const formatDate = (date: Date | string | null | undefined) => {
+  const formatDate = (date: string | null | undefined) => {
     if (!date) {
       return "Invalid Date";
     }
 
     try {
-      // Convert string date to Date object if needed
-      const dateObj = typeof date === "string" ? new Date(date) : date;
+      // Always convert to Date object first
+      const dateObj = new Date(date);
 
       // Check if date is valid
       if (isNaN(dateObj.getTime())) {
