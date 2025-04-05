@@ -431,8 +431,10 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     useState<boolean>(false);
   const [isRenderingContent, setIsRenderingContent] = useState<boolean>(false);
   const [supportedLanguages] = useState(getSupportedLanguages());
-  const [supportedVoices] = useState(getSupportedVoices());
-  const [selectedVoice, setSelectedVoice] = useState<string>("neutral");
+  const [supportedVoices, setSupportedVoices] = useState<
+    Array<{ id: string; name: string; description?: string }>
+  >([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>("");
   const [proficiencyLevel, setProficiencyLevel] = useState<string>(
     ProficiencyLevel.Intermediate
   );
@@ -518,7 +520,11 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
 
   // Handle language change
   const handleLanguageChange = (event: SelectChangeEvent) => {
-    setLanguage(event.target.value);
+    const newLanguage = event.target.value;
+    setLanguage(newLanguage);
+
+    // Proficiency level is reset when language changes
+    setProficiencyLevel(ProficiencyLevel.Intermediate);
   };
 
   // Handle browser-recognized speech
@@ -798,6 +804,79 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
       setIsRenderingContent(false);
     }
   };
+
+  // Initialize voices when component mounts
+  useEffect(() => {
+    // Use setTimeout to ensure this runs after initial language state is set
+    setTimeout(() => {
+      // Get all available voices
+      const allVoices = getSupportedVoices();
+
+      // Extract language code from initial language (e.g., "en-US" -> "en")
+      const languagePrefix = language.split("-")[0].toLowerCase();
+
+      // Filter voices to only include those matching the initial language
+      const filteredVoices = allVoices.filter((voice) => {
+        const voiceParts = voice.id.split("-");
+        return voiceParts.some(
+          (part) =>
+            part === languagePrefix ||
+            (languagePrefix === "en" && (part === "us" || part === "gb"))
+        );
+      });
+
+      if (filteredVoices.length > 0) {
+        setSupportedVoices(filteredVoices);
+        setSelectedVoice(filteredVoices[0].id);
+        console.log(
+          `Initialized ${filteredVoices.length} voices for ${language}. Default: ${filteredVoices[0].id}`
+        );
+      }
+    }, 0);
+  }, [language]); // Empty dependency array means this runs once on mount
+
+  // Add effect to update voices when language changes
+  useEffect(() => {
+    // Skip initial render
+    if (!selectedVoice) return;
+
+    // Get all available voices
+    const allVoices = getSupportedVoices();
+
+    // Extract language code from selected language (e.g., "en-US" -> "en")
+    const languagePrefix = language.split("-")[0].toLowerCase();
+    console.log(`Language changed to ${language} (prefix: ${languagePrefix})`);
+
+    // Filter voices to only include those matching the selected language
+    const filteredVoices = allVoices.filter((voice) => {
+      const voiceParts = voice.id.split("-");
+      return voiceParts.some(
+        (part) =>
+          part === languagePrefix ||
+          (languagePrefix === "en" && (part === "us" || part === "gb"))
+      );
+    });
+
+    console.log(`Filtered ${filteredVoices.length} voices for ${language}`);
+
+    // Set the filtered voices
+    setSupportedVoices(filteredVoices);
+
+    // Set default voice to the first one in the filtered list
+    if (filteredVoices.length > 0) {
+      // Check if current selected voice is still valid for the new language
+      const isCurrentVoiceValid = filteredVoices.some(
+        (v) => v.id === selectedVoice
+      );
+
+      if (!isCurrentVoiceValid) {
+        setSelectedVoice(filteredVoices[0].id);
+        console.log(
+          `Selected voice changed to ${filteredVoices[0].id} for ${language}`
+        );
+      }
+    }
+  }, [selectedVoice, language]);
 
   return (
     <>

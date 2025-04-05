@@ -175,19 +175,6 @@ export const getSupportedLanguages = (): Array<{ code: string, name: string }> =
   // For now, we'll hardcode some common languages
   return [
     { code: 'en-US', name: 'English (US)' },
-    { code: 'en-GB', name: 'English (UK)' },
-    { code: 'es-ES', name: 'Spanish' },
-    { code: 'fr-FR', name: 'French' },
-    { code: 'de-DE', name: 'German' },
-    { code: 'it-IT', name: 'Italian' },
-    { code: 'pt-BR', name: 'Portuguese (Brazil)' },
-    { code: 'ru-RU', name: 'Russian' },
-    { code: 'ja-JP', name: 'Japanese' },
-    { code: 'ko-KR', name: 'Korean' },
-    { code: 'zh-CN', name: 'Chinese (Simplified)' },
-    { code: 'zh-TW', name: 'Chinese (Traditional)' },
-    { code: 'ar-SA', name: 'Arabic' },
-    { code: 'hi-IN', name: 'Hindi' },
     { code: 'vi-VN', name: 'Vietnamese' },
     { code: 'fi-FI', name: 'Finnish' },
   ];
@@ -195,15 +182,18 @@ export const getSupportedLanguages = (): Array<{ code: string, name: string }> =
 
 // Function to get supported voice types
 export const getSupportedVoices = (): Array<{ id: string, name: string, description?: string }> => {
-  // This would typically come from your backend which would query the TTS API
-  // For now, we'll hardcode some common voice types
   return [
-    { id: 'neutral', name: 'Neutral' },
-    { id: 'male', name: 'Male', description: 'Standard male voice' },
-    { id: 'female', name: 'Female', description: 'Standard female voice' },
-    { id: 'male-1', name: 'Male (Deep)', description: 'Deep male voice' },
-    { id: 'female-1', name: 'Female (Soft)', description: 'Soft female voice' },
-    { id: 'male-2', name: 'Male (British)', description: 'British accent male voice' },
-    { id: 'female-2', name: 'Female (British)', description: 'British accent female voice' },
+    { id: "mark-en-us", name: "Mark", description: "M-English" },
+    { id: "ryan-en-gb", name: "Ryan", description: "M-English" },
+    { id: "aria-en-us", name: "Aria", description: "FM-English" },
+    { id: "sonia-en-gb", name: "Sonia", description: "FM-English" },
+    { id: "guy-en-us", name: "Guy", description: "M-English" },
+    { id: "jenny-en-us", name: "Jenny", description: "FM-English" },
+    { id: "david-en-us", name: "David", description: "M-English" },
+    { id: "zira-en-us", name: "Zira", description: "FM-English" },
+    { id: "david-desktop-en-us", name: "David Desktop", description: "M-English" },
+    { id: "zira-desktop-en-us", name: "Zira Desktop", description: "FM-English" },
+    { id: "heidi-fi-fi", name: "Heidi", description: "FM-Finnish" },
+    { id: "an-vi-vn", name: "An", description: "M-Vietnamese" },
   ];
-}; 
+};
