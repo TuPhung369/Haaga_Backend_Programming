@@ -4,6 +4,7 @@
 
 // API URL - using the absolute URL of the Spring Boot server as a proxy
 const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
+import { findAuthToken } from './LanguageService';
 
 /**
  * Convert speech to text
@@ -67,33 +68,175 @@ export const convertTextToSpeech = async (
   voice: string = 'neutral'
 ): Promise<string> => {
   try {
-    const response = await fetch(`${API_BASE_URI}/api/speech/text-to-speech`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text, language, voice }),
-    });
+    console.log(`🔊 [Text-to-Speech] Starting conversion for text: "${text.substring(0, 30)}..." in language: ${language}, voice: ${voice}`);
 
-    if (!response.ok) {
-      throw new Error(`Text-to-Speech failed: ${response.statusText}`);
+    // Get any available auth token from the app
+    const authInfo = findAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization header if a token is available
+    if (authInfo && authInfo.token) {
+      headers['Authorization'] = `Bearer ${authInfo.token}`;
+      console.log(`🔊 [Text-to-Speech] Using authentication token from ${authInfo.source}`);
     }
 
-    const data = await response.json();
+    // Try the regular API endpoint first (with path correction)
+    try {
+      const response = await fetch(`${API_BASE_URI}/api/text-to-speech`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text, language, voice }),
+        credentials: 'include' // Include cookies for session-based auth
+      });
 
-    // Check if response contains base64 audio data
-    if (data.audio) {
-      return `data:audio/mp3;base64,${data.audio}`;
-    } else if (data.audioUrl) {
-      return data.audioUrl;
-    } else {
-      throw new Error('No audio data received');
+      if (response.ok) {
+        const data = await response.json();
+
+        // Handle error response from server
+        if (data.success === false) {
+          throw new Error(data.error || 'Server reported an error');
+        }
+
+        // Check if response contains base64 audio data
+        if (data.audio) {
+          console.log(`🔊 [Text-to-Speech] Audio generated successfully using ${data.source || 'unknown'} source`);
+          return `data:audio/mp3;base64,${data.audio}`;
+        } else if (data.audioUrl) {
+          console.log(`🔊 [Text-to-Speech] Audio URL received`);
+          return data.audioUrl;
+        }
+
+        throw new Error('No audio data in response');
+      }
+
+      // If we get here, the regular endpoint failed but didn't throw an error
+      throw new Error(`Request failed with status: ${response.status}`);
+    } catch (mainApiError: unknown) {
+      console.warn(`🔊 [Text-to-Speech] Primary API failed: ${mainApiError instanceof Error ? mainApiError.message : String(mainApiError)}`);
+
+      // Try the fallback Python server endpoint
+      const fallbackResponse = await fetch(`http://localhost:8008/api/text-to-speech`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, language, voice }),
+      });
+
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+
+        if (fallbackData.success === false) {
+          throw new Error(fallbackData.error || 'Fallback server reported an error');
+        }
+
+        if (fallbackData.audio) {
+          console.log(`🔊 [Text-to-Speech] Fallback audio generated successfully using ${fallbackData.source || 'unknown'} source`);
+          return `data:audio/mp3;base64,${fallbackData.audio}`;
+        }
+
+        throw new Error('No audio data in fallback response');
+      }
+
+      // If fallback also failed, try browser speech synthesis as final option
+      if ('speechSynthesis' in window) {
+        console.log(`🔊 [Text-to-Speech] Attempting browser speech synthesis`);
+        return textToSpeechWithBrowser(text, language, voice);
+      }
+
+      // If we get here, all options failed
+      throw new Error('All text-to-speech methods failed');
     }
   } catch (error) {
-    console.error('Error converting text to speech:', error);
+    console.error('🔊 [Text-to-Speech] Error:', error);
     // We can't generate fallback audio, so return null and let the caller handle it
     return '';
   }
+};
+
+/**
+ * Fallback function to use browser's built-in speech synthesis
+ * @param text Text to speak
+ * @param language Language code
+ * @param voiceType Voice type preference
+ * @returns Promise that resolves to a dummy string when speech starts
+ */
+const textToSpeechWithBrowser = (
+  text: string,
+  language: string = 'en-US',
+  voiceType: string = 'neutral'
+): Promise<string> => {
+  return new Promise((resolve) => {
+    try {
+      if (!('speechSynthesis' in window)) {
+        console.warn('Browser speech synthesis not available');
+        resolve(''); // Return empty to indicate failure
+        return;
+      }
+
+      const synthesis = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(text);
+
+      // Set language
+      utterance.lang = language;
+
+      // Try to find an appropriate voice
+      const voices = synthesis.getVoices();
+      console.log(`🔊 [Browser TTS] Found ${voices.length} voices`);
+
+      if (voices.length > 0) {
+        // Filter voices by language
+        const langVoices = voices.filter(v =>
+          v.lang.toLowerCase().includes(language.split('-')[0].toLowerCase())
+        );
+
+        if (langVoices.length > 0) {
+          // Choose voice based on gender preference if specified in voiceType
+          if (voiceType.includes('male') || voiceType.includes('david')) {
+            const maleVoice = langVoices.find(v => v.name.toLowerCase().includes('male') ||
+              v.name.toLowerCase().includes('david'));
+            if (maleVoice) utterance.voice = maleVoice;
+          } else if (voiceType.includes('female') || voiceType.includes('zira')) {
+            const femaleVoice = langVoices.find(v => v.name.toLowerCase().includes('female') ||
+              v.name.toLowerCase().includes('zira'));
+            if (femaleVoice) utterance.voice = femaleVoice;
+          } else {
+            // Default to first matching language voice
+            utterance.voice = langVoices[0];
+          }
+        }
+      }
+
+      // Handle speech start
+      utterance.onstart = () => {
+        console.log(`🔊 [Browser TTS] Speech started`);
+        resolve('browser-tts'); // Return indicator that browser TTS is being used
+      };
+
+      // Handle errors
+      utterance.onerror = (event) => {
+        console.error(`🔊 [Browser TTS] Error: ${event.error}`);
+        resolve(''); // Return empty on error
+      };
+
+      // Speak the text
+      synthesis.speak(utterance);
+
+      // Handle case where onstart might not fire
+      setTimeout(() => {
+        if (synthesis.speaking) {
+          resolve('browser-tts-timeout');
+        } else {
+          resolve('');
+        }
+      }, 1000);
+    } catch (error) {
+      console.error(`🔊 [Browser TTS] Error: ${error}`);
+      resolve('');
+    }
+  });
 };
 
 /**
@@ -103,6 +246,12 @@ export const convertTextToSpeech = async (
 export const playAudio = (audioData: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
+      // Skip if audioData is empty or the browser TTS marker
+      if (!audioData || audioData === 'browser-tts' || audioData === 'browser-tts-timeout') {
+        resolve();
+        return;
+      }
+
       const audio = new Audio(audioData);
 
       audio.onended = () => {
@@ -182,18 +331,14 @@ export const getSupportedLanguages = (): Array<{ code: string, name: string }> =
 
 // Function to get supported voice types
 export const getSupportedVoices = (): Array<{ id: string, name: string, description?: string }> => {
+  // Return the voices that are definitely available on most Windows systems
+  // Based on server logs, we know David and Zira are available
   return [
-    { id: "mark-en-us", name: "Mark", description: "M-English" },
-    { id: "ryan-en-gb", name: "Ryan", description: "M-English" },
-    { id: "aria-en-us", name: "Aria", description: "FM-English" },
-    { id: "sonia-en-gb", name: "Sonia", description: "FM-English" },
-    { id: "guy-en-us", name: "Guy", description: "M-English" },
-    { id: "jenny-en-us", name: "Jenny", description: "FM-English" },
     { id: "david-en-us", name: "David", description: "M-English" },
     { id: "zira-en-us", name: "Zira", description: "FM-English" },
-    { id: "david-desktop-en-us", name: "David Desktop", description: "M-English" },
-    { id: "zira-desktop-en-us", name: "Zira Desktop", description: "FM-English" },
-    { id: "heidi-fi-fi", name: "Heidi", description: "FM-Finnish" },
-    { id: "an-vi-vn", name: "An", description: "M-Vietnamese" },
+    // Legacy fallbacks - these will map to David/Zira on the backend
+    { id: "male", name: "Male", description: "Standard male voice" },
+    { id: "female", name: "Female", description: "Standard female voice" },
+    { id: "neutral", name: "Neutral", description: "Default voice" },
   ];
 };

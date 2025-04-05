@@ -322,111 +322,234 @@ def get_pyttsx3_engine():
     return pyttsx3_engine
 
 
-@app.get("/api/supported-voices")
-async def get_supported_voices():
-    """Return list of supported voices matching frontend"""
-    # Initialize pyttsx3 engine to check available voices
+@app.get("/api/system-voices")
+async def get_system_voices():
+    """Return detailed list of all system voices using direct SAPI access"""
+    voices = []
+
+    # First try the pyttsx3 method (already implemented)
     try:
         engine = get_pyttsx3_engine()
         if engine:
-            voices = engine.getProperty("voices")
-            logger.info(f"Available system voices: {len(voices)}")
-            for i, voice in enumerate(voices):
-                logger.info(f"System voice {i}: {voice.name} ({voice.id})")
+            system_voices = engine.getProperty("voices")
+            logger.info(f"pyttsx3 found {len(system_voices)} voices")
+            for voice in system_voices:
+                voices.append({"id": voice.id, "name": voice.name, "source": "pyttsx3"})
     except Exception as e:
-        logger.error(f"Error checking system voices: {str(e)}")
+        logger.error(f"Error getting voices via pyttsx3: {str(e)}")
 
-    voices = [
-        {"id": "neutral", "name": "Neutral", "description": "Default neutral voice"},
-        {
-            "id": "male",
-            "name": "Male",
-            "description": "Standard male voice (system voice)",
-        },
-        {
-            "id": "female",
-            "name": "Female",
-            "description": "Standard female voice (pitch-adjusted)",
-        },
-        {
-            "id": "male-1",
-            "name": "Male (Deep)",
-            "description": "Deep male voice (system voice)",
-        },
-        {
-            "id": "female-1",
-            "name": "Female (Soft)",
-            "description": "Soft female voice (pitch-adjusted)",
-        },
-    ]
+    # Then try the direct SAPI method via comtypes
+    try:
+        from comtypes.client import CreateObject
+        import comtypes.gen
+
+        # Ensure the SpeechLib is available in comtypes
+        try:
+            from comtypes.gen import SpeechLib
+        except (ImportError, AttributeError):
+            # If not already available, create the gen module
+            engine = CreateObject("SAPI.SpVoice")
+            # Now the SpeechLib should be available
+            from comtypes.gen import SpeechLib
+
+        # Get voices via SAPI directly
+        engine = CreateObject("SAPI.SpVoice")
+        sapi_voices = engine.GetVoices()
+
+        logger.info(f"SAPI found {sapi_voices.Count} voices")
+
+        for i in range(sapi_voices.Count):
+            voice = sapi_voices.Item(i)
+            try:
+                voice_id = voice.Id
+                voice_name = voice.GetAttribute("Name")
+                voice_lang = voice.GetAttribute("Language")
+                voice_gender = voice.GetAttribute("Gender")
+
+                voices.append(
+                    {
+                        "id": voice_id,
+                        "name": voice_name,
+                        "language": voice_lang,
+                        "gender": voice_gender,
+                        "source": "sapi",
+                    }
+                )
+
+                logger.info(
+                    f"SAPI Voice: {voice_name} ({voice_id}), Language: {voice_lang}, Gender: {voice_gender}"
+                )
+            except Exception as e:
+                logger.error(f"Error processing SAPI voice {i}: {str(e)}")
+
+    except Exception as e:
+        logger.error(f"Error getting voices via SAPI: {str(e)}")
+
     return voices
 
 
-def generate_pyttsx3_audio(text, voice="male", speed=0.9):
-    """Generate audio using pyttsx3 with the specified voice and speed"""
+def update_supported_voices_with_system_info():
+    """Update the frontend voice list with information from the system voices"""
+    frontend_voices = [
+        {"id": "mark-en-us", "name": "Mark", "description": "M-English"},
+        {"id": "ryan-en-gb", "name": "Ryan", "description": "M-English"},
+        {"id": "aria-en-us", "name": "Aria", "description": "FM-English"},
+        {"id": "sonia-en-gb", "name": "Sonia", "description": "FM-English"},
+        {"id": "guy-en-us", "name": "Guy", "description": "M-English"},
+        {"id": "jenny-en-us", "name": "Jenny", "description": "FM-English"},
+        {"id": "david-en-us", "name": "David", "description": "M-English"},
+        {"id": "zira-en-us", "name": "Zira", "description": "FM-English"},
+        {
+            "id": "david-desktop-en-us",
+            "name": "David Desktop",
+            "description": "M-English",
+        },
+        {
+            "id": "zira-desktop-en-us",
+            "name": "Zira Desktop",
+            "description": "FM-English",
+        },
+        {"id": "heidi-fi-fi", "name": "Heidi", "description": "FM-Finnish"},
+        {"id": "an-vi-vn", "name": "An", "description": "M-Vietnamese"},
+    ]
+
+    # Get system voice information using both methods
+    system_voice_names = []
+
+    # Try pyttsx3 first
+    try:
+        engine = get_pyttsx3_engine()
+        if engine:
+            system_voices = engine.getProperty("voices")
+            for voice in system_voices:
+                # Clean the voice name for comparison
+                clean_name = (
+                    voice.name.lower()
+                    .replace("microsoft ", "")
+                    .replace(" desktop", "")
+                    .split("-")[0]
+                    .strip()
+                )
+                system_voice_names.append(clean_name)
+                logger.info(f"System voice: {clean_name} ({voice.id})")
+    except Exception as e:
+        logger.error(f"Error checking pyttsx3 voices: {str(e)}")
+
+    # Also try SAPI if available
+    try:
+        from comtypes.client import CreateObject
+
+        try:
+            from comtypes.gen import SpeechLib
+        except (ImportError, AttributeError):
+            engine = CreateObject("SAPI.SpVoice")
+            from comtypes.gen import SpeechLib
+
+        engine = CreateObject("SAPI.SpVoice")
+        sapi_voices = engine.GetVoices()
+
+        for i in range(sapi_voices.Count):
+            voice = sapi_voices.Item(i)
+            try:
+                voice_name = voice.GetAttribute("Name")
+                # Clean the voice name
+                clean_name = (
+                    voice_name.lower()
+                    .replace("microsoft ", "")
+                    .replace(" desktop", "")
+                    .split("-")[0]
+                    .strip()
+                )
+                if clean_name not in system_voice_names:
+                    system_voice_names.append(clean_name)
+                    logger.info(f"SAPI voice: {clean_name} ({voice.Id})")
+            except Exception as e:
+                logger.error(f"Error processing SAPI voice name: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error checking SAPI voices: {str(e)}")
+
+    # Mark which frontend voices are available
+    available_voices = []
+    for voice in frontend_voices:
+        # Extract the base name without language
+        name = voice["name"].lower()
+
+        # Check if this voice is available on the system
+        is_available = False
+        for system_name in system_voice_names:
+            if name in system_name or system_name in name:
+                is_available = True
+                break
+
+        # Add availability info to the voice
+        voice_with_availability = {**voice, "available": is_available}
+        available_voices.append(voice_with_availability)
+
+    return available_voices
+
+
+@app.get("/api/supported-voices")
+async def get_supported_voices():
+    """Return list of all supported voices including system voices"""
+    return update_supported_voices_with_system_info()
+
+
+def generate_pyttsx3_audio(text, voice_id="david-en-us", speed=0.9):
+    """Generate audio using pyttsx3 with the specified voice ID and speed"""
     try:
         engine = get_pyttsx3_engine()
         if engine is None:
             logger.error("pyttsx3 engine initialization failed")
-            return None
+            return None, "Text-to-speech engine could not be initialized"
 
         # Get available voices
-        voices = engine.getProperty("voices")
-        if not voices:
+        system_voices = engine.getProperty("voices")
+        if not system_voices:
             logger.error("No voices available in pyttsx3")
-            return None
+            return None, "No voice options are available on this system"
 
-        logger.info(f"Found {len(voices)} system voices")
+        logger.info(f"Found {len(system_voices)} system voices")
+
+        # Parse the voice_id to get the base name and language
+        voice_parts = voice_id.split("-")
+        voice_name = voice_parts[0].lower()  # e.g., "david", "zira"
 
         # Default to the first voice
-        voice_id = voices[0].id
+        system_voice_id = system_voices[0].id
+        voice_found = False
 
-        # FIXED VOICE SELECTION - Make sure female gets female voice and male gets male voice
-        if "female" in voice.lower():
-            # For female voices, look for female voice names
-            female_found = False
-            for i, v in enumerate(voices):
-                logger.info(f"Voice {i}: {v.name} ({v.id})")
-                if any(term in v.name.lower() for term in ["female", "zira", "helen"]):
-                    voice_id = v.id
-                    logger.info(f"Selected female voice: {v.name}")
-                    female_found = True
-                    break
+        # Try to find the matching voice
+        for system_voice in system_voices:
+            # Clean up the system voice name for comparison
+            system_name = (
+                system_voice.name.lower()
+                .replace("microsoft ", "")
+                .replace(" desktop", "")
+                .split("-")[0]
+                .strip()
+            )
 
-            # If no female voice found but we have multiple voices, try to use the one that's likely female
-            if not female_found and len(voices) > 1:
-                # In Windows, often the second voice is female (Zira)
-                # Try to find an index that's likely female
-                for i, v in enumerate(voices):
-                    if (
-                        "zira" in v.id.lower() or i == 1
-                    ):  # Often Zira is the second voice
-                        voice_id = v.id
-                        logger.info(f"Using likely female voice: {v.name}")
-                        break
+            # Check if the requested voice matches this system voice
+            if voice_name in system_name or system_name in voice_name:
+                system_voice_id = system_voice.id
+                voice_found = True
+                logger.info(
+                    f"Found matching voice: {system_voice.name} for requested voice: {voice_id}"
+                )
+                break
 
-        elif "male" in voice.lower() or voice.lower() == "neutral":
-            # For male voices, look for male voice names
-            male_found = False
-            for i, v in enumerate(voices):
-                logger.info(f"Voice {i}: {v.name} ({v.id})")
-                if any(
-                    term in v.name.lower()
-                    for term in ["male", "david", "mark", "james"]
-                ):
-                    voice_id = v.id
-                    logger.info(f"Selected male voice: {v.name}")
-                    male_found = True
-                    break
-
-            # If no male voice found but we have voices, use the first one (often David in Windows)
-            if not male_found and len(voices) > 0:
-                voice_id = voices[0].id
-                logger.info(f"Using likely male voice: {v.name}")
+        if not voice_found:
+            logger.warning(
+                f"Voice '{voice_id}' not found on system. Using default voice: {system_voices[0].name}"
+            )
+            return (
+                None,
+                f"Voice '{voice_parts[0]}' is not available on this system. Please choose another voice.",
+            )
 
         # Set voice
-        logger.info(f"Setting voice to: {voice_id}")
-        engine.setProperty("voice", voice_id)
+        logger.info(f"Setting voice to: {system_voice_id}")
+        engine.setProperty("voice", system_voice_id)
 
         # Set speed (rate in pyttsx3) - make it 10% slower by default
         current_rate = engine.getProperty("rate")
@@ -435,9 +558,7 @@ def generate_pyttsx3_audio(text, voice="male", speed=0.9):
         new_rate = int(current_rate * adjusted_speed)
         engine.setProperty("rate", new_rate)
 
-        logger.info(
-            f"Using pyttsx3 voice: {voice_id}, rate: {new_rate} (adjusted to be 10% slower)"
-        )
+        logger.info(f"Using pyttsx3 voice: {system_voice_id}, rate: {new_rate}")
 
         # Create unique temp filename to avoid conflicts
         temp_file = f"temp_{uuid.uuid4()}.wav"
@@ -449,7 +570,7 @@ def generate_pyttsx3_audio(text, voice="male", speed=0.9):
         # Verify the file was created
         if not os.path.exists(temp_file):
             logger.error(f"pyttsx3 failed to create audio file: {temp_file}")
-            return None
+            return None, "Failed to generate audio file"
 
         logger.info(
             f"Audio file created: {temp_file} ({os.path.getsize(temp_file)} bytes)"
@@ -467,11 +588,11 @@ def generate_pyttsx3_audio(text, voice="male", speed=0.9):
         except Exception as e:
             logger.warning(f"Failed to delete temp file {temp_file}: {str(e)}")
 
-        return base64.b64encode(mp3_buffer.read()).decode("utf-8")
+        return base64.b64encode(mp3_buffer.read()).decode("utf-8"), None
 
     except Exception as e:
         logger.error(f"pyttsx3 audio generation failed: {str(e)}", exc_info=True)
-        return None
+        return None, f"Audio generation failed: {str(e)}"
 
 
 @app.get("/")
@@ -508,22 +629,20 @@ async def speech_to_text(file: UploadFile = File(...), language: str = Form("en-
 async def text_to_speech(request: TTSRequest):
     text = request.text
     language = request.language.split("-")[0]
-    voice = request.voice or "neutral"
+    voice = request.voice or "david-en-us"  # Default to david-en-us instead of neutral
     speed = request.speed  # Use the speed parameter from request
 
     logger.info(
         f"Processing TTS request: '{text[:30]}...' in language: {language}, voice: {voice}, speed: {speed}"
     )
 
-    # Use pyttsx3 for both male and female voices to ensure correct gender voices
-    if "male" in voice.lower() or "female" in voice.lower():
+    # Use pyttsx3 for all voice types
+    if "-" in voice:  # Modern voice format like "david-en-us"
         logger.info(f"Using pyttsx3 for voice: {voice}")
         try:
-            audio_base64 = generate_pyttsx3_audio(text, voice, speed)
+            audio_base64, error_message = generate_pyttsx3_audio(text, voice, speed)
             if audio_base64:
-                logger.info(
-                    f"Successfully generated audio with pyttsx3 for {voice} voice"
-                )
+                logger.info(f"Successfully generated audio with pyttsx3 for {voice}")
                 return {
                     "success": True,
                     "audio": audio_base64,
@@ -532,16 +651,79 @@ async def text_to_speech(request: TTSRequest):
                     "voice": voice,
                     "source": "pyttsx3",
                 }
-            else:
-                logger.error("pyttsx3 generated empty audio")
+            elif error_message:
+                logger.error(f"pyttsx3 error: {error_message}")
+                # Return an error response with the specific message
+                return {
+                    "success": False,
+                    "error": error_message,
+                    "language": language,
+                    "voice": voice,
+                }
         except Exception as e:
             logger.error(f"pyttsx3 TTS failed: {str(e)}", exc_info=True)
             # Fall through to SpeechBrain or gTTS
 
-    # Use SpeechBrain for female voices and neutral
+    # Legacy voice handling (male, female, neutral)
+    elif voice in ["male", "female", "neutral"]:
+        # Map legacy voices to specific voices
+        legacy_mapping = {
+            "male": "david-en-us",
+            "female": "zira-en-us",
+            "neutral": "david-en-us",
+        }
+        mapped_voice = legacy_mapping.get(voice, "david-en-us")
+
+        logger.info(f"Mapped legacy voice {voice} to {mapped_voice}")
+        try:
+            audio_base64, error_message = generate_pyttsx3_audio(
+                text, mapped_voice, speed
+            )
+            if audio_base64:
+                return {
+                    "success": True,
+                    "audio": audio_base64,
+                    "format": "mp3",
+                    "language": language,
+                    "voice": voice,
+                    "source": "pyttsx3",
+                }
+            elif error_message:
+                logger.error(f"pyttsx3 error: {error_message}")
+                # Return an error response
+                return {
+                    "success": False,
+                    "error": error_message,
+                    "language": language,
+                    "voice": voice,
+                }
+        except Exception as e:
+            logger.error(f"pyttsx3 TTS failed: {str(e)}", exc_info=True)
+            # Fall through to fallbacks
+
+    # Use SpeechBrain as fallback
     MAX_CHARS_FOR_SPEECHBRAIN = 2000
     if len(text) <= MAX_CHARS_FOR_SPEECHBRAIN:
-        tacotron2, hifigan, pitch_shift, base_speed = get_tts_models(language, voice)
+        # For SpeechBrain, we need to map the voice back to male/female/neutral
+        sb_voice = "neutral"
+        if (
+            "male" in voice
+            or "david" in voice
+            or "guy" in voice
+            or "ryan" in voice
+            or "mark" in voice
+        ):
+            sb_voice = "male"
+        elif (
+            "female" in voice
+            or "zira" in voice
+            or "aria" in voice
+            or "sonia" in voice
+            or "jenny" in voice
+        ):
+            sb_voice = "female"
+
+        tacotron2, hifigan, pitch_shift, base_speed = get_tts_models(language, sb_voice)
         logger.info(
             f"Voice config - pitch_shift: {pitch_shift}, base_speed: {base_speed}"
         )

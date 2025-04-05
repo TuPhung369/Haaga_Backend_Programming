@@ -5,11 +5,13 @@ import {
   CircularProgress,
   Typography,
   Paper,
-  IconButton
+  IconButton,
+  Alert
 } from "@mui/material";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
 import ClearIcon from "@mui/icons-material/Clear";
+import { convertSpeechToText } from "../services/SpeechService";
 
 // Add types for Web Speech API
 interface SpeechRecognitionEvent extends Event {
@@ -61,12 +63,57 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [browserTranscript, setBrowserTranscript] = useState<string>("");
+  const [useFallback, setUseFallback] = useState<boolean>(false);
+  const [processingTranscript, setProcessingTranscript] =
+    useState<boolean>(false);
+  const [initializing, setInitializing] = useState<boolean>(false);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null); // Properly typed
   const fullTranscriptRef = useRef<string>(""); // Store complete transcript that won't be affected by re-renders
+
+  // Pre-initialize audio stream to speed up first recording
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+
+    const initializeAudio = async () => {
+      if (!isInitialized && !initializing) {
+        try {
+          setInitializing(true);
+          console.log("🎤 Pre-initializing audio stream...");
+
+          // Request audio permission early to warm up the API
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+          // Clean up the stream immediately after getting permission
+          setTimeout(() => {
+            if (stream) {
+              stream.getTracks().forEach((track) => track.stop());
+              stream = null;
+            }
+            setIsInitialized(true);
+            setInitializing(false);
+            console.log("🎤 Audio system pre-initialized successfully");
+          }, 500);
+        } catch (error) {
+          console.error("Error pre-initializing audio:", error);
+          setInitializing(false);
+        }
+      }
+    };
+
+    initializeAudio();
+
+    return () => {
+      // Clean up stream if component unmounts during initialization
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [isInitialized, initializing]);
 
   // Initialize Web Speech API if available
   useEffect(() => {
@@ -112,6 +159,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           console.error(
             `🎤 [Browser Speech Recognition] Error: ${event.error}`
           );
+          // If there's an error, set to use fallback
+          setUseFallback(true);
         };
 
         // Handle recognition ending
@@ -120,9 +169,11 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         };
       } catch (e) {
         console.warn("Browser speech recognition not available:", e);
+        setUseFallback(true);
       }
     } else {
       console.warn("Web Speech API not supported in this browser");
+      setUseFallback(true);
     }
   }, [onSpeechRecognized, language]);
 
@@ -144,7 +195,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         onSpeechRecognized("");
       }
 
+      // Set recording state first to show UI feedback immediately
+      setIsRecording(true);
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Small delay to ensure everything is initialized properly
+      // This helps especially on the first recording attempt
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -163,25 +221,32 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
 
-        // Get the most complete transcript from our ref
-        const finalTranscript = fullTranscriptRef.current.trim();
+        // For browsers with Web Speech API support
+        if (!useFallback) {
+          // Get the most complete transcript from our ref
+          const finalTranscript = fullTranscriptRef.current.trim();
 
-        // Send audio to backend for processing, along with the browser transcript
-        sendRecording(audioBlob, finalTranscript);
+          // Send audio to backend for processing, along with the browser transcript
+          sendRecording(audioBlob, finalTranscript);
+        } else {
+          // Server-side transcription for browsers without Web Speech API
+          processServerTranscription(audioBlob);
+        }
 
         // Clean up the stream tracks
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      mediaRecorder.start();
-      setIsRecording(true);
+      // Start recording with a minimum of 250ms slice
+      mediaRecorder.start(250);
 
-      // Start browser-based speech recognition if available
-      if (recognitionRef.current) {
+      // Start browser-based speech recognition if available and not using fallback
+      if (recognitionRef.current && !useFallback) {
         try {
           recognitionRef.current.start();
         } catch (e) {
           console.warn("Could not start speech recognition:", e);
+          setUseFallback(true);
         }
       }
 
@@ -191,12 +256,13 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       }, 1000);
     } catch (error) {
       console.error("Error starting recording:", error);
+      setIsRecording(false);
     }
   };
 
   const stopRecording = () => {
     // Stop speech recognition first to ensure final results are captured
-    if (recognitionRef.current) {
+    if (recognitionRef.current && !useFallback) {
       try {
         recognitionRef.current.stop();
         // Give a small delay to ensure final recognition results are processed
@@ -228,6 +294,30 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   };
 
+  const processServerTranscription = async (audioBlob: Blob) => {
+    try {
+      setProcessingTranscript(true);
+      // Use the server-side speech-to-text service
+      const serverTranscript = await convertSpeechToText(audioBlob, language);
+
+      // Update the transcript state
+      setBrowserTranscript(serverTranscript);
+
+      // Send the transcription to parent component
+      if (onSpeechRecognized) {
+        onSpeechRecognized(serverTranscript);
+      }
+
+      // Send audio to backend for processing, along with the server transcript
+      sendRecording(audioBlob, serverTranscript);
+    } catch (error) {
+      console.error("Error with server transcription:", error);
+      sendRecording(audioBlob, "Error transcribing audio");
+    } finally {
+      setProcessingTranscript(false);
+    }
+  };
+
   const sendRecording = (audioBlob: Blob, transcript: string) => {
     onAudioRecorded(audioBlob, transcript);
   };
@@ -254,7 +344,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       }
 
       // Stop speech recognition
-      if (recognitionRef.current) {
+      if (recognitionRef.current && !useFallback) {
         try {
           recognitionRef.current.stop();
         } catch (e) {
@@ -263,7 +353,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         }
       }
     };
-  }, [isRecording]);
+  }, [isRecording, useFallback]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -275,6 +365,12 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   return (
     <Box>
+      {useFallback && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Using server-side speech recognition as browser speech API is not
+          available
+        </Alert>
+      )}
       <Box
         sx={{
           display: "flex",
@@ -289,10 +385,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           color={isRecording ? "error" : "primary"}
           startIcon={isRecording ? <StopIcon /> : <MicIcon />}
           onClick={isRecording ? stopRecording : startRecording}
-          disabled={disabled}
+          disabled={disabled || processingTranscript || initializing}
           sx={{ mb: 2 }}
         >
-          {isRecording ? "Stop Recording" : "Start Recording"}
+          {initializing
+            ? "Initializing..."
+            : isRecording
+            ? "Stop Recording"
+            : "Start Recording"}
         </Button>
 
         {isRecording && (
@@ -302,7 +402,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           </Box>
         )}
 
-        {isRecording && browserTranscript && (
+        {processingTranscript && (
+          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+            <CircularProgress size={16} sx={{ mr: 1 }} />
+            <Typography>Processing transcription...</Typography>
+          </Box>
+        )}
+
+        {browserTranscript && (
           <Paper
             elevation={1}
             sx={{
@@ -326,7 +433,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 color="textSecondary"
                 gutterBottom
               >
-                Browser Speech Recognition (Real-time):
+                {useFallback
+                  ? "Server Speech Recognition:"
+                  : "Browser Speech Recognition (Real-time):"}
               </Typography>
               <IconButton
                 size="small"

@@ -772,26 +772,86 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     try {
       const cleanText = text.replace("[SIMULATION] ", "");
       const clearText = stripMarkdown(cleanText);
-      const audioData = await convertTextToSpeech(
-        clearText,
-        language,
-        selectedVoice
+      console.log(
+        `🎙️ Converting text to speech: "${clearText.substring(
+          0,
+          30
+        )}..." with voice: ${selectedVoice}`
       );
 
+      // Try with selected voice first
+      let audioData: string | null = null;
+      let errorMessage: string | null = null;
+
+      try {
+        audioData = await convertTextToSpeech(
+          clearText,
+          language,
+          selectedVoice
+        );
+      } catch (voiceError) {
+        console.error("Error with selected voice:", voiceError);
+        errorMessage =
+          voiceError instanceof Error ? voiceError.message : "Unknown error";
+
+        // If first voice fails, try with a fallback voice (david-en-us)
+        if (selectedVoice !== "david-en-us") {
+          console.log("🎙️ Trying fallback voice: david-en-us");
+          try {
+            audioData = await convertTextToSpeech(
+              clearText,
+              language,
+              "david-en-us"
+            );
+            // If fallback succeeds, update the selected voice
+            if (audioData) {
+              console.log(
+                "🎙️ Fallback voice succeeded, updating selected voice"
+              );
+              setSelectedVoice("david-en-us");
+              errorMessage = null;
+            }
+          } catch (fallbackError) {
+            console.error("Error with fallback voice:", fallbackError);
+          }
+        }
+      }
+
       if (!audioData) {
-        setError("Could not generate speech audio");
+        console.error(
+          `No audio data returned from text-to-speech service. Error: ${errorMessage}`
+        );
+        setError(
+          `Could not generate speech audio. ${
+            errorMessage ? errorMessage : "Please try another voice."
+          }`
+        );
         setIsRenderingContent(false);
         return;
       }
 
+      console.log(`🎙️ Audio data received, length: ${audioData.length} chars`);
       audioRef.current.src = audioData;
 
       // Play audio
-      await audioRef.current.play();
+      try {
+        await audioRef.current.play();
+        console.log("🎙️ Audio playback started");
+      } catch (playError) {
+        console.error("Error playing audio:", playError);
+        setError(
+          "Could not play audio. " +
+            (playError instanceof Error ? playError.message : "Unknown error")
+        );
+        setIsRenderingContent(false);
+      }
       // The onEnded event handler on the <audio> element will set isRenderingContent to false
     } catch (error) {
       console.error("Error in speakAiResponse:", error);
-      setError("Failed to generate or play speech. Please check console.");
+      setError(
+        "Failed to generate speech: " +
+          (error instanceof Error ? error.message : "Unknown error")
+      );
       setIsRenderingContent(false); // Ensure rendering state is reset on error
     }
   };
