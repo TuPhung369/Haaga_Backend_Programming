@@ -479,6 +479,39 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     fullTranscriptRef.current = "";
     setBrowserTranscript("");
 
+    // Reset the recording time to 0
+    setRecordingTime(0);
+
+    // Clear the timer if it's running
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    // If we're still recording, restart the timer
+    if (isRecording) {
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+
+      // Restart speech recognition if we're using it
+      if (recognitionRef.current && !useFallback) {
+        try {
+          // Stop and restart recognition to clear buffer
+          recognitionRef.current.stop();
+
+          // Small delay before restarting to ensure clean state
+          setTimeout(() => {
+            if (recognitionRef.current && isRecording) {
+              recognitionRef.current.start();
+            }
+          }, 100);
+        } catch (e) {
+          console.warn("Error restarting speech recognition:", e);
+        }
+      }
+    }
+
     // Notify parent component
     if (onSpeechRecognized) {
       onSpeechRecognized("");
