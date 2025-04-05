@@ -435,7 +435,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               >
                 {useFallback
                   ? "Server Speech Recognition:"
-                  : "Browser Speech Recognition (Real-time):"}
+                  : "Speech Recognition:"}
               </Typography>
               <IconButton
                 size="small"
