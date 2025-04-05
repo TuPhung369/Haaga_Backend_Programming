@@ -70,53 +70,10 @@ export const convertTextToSpeech = async (
   try {
     console.log(`🔊 [Text-to-Speech] Starting conversion for text: "${text.substring(0, 30)}..." in language: ${language}, voice: ${voice}`);
 
-    // Get any available auth token from the app
-    const authInfo = findAuthToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    // Add authorization header if a token is available
-    if (authInfo && authInfo.token) {
-      headers['Authorization'] = `Bearer ${authInfo.token}`;
-      console.log(`🔊 [Text-to-Speech] Using authentication token from ${authInfo.source}`);
-    }
-
-    // Try the regular API endpoint first (with path correction)
+    // ---------- TRY PYTHON SERVER DIRECTLY ----------
+    // For performance and reliability, try the local Python server directly first
     try {
-      const response = await fetch(`${API_BASE_URI}/api/text-to-speech`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ text, language, voice }),
-        credentials: 'include' // Include cookies for session-based auth
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Handle error response from server
-        if (data.success === false) {
-          throw new Error(data.error || 'Server reported an error');
-        }
-
-        // Check if response contains base64 audio data
-        if (data.audio) {
-          console.log(`🔊 [Text-to-Speech] Audio generated successfully using ${data.source || 'unknown'} source`);
-          return `data:audio/mp3;base64,${data.audio}`;
-        } else if (data.audioUrl) {
-          console.log(`🔊 [Text-to-Speech] Audio URL received`);
-          return data.audioUrl;
-        }
-
-        throw new Error('No audio data in response');
-      }
-
-      // If we get here, the regular endpoint failed but didn't throw an error
-      throw new Error(`Request failed with status: ${response.status}`);
-    } catch (mainApiError: unknown) {
-      console.warn(`🔊 [Text-to-Speech] Primary API failed: ${mainApiError instanceof Error ? mainApiError.message : String(mainApiError)}`);
-
-      // Try the fallback Python server endpoint
+      console.log(`🔊 [Text-to-Speech] Trying local Python server first for faster response`);
       const fallbackResponse = await fetch(`http://localhost:8008/api/text-to-speech`, {
         method: 'POST',
         headers: {
@@ -133,14 +90,74 @@ export const convertTextToSpeech = async (
         }
 
         if (fallbackData.audio) {
-          console.log(`🔊 [Text-to-Speech] Fallback audio generated successfully using ${fallbackData.source || 'unknown'} source`);
+          console.log(`🔊 [Text-to-Speech] Python server audio generated successfully using ${fallbackData.source || 'unknown'} source`);
           return `data:audio/mp3;base64,${fallbackData.audio}`;
         }
 
-        throw new Error('No audio data in fallback response');
+        throw new Error('No audio data in Python server response');
+      }
+    } catch (pythonError) {
+      console.warn(`🔊 [Text-to-Speech] Python server unavailable: ${pythonError instanceof Error ? pythonError.message : String(pythonError)}`);
+      // Continue to Spring Boot API attempt
+    }
+
+    // ---------- TRY SPRING BOOT SERVER ----------
+    // Only try the Spring Boot server if Python server failed
+    // Get any available auth token from the app
+    const authInfo = findAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add authorization header if a token is available
+    if (authInfo && authInfo.token) {
+      headers['Authorization'] = `Bearer ${authInfo.token}`;
+      console.log(`🔊 [Text-to-Speech] Using authentication token from ${authInfo.source}`);
+    }
+
+    // Try the Spring Boot API endpoint
+    try {
+      const response = await fetch(`${API_BASE_URI}/api/text-to-speech`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text, language, voice }),
+        credentials: 'include', // Include cookies for session-based auth
+        redirect: 'manual' // Don't follow redirects automatically
+      });
+
+      // Consider both redirects (302) and unauthorized (401) as failures
+      if (response.ok && !response.redirected && response.status !== 302) {
+        const data = await response.json();
+
+        // Handle error response from server
+        if (data.success === false) {
+          throw new Error(data.error || 'Server reported an error');
+        }
+
+        // Check if response contains base64 audio data
+        if (data.audio) {
+          console.log(`🔊 [Text-to-Speech] Spring Boot audio generated successfully using ${data.source || 'unknown'} source`);
+          return `data:audio/mp3;base64,${data.audio}`;
+        } else if (data.audioUrl) {
+          console.log(`🔊 [Text-to-Speech] Audio URL received`);
+          return data.audioUrl;
+        }
+
+        throw new Error('No audio data in response');
       }
 
-      // If fallback also failed, try browser speech synthesis as final option
+      // If we get here, the Spring Boot endpoint failed or redirected
+      if (response.redirected || response.status === 302) {
+        console.warn(`🔊 [Text-to-Speech] Spring Boot server requires authentication, trying browser TTS`);
+        throw new Error('Authentication required');
+      } else {
+        console.warn(`🔊 [Text-to-Speech] Spring Boot server request failed with status: ${response.status}`);
+        throw new Error(`Request failed with status: ${response.status}`);
+      }
+    } catch (mainApiError: unknown) {
+      console.warn(`🔊 [Text-to-Speech] Spring Boot TTS failed: ${mainApiError instanceof Error ? mainApiError.message : String(mainApiError)}`);
+
+      // If we get here, all API options failed, try browser speech synthesis as final option
       if ('speechSynthesis' in window) {
         console.log(`🔊 [Text-to-Speech] Attempting browser speech synthesis`);
         return textToSpeechWithBrowser(text, language, voice);
@@ -330,15 +347,15 @@ export const getSupportedLanguages = (): Array<{ code: string, name: string }> =
 };
 
 // Function to get supported voice types
-export const getSupportedVoices = (): Array<{ id: string, name: string, description?: string }> => {
-  // Return the voices that are definitely available on most Windows systems
-  // Based on server logs, we know David and Zira are available
+export const getSupportedVoices = (): Array<{ id: string, name: string, description?: string, hidden?: boolean }> => {
+  // Return voices in the format expected by both frontend and backend
   return [
-    { id: "david-en-us", name: "David", description: "M-English" },
-    { id: "zira-en-us", name: "Zira", description: "FM-English" },
-    // Legacy fallbacks - these will map to David/Zira on the backend
-    { id: "male", name: "Male", description: "Standard male voice" },
-    { id: "female", name: "Female", description: "Standard female voice" },
-    { id: "neutral", name: "Neutral", description: "Default voice" },
+    { id: "neutral", name: "Neutral", description: "SpeechBrain Neural Voice" },
+    { id: "david-en-us", name: "David", description: "Male English" },
+    { id: "zira-en-us", name: "Zira", description: "Female English" },
+    // Legacy IDs for backward compatibility
+    { id: "male", name: "Male (David)", description: "Maps to David voice", hidden: true },
+    { id: "female", name: "Female (Zira)", description: "Maps to Zira voice", hidden: true },
+    { id: "neutral-en-us", name: "Neutral (English)", description: "SpeechBrain", hidden: true },
   ];
 };
