@@ -5,8 +5,7 @@ import {
   CircularProgress,
   Typography,
   Paper,
-  IconButton,
-  Alert
+  IconButton
 } from "@mui/material";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
@@ -68,12 +67,28 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     useState<boolean>(false);
   const [initializing, setInitializing] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null); // Properly typed
   const fullTranscriptRef = useRef<string>(""); // Store complete transcript that won't be affected by re-renders
+
+  // Clear waiting state after a timeout (in case the parent doesn't properly re-enable)
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    if (waitingForResponse) {
+      timeoutId = setTimeout(() => {
+        setWaitingForResponse(false);
+      }, 30000); // 30 seconds max wait time
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [waitingForResponse]);
 
   // Pre-initialize audio stream to speed up first recording
   useEffect(() => {
@@ -121,61 +136,114 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (SpeechRecognition) {
+    // Create the recognition instance only once
+    if (!recognitionRef.current && SpeechRecognition) {
       try {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = true;
         recognitionRef.current.interimResults = true;
-
-        // Set language when it changes
         recognitionRef.current.lang = language;
 
-        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-          let interimTranscript = "";
+        console.log("🎤 Speech recognition initialized");
+      } catch (e) {
+        console.warn("Browser speech recognition not available:", e);
+        setUseFallback(true);
+      }
+    } else if (!SpeechRecognition) {
+      console.warn("Web Speech API not supported in this browser");
+      setUseFallback(true);
+    }
 
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              // Add final transcript to our full transcript
-              fullTranscriptRef.current += " " + transcript;
-            } else {
-              interimTranscript += transcript;
-            }
+    // Initialize event handlers (do this on every dependency change)
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        // Only process results when actively recording and not waiting
+        if (!isRecording || waitingForResponse || disabled) {
+          console.log(
+            "🎤 Ignoring speech recognition results - not in recording state"
+          );
+          return;
+        }
+
+        let interimTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            // Add final transcript to our full transcript
+            fullTranscriptRef.current += " " + transcript;
+          } else {
+            interimTranscript += transcript;
           }
+        }
 
-          // Use the full transcript + current interim
-          const currentTranscript =
-            fullTranscriptRef.current +
-            (interimTranscript ? " " + interimTranscript : "");
+        // Use the full transcript + current interim
+        const currentTranscript =
+          fullTranscriptRef.current +
+          (interimTranscript ? " " + interimTranscript : "");
+
+        // Only update UI if we have content
+        if (currentTranscript.trim()) {
           setBrowserTranscript(currentTranscript.trim());
 
           // Send real-time transcript updates to parent
           if (onSpeechRecognized && currentTranscript) {
             onSpeechRecognized(currentTranscript.trim());
           }
-        };
+        }
+      };
 
-        recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
-          console.error(
-            `🎤 [Browser Speech Recognition] Error: ${event.error}`
-          );
-          // If there's an error, set to use fallback
-          setUseFallback(true);
-        };
+      recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
+        console.error(`🎤 [Browser Speech Recognition] Error: ${event.error}`);
+        // If there's an error, set to use fallback
+        setUseFallback(true);
+      };
 
-        // Handle recognition ending
-        recognitionRef.current.onend = () => {
-          console.log("🎤 [Browser Speech Recognition] Ended");
-        };
+      // Handle recognition ending
+      recognitionRef.current.onend = () => {
+        console.log("🎤 [Browser Speech Recognition] Ended");
+      };
+    }
+  }, [language, isRecording, waitingForResponse, disabled, onSpeechRecognized]); // Include all dependencies
+
+  // Start or stop recognition based on recording state
+  useEffect(() => {
+    if (!recognitionRef.current) return;
+
+    // Only start speech recognition if we're recording, not disabled, and not waiting
+    if (isRecording && !disabled && !waitingForResponse && !useFallback) {
+      try {
+        // Set the current language
+        recognitionRef.current.lang = language;
+
+        // Try to start recognition
+        console.log("🎤 Starting speech recognition");
+        recognitionRef.current.start();
       } catch (e) {
-        console.warn("Browser speech recognition not available:", e);
+        console.warn("Could not start speech recognition:", e);
         setUseFallback(true);
       }
     } else {
-      console.warn("Web Speech API not supported in this browser");
-      setUseFallback(true);
+      // Stop recognition when not recording or when disabled
+      try {
+        console.log("🎤 Stopping speech recognition");
+        recognitionRef.current.stop();
+      } catch {
+        // Ignore errors when stopping
+      }
     }
-  }, [onSpeechRecognized, language]);
+
+    // Clean up function to stop recognition when component changes
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // Ignore, might not be started
+        }
+      }
+    };
+  }, [isRecording, disabled, waitingForResponse, useFallback, language]);
 
   // Update speech recognition language when language prop changes
   useEffect(() => {
@@ -189,6 +257,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       // Reset transcripts for a new recording
       fullTranscriptRef.current = "";
       setBrowserTranscript("");
+      setWaitingForResponse(false);
 
       // Clear previous recognized speech when starting a new recording
       if (onSpeechRecognized) {
@@ -198,13 +267,29 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       // Set recording state first to show UI feedback immediately
       setIsRecording(true);
 
+      console.log("🎤 Requesting microphone access");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("🎤 Microphone access granted");
 
       // Small delay to ensure everything is initialized properly
       // This helps especially on the first recording attempt
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      const mediaRecorder = new MediaRecorder(stream);
+      // Determine the best audio MIME type for this browser
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "audio/wav";
+
+      console.log(`🎤 Using MIME type: ${mimeType} for recording`);
+
+      // Create the MediaRecorder with the best available options
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128000
+      });
+
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -215,16 +300,32 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       };
 
       mediaRecorder.onstop = () => {
+        console.log(
+          `🎤 MediaRecorder stopped, creating audio blob from ${audioChunksRef.current.length} chunks`
+        );
+
+        if (audioChunksRef.current.length === 0) {
+          console.error("🎤 No audio data recorded!");
+          setIsRecording(false);
+          setWaitingForResponse(false);
+          return;
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/wav"
+          type: mimeType
         });
+
+        console.log(`🎤 Audio blob created: ${audioBlob.size} bytes`);
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
+
+        // Get the final transcript from our ref
+        const finalTranscript = fullTranscriptRef.current.trim();
 
         // For browsers with Web Speech API support
         if (!useFallback) {
           // Get the most complete transcript from our ref
-          const finalTranscript = fullTranscriptRef.current.trim();
+          console.log(`🎤 Using browser transcript: "${finalTranscript}"`);
 
           // Send audio to backend for processing, along with the browser transcript
           sendRecording(audioBlob, finalTranscript);
@@ -237,18 +338,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         stream.getTracks().forEach((track) => track.stop());
       };
 
+      console.log("🎤 Starting MediaRecorder");
       // Start recording with a minimum of 250ms slice
       mediaRecorder.start(250);
-
-      // Start browser-based speech recognition if available and not using fallback
-      if (recognitionRef.current && !useFallback) {
-        try {
-          recognitionRef.current.start();
-        } catch (e) {
-          console.warn("Could not start speech recognition:", e);
-          setUseFallback(true);
-        }
-      }
 
       // Start timer
       timerRef.current = setInterval(() => {
@@ -257,10 +349,22 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     } catch (error) {
       console.error("Error starting recording:", error);
       setIsRecording(false);
+
+      // Show error in UI
+      setBrowserTranscript(
+        "Error accessing microphone. Please check permissions."
+      );
     }
   };
 
   const stopRecording = () => {
+    // Capture the current transcript before stopping
+    const finalTranscript = fullTranscriptRef.current.trim();
+    console.log(`🎤 Final transcript before stopping: "${finalTranscript}"`);
+
+    // Set waiting for response to disable recording
+    setWaitingForResponse(true);
+
     // Stop speech recognition first to ensure final results are captured
     if (recognitionRef.current && !useFallback) {
       try {
@@ -297,8 +401,24 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const processServerTranscription = async (audioBlob: Blob) => {
     try {
       setProcessingTranscript(true);
+      console.log("🎤 Using server-side speech recognition");
+
       // Use the server-side speech-to-text service
-      const serverTranscript = await convertSpeechToText(audioBlob, language);
+      let serverTranscript = await convertSpeechToText(audioBlob, language);
+
+      console.log(`🎤 Server transcription result: "${serverTranscript}"`);
+
+      // If the transcript contains "error" or "couldn't", set a clearer error message
+      if (
+        serverTranscript.toLowerCase().includes("error") ||
+        serverTranscript.toLowerCase().includes("couldn't") ||
+        serverTranscript.trim() === ""
+      ) {
+        console.warn(
+          "🎤 Server returned an error or empty transcript, using fallback message"
+        );
+        serverTranscript = "Please say something clearly and try again.";
+      }
 
       // Update the transcript state
       setBrowserTranscript(serverTranscript);
@@ -312,14 +432,46 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       sendRecording(audioBlob, serverTranscript);
     } catch (error) {
       console.error("Error with server transcription:", error);
-      sendRecording(audioBlob, "Error transcribing audio");
+
+      // Set an error message in the transcript
+      const errorMessage = "Error transcribing audio. Please try again.";
+      setBrowserTranscript(errorMessage);
+
+      // Send the error message as transcript
+      sendRecording(audioBlob, errorMessage);
     } finally {
       setProcessingTranscript(false);
     }
   };
 
   const sendRecording = (audioBlob: Blob, transcript: string) => {
-    onAudioRecorded(audioBlob, transcript);
+    try {
+      console.log(`🎤 Sending recording with transcript: "${transcript}"`);
+
+      // Make sure we have a transcript to send
+      if (!transcript || transcript.trim() === "") {
+        console.warn("🎤 Empty transcript, using placeholder");
+        transcript = "I couldn't hear what you said. Please try again.";
+      }
+
+      // Send recording to parent
+      onAudioRecorded(audioBlob, transcript);
+
+      // Don't clear the transcript immediately - leave it visible for a moment
+      // Then clear it after a short delay
+      setTimeout(() => {
+        setBrowserTranscript("");
+        fullTranscriptRef.current = "";
+        console.log("🎤 Transcript cleared after sending");
+      }, 2000); // 2 second delay to keep it visible
+
+      // Keep waiting for response
+      // This will be reset when startRecording is called again
+    } catch (error) {
+      console.error("Error sending recording:", error);
+      // Re-enable button on error
+      setWaitingForResponse(false);
+    }
   };
 
   // Add a function to clear the transcript
@@ -332,6 +484,31 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       onSpeechRecognized("");
     }
   };
+
+  // Check if 'disabled' prop changed from true to false or from false to true
+  useEffect(() => {
+    // When the parent component re-enables us, reset waiting state
+    if (!disabled && waitingForResponse) {
+      setWaitingForResponse(false);
+    }
+
+    // When the component becomes disabled (AI starts speaking), stop recognition
+    if (disabled && recognitionRef.current) {
+      try {
+        // Stop speech recognition if it's running
+        recognitionRef.current.stop();
+        console.log(
+          "🎤 Speech recognition stopped due to component being disabled"
+        );
+
+        // Clear any transcript that might have been captured from AI speech
+        setBrowserTranscript("");
+        fullTranscriptRef.current = "";
+      } catch {
+        // Ignore errors when stopping
+      }
+    }
+  }, [disabled, waitingForResponse]);
 
   useEffect(() => {
     // Cleanup function to stop recording when component unmounts
@@ -347,9 +524,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       if (recognitionRef.current && !useFallback) {
         try {
           recognitionRef.current.stop();
-        } catch (e) {
+        } catch {
           // Ignore, might not be started
-          console.debug("Error stopping recognition on cleanup:", e);
+          console.debug("Error stopping recognition on cleanup:");
         }
       }
     };
@@ -365,12 +542,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   return (
     <Box>
-      {useFallback && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Using server-side speech recognition as browser speech API is not
-          available
-        </Alert>
-      )}
       <Box
         sx={{
           display: "flex",
@@ -385,13 +556,20 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           color={isRecording ? "error" : "primary"}
           startIcon={isRecording ? <StopIcon /> : <MicIcon />}
           onClick={isRecording ? stopRecording : startRecording}
-          disabled={disabled || processingTranscript || initializing}
+          disabled={
+            disabled ||
+            processingTranscript ||
+            initializing ||
+            waitingForResponse
+          }
           sx={{ mb: 2 }}
         >
           {initializing
             ? "Initializing..."
             : isRecording
             ? "Stop Recording"
+            : waitingForResponse
+            ? "Processing..."
             : "Start Recording"}
         </Button>
 
@@ -406,6 +584,13 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
             <CircularProgress size={16} sx={{ mr: 1 }} />
             <Typography>Processing transcription...</Typography>
+          </Box>
+        )}
+
+        {waitingForResponse && !isRecording && !processingTranscript && (
+          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+            <CircularProgress size={16} sx={{ mr: 1 }} />
+            <Typography>Processing request...</Typography>
           </Box>
         )}
 

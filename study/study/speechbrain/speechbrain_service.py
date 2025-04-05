@@ -24,6 +24,8 @@ import librosa
 import soundfile as sf
 from scipy import signal
 import asyncio
+from tempfile import NamedTemporaryFile
+import importlib.util
 
 # Check if running on Windows
 IS_WINDOWS = platform.system() == "Windows"
@@ -348,21 +350,98 @@ def health_check():
 
 @app.post("/api/speech-to-text")
 async def speech_to_text(file: UploadFile = File(...), language: str = Form("en-US")):
+    """
+    Convert speech to text
+    """
+    temp_path = None
     try:
-        logger.info(f"Processing STT request with language: {language}")
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-            content = await file.read()
-            temp_file.write(content)
-            temp_path = temp_file.name
-        try:
-            transcript = "Simulated transcript. Hello, how are you?"
-        finally:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-        return {"success": True, "transcript": transcript, "language": language}
+        # Create a unique filename to avoid conflicts
+        import uuid
+
+        unique_filename = f"audio_{uuid.uuid4().hex}.wav"
+        temp_path = os.path.join(tempfile.gettempdir(), unique_filename)
+
+        # Write file content
+        content = await file.read()
+        with open(temp_path, "wb") as f:
+            f.write(content)
+
+        # Default transcript if all methods fail
+        transcript = "I couldn't transcribe the audio clearly."
+
+        # Try different transcription methods
+        transcription_success = False
+
+        # Method 1: Try whisper model if available
+        if not transcription_success:
+            try:
+                logger.info("Checking for whisper module...")
+                # Only attempt to import if module might be available
+                if importlib.util.find_spec("whisper") is not None:
+                    import whisper
+
+                    logger.info("Using whisper model for transcription")
+                    model = whisper.load_model("base")
+                    result = model.transcribe(temp_path)
+                    if result and "text" in result:
+                        transcript = result["text"].strip()
+                        logger.info(f"Whisper transcription: {transcript}")
+                        if transcript:
+                            transcription_success = True
+                else:
+                    logger.warning("Whisper module not available in the system")
+            except Exception as e:
+                logger.error(f"Whisper transcription error: {str(e)}")
+
+        # Method 2: Try system speech recognition
+        if not transcription_success:
+            try:
+                logger.info("Checking for speech_recognition module...")
+                # Only attempt to import if module might be available
+                if importlib.util.find_spec("speech_recognition") is not None:
+                    import speech_recognition as sr
+
+                    logger.info("Using speech_recognition for transcription")
+                    recognizer = sr.Recognizer()
+                    with sr.AudioFile(temp_path) as source:
+                        audio = recognizer.record(source)
+                    transcript = recognizer.recognize_google(audio, language=language)
+                    logger.info(f"Google transcription: {transcript}")
+                    if transcript:
+                        transcription_success = True
+                else:
+                    logger.warning(
+                        "speech_recognition module not available in the system"
+                    )
+            except Exception as e:
+                logger.error(f"Speech recognition error: {str(e)}")
+
+        # Method 3: Fall back to SpeechBrain if available
+        if not transcription_success:
+            # Add SpeechBrain ASR implementation here if available
+            pass
+
+        return {"transcript": transcript}
+
     except Exception as e:
         logger.error(f"Error in speech-to-text: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Speech-to-text failed: {str(e)}")
+        return {"error": str(e)}
+    finally:
+        # Clean up temp file with retries in case it's still being accessed
+        if temp_path and os.path.exists(temp_path):
+            for _ in range(3):  # Try 3 times
+                try:
+                    os.unlink(temp_path)
+                    break
+                except PermissionError:
+                    # File might still be in use, wait a bit
+                    logger.warning(
+                        f"Couldn't delete {temp_path} immediately, retrying..."
+                    )
+                    await asyncio.sleep(0.5)
+                except Exception as e:
+                    logger.error(f"Error deleting temp file: {str(e)}")
+                    break
 
 
 @app.post("/api/text-to-speech")

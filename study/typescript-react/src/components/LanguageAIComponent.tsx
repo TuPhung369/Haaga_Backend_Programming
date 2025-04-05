@@ -669,12 +669,26 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     setResponseMetadata({});
 
     try {
-      // 1. Speech to Text
-      let transcribedText = "";
-      if (browserTranscript && browserTranscript.trim() !== "") {
-        transcribedText = browserTranscript;
-      } else {
-        transcribedText = await convertSpeechToText(audioBlob, language);
+      // Use the browser transcript directly if available
+      let transcribedText = browserTranscript;
+
+      // Only call the server if browser transcript is empty
+      if (!transcribedText || transcribedText.trim() === "") {
+        try {
+          transcribedText = await convertSpeechToText(audioBlob, language);
+        } catch (error) {
+          console.error("Error transcribing audio:", error);
+          setError("Error transcribing audio. Please try again.");
+          setIsProcessingAudio(false);
+          return; // Exit early if transcription fails
+        }
+      }
+
+      // Validate the transcribed text
+      if (!transcribedText || transcribedText.trim() === "") {
+        setError("No speech detected. Please try again.");
+        setIsProcessingAudio(false);
+        return;
       }
 
       setUserMessage(transcribedText);
@@ -1056,7 +1070,9 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               onAudioRecorded={handleAudioRecorded}
               onSpeechRecognized={handleSpeechRecognized}
               language={language}
-              disabled={isProcessingAudio || isRenderingContent}
+              disabled={
+                isProcessingAudio || isRenderingContent || isGeneratingResponse
+              }
             />
 
             {isRenderingContent && (

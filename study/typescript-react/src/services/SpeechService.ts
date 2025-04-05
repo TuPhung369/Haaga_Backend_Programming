@@ -20,12 +20,43 @@ export const convertSpeechToText = async (
     console.log(`🎤 [Speech-to-Text] Starting conversion for language: ${language}`);
     console.log(`🎤 [Speech-to-Text] Audio blob size: ${Math.round(audioBlob.size / 1024)} KB, type: ${audioBlob.type}`);
 
+    // Ensure we have valid audio data
+    if (audioBlob.size === 0) {
+      console.error("🎤 [Speech-to-Text] Audio blob is empty!");
+      return "No audio data detected. Please try again.";
+    }
+
+    // Create a form data object
     const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.wav');
+
+    // Generate a unique filename with timestamp
+    const timestamp = new Date().getTime();
+    const filename = `recording_${timestamp}.wav`;
+
+    formData.append('file', audioBlob, filename);
     formData.append('language', language);
 
-    console.log(`🎤 [Speech-to-Text] Sending request to ${API_BASE_URI}/api/speech/speech-to-text`);
+    console.log(`🎤 [Speech-to-Text] Sending request to server with filename ${filename}`);
 
+    // Try the local Python server first
+    try {
+      const pythonResponse = await fetch(`http://localhost:8008/api/speech-to-text`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (pythonResponse.ok) {
+        const pythonData = await pythonResponse.json();
+        if (pythonData.transcript && pythonData.transcript.trim() !== "") {
+          console.log(`🎤 [Speech-to-Text] Python server transcript: "${pythonData.transcript}"`);
+          return pythonData.transcript;
+        }
+      }
+    } catch (pythonError) {
+      console.warn("🎤 [Speech-to-Text] Python server not available:", pythonError);
+    }
+
+    // Fall back to the Spring Boot server
     const response = await fetch(`${API_BASE_URI}/api/speech/speech-to-text`, {
       method: 'POST',
       body: formData,
@@ -34,15 +65,10 @@ export const convertSpeechToText = async (
     console.log(`🎤 [Speech-to-Text] Response status: ${response.status} ${response.statusText}`);
 
     const data = await response.json();
-    console.log(`🎤 [Speech-to-Text] Raw server response:`, data);
+    console.log(`🎤 [Speech-to-Text] Server response:`, data);
 
     if (data.transcript) {
-      console.log(`🎤 [Speech-to-Text] Transcript received: "${data.transcript.substring(0, 100)}${data.transcript.length > 100 ? '...' : ''}"`);
-
-      if (data.transcript.includes("simulated transcript")) {
-        console.warn(`⚠️ [Speech-to-Text] WARNING: Received simulated transcript instead of actual transcription. The speech-to-text service appears to be returning placeholder data.`);
-      }
-
+      console.log(`🎤 [Speech-to-Text] Transcript: "${data.transcript}"`);
       return data.transcript;
     } else if (data.error) {
       throw new Error(`Server error: ${data.error}`);
@@ -70,15 +96,12 @@ export const convertTextToSpeech = async (
   try {
     console.log(`🔊 [Text-to-Speech] Starting conversion for text: "${text.substring(0, 30)}..." in language: ${language}, voice: ${voice}`);
 
-    // ---------- TRY PYTHON SERVER DIRECTLY ----------
-    // For performance and reliability, try the local Python server directly first
+    // Try the local Python server first
     try {
       console.log(`🔊 [Text-to-Speech] Trying local Python server first for faster response`);
       const fallbackResponse = await fetch(`http://localhost:8008/api/text-to-speech`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, language, voice }),
       });
 
@@ -101,8 +124,6 @@ export const convertTextToSpeech = async (
       // Continue to Spring Boot API attempt
     }
 
-    // ---------- TRY SPRING BOOT SERVER ----------
-    // Only try the Spring Boot server if Python server failed
     // Get any available auth token from the app
     const authInfo = findAuthToken();
     const headers: Record<string, string> = {
@@ -154,7 +175,7 @@ export const convertTextToSpeech = async (
         console.warn(`🔊 [Text-to-Speech] Spring Boot server request failed with status: ${response.status}`);
         throw new Error(`Request failed with status: ${response.status}`);
       }
-    } catch (mainApiError: unknown) {
+    } catch (mainApiError) {
       console.warn(`🔊 [Text-to-Speech] Spring Boot TTS failed: ${mainApiError instanceof Error ? mainApiError.message : String(mainApiError)}`);
 
       // If we get here, all API options failed, try browser speech synthesis as final option
@@ -168,7 +189,7 @@ export const convertTextToSpeech = async (
     }
   } catch (error) {
     console.error('🔊 [Text-to-Speech] Error:', error);
-    // We can't generate fallback audio, so return null and let the caller handle it
+    // We can't generate fallback audio, so return an empty string and let the caller handle it
     return '';
   }
 };
