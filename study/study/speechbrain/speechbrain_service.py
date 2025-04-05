@@ -97,18 +97,6 @@ class LanguageProficiencyRequest(BaseModel):
     language: str
 
 
-def change_pitch(audio, semitone_shift):
-    audio = AudioSegment(
-        audio.tobytes(), frame_rate=22050, sample_width=audio.dtype.itemsize, channels=1
-    )
-    shifted = audio._spawn(
-        audio.raw_data,
-        overrides={"frame_rate": int(audio.frame_rate * (2 ** (semitone_shift / 12)))},
-    )
-    shifted = shifted.set_frame_rate(22050)
-    return np.array(shifted.get_array_of_samples())
-
-
 def get_tts_models(language="en", voice="neutral"):
     """Load TTS models and return voice parameters"""
     model_key = f"{language}_{voice}"
@@ -161,33 +149,6 @@ def get_tts_models(language="en", voice="neutral"):
         return None, None, 0, 1.0
 
 
-def apply_pitch_shift(
-    waveform: np.ndarray, semitone_shift: int, sample_rate=22050
-) -> np.ndarray:
-    try:
-        if waveform.dtype == np.float32:
-            waveform = (waveform * 32767).astype(np.int16)
-
-        audio = AudioSegment(
-            waveform.tobytes(),
-            frame_rate=sample_rate,
-            sample_width=2,
-            channels=1,
-        )
-
-        new_rate = int(sample_rate * (2 ** (semitone_shift / 12)))
-        shifted_audio = audio._spawn(
-            audio.raw_data, overrides={"frame_rate": new_rate}
-        ).set_frame_rate(sample_rate)
-
-        shifted_samples = np.array(shifted_audio.get_array_of_samples())
-        return shifted_samples.astype(np.float32) / 32767.0
-
-    except Exception as e:
-        logger.error(f"Pitch shift failed: {str(e)}")
-        return waveform
-
-
 def pydub_speed_change(
     waveform: np.ndarray, speed_factor: float, sample_rate=22050
 ) -> np.ndarray:
@@ -225,53 +186,6 @@ def pydub_speed_change(
 
     except Exception as e:
         logger.error(f"PyDub speed change failed: {str(e)}")
-        return waveform
-
-
-def apply_speed_change(waveform: np.ndarray, speed_factor: float) -> np.ndarray:
-    try:
-        if abs(speed_factor - 1.0) < 0.01:
-            return waveform
-
-        target_length = int(len(waveform) / speed_factor)
-        return librosa.effects.time_stretch(waveform, rate=speed_factor)
-    except Exception as e:
-        logger.error(f"Speed change failed: {str(e)}")
-        return waveform
-
-
-def apply_true_pitch_shift(
-    waveform: np.ndarray, semitone_shift: int, sample_rate=22050
-) -> np.ndarray:
-    try:
-        if semitone_shift == 0:
-            return waveform
-
-        if waveform.dtype != np.float32:
-            waveform = waveform.astype(np.float32)
-
-        if waveform.max() > 1.0:
-            waveform = waveform / 32767.0
-
-        shifted = librosa.effects.pitch_shift(
-            waveform, sr=sample_rate, n_steps=semitone_shift
-        )
-        return shifted
-
-    except Exception as e:
-        logger.error(f"True pitch shift failed: {str(e)}")
-        return waveform
-
-
-def fix_speed_after_pitch_shift(
-    waveform: np.ndarray, semitone_shift: int
-) -> np.ndarray:
-    speed_correction = 2 ** (semitone_shift / 12)
-    try:
-        target_length = int(len(waveform) / speed_correction)
-        return signal.resample(waveform, target_length)
-    except Exception as e:
-        logger.error(f"Failed to correct speed: {str(e)}")
         return waveform
 
 
