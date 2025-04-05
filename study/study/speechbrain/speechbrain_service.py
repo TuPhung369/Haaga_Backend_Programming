@@ -114,9 +114,9 @@ def get_tts_models(language="en", voice="neutral"):
     model_key = f"{language}_{voice}"
 
     voice_config = {
-        "neutral": {"pitch_shift": 0, "base_speed": 0.9},
-        "male": {"pitch_shift": -5, "base_speed": 0.9},
-        "female": {"pitch_shift": 5, "base_speed": 0.8},
+        "neutral": {"pitch_shift": 0, "base_speed": 1},
+        "male": {"pitch_shift": -5, "base_speed": 1},
+        "female": {"pitch_shift": 5, "base_speed": 1},
     }
 
     config = voice_config.get(voice, voice_config["neutral"])
@@ -135,7 +135,6 @@ def get_tts_models(language="en", voice="neutral"):
     hifigan_source = "speechbrain/tts-hifigan-ljspeech"
 
     try:
-        logger.info(f"Loading SpeechBrain models for {language}/{voice}")
         tacotron2 = Tacotron2.from_hparams(
             source=tacotron2_source,
             savedir=f"pretrained_models/tts-tacotron2-{model_key}",
@@ -203,8 +202,6 @@ def pydub_speed_change(
             logger.warning(f"Speed factor too low ({speed_factor}), increasing to 0.3")
             speed_factor = 0.3
 
-        logger.info(f"Applying DIRECT speed change: {speed_factor}x (visible)")
-
         if waveform.dtype == np.float32:
             waveform_int = (waveform * 32767).astype(np.int16)
         else:
@@ -218,7 +215,6 @@ def pydub_speed_change(
         )
 
         new_frame_rate = int(audio.frame_rate * speed_factor)
-        logger.info(f"Changing frame rate from {audio.frame_rate} to {new_frame_rate}")
 
         speed_changed = audio._spawn(
             audio.raw_data, overrides={"frame_rate": new_frame_rate}
@@ -250,8 +246,6 @@ def apply_true_pitch_shift(
     try:
         if semitone_shift == 0:
             return waveform
-
-        logger.info(f"Shifting pitch by {semitone_shift} semitones")
 
         if waveform.dtype != np.float32:
             waveform = waveform.astype(np.float32)
@@ -292,7 +286,6 @@ async def get_system_voices():
             voices = engine.getProperty("voices")
 
             for idx, voice in enumerate(voices):
-                logger.info(f"Voice {idx}: {voice.name} ({voice.id})")
                 voice_info = {
                     "id": voice.id,
                     "name": voice.name,
@@ -316,13 +309,10 @@ async def generate_audio_with_pyttsx3(text, voice_id="david-en-us", speed=1.0):
     try:
         import pyttsx3
 
-        logger.info(f"Using pyttsx3 for voice: {voice_id}")
-
         engine = pyttsx3.init()
 
         # Log available voices
         voices = engine.getProperty("voices")
-        logger.info(f"Initialized pyttsx3 with {len(voices)} voices")
         for i, v in enumerate(voices):
             logger.info(f"Voice {i}: {v.name} ({v.id})")
 
@@ -333,20 +323,13 @@ async def generate_audio_with_pyttsx3(text, voice_id="david-en-us", speed=1.0):
         for v in voices:
             if voice_name in v.name.lower():
                 found_voice = v
-                logger.info(
-                    f"Found matching voice: {v.name} for requested voice: {voice_id}"
-                )
                 break
 
         if found_voice:
-            logger.info(f"Setting voice to: {found_voice.id}")
             engine.setProperty("voice", found_voice.id)
 
         # Set speech rate (adjust the multiplier as needed)
         rate = int(180 * speed)  # 180 is a default rate for pyttsx3
-        logger.info(
-            f"Using pyttsx3 voice: {found_voice.id if found_voice else 'default'}, rate: {rate}"
-        )
         engine.setProperty("rate", rate)
 
         # Create a temporary file
@@ -357,7 +340,6 @@ async def generate_audio_with_pyttsx3(text, voice_id="david-en-us", speed=1.0):
         # Check if file was created
         if os.path.exists(temp_wav):
             file_size = os.path.getsize(temp_wav)
-            logger.info(f"Audio file created: {temp_wav} ({file_size} bytes)")
 
             # Convert to MP3
             audio = AudioSegment.from_wav(temp_wav)
@@ -371,7 +353,6 @@ async def generate_audio_with_pyttsx3(text, voice_id="david-en-us", speed=1.0):
             except Exception as e:
                 logger.warning(f"Failed to delete temp file {temp_wav}: {str(e)}")
 
-            logger.info(f"Successfully generated audio with pyttsx3 for {voice_id}")
             return base64.b64encode(mp3_buffer.read()).decode("utf-8"), None
         else:
             logger.error(f"pyttsx3 failed to create audio file: {temp_wav}")
@@ -460,8 +441,7 @@ async def speech_to_text(file: UploadFile = File(...), language: str = Form("en-
             temp_file.write(content)
             temp_path = temp_file.name
         try:
-            transcript = "Simulated transcript. Replace with SpeechBrain ASR."
-            logger.info(f"Transcription result: {transcript}")
+            transcript = "Simulated transcript. Hello, how are you?"
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
@@ -477,10 +457,6 @@ async def text_to_speech(request: TTSRequest):
     language = request.language.split("-")[0]
     voice = request.voice or "david-en-us"
     speed = request.speed
-
-    logger.info(
-        f"Processing TTS request: '{text[:30]}...' in language: {language}, voice: {voice}, speed: {speed}"
-    )
 
     # For legacy voice names, map to preferred voice
     if voice in ["male", "neutral"] or voice.startswith("neutral-"):
@@ -519,9 +495,6 @@ async def text_to_speech(request: TTSRequest):
 
             if tacotron2 and hifigan:
                 try:
-                    logger.info(
-                        "Using SpeechBrain with text chunking for neutral voice"
-                    )
                     with torch.no_grad():
                         waveform = process_long_text(text, tacotron2, hifigan)
 
@@ -536,11 +509,8 @@ async def text_to_speech(request: TTSRequest):
                                 waveform_np, final_speed
                             )
                             waveform = torch.from_numpy(speed_adjusted).unsqueeze(0)
-                            logger.info(f"Applied speed adjustment: {final_speed}x")
                         except Exception as e:
                             logger.error(f"Speed adjustment failed: {str(e)}")
-
-                    logger.info(f"Waveform shape before saving: {waveform.shape}")
 
                     if waveform.dim() == 3:
                         waveform = waveform.squeeze(0)
@@ -606,7 +576,6 @@ def process_long_text(text, tacotron2, hifigan):
     for i, sentence in enumerate(sentences):
         if not sentence.strip():
             continue
-        logger.info(f"Processing sentence {i+1}/{len(sentences)}: '{sentence[:30]}...'")
         try:
             mel_outputs, mel_lengths, _ = tacotron2.encode_text(sentence)
             waveforms = hifigan.decode_batch(mel_outputs)
@@ -630,9 +599,6 @@ def process_long_text(text, tacotron2, hifigan):
 @app.post("/api/ai-response")
 async def ai_response(request: AIResponseRequest):
     try:
-        logger.info(
-            f"Processing AI response: '{request.message}' in {request.language}"
-        )
         time.sleep(0.5)
         ai_response = f"Simulated AI response for {request.language} practice."
         return {"response": ai_response, "language": request.language}
@@ -644,9 +610,6 @@ async def ai_response(request: AIResponseRequest):
 @app.post("/api/language-sessions")
 async def create_language_session(request: LanguageSessionRequest):
     try:
-        logger.info(
-            f"Creating session for user: {request.userId}, lang: {request.language}"
-        )
         session_id = f"session-{uuid.uuid4()}"
         language_sessions[session_id] = {
             "id": session_id,
@@ -671,7 +634,6 @@ async def create_language_session(request: LanguageSessionRequest):
 @app.get("/api/language-sessions/{userId}")
 async def get_language_sessions(userId: str):
     try:
-        logger.info(f"Fetching sessions for user: {userId}")
         user_sessions = [s for s in language_sessions.values() if s["userId"] == userId]
         return user_sessions if user_sessions else []
     except Exception as e:
@@ -682,7 +644,6 @@ async def get_language_sessions(userId: str):
 @app.post("/api/language-ai/interactions")
 async def save_language_interaction(request: LanguageInteractionRequest):
     try:
-        logger.info(f"Saving interaction for session: {request.sessionId}")
         interaction_id = f"interaction-{uuid.uuid4()}"
         interaction = {
             "id": interaction_id,
@@ -708,7 +669,6 @@ async def save_language_interaction(request: LanguageInteractionRequest):
 @app.get("/api/language-ai/interactions/{sessionId}")
 async def get_language_interactions(sessionId: str):
     try:
-        logger.info(f"Fetching interactions for session: {sessionId}")
         session_interactions = [
             i for i in language_interactions if i["sessionId"] == sessionId
         ]
@@ -724,7 +684,6 @@ async def get_language_interactions(sessionId: str):
 @app.get("/api/users/{userId}/language-proficiency")
 async def get_language_proficiency(userId: str, language: Optional[str] = None):
     try:
-        logger.info(f"Fetching proficiency for user: {userId}, lang: {language}")
         proficiency_levels = [
             "beginner",
             "intermediate",
