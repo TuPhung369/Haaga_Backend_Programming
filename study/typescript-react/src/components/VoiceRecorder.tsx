@@ -206,7 +206,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   }, [language, isRecording, waitingForResponse, disabled, onSpeechRecognized]); // Include all dependencies
 
-  // Start or stop recognition based on recording state
+  // Update speech recognition based on recording state
   useEffect(() => {
     if (!recognitionRef.current) return;
 
@@ -216,9 +216,49 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         // Set the current language
         recognitionRef.current.lang = language;
 
-        // Try to start recognition
-        console.log("🎤 Starting speech recognition");
-        recognitionRef.current.start();
+        // Check if recognition is already running before trying to start it
+        try {
+          // First stop it to ensure a clean state
+          recognitionRef.current.stop();
+
+          // Add a small delay before starting to ensure it's properly stopped
+          setTimeout(() => {
+            if (
+              isRecording &&
+              !disabled &&
+              !waitingForResponse &&
+              !useFallback &&
+              recognitionRef.current
+            ) {
+              console.log("🎤 Starting speech recognition");
+              recognitionRef.current.start();
+            }
+          }, 300);
+        } catch (e) {
+          console.warn("Could not stop/start speech recognition:", e);
+          // Try to recover by recreating the recognition object
+          try {
+            const SpeechRecognition =
+              window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            recognitionRef.current.lang = language;
+
+            // Wait a bit and then try to start it again
+            setTimeout(() => {
+              if (recognitionRef.current && isRecording) {
+                recognitionRef.current.start();
+              }
+            }, 500);
+          } catch (recreateError) {
+            console.error(
+              "Failed to recreate speech recognition:",
+              recreateError
+            );
+            setUseFallback(true);
+          }
+        }
       } catch (e) {
         console.warn("Could not start speech recognition:", e);
         setUseFallback(true);
@@ -494,22 +534,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         setRecordingTime((prev) => prev + 1);
       }, 1000);
 
-      // Restart speech recognition if we're using it
-      if (recognitionRef.current && !useFallback) {
-        try {
-          // Stop and restart recognition to clear buffer
-          recognitionRef.current.stop();
-
-          // Small delay before restarting to ensure clean state
-          setTimeout(() => {
-            if (recognitionRef.current && isRecording) {
-              recognitionRef.current.start();
-            }
-          }, 100);
-        } catch (e) {
-          console.warn("Error restarting speech recognition:", e);
-        }
-      }
+      // We don't need to manually restart speech recognition here
+      // Let the useEffect that manages recognition handle it
     }
 
     // Notify parent component
@@ -636,7 +662,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               width: "100%",
               backgroundColor: "#f8f9fa",
               borderLeft: "4px solid #4caf50",
-              position: "relative"
+              position: "relative",
+              maxHeight: "200px",
+              overflow: "auto"
             }}
           >
             <Box
