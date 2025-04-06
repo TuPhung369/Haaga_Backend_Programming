@@ -32,9 +32,7 @@ import {
   getSupportedVoices
 } from "../services/SpeechService";
 import {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveInteraction,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getAIResponseFromN8n,
   getLanguageConversations
 } from "../services/LanguageService";
@@ -446,7 +444,6 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   );
   const [error, setError] = useState<string>("");
   const [backendAvailable, setBackendAvailable] = useState<boolean>(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [responseMetadata, setResponseMetadata] = useState<ResponseMetadata>(
     {}
   );
