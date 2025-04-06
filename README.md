@@ -1,5 +1,10 @@
 # Haaga_Backend_Programming
 
+## Test Whisper Import Directly
+
+- to get the conflict version if this library got problem as OpenAO Whisper
+`python -c "import whisper; print('Success')"`
+
 ## run command to reload environment path for POWER SHELL
 
 `$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")`

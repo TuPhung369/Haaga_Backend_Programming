@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { API_URL } from "../services/LanguageService";
 import "../styles/ServiceStatusNotification.css";
 
@@ -15,7 +15,8 @@ const ServiceStatusNotification: React.FC<ServiceStatusProps> = ({
 
   const serviceUrl = API_URL; // Using the same API_URL from LanguageService
 
-  const checkServiceStatus = async () => {
+  // Use useCallback to properly memoize the function
+  const checkServiceStatus = useCallback(async () => {
     setIsChecking(true);
     try {
       const response = await fetch(`${serviceUrl}/api/speech/health`, {
@@ -48,18 +49,16 @@ const ServiceStatusNotification: React.FC<ServiceStatusProps> = ({
       setIsChecking(false);
       setLastChecked(new Date());
     }
-  };
+  }, [serviceUrl, onStatusChange]);
 
   useEffect(() => {
+    // Only call the health check once when component mounts
     checkServiceStatus();
 
-    // Set up an interval to check the status every 30 seconds
-    const intervalId = setInterval(checkServiceStatus, 30000);
+    // No interval setup - we only check once on mount
 
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
+    // No cleanup needed since we're not setting up an interval
+  }, [checkServiceStatus]);
 
   if (isChecking && lastChecked === null) {
     return null; // Don't show anything during initial check

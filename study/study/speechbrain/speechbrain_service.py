@@ -1,4 +1,12 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import (
+    FastAPI,
+    File,
+    UploadFile,
+    Form,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -12,9 +20,24 @@ import uuid
 import time
 import sys
 import platform
-from typing import List, Optional
-from speechbrain.inference import Tacotron2
-from speechbrain.inference import HIFIGAN
+from typing import List, Optional, Dict, Any, Set
+import functools
+import threading
+from collections import deque
+
+# Handle missing speechbrain components
+speechbrain_tts_available = False
+try:
+    from speechbrain.inference import Tacotron2
+    from speechbrain.inference import HIFIGAN
+
+    speechbrain_tts_available = True
+    logging.info("Successfully loaded SpeechBrain TTS modules")
+except ImportError:
+    logging.warning(
+        "SpeechBrain TTS modules not available. Some features will be limited."
+    )
+
 import torch
 import torchaudio
 import re
@@ -41,6 +64,18 @@ if IS_WINDOWS:
     except ImportError:
         logging.warning("pyttsx3 not available. Install with: pip install pyttsx3")
 
+# Check if whisper is available
+whisper_available = False
+try:
+    import whisper
+
+    whisper_available = True
+    logging.info("Successfully initialized OpenAI Whisper")
+except ImportError:
+    logging.warning(
+        "OpenAI Whisper not available. Install with: pip install openai-whisper"
+    )
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
@@ -48,15 +83,20 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Speech API",
-    description="API for Speech-to-Text and Text-to-Speech with SpeechBrain and gTTS fallback",
+    description="API for Speech-to-Text and Text-to-Speech with multilingual support",
 )
 
+# Allow more origins to fix CORS issues
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+logger.info(
+    "CORS middleware configured with: allow_origins=['http://localhost:3000', 'http://127.0.0.1:3000', '*']"
 )
 
 os.makedirs("models", exist_ok=True)
@@ -64,6 +104,16 @@ language_sessions = {}
 language_interactions = []
 tacotron2_models = {}
 hifigan_models = {}
+
+# Add model cache for Whisper
+whisper_models = {}
+# Add a cache for recent results to avoid duplicate processing
+recent_transcriptions = deque(maxlen=50)
+# Create a mutex for whisper model access
+whisper_mutex = threading.RLock()
+
+# Add a global set to track active WebSocket connections
+active_connections: Set[WebSocket] = set()
 
 
 class TTSRequest(BaseModel):
@@ -99,8 +149,69 @@ class LanguageProficiencyRequest(BaseModel):
     language: str
 
 
+# Language-specific configuration for models
+LANGUAGE_CONFIG = {
+    "en-US": {
+        "code": "en",
+        "stt_models": ["whisper", "speechbrain"],
+        "tts_models": ["speechbrain", "gtts"],
+        "whisper_size": "base",  # base is a good balance for English
+    },
+    "fi-FI": {
+        "code": "fi",
+        "stt_models": ["whisper"],  # Whisper is good for Finnish
+        "tts_models": ["gtts"],  # Using gTTS for Finnish as requested
+        "whisper_size": "medium",  # medium is better for Finnish
+    },
+}
+
+
+# Add a helper function to enable caching of recent transcriptions
+def get_audio_hash(audio_data, language):
+    """Create a simple hash of audio data for caching purposes"""
+    import hashlib
+
+    if isinstance(audio_data, bytes):
+        h = hashlib.md5(audio_data).hexdigest()
+    else:
+        # For file paths
+        try:
+            with open(audio_data, "rb") as f:
+                first_kb = f.read(1024)  # Just use first KB for quicker hashing
+                h = hashlib.md5(first_kb).hexdigest()
+        except:
+            h = str(hash(audio_data))
+    return f"{h}-{language}"
+
+
+def get_whisper_model(model_size: str = "base"):
+    """Load or retrieve Whisper model from cache"""
+    global whisper_models
+
+    with whisper_mutex:
+        if model_size not in whisper_models:
+            if not whisper_available:
+                logger.warning("Whisper is not available, can't load model")
+                return None
+
+            logger.info(f"Loading Whisper {model_size} model")
+            try:
+                whisper_models[model_size] = whisper.load_model(model_size)
+                logger.info(f"Whisper {model_size} model loaded successfully")
+            except Exception as e:
+                logger.error(f"Failed to load Whisper model: {str(e)}")
+                return None
+
+        return whisper_models[model_size]
+
+
 def get_tts_models(language="en", voice="neutral"):
     """Load TTS models and return voice parameters"""
+    # If SpeechBrain TTS is not available, return default parameters
+    if not speechbrain_tts_available:
+        logging.warning("SpeechBrain TTS not available, returning default parameters")
+        return None, None, 0, 1.0
+
     model_key = f"{language}_{voice}"
 
     voice_config = {
@@ -279,6 +390,53 @@ async def generate_audio_with_pyttsx3(text, voice_id="david-en-us", speed=1.0):
         return None, f"Audio generation failed: {str(e)}"
 
 
+async def generate_audio_with_gtts(text, language="fi-FI", speed=1.0):
+    """Generate audio using Google Text-to-Speech with specific language support"""
+    try:
+        # Get language code
+        lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
+        lang_code = lang_config["code"]
+
+        logger.info(
+            f"Generating gTTS audio for language: {language}, text: {text[:50]}..."
+        )
+
+        # Create gTTS object
+        tts = gTTS(text=text, lang=lang_code, slow=(speed < 0.9))
+
+        # Save to buffer
+        mp3_buffer = io.BytesIO()
+        tts.write_to_fp(mp3_buffer)
+        mp3_buffer.seek(0)
+
+        # If speed is different from normal and not "slow" mode
+        if abs(speed - 1.0) > 0.1 and speed >= 0.9:
+            # We need to adjust speed manually since gTTS only has "slow" mode
+            # First convert to AudioSegment
+            mp3_buffer.seek(0)
+            audio = AudioSegment.from_file(mp3_buffer, format="mp3")
+
+            # Change speed
+            speed_factor = 1.0 / speed  # Inverse because we're changing playback speed
+            audio_adjusted = audio._spawn(
+                audio.raw_data,
+                overrides={"frame_rate": int(audio.frame_rate * speed_factor)},
+            ).set_frame_rate(audio.frame_rate)
+
+            # Export back to buffer
+            adjusted_buffer = io.BytesIO()
+            audio_adjusted.export(adjusted_buffer, format="mp3", bitrate="128k")
+            adjusted_buffer.seek(0)
+
+            return base64.b64encode(adjusted_buffer.read()).decode("utf-8"), None
+
+        return base64.b64encode(mp3_buffer.read()).decode("utf-8"), None
+
+    except Exception as e:
+        logger.error(f"gTTS audio generation failed: {str(e)}")
+        return None, f"Audio generation failed: {str(e)}"
+
+
 @app.get("/api/system-voices")
 async def get_system_voices_endpoint():
     """Return detailed list of all system voices"""
@@ -301,6 +459,11 @@ def update_supported_voices_with_system_info():
         {"id": "neutral", "name": "Neutral", "description": "SpeechBrain neural voice"},
         {"id": "david-en-us", "name": "David", "description": "M-English"},
         {"id": "zira-en-us", "name": "Zira", "description": "FM-English"},
+        {
+            "id": "finnish-neutral",
+            "name": "Finnish",
+            "description": "Google TTS Finnish voice",
+        },
         # These are legacy mappings
         {"id": "male", "name": "Male", "description": "Maps to David"},
         {"id": "female", "name": "Female", "description": "Maps to Zira"},
@@ -320,6 +483,9 @@ def update_supported_voices_with_system_info():
         # Neutral is always "available" as it uses SpeechBrain or gTTS
         if name == "neutral":
             is_available = True
+        # Finnish voice is available as it uses gTTS
+        elif name == "finnish":
+            is_available = True
         # For David and Zira, check if they're in system voices or if we have pyttsx3
         elif name in ["david", "zira", "male", "female"]:
             is_available = pyttsx3_available and any(
@@ -338,94 +504,264 @@ async def get_supported_voices():
     return update_supported_voices_with_system_info()
 
 
+@app.get("/api/supported-languages")
+async def get_supported_languages():
+    """Return list of supported languages with their available technologies"""
+    languages = []
+
+    for lang_code, config in LANGUAGE_CONFIG.items():
+        language_info = {
+            "code": lang_code,
+            "name": lang_code.split("-")[0],
+            "stt_support": config["stt_models"],
+            "tts_support": config["tts_models"],
+            "whisper_available": whisper_available
+            and "whisper" in config["stt_models"],
+            "gtts_available": True,  # gTTS is always available
+        }
+        languages.append(language_info)
+
+    return languages
+
+
 @app.get("/")
 def read_root():
     return {"status": "Speech API is running"}
 
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy", "services_available": True}
+async def health_check():
+    """Health check endpoint for the server status"""
+    whisper_model = None
+    if whisper_available:
+        try:
+            # Try to load the base model to verify Whisper is working
+            try:
+                import whisper
+
+                # Check if whisper can import correctly
+                logger.info("Whisper package imported successfully")
+
+                # Get the whisper path to check installation
+                whisper_path = os.path.dirname(whisper.__file__)
+                logger.info(f"Whisper installation path: {whisper_path}")
+
+                # Verify whisper package has necessary modules
+                if hasattr(whisper, "load_model"):
+                    logger.info("Whisper load_model function exists")
+                else:
+                    logger.error("Whisper package missing load_model function")
+
+                # Try to load the base model
+                whisper_model = get_whisper_model("base")
+                if whisper_model:
+                    logger.info("Whisper base model loaded successfully")
+            except Exception as e:
+                logger.error(f"Error importing or checking whisper: {e}")
+        except Exception as e:
+            logger.error(f"Error loading Whisper model: {e}")
+
+    # Check if SpeechBrain TTS is available
+    speechbrain_status = "available" if speechbrain_tts_available else "unavailable"
+
+    return {
+        "status": "ok",
+        "whisper_available": whisper_available,
+        "whisper_model_loaded": whisper_model is not None,
+        "speechbrain_tts": speechbrain_status,
+    }
 
 
 @app.post("/api/speech-to-text")
-async def speech_to_text(file: UploadFile = File(...), language: str = Form("en-US")):
+async def speech_to_text(
+    file: UploadFile = File(...),
+    language: str = Form("en-US"),
+    optimize: str = Form("false"),
+    priority: str = Form("quality"),
+):
     """
-    Convert speech to text
+    Convert speech to text with support for multiple languages
+    Now with optimization options for faster processing of small chunks
     """
     temp_path = None
-    try:
-        # Create a unique filename to avoid conflicts
-        import uuid
+    start_time = time.time()
 
+    try:
+        # Check if Whisper is required for this language
+        lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
+        if "whisper" in lang_config["stt_models"] and not whisper_available:
+            if language == "fi-FI":
+                return {
+                    "error": "Whisper not available for Finnish. Install with: pip install openai-whisper",
+                    "transcript": "Virhe: Whisper-malli ei ole käytettävissä. Asenna se komennolla: pip install openai-whisper",
+                }
+            else:
+                return {
+                    "error": "Whisper not available but required for this language",
+                    "transcript": "Error: Whisper model is not available but required for this language.",
+                }
+
+        # Create a unique filename to avoid conflicts
         unique_filename = f"audio_{uuid.uuid4().hex}.wav"
         temp_path = os.path.join(tempfile.gettempdir(), unique_filename)
 
         # Write file content
         content = await file.read()
+
+        # Check if content is too small - under 1KB is likely empty
+        if len(content) < 1024:
+            return {
+                "transcript": "Too short or empty audio. Please speak longer.",
+                "processing_time": 0,
+            }
+
+        # Check cache based on content hash before processing
+        audio_hash = get_audio_hash(content, language)
+        for item in recent_transcriptions:
+            if item["hash"] == audio_hash:
+                logger.info(f"Cache hit for audio hash {audio_hash}")
+                processing_time = time.time() - start_time
+                return {
+                    "transcript": item["transcript"],
+                    "cached": True,
+                    "processing_time": processing_time,
+                }
+
         with open(temp_path, "wb") as f:
             f.write(content)
 
         # Default transcript if all methods fail
         transcript = "I couldn't transcribe the audio clearly."
-
-        # Try different transcription methods
         transcription_success = False
 
-        # Method 1: Try whisper model if available
-        if not transcription_success:
-            try:
-                logger.info("Checking for whisper module...")
-                # Only attempt to import if module might be available
-                if importlib.util.find_spec("whisper") is not None:
-                    import whisper
+        # Get language configuration
+        lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
 
-                    logger.info("Using whisper model for transcription")
-                    model = whisper.load_model("base")
-                    result = model.transcribe(temp_path)
+        # Method 1: Try Whisper if available and configured for this language
+        if (
+            not transcription_success
+            and whisper_available
+            and "whisper" in lang_config["stt_models"]
+        ):
+            try:
+                logger.info(f"Using Whisper for {language} transcription")
+
+                # Choose model size based on content length and optimization settings
+                file_size = os.path.getsize(temp_path)
+
+                # Determine model size - use smaller models for real-time chunks
+                if priority == "speed" or optimize == "true" or file_size < 300000:
+                    # For short recordings or when speed is prioritized, use tiny/base models
+                    if file_size < 100000:  # < 100KB
+                        model_size = "tiny"
+                    else:
+                        model_size = "base"
+                else:
+                    # For longer recordings, use the configured model size
+                    model_size = lang_config.get("whisper_size", "base")
+
+                logger.info(f"Selected {model_size} model for {file_size} bytes audio")
+                model = get_whisper_model(model_size)
+
+                if model:
+                    # Optimize transcription options based on priority
+                    options = {
+                        "language": (
+                            lang_config["code"] if language == "fi-FI" else None
+                        ),
+                    }
+
+                    # For speed priority, add performance optimizations
+                    if priority == "speed" or optimize == "true":
+                        options.update(
+                            {
+                                "beam_size": 1,  # Reduce beam size for faster results
+                                "best_of": 1,  # Don't generate multiple candidates
+                                "temperature": 0.0,  # Deterministic results
+                                "fp16": False,  # Avoid precision issues
+                                "condition_on_previous_text": False,  # Skip context conditioning
+                            }
+                        )
+
+                    # Process with Whisper
+                    result = model.transcribe(temp_path, **options)
+
                     if result and "text" in result:
                         transcript = result["text"].strip()
                         logger.info(f"Whisper transcription: {transcript}")
                         if transcript:
                             transcription_success = True
+
+                            # Add to cache
+                            recent_transcriptions.append(
+                                {
+                                    "hash": audio_hash,
+                                    "transcript": transcript,
+                                    "timestamp": time.time(),
+                                }
+                            )
                 else:
-                    logger.warning("Whisper module not available in the system")
+                    # Model couldn't be loaded
+                    logger.error(f"Whisper model for {model_size} couldn't be loaded")
+                    if language == "fi-FI":
+                        return {
+                            "error": "Whisper model couldn't be loaded",
+                            "transcript": "Virhe: Whisper-mallia ei voitu ladata. Tarkista että openai-whisper on asennettu oikein.",
+                        }
+                    return {
+                        "error": "Whisper model couldn't be loaded",
+                        "transcript": "Error: Whisper model couldn't be loaded. Check that openai-whisper is installed correctly.",
+                    }
             except Exception as e:
-                logger.error(f"Whisper transcription error: {str(e)}")
+                error_msg = str(e)
+                logger.error(f"Whisper transcription error: {error_msg}")
 
-        # Method 2: Try system speech recognition
-        if not transcription_success:
-            try:
-                logger.info("Checking for speech_recognition module...")
-                # Only attempt to import if module might be available
-                if importlib.util.find_spec("speech_recognition") is not None:
-                    import speech_recognition as sr
-
-                    logger.info("Using speech_recognition for transcription")
-                    recognizer = sr.Recognizer()
-                    with sr.AudioFile(temp_path) as source:
-                        audio = recognizer.record(source)
-                    transcript = recognizer.recognize_google(audio, language=language)
-                    logger.info(f"Google transcription: {transcript}")
-                    if transcript:
-                        transcription_success = True
-                else:
-                    logger.warning(
-                        "speech_recognition module not available in the system"
+                # If the error indicates an installation issue, provide specific guidance
+                if (
+                    "No module named" in error_msg
+                    or "not installed" in error_msg.lower()
+                ):
+                    missing_module = (
+                        error_msg.split("'")[1]
+                        if "'" in error_msg
+                        else "required dependency"
                     )
-            except Exception as e:
-                logger.error(f"Speech recognition error: {str(e)}")
+                    specific_error = f"Missing dependency: {missing_module}"
+                    if language == "fi-FI":
+                        return {
+                            "error": specific_error,
+                            "transcript": f"Virhe: Puuttuva riippuvuus: {missing_module}. Asenna se pip:llä.",
+                        }
+                    return {
+                        "error": specific_error,
+                        "transcript": f"Error: Missing dependency: {missing_module}. Install it using pip.",
+                    }
 
-        # Method 3: Fall back to SpeechBrain if available
-        if not transcription_success:
-            # Add SpeechBrain ASR implementation here if available
-            pass
+        # Calculate processing time
+        processing_time = time.time() - start_time
+        logger.info(f"Speech-to-text processing time: {processing_time:.2f} seconds")
 
-        return {"transcript": transcript}
+        return {"transcript": transcript, "processing_time": processing_time}
 
     except Exception as e:
-        logger.error(f"Error in speech-to-text: {str(e)}")
-        return {"error": str(e)}
+        error_message = str(e)
+        logger.error(f"Error in speech-to-text: {error_message}")
+
+        # Calculate processing time even for errors
+        processing_time = time.time() - start_time
+
+        # Provide language-specific error messages
+        if language == "fi-FI":
+            return {
+                "error": error_message,
+                "transcript": "Virhe tekstintunnistuksessa. Tarkista että Whisper-palvelin on käynnissä ja Whisper on asennettu.",
+                "processing_time": processing_time,
+            }
+        return {
+            "error": error_message,
+            "transcript": f"Error: {error_message}",
+            "processing_time": processing_time,
+        }
     finally:
         # Clean up temp file with retries in case it's still being accessed
         if temp_path and os.path.exists(temp_path):
@@ -447,9 +783,13 @@ async def speech_to_text(file: UploadFile = File(...), language: str = Form("en-
 @app.post("/api/text-to-speech")
 async def text_to_speech(request: TTSRequest):
     text = request.text
-    language = request.language.split("-")[0]
+    language = request.language
     voice = request.voice or "david-en-us"
     speed = request.speed
+
+    # Get language configuration
+    lang_code = language.split("-")[0]
+    lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
 
     # For legacy voice names, map to preferred voice
     if voice in ["male", "neutral"] or voice.startswith("neutral-"):
@@ -459,7 +799,27 @@ async def text_to_speech(request: TTSRequest):
     elif voice in ["male-en-us"]:
         voice = "david-en-us"
 
-    # SCENARIO 1: David or Zira voices using pyttsx3 on Windows
+    logger.info(f"TTS request: language={language}, voice={voice}, text={text[:30]}...")
+
+    # SCENARIO 1: Finnish language with gTTS
+    if language == "fi-FI":
+        audio_base64, error_message = await generate_audio_with_gtts(
+            text, language, speed
+        )
+        if audio_base64:
+            return {
+                "success": True,
+                "audio": audio_base64,
+                "format": "mp3",
+                "language": language,
+                "voice": voice,
+                "source": "gtts",
+            }
+        else:
+            logger.warning(f"gTTS failed for {language}: {error_message}")
+            # Fall through to general gTTS section as fallback
+
+    # SCENARIO 2: David or Zira voices using pyttsx3 on Windows (for English)
     if voice in ["david-en-us", "zira-en-us"] and pyttsx3_available:
         audio_base64, error_message = await generate_audio_with_pyttsx3(
             text, voice, speed
@@ -475,15 +835,19 @@ async def text_to_speech(request: TTSRequest):
             }
         else:
             logger.warning(f"pyttsx3 failed for {voice}: {error_message}")
-            # Fall through to gTTS
+            # Fall through to next method
 
-    # SCENARIO 2: Neutral voice using SpeechBrain
-    if voice == "neutral":
+    # SCENARIO 3: Neutral voice using SpeechBrain (for English)
+    if (
+        voice == "neutral"
+        and "speechbrain" in lang_config["tts_models"]
+        and speechbrain_tts_available
+    ):
         # Try SpeechBrain for neutral voice
         MAX_CHARS_FOR_SPEECHBRAIN = 2000
         if len(text) <= MAX_CHARS_FOR_SPEECHBRAIN:
             tacotron2, hifigan, pitch_shift, base_speed = get_tts_models(
-                language, "neutral"
+                lang_code, "neutral"
             )
 
             if tacotron2 and hifigan:
@@ -561,6 +925,10 @@ async def text_to_speech(request: TTSRequest):
 
 
 def process_long_text(text, tacotron2, hifigan):
+    if not speechbrain_tts_available:
+        logger.warning("SpeechBrain TTS not available, cannot process text")
+        return None
+
     sentences = re.split(r"(?<=[.!?])\s+", text)
     all_waveforms = []
     sample_rate = 22050
@@ -710,7 +1078,176 @@ async def get_language_proficiency(userId: str, language: Optional[str] = None):
         )
 
 
+# Add WebSocket endpoint for Finnish transcription
+@app.websocket("/ws/finnish")
+async def websocket_finnish(websocket: WebSocket):
+    await websocket.accept()
+    active_connections.add(websocket)
+
+    logger.info("WebSocket connection established for Finnish transcription")
+
+    # Buffer to accumulate audio chunks
+    audio_buffer = io.BytesIO()
+    last_transcription_time = time.time()
+
+    try:
+        while True:
+            # Receive binary audio data
+            audio_chunk = await websocket.receive_bytes()
+            logger.info(f"Received audio chunk: {len(audio_chunk)} bytes")
+
+            # Append to buffer
+            audio_buffer.write(audio_chunk)
+            audio_buffer.seek(0, io.SEEK_END)  # Move to end after writing
+            buffer_size = audio_buffer.tell()  # Get current size
+
+            # Process if we have enough data or enough time has passed
+            current_time = time.time()
+            time_since_last = current_time - last_transcription_time
+
+            if (
+                buffer_size > 16000 or time_since_last > 2.0
+            ):  # Process every 2 seconds or when buffer is large enough
+                logger.info(f"Processing audio buffer of size {buffer_size} bytes")
+
+                # Create a temporary file
+                with tempfile.NamedTemporaryFile(
+                    suffix=".webm", delete=False
+                ) as temp_file:
+                    # Reset buffer position and write to temp file
+                    audio_buffer.seek(0)
+                    temp_file.write(audio_buffer.read())
+                    temp_path = temp_file.name
+
+                try:
+                    # Reset buffer for new data but keep a small overlap
+                    if buffer_size > 4000:  # Keep last 4KB for overlap
+                        audio_buffer.seek(max(0, buffer_size - 4000))
+                        overlap_data = audio_buffer.read()
+                        audio_buffer = io.BytesIO()
+                        audio_buffer.write(overlap_data)
+                    else:
+                        audio_buffer = io.BytesIO()  # Reset if too small
+
+                    # Use Whisper for transcription if available
+                    if whisper_available:
+                        whisper_model = get_whisper_model(
+                            "medium"
+                        )  # Use medium model for Finnish
+
+                        if whisper_model:
+                            # Configure Whisper for Finnish
+                            options = {
+                                "language": "fi",  # Finnish language code
+                                "task": "transcribe",
+                                "fp16": False,  # Avoid precision issues
+                                "temperature": 0.0,  # Deterministic output for streaming
+                                "suppress_tokens": [
+                                    -1
+                                ],  # Avoid suppression for partial transcripts
+                                "condition_on_previous_text": True,  # Maintain context
+                            }
+
+                            try:
+                                result = whisper_model.transcribe(temp_path, **options)
+
+                                # Extract transcript
+                                transcript = result.get("text", "").strip()
+                                logger.info(
+                                    f"Real-time Finnish transcript: {transcript}"
+                                )
+
+                                # Build response with full and partial transcripts
+                                response = {
+                                    "text": transcript,
+                                    "partial": (
+                                        result.get("segments", [{}])[-1].get("text", "")
+                                        if result.get("segments")
+                                        else ""
+                                    ),
+                                    "is_final": False,
+                                }
+
+                                # Send transcription back to client
+                                await websocket.send_json(response)
+                                last_transcription_time = current_time
+                            except Exception as e:
+                                logger.error(
+                                    f"Error in Whisper transcription: {str(e)}"
+                                )
+                                await websocket.send_json(
+                                    {
+                                        "error": f"Transcription error: {str(e)}",
+                                        "text": "",
+                                    }
+                                )
+                        else:
+                            logger.error("Whisper model not available for Finnish")
+                            await websocket.send_json(
+                                {"error": "Whisper model not available", "text": ""}
+                            )
+                    else:
+                        logger.error("Whisper not installed")
+                        await websocket.send_json(
+                            {"error": "Whisper not installed", "text": ""}
+                        )
+                finally:
+                    # Clean up temp file
+                    try:
+                        os.unlink(temp_path)
+                    except Exception as e:
+                        logger.error(f"Error removing temp file: {str(e)}")
+    except WebSocketDisconnect:
+        logger.info("WebSocket disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {str(e)}")
+    finally:
+        active_connections.remove(websocket)
+        logger.info("WebSocket connection closed")
+
+
+# Add a function to check if any WebSocket connections are active
+def has_active_websocket_connections():
+    return len(active_connections) > 0
+
+
+# Add WebSocket status endpoint
+@app.get("/api/websocket-status")
+async def websocket_status():
+    return {
+        "active_connections": len(active_connections),
+        "whisper_available": whisper_available,
+        "websocket_enabled": True,
+    }
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8008))
     logger.info(f"Starting Speech API service on port {port}")
+    logger.info(
+        f"CORS origins allowed: {['http://localhost:3000', 'http://127.0.0.1:3000']}"
+    )
+    logger.info(f"To test if server is running, open: http://localhost:{port}/health")
+
+    # Make sure Whisper is available for Finnish
+    if whisper_available:
+        logger.info("Whisper is available. Preloading models...")
+        try:
+            base_model = get_whisper_model("base")
+            if base_model:
+                logger.info("Whisper base model loaded successfully")
+
+            # Try to load the medium model for Finnish
+            medium_model = get_whisper_model("medium")
+            if medium_model:
+                logger.info(
+                    "Whisper medium model loaded successfully (required for Finnish)"
+                )
+        except Exception as e:
+            logger.error(f"Error preloading Whisper models: {e}")
+    else:
+        logger.warning(
+            "Whisper is NOT available - Finnish speech recognition will not work"
+        )
+
     uvicorn.run(app, host="0.0.0.0", port=port)

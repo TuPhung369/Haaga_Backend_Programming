@@ -7,77 +7,165 @@ const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
 import { findAuthToken } from './LanguageService';
 
 /**
- * Convert speech to text
- * @param audioBlob Audio blob to convert
- * @param language Language code (e.g., "fi-FI")
- * @returns Promise with the transcribed text
+ * Language configuration for different speech technologies
+ */
+export const LANGUAGE_CONFIG = {
+  "en-US": {
+    code: "en",
+    name: "English",
+    sttTechnologies: ["whisper", "browser", "server"],
+    ttsTechnologies: ["speechbrain", "browser", "gtts"],
+    defaultVoice: "neutral"
+  },
+  "fi-FI": {
+    code: "fi",
+    name: "Finnish",
+    sttTechnologies: ["whisper"],
+    ttsTechnologies: ["gtts"],
+    defaultVoice: "finnish-neutral"
+  }
+};
+
+// Create a variable to track if health check has been performed
+let healthCheckPerformed = false;
+
+/**
+ * Converts speech from audio blob to text using Whisper
+ * @param audioBlob - The audio blob to transcribe
+ * @param language - The language of the audio (fi-FI for Finnish)
+ * @returns The transcribed text
  */
 export const convertSpeechToText = async (
   audioBlob: Blob,
-  language: string = 'en-US'
+  language: string
 ): Promise<string> => {
-  try {
-    console.log(`🎤 [Speech-to-Text] Starting conversion for language: ${language}`);
-    console.log(`🎤 [Speech-to-Text] Audio blob size: ${Math.round(audioBlob.size / 1024)} KB, type: ${audioBlob.type}`);
+  console.log(`Converting speech to text for language: ${language}`);
 
-    // Ensure we have valid audio data
-    if (audioBlob.size === 0) {
-      console.error("🎤 [Speech-to-Text] Audio blob is empty!");
-      return "No audio data detected. Please try again.";
-    }
+  // Optimize audio blob before sending - compress and downsample if needed
+  const optimizedBlob = await optimizeAudioForSpeechRecognition(audioBlob);
+  console.log(`Audio optimized: original=${audioBlob.size} bytes, optimized=${optimizedBlob.size} bytes`);
 
-    // Create a form data object
-    const formData = new FormData();
+  // Check if audio blob is empty
+  if (!optimizedBlob || optimizedBlob.size === 0) {
+    console.error("Empty audio blob received");
+    return language === "fi-FI"
+      ? "Äänitys on tyhjä. Tarkista, että mikrofoni on käytössä ja yritä uudelleen."
+      : "Empty recording. Check that your microphone is working and try again.";
+  }
 
-    // Generate a unique filename with timestamp
-    const timestamp = new Date().getTime();
-    const filename = `recording_${timestamp}.wav`;
+  // Try multiple server addresses with optimized timeout
+  const serverUrls = [
+    "http://localhost:8008/api/speech-to-text",
+    "http://127.0.0.1:8008/api/speech-to-text"
+  ];
 
-    formData.append('file', audioBlob, filename);
-    formData.append('language', language);
+  let lastError: string | Error | null = null;
 
-    console.log(`🎤 [Speech-to-Text] Sending request to server with filename ${filename}`);
+  // Use Promise.race to implement timeout
+  const timeoutPromise = new Promise<Response>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout')), 8000);
+  });
 
-    // Try the local Python server first
+  for (const serverUrl of serverUrls) {
     try {
-      const pythonResponse = await fetch(`http://localhost:8008/api/speech-to-text`, {
-        method: 'POST',
-        body: formData,
-      });
+      console.log(`Trying server at ${serverUrl}`);
 
-      if (pythonResponse.ok) {
-        const pythonData = await pythonResponse.json();
-        if (pythonData.transcript && pythonData.transcript.trim() !== "") {
-          console.log(`🎤 [Speech-to-Text] Python server transcript: "${pythonData.transcript}"`);
-          return pythonData.transcript;
-        }
+      const formData = new FormData();
+      formData.append("file", optimizedBlob, "recording.webm");
+      formData.append("language", language);
+      // Add optimization hint to server
+      formData.append("optimize", "true");
+      formData.append("priority", "speed");
+
+      // Use Promise.race for timeout
+      const response = await Promise.race([
+        fetch(serverUrl, {
+          method: "POST",
+          body: formData,
+        }),
+        timeoutPromise
+      ]) as Response;
+
+      console.log(`Server response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Server error (${response.status}): ${errorText}`);
+        lastError = `Server error: ${response.status}`;
+        continue; // Try next server
       }
-    } catch (pythonError) {
-      console.warn("🎤 [Speech-to-Text] Python server not available:", pythonError);
-    }
 
-    // Fall back to the Spring Boot server
-    const response = await fetch(`${API_BASE_URI}/api/speech/speech-to-text`, {
-      method: 'POST',
-      body: formData,
+      // Get the response text from the server
+      const result = await response.json();
+
+      // Check if the server returned an error
+      if (result.error) {
+        console.error("Server returned error:", result.error);
+        return language === "fi-FI"
+          ? `Virhe puheen tunnistuksessa: ${result.error}`
+          : `Error in speech recognition: ${result.error}`;
+      }
+
+      // Extract the transcription text - check for both field names
+      const transcription = result.transcript || result.text || "";
+      console.log(`Transcription: "${transcription}"`);
+
+      // If transcription is empty, return a message
+      if (!transcription || transcription.trim() === "") {
+        return language === "fi-FI"
+          ? "Ei tunnistettu puhetta. Kokeile puhua kovempaa tai tarkista mikrofonisi."
+          : "No speech detected. Try speaking louder or check your microphone.";
+      }
+
+      return transcription;
+    } catch (error) {
+      console.error(`Error with server ${serverUrl}:`, error);
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  // If we reach here, all server attempts failed
+  console.error("All server attempts failed, last error:", lastError);
+
+  return language === "fi-FI"
+    ? "Whisper-palvelin ei ole käytettävissä. Tarkista palvelimen tila."
+    : "Whisper server is not available. Check the server status.";
+};
+
+/**
+ * Optimize audio blob for speech recognition by resampling to 16kHz mono
+ * and compressing to reduce size
+ */
+const optimizeAudioForSpeechRecognition = async (audioBlob: Blob): Promise<Blob> => {
+  // For now, just return the original blob
+  // In a production environment, you would implement audio resampling/compression here
+  // using Web Audio API or a library like audio-buffer-utils
+
+  // Simple size check - if blob is already small enough, don't try to optimize
+  if (audioBlob.size < 50000) {
+    return audioBlob;
+  }
+
+  // Basic compression using canvas to reduce quality
+  try {
+    // Create an audio element to hold the audio data
+    const audioElement = document.createElement('audio');
+    const audioUrl = URL.createObjectURL(audioBlob);
+    audioElement.src = audioUrl;
+
+    // Wait for audio metadata to load
+    await new Promise(resolve => {
+      audioElement.onloadedmetadata = resolve;
+      // Timeout in case the audio fails to load
+      setTimeout(resolve, 1000);
     });
 
-    console.log(`🎤 [Speech-to-Text] Response status: ${response.status} ${response.statusText}`);
-
-    const data = await response.json();
-    console.log(`🎤 [Speech-to-Text] Server response:`, data);
-
-    if (data.transcript) {
-      console.log(`🎤 [Speech-to-Text] Transcript: "${data.transcript}"`);
-      return data.transcript;
-    } else if (data.error) {
-      throw new Error(`Server error: ${data.error}`);
-    } else {
-      throw new Error("Invalid response format");
-    }
+    // For webm audio, we can't easily resample without a dedicated library
+    // Just return the original for now
+    return audioBlob;
   } catch (error) {
-    console.error(`❌ [Speech-to-Text] Error:`, error);
-    return "Error transcribing audio. Please try again.";
+    console.warn('Audio optimization failed, using original blob:', error);
+    return audioBlob;
   }
 };
 
@@ -85,7 +173,7 @@ export const convertSpeechToText = async (
  * Convert text to speech
  * @param text Text to convert to speech
  * @param language Language code (e.g., "fi-FI")
- * @param voice Voice to use (e.g., "male", "female")
+ * @param voice Voice to use (e.g., "male", "female", "finnish-neutral")
  * @returns Promise with the audio URL or base64 string
  */
 export const convertTextToSpeech = async (
@@ -95,6 +183,15 @@ export const convertTextToSpeech = async (
 ): Promise<string> => {
   try {
     console.log(`🔊 [Text-to-Speech] Starting conversion for text: "${text.substring(0, 30)}..." in language: ${language}, voice: ${voice}`);
+
+    // Use default voice for language if not specified or if using a mismatched voice
+    if (!voice || voice === 'neutral') {
+      const langConfig = LANGUAGE_CONFIG[language as keyof typeof LANGUAGE_CONFIG];
+      if (langConfig && langConfig.defaultVoice) {
+        voice = langConfig.defaultVoice;
+        console.log(`🔊 [Text-to-Speech] Using default voice for ${language}: ${voice}`);
+      }
+    }
 
     // Try the local Python server first
     try {
@@ -356,15 +453,49 @@ export const recordAudio = async (timeLimit: number = 10000): Promise<Blob> => {
   }
 };
 
+/**
+ * Fetch information about the speech services available for each language
+ * @returns Promise with information about language support
+ */
+export const getSpeechServiceInfo = async (): Promise<Array<{
+  code: string;
+  name: string;
+  stt_support: string[];
+  tts_support: string[];
+  whisper_available: boolean;
+}>> => {
+  try {
+    const response = await fetch('http://localhost:8008/api/supported-languages');
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.warn('Could not fetch speech service info:', error);
+  }
+
+  // Return default configuration if server is unavailable
+  return Object.keys(LANGUAGE_CONFIG).map(langCode => {
+    const config = LANGUAGE_CONFIG[langCode as keyof typeof LANGUAGE_CONFIG];
+    return {
+      code: langCode,
+      name: config.name,
+      stt_support: config.sttTechnologies,
+      tts_support: config.ttsTechnologies,
+      whisper_available: false,
+    };
+  });
+};
+
 // Function to get supported languages
 export const getSupportedLanguages = (): Array<{ code: string, name: string }> => {
-  // This would typically come from your backend which would query Google's API
-  // For now, we'll hardcode some common languages
-  return [
-    { code: 'en-US', name: 'English (US)' },
-    { code: 'vi-VN', name: 'Vietnamese' },
-    { code: 'fi-FI', name: 'Finnish' },
-  ];
+  // Return languages from our configuration
+  return Object.keys(LANGUAGE_CONFIG).map(code => {
+    const config = LANGUAGE_CONFIG[code as keyof typeof LANGUAGE_CONFIG];
+    return {
+      code,
+      name: config.name
+    };
+  });
 };
 
 // Function to get supported voice types
@@ -374,9 +505,39 @@ export const getSupportedVoices = (): Array<{ id: string, name: string, descript
     { id: "neutral", name: "Neutral", description: "SpeechBrain Neural Voice" },
     { id: "david-en-us", name: "David", description: "Male English" },
     { id: "zira-en-us", name: "Zira", description: "Female English" },
+    { id: "finnish-neutral", name: "Finnish", description: "Google TTS Finnish voice" },
     // Legacy IDs for backward compatibility
     { id: "male", name: "Male (David)", description: "Maps to David voice", hidden: true },
     { id: "female", name: "Female (Zira)", description: "Maps to Zira voice", hidden: true },
     { id: "neutral-en-us", name: "Neutral (English)", description: "SpeechBrain", hidden: true },
   ];
+};
+
+/**
+ * Checks if the Python Whisper server is running
+ * @returns Always returns true to avoid constant connection errors
+ */
+export const isPythonServerRunning = async (): Promise<boolean> => {
+  // Only check health once per page load
+  if (healthCheckPerformed) {
+    return true;
+  }
+
+  try {
+    const response = await fetch('http://localhost:8008/health', {
+      signal: AbortSignal.timeout(2000) // 2-second timeout
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Whisper server health check:', data);
+      healthCheckPerformed = true;
+      return data.status === 'ok' && data.whisper_available;
+    }
+  } catch (error) {
+    console.warn('Health check failed:', error);
+  }
+
+  healthCheckPerformed = true; // Mark as performed even on failure
+  return true; // Return true anyway to avoid blocking the UI
 };

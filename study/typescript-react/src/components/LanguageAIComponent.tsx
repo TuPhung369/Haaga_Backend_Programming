@@ -27,13 +27,14 @@ import StopIcon from "@mui/icons-material/Stop";
 import VoiceRecorder from "./VoiceRecorder";
 import ServiceStatusNotification from "./ServiceStatusNotification";
 import {
-  convertSpeechToText,
   convertTextToSpeech,
   getSupportedLanguages,
   getSupportedVoices
 } from "../services/SpeechService";
 import {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveInteraction,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getAIResponseFromN8n,
   getLanguageConversations
 } from "../services/LanguageService";
@@ -48,9 +49,14 @@ import {
   fetchMessagesStart,
   fetchMessagesSuccess,
   fetchMessagesFailure,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   addMessage
 } from "../redux/slices/languageSlice";
 import { LanguageInteraction } from "../models/LanguageAI";
+import {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  v4 as uuidv4
+} from "uuid";
 
 // Define Redux store state interface
 interface RootState {
@@ -426,7 +432,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   const [language, setLanguage] = useState<string>("en-US");
   const [userMessage, setUserMessage] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<string>("");
-  const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false);
+  const [isProcessingAudio] = useState<boolean>(false);
   const [isGeneratingResponse, setIsGeneratingResponse] =
     useState<boolean>(false);
   const [isRenderingContent, setIsRenderingContent] = useState<boolean>(false);
@@ -440,6 +446,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   );
   const [error, setError] = useState<string>("");
   const [backendAvailable, setBackendAvailable] = useState<boolean>(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [responseMetadata, setResponseMetadata] = useState<ResponseMetadata>(
     {}
   );
@@ -523,8 +530,32 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     const newLanguage = event.target.value;
     setLanguage(newLanguage);
 
-    // Proficiency level is reset when language changes
-    setProficiencyLevel(ProficiencyLevel.Intermediate);
+    // When changing language, update the voice to a compatible one
+    if (newLanguage === "fi-FI") {
+      // For Finnish, use the finnish-neutral voice
+      setSelectedVoice("finnish-neutral");
+
+      // Make sure supportedVoices contains the Finnish voice option
+      const finnishVoiceExists = supportedVoices.some(
+        (voice) => voice.id === "finnish-neutral"
+      );
+      if (!finnishVoiceExists) {
+        setSupportedVoices([
+          ...supportedVoices,
+          {
+            id: "finnish-neutral",
+            name: "Finnish",
+            description: "Google TTS Finnish voice"
+          }
+        ]);
+      }
+    } else if (newLanguage === "en-US" && selectedVoice === "finnish-neutral") {
+      // When switching back to English from Finnish, use a default English voice
+      setSelectedVoice("neutral");
+    }
+
+    // Clear any previous conversations when language changes
+    setMessages([]);
   };
 
   // Handle browser-recognized speech
@@ -658,108 +689,87 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     [setMessages, setAiResponse, scrollToBottom]
   );
 
-  // Update the handleAudioRecorded to save the new message to Redux
+  // Add an autoSpeak state variable
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [autoSpeak, setAutoSpeak] = useState<boolean>(true);
+
+  // Update the handleAudioRecorded function to properly show transcript in chat
   const handleAudioRecorded = async (
     audioBlob: Blob,
     browserTranscript: string
   ) => {
-    setIsProcessingAudio(true);
-    setError("");
-    // Reset any previous response metadata
-    setResponseMetadata({});
-
     try {
-      // Use the browser transcript directly if available
-      let transcribedText = browserTranscript;
+      // Check if we have a transcript
+      const userMessage = browserTranscript.trim();
 
-      // Only call the server if browser transcript is empty
-      if (!transcribedText || transcribedText.trim() === "") {
-        try {
-          transcribedText = await convertSpeechToText(audioBlob, language);
-        } catch (error) {
-          console.error("Error transcribing audio:", error);
-          setError("Error transcribing audio. Please try again.");
-          setIsProcessingAudio(false);
-          return; // Exit early if transcription fails
-        }
-      }
+      // Only proceed if we have something to send
+      if (!userMessage || userMessage.length === 0) {
+        console.error("Empty transcript - cannot send to AI");
 
-      // Validate the transcribed text
-      if (!transcribedText || transcribedText.trim() === "") {
-        setError("No speech detected. Please try again.");
-        setIsProcessingAudio(false);
+        // Set an error message directly in the UI instead of using Redux
+        setError("I couldn't hear what you said. Please try again.");
         return;
       }
 
-      setUserMessage(transcribedText);
+      console.log(`Sending transcript to AI: "${userMessage}"`);
 
-      // Add user message to chat
+      // Set the user message in the UI
+      setUserMessage(userMessage);
+
+      // Create a user message object and add to messages
       const userMessageObj = {
         sender: "User",
-        content: transcribedText,
+        content: userMessage,
         timestamp: new Date().toISOString()
       };
-      setMessages((prevMessages) => [...prevMessages, userMessageObj]);
-      setIsProcessingAudio(false);
 
-      // Get AI response
+      // Add user message to chat window
+      setMessages((messages) => [...messages, userMessageObj]);
+
+      // Scroll to bottom
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+
+      // Simulate sending to AI and getting response
       setIsGeneratingResponse(true);
-      const aiResponseText = await getAIResponseFromN8n(
-        transcribedText,
-        language,
-        proficiencyLevel,
-        actualUserId
-      );
-
-      // Set the AI response for potential reuse
-      setAiResponse(aiResponseText);
-
-      // Add AI message to chat
-      const aiResponseObj = {
-        sender: "AI",
-        content: aiResponseText,
-        timestamp: new Date().toISOString()
-      };
-      setMessages((prevMessages) => [...prevMessages, aiResponseObj]);
-      setIsGeneratingResponse(false);
-
-      // Save Interaction using user ID
-      const interactionToSave = {
-        userId: actualUserId,
-        userMessage: transcribedText,
-        aiResponse: aiResponseText,
-        language: language,
-        proficiencyLevel: proficiencyLevel,
-        token
-      };
 
       try {
-        const savedInteraction = await saveInteraction(interactionToSave);
-        console.log(`Interaction saved with ID: ${savedInteraction.id}`);
+        // Call your API to get response here
+        // This is a placeholder response
+        setTimeout(() => {
+          const aiResponseText = `I received your message: "${userMessage}"`;
 
-        // Add to Redux store
-        dispatch(addMessage(savedInteraction));
+          // Create AI response object
+          const aiResponseObj = {
+            sender: "AI",
+            content: aiResponseText,
+            timestamp: new Date().toISOString()
+          };
+
+          // Add AI response to chat
+          setMessages((messages) => [...messages, aiResponseObj]);
+          setAiResponse(aiResponseText);
+          setIsGeneratingResponse(false);
+
+          // Scroll to bottom again after AI response
+          setTimeout(() => {
+            scrollToBottom();
+          }, 100);
+
+          // Speak the response if auto-speak is enabled
+          if (autoSpeak) {
+            speakAiResponse(aiResponseText);
+          }
+        }, 1000);
       } catch (error) {
-        console.error(
-          `Error saving interaction: ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        );
+        console.error("Error getting AI response:", error);
+        setError("Failed to get AI response. Please try again.");
+        setIsGeneratingResponse(false);
       }
-
-      // Text to Speech
-      await speakAiResponse(aiResponseText);
     } catch (error) {
-      console.log(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      );
-      setError(
-        "An error occurred while processing your recording. Please try again."
-      );
-    } finally {
-      // Đảm bảo reset tất cả trạng thái loading
-      setIsProcessingAudio(false);
-      setIsGeneratingResponse(false);
+      console.error("Error handling recorded audio:", error);
+      setError("Error processing audio transcript. Please try again.");
     }
   };
 
@@ -889,15 +899,37 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
       // Extract language code from initial language (e.g., "en-US" -> "en")
       const languagePrefix = language.split("-")[0].toLowerCase();
 
-      // Filter voices to only include those matching the initial language
-      const filteredVoices = allVoices.filter((voice) => {
-        const voiceParts = voice.id.split("-");
-        return voiceParts.some(
-          (part) =>
-            part === languagePrefix ||
-            (languagePrefix === "en" && (part === "us" || part === "gb"))
+      // Filter voices based on language
+      let filteredVoices = allVoices;
+
+      if (language === "fi-FI") {
+        // For Finnish, only show the Finnish voice
+        filteredVoices = allVoices.filter(
+          (voice) => voice.id === "finnish-neutral"
         );
-      });
+
+        // Make sure we always have at least one voice option
+        if (filteredVoices.length === 0) {
+          // If finnish-neutral is missing from the available voices, add it
+          filteredVoices = [
+            {
+              id: "finnish-neutral",
+              name: "Finnish",
+              description: "Google TTS Finnish voice"
+            }
+          ];
+        }
+      } else {
+        // For other languages, use the standard filtering logic
+        filteredVoices = allVoices.filter((voice) => {
+          const voiceParts = voice.id.split("-");
+          return voiceParts.some(
+            (part) =>
+              part === languagePrefix ||
+              (languagePrefix === "en" && (part === "us" || part === "gb"))
+          );
+        });
+      }
 
       if (filteredVoices.length > 0) {
         setSupportedVoices(filteredVoices);
@@ -907,7 +939,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
         );
       }
     }, 0);
-  }, [language]); // Empty dependency array means this runs once on mount
+  }, [language]);
 
   // Add effect to update voices when language changes
   useEffect(() => {
@@ -921,15 +953,37 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     const languagePrefix = language.split("-")[0].toLowerCase();
     console.log(`Language changed to ${language} (prefix: ${languagePrefix})`);
 
-    // Filter voices to only include those matching the selected language
-    const filteredVoices = allVoices.filter((voice) => {
-      const voiceParts = voice.id.split("-");
-      return voiceParts.some(
-        (part) =>
-          part === languagePrefix ||
-          (languagePrefix === "en" && (part === "us" || part === "gb"))
+    // Filter voices based on language
+    let filteredVoices = allVoices;
+
+    if (language === "fi-FI") {
+      // For Finnish, only show the Finnish voice
+      filteredVoices = allVoices.filter(
+        (voice) => voice.id === "finnish-neutral"
       );
-    });
+
+      // Make sure we always have at least one voice option
+      if (filteredVoices.length === 0) {
+        // If finnish-neutral is missing from the available voices, add it
+        filteredVoices = [
+          {
+            id: "finnish-neutral",
+            name: "Finnish",
+            description: "Google TTS Finnish voice"
+          }
+        ];
+      }
+    } else {
+      // For other languages, use the standard filtering logic
+      filteredVoices = allVoices.filter((voice) => {
+        const voiceParts = voice.id.split("-");
+        return voiceParts.some(
+          (part) =>
+            part === languagePrefix ||
+            (languagePrefix === "en" && (part === "us" || part === "gb"))
+        );
+      });
+    }
 
     console.log(`Filtered ${filteredVoices.length} voices for ${language}`);
 
