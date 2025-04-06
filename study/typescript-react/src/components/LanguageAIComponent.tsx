@@ -731,37 +731,65 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
         scrollToBottom();
       }, 100);
 
-      // Simulate sending to AI and getting response
+      // Send to AI and get response
       setIsGeneratingResponse(true);
 
       try {
-        // Call your API to get response here
-        // This is a placeholder response
+        // Call the actual API to get a response from n8n
+        const startTime = performance.now();
+
+        // Call the getAIResponseFromN8n function to get a real AI response
+        const aiResponseText = await getAIResponseFromN8n(
+          userMessage,
+          language,
+          proficiencyLevel,
+          actualUserId
+        );
+
+        const responseTime = Math.round(performance.now() - startTime);
+
+        console.log(`Received AI response in ${responseTime}ms`);
+        setResponseMetadata({
+          responseTime,
+          responseSource: "n8n"
+        });
+
+        // Create AI response object
+        const aiResponseObj = {
+          sender: "AI",
+          content: aiResponseText,
+          timestamp: new Date().toISOString()
+        };
+
+        // Add AI response to chat
+        setMessages((messages) => [...messages, aiResponseObj]);
+        setAiResponse(aiResponseText);
+        setIsGeneratingResponse(false);
+
+        // Save the interaction to the database
+        try {
+          await saveInteraction({
+            userMessage,
+            aiResponse: aiResponseText,
+            userId: actualUserId,
+            language,
+            proficiencyLevel,
+            token
+          });
+        } catch (saveError) {
+          console.error("Error saving interaction:", saveError);
+          // Continue even if saving fails
+        }
+
+        // Speak the response if auto-speak is enabled
+        if (autoSpeak) {
+          speakAiResponse(aiResponseText);
+        }
+
+        // Scroll to bottom again after AI response
         setTimeout(() => {
-          const aiResponseText = `I received your message: "${userMessage}"`;
-
-          // Create AI response object
-          const aiResponseObj = {
-            sender: "AI",
-            content: aiResponseText,
-            timestamp: new Date().toISOString()
-          };
-
-          // Add AI response to chat
-          setMessages((messages) => [...messages, aiResponseObj]);
-          setAiResponse(aiResponseText);
-          setIsGeneratingResponse(false);
-
-          // Scroll to bottom again after AI response
-          setTimeout(() => {
-            scrollToBottom();
-          }, 100);
-
-          // Speak the response if auto-speak is enabled
-          if (autoSpeak) {
-            speakAiResponse(aiResponseText);
-          }
-        }, 1000);
+          scrollToBottom();
+        }, 100);
       } catch (error) {
         console.error("Error getting AI response:", error);
         setError("Failed to get AI response. Please try again.");
