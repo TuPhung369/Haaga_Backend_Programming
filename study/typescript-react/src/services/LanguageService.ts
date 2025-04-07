@@ -3,7 +3,7 @@
 
 import { LanguageSession, LanguageInteraction, LanguageFeedback } from '../models/LanguageAI';
 
-export const API_URL = 'http://localhost:9095/identify_service'; // Correct Spring Boot URL with context path
+export const API_URL = 'http://localhost:9095/identify_service'; // Spring Boot server URL
 export const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook/c1784e69-2d89-45fb-b47d-dd13dddcf31e/chat';
 
 // Debug utility for localStorage inspection
@@ -61,10 +61,19 @@ interface ReduxStore {
   };
 }
 
-// Define a type for the window object with reduxStore
+// Add TypeScript types for window extensions
 declare global {
   interface Window {
-    reduxStore?: ReduxStore;
+    __REDUX_STORE__?: {
+      getState: () => {
+        auth?: {
+          token?: string;
+        };
+      };
+    };
+    myApplication?: {
+      findAuthToken: () => { token: string, source: string } | null;
+    };
   }
 }
 
@@ -746,18 +755,16 @@ export const debugSessionId = async (sessionId: string, token?: string): Promise
 };
 
 /**
- * Utility function to find where the authentication token is stored
- * @returns The token and its storage location, or null if not found
+ * Finds authentication token from various sources
+ * @returns Object with token and source
  */
 export const findAuthToken = (): { token: string, source: string } | null => {
   try {
-    // First check if we can access Redux store directly
-    // This requires a way to access the store outside of components
-    // If your app has a store export or singleton, you could check it here
-    if (typeof window !== 'undefined' && 'reduxStore' in window && window.reduxStore) {
-      const state = window.reduxStore.getState();
+    // Check Redux store first (will be fastest and most reliable)
+    if (typeof window !== 'undefined' && window.__REDUX_STORE__) {
+      const state = window.__REDUX_STORE__.getState();
       if (state?.auth?.token) {
-        return { token: state.auth.token, source: 'redux-store' };
+        return { token: state.auth.token, source: 'redux' };
       }
     }
 
@@ -806,6 +813,12 @@ export const findAuthToken = (): { token: string, source: string } | null => {
     return null;
   }
 };
+
+// Expose the findAuthToken function to the window object for WebSocket access
+if (typeof window !== 'undefined') {
+  window.myApplication = window.myApplication || {};
+  window.myApplication.findAuthToken = findAuthToken;
+}
 
 /**
  * Get recent language messages for a user

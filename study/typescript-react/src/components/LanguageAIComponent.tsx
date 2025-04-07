@@ -24,12 +24,13 @@ import {
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import StopIcon from "@mui/icons-material/Stop";
-import VoiceRecorder from "./VoiceRecorder";
+import VoiceRecorder from "./SimpleVoiceRecorder";
 import ServiceStatusNotification from "./ServiceStatusNotification";
 import {
   convertTextToSpeech,
   getSupportedLanguages,
-  getSupportedVoices
+  getSupportedVoices,
+  convertSpeechToText
 } from "../services/SpeechService";
 import {
   saveInteraction,
@@ -430,7 +431,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
   const [language, setLanguage] = useState<string>("en-US");
   const [userMessage, setUserMessage] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<string>("");
-  const [isProcessingAudio] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGeneratingResponse, setIsGeneratingResponse] =
     useState<boolean>(false);
   const [isRenderingContent, setIsRenderingContent] = useState<boolean>(false);
@@ -696,16 +697,40 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
     browserTranscript: string
   ) => {
     try {
-      // Check if we have a transcript
-      const userMessage = browserTranscript.trim();
+      // Check if we have a transcript from browser recognition
+      let userMessage = browserTranscript.trim();
 
-      // Only proceed if we have something to send
+      // If no browser transcript, send audio to server for recognition
       if (!userMessage || userMessage.length === 0) {
-        console.error("Empty transcript - cannot send to AI");
+        console.log(
+          "No browser transcript available, sending audio to server for speech-to-text"
+        );
+        setIsLoading(true);
 
-        // Set an error message directly in the UI instead of using Redux
-        setError("I couldn't hear what you said. Please try again.");
-        return;
+        try {
+          // Use server-side speech recognition as fallback
+          const result = await convertSpeechToText(audioBlob, language);
+          userMessage = result.transcript.trim();
+
+          console.log(`Server speech recognition result: "${userMessage}"`);
+          setIsLoading(false);
+
+          // If still no transcript, show error
+          if (!userMessage || userMessage.length === 0) {
+            console.error(
+              "Empty transcript from both browser and server - cannot send to AI"
+            );
+            setError("I couldn't hear what you said. Please try again.");
+            return;
+          }
+        } catch (speechError) {
+          console.error("Server speech recognition failed:", speechError);
+          setError(
+            "Speech recognition failed. Please try again or type your message."
+          );
+          setIsLoading(false);
+          return;
+        }
       }
 
       console.log(`Sending transcript to AI: "${userMessage}"`);
@@ -1093,7 +1118,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 value={language}
                 label="Language"
                 onChange={handleLanguageChange}
-                disabled={isProcessingAudio || isRenderingContent}
+                disabled={isLoading || isRenderingContent}
               >
                 {supportedLanguages.map((lang) => (
                   <MenuItem key={lang.code} value={lang.code}>
@@ -1113,7 +1138,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 value={proficiencyLevel}
                 label="Proficiency Level"
                 onChange={(e) => setProficiencyLevel(e.target.value)}
-                disabled={isProcessingAudio || isRenderingContent}
+                disabled={isLoading || isRenderingContent}
               >
                 {Object.entries(ProficiencyLevel).map(([key, value]) => (
                   <MenuItem key={value} value={value}>
@@ -1131,7 +1156,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                 value={selectedVoice}
                 label="Voice"
                 onChange={handleVoiceChange}
-                disabled={isProcessingAudio || isRenderingContent}
+                disabled={isLoading || isRenderingContent}
               >
                 {supportedVoices.map((voice) => (
                   <MenuItem key={voice.id} value={voice.id}>
@@ -1149,9 +1174,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
               onAudioRecorded={handleAudioRecorded}
               onSpeechRecognized={handleSpeechRecognized}
               language={language}
-              disabled={
-                isProcessingAudio || isRenderingContent || isGeneratingResponse
-              }
+              disabled={isLoading || isRenderingContent || isGeneratingResponse}
             />
 
             {isRenderingContent && (
@@ -1687,7 +1710,7 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
                       </Typography>
 
                       <div className="markdown">
-                        {message.sender === "User" && isProcessingAudio ? (
+                        {message.sender === "User" && isLoading ? (
                           <CircularProgress size={16} />
                         ) : (
                           <ReactMarkdown

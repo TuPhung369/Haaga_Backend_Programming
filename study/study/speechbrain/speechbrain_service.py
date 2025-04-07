@@ -705,165 +705,124 @@ async def transcribe_speech_finnish(
     priority: str = Form("accuracy"),
     chunk_size: str = Form("0"),
 ):
-    """
-    Transcribe speech from an audio file using Whisper specifically for Finnish.
-    """
-    logger.info(f"Received request to Finnish /api/speech-to-text/fi endpoint")
+    logger.info(f"Received file: {file.filename}, size: {file.size}")
+    logger.info(f"Optimize: {optimize}, Priority: {priority}, Chunk Size: {chunk_size}")
+    contents = await file.read()
+    logger.info(f"File contents length: {len(contents)}")
     return await _transcribe_speech(file, "fi", optimize, priority, chunk_size)
 
 
 async def _transcribe_speech(
-    file: UploadFile,
-    language: str,
-    optimize: str,
-    priority: str,
-    chunk_size: str,
+    file: UploadFile, language: str, optimize: str, priority: str, chunk_size: str
 ):
-    """
-    Internal function that handles the actual transcription logic.
-    """
-    request_id = str(uuid.uuid4())[:8]  # Generate unique ID for request tracking
+    request_id = str(uuid.uuid4())[:8]
     start_time = time.time()
-    logger.info(
-        f"[{request_id}] Received audio file: {file.filename or 'unknown'}, size: {file.size}, language: {language}"
-    )
+    logger.info(f"[{request_id}] Processing file: {file.filename}, size: {file.size}")
 
-    # Log more details about the file for debugging
-    logger.info(
-        f"[{request_id}] Content type: {file.content_type}, headers: {file.headers}"
-    )
+    contents = await file.read()
+    if len(contents) < 500:
+        return {
+            "transcript": (
+                "Äänitiedosto on liian lyhyt."
+                if language == "fi"
+                else "Audio file is too short."
+            )
+        }
 
-    is_small_chunk = False
+    # Save and validate audio
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_file:
+        temp_file_path = temp_file.name
+        temp_file.write(contents)
+
+    # Check if file is valid WebM
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_streams",
+        "-print_format",
+        "json",
+        temp_file_path,
+    ]
     try:
-        chunk_size_int = int(chunk_size)
-        if chunk_size_int > 0 and chunk_size_int < 15000:
-            is_small_chunk = True
-            logger.info(
-                f"[{request_id}] Small chunk detected ({chunk_size_int} bytes), fast processing mode"
-            )
-    except ValueError:
-        pass
-
-    try:
-        # Read the file
-        contents = await file.read()
-        logger.info(f"[{request_id}] Read {len(contents)} bytes of audio data")
-
-        if len(contents) < 500:
-            logger.warning(
-                f"[{request_id}] Audio file too small ({len(contents)} bytes), not enough data"
-            )
-            return {"transcript": "Audio too short"}
-
-        # Save to temporary file for processing
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_file:
-            temp_file_path = temp_file.name
-            temp_file.write(contents)
-            logger.info(f"[{request_id}] Saved audio to {temp_file_path}")
-
-        # Process with FFmpeg to convert to proper WAV format
-        output_path = f"{temp_file_path}_converted.wav"
-
-        # Try to convert the audio using FFmpeg with more robust settings
-        cmd = [
-            "ffmpeg",
-            "-y",
-            "-i",
-            temp_file_path,
-            "-ar",
-            "16000",
-            "-ac",
-            "1",
-            "-c:a",
-            "pcm_s16le",
-            # Add extra flags to handle potentially corrupted inputs
-            "-fflags",
-            "+discardcorrupt+genpts+igndts",
-            "-err_detect",
-            "ignore_err",
-            output_path,
-        ]
-
-        try:
-            logger.info(
-                f"[{request_id}] Converting audio with command: {' '.join(cmd)}"
-            )
-            process = subprocess.run(cmd, capture_output=True, text=True)
-
-            if process.returncode != 0:
-                stderr_text = process.stderr
-                logger.error(f"[{request_id}] FFmpeg conversion failed: {stderr_text}")
-
-                # Try to extract more information about the error
-                if "Invalid data found" in stderr_text:
-                    logger.error(
-                        f"[{request_id}] Audio format issue detected, input might be corrupted"
-                    )
-
-                is_finnish = language.lower().startswith("fi")
-                if is_finnish:
-                    return {"transcript": "Äänitiedoston muuntaminen epäonnistui."}
-                else:
-                    return {"transcript": "Failed to convert audio file."}
-        except Exception as e:
-            logger.error(f"[{request_id}] Error running FFmpeg: {str(e)}")
-            return {"transcript": "Error processing audio"}
-
-        # Check if output file exists and has content
-        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-            logger.error(f"[{request_id}] FFmpeg produced empty output file")
-            is_finnish = language.lower().startswith("fi")
-            if is_finnish:
-                return {"transcript": "Äänitiedoston muuntaminen epäonnistui."}
-            else:
-                return {"transcript": "Failed to convert audio file."}
-
-        logger.info(f"[{request_id}] Successfully converted audio to WAV format")
-
-        # Use the converted file for transcription
-        if whisper_available:
-            # Use regular whisper for consistent results
-            logger.info(f"[{request_id}] Starting transcription with Whisper")
-            result = transcribe_with_whisper(output_path, language)
-
-            # Clean up temporary files
-            try:
-                os.unlink(temp_file_path)
-                if os.path.exists(output_path):
-                    os.unlink(output_path)
-            except Exception as e:
-                logger.warning(f"[{request_id}] Error removing temp files: {str(e)}")
-
-            # Return appropriate message if transcription is empty
-            if not result or not result.get("text", "").strip():
-                is_finnish = language.lower().startswith("fi")
-                if is_finnish:
-                    return {
-                        "transcript": "En saanut selvää puheesta. Yritä puhua selkeämmin."
-                    }
-                else:
-                    return {"transcript": "I couldn't transcribe the audio clearly."}
-
-            transcript_text = result.get("text", "")
-            processing_time = time.time() - start_time
-            logger.info(
-                f"[{request_id}] Transcription completed in {processing_time:.2f}s: {transcript_text}"
-            )
-            return {"transcript": transcript_text}
-        else:
-            # No transcription model available
-            is_finnish = language.lower().startswith("fi")
-            if is_finnish:
-                return {"transcript": "Whisper-malli ei ole käytettävissä."}
-            else:
-                return {"transcript": "Whisper model is not available."}
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            logger.error(f"[{request_id}] ffprobe error: {result.stderr}")
+            os.unlink(temp_file_path)
+            return {
+                "transcript": (
+                    "Äänitiedosto on viallinen."
+                    if language == "fi"
+                    else "Audio file is corrupted."
+                )
+            }
     except Exception as e:
-        logger.error(f"[{request_id}] General error in transcribe_speech: {str(e)}")
-        is_finnish = language.lower().startswith("fi")
-        if is_finnish:
-            return {"transcript": "Palvelinvirhe äänen käsittelyssä."}
-        else:
-            return {"transcript": "Server error processing audio."}
+        logger.error(f"[{request_id}] ffprobe failed: {str(e)}")
+        os.unlink(temp_file_path)
+        return {
+            "transcript": (
+                "Äänitiedoston tarkistus epäonnistui."
+                if language == "fi"
+                else "Audio validation failed."
+            )
+        }
+
+    # Proceed with FFmpeg conversion
+    output_path = f"{temp_file_path}_converted.wav"
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        temp_file_path,
+        "-ar",
+        "16000",
+        "-ac",
+        "1",
+        "-c:a",
+        "pcm_s16le",
+        "-fflags",
+        "+discardcorrupt+genpts+igndts",
+        "-err_detect",
+        "ignore_err",
+        output_path,
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        logger.error(f"[{request_id}] FFmpeg failed: {e.stderr}")
+        os.unlink(temp_file_path)
+        return {
+            "transcript": (
+                "Äänitiedoston muuntaminen epäonnistui."
+                if language == "fi"
+                else "Failed to convert audio."
+            )
+        }
+    finally:
+        if os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+
+    # Transcribe
+    if whisper_available:
+        result = transcribe_with_whisper(output_path, language)
+        if os.path.exists(output_path):
+            os.unlink(output_path)
+        if result and result.get("text", "").strip():
+            return {"transcript": result["text"]}
+        return {
+            "transcript": (
+                "En saanut selvää puheesta."
+                if language == "fi"
+                else "Couldn’t transcribe audio."
+            )
+        }
+    return {
+        "transcript": (
+            "Whisper-malli ei ole käytettävissä."
+            if language == "fi"
+            else "Whisper model unavailable."
+        )
+    }
 
 
 @app.post("/api/text-to-speech")

@@ -1,5 +1,6 @@
 äänen
 Äänentunnistus
+Äänitiedosto
 Äänitiedoston
 Äänitiedot
 Äänitys
@@ -29,6 +30,7 @@ epäonnistui
 Esta
 että
 fflags
+ffprobe
 genpts
 Glvbj
 Hdhcm
@@ -54,7 +56,9 @@ kuule
 kuullut
 ladata
 libopus
+liian
 Lwjj
+lyhyt
 malli
 mallia
 mejor
@@ -104,6 +108,7 @@ språk
 svar
 Tämä
 Tarkista
+tarkistus
 tekoäly
 tekstintunnistuksessa
 tila
@@ -119,6 +124,7 @@ uudelleen
 vastannut
 vastaus
 véritable
+viallinen
 Virhe
 Voisitko
 voitu
