@@ -29,145 +29,174 @@ export const LANGUAGE_CONFIG = {
 // Create a variable to track if health check has been performed
 let healthCheckPerformed = false;
 
+export interface SpeechToTextResult {
+  transcript: string;
+}
+
 /**
  * Converts speech from audio blob to text using Whisper
  * @param audioBlob - The audio blob to transcribe
  * @param language - The language of the audio (fi-FI for Finnish)
  * @returns The transcribed text
  */
-export const convertSpeechToText = async (
-  audioBlob: Blob,
-  language: string
-): Promise<string> => {
-  console.log(`Converting speech to text for language: ${language}`);
+export async function convertSpeechToText(audioBlob: Blob, language: string = 'en-US'): Promise<SpeechToTextResult> {
+  const startTime = performance.now();
 
-  // Optimize audio blob before sending - compress and downsample if needed
-  const optimizedBlob = await optimizeAudioForSpeechRecognition(audioBlob);
-  console.log(`Audio optimized: original=${audioBlob.size} bytes, optimized=${optimizedBlob.size} bytes`);
+  // Calculate timeout based on blob size
+  const timeoutValue = calculateTimeout(audioBlob.size);
 
-  // Check if audio blob is empty
-  if (!optimizedBlob || optimizedBlob.size === 0) {
-    console.error("Empty audio blob received");
-    return language === "fi-FI"
-      ? "Äänitys on tyhjä. Tarkista, että mikrofoni on käytössä ja yritä uudelleen."
-      : "Empty recording. Check that your microphone is working and try again.";
+  console.log(`🎤 Processing audio: ${audioBlob.size} bytes, ${audioBlob.type}, timeout: ${timeoutValue}ms, language: ${language}`);
+
+  // Check audio format and optimize if needed
+  let processedBlob = audioBlob;
+  if (!audioBlob.type || !audioBlob.type.includes("audio/")) {
+    console.log(`🎤 Setting MIME type for blob to audio/webm`);
+    processedBlob = new Blob([audioBlob], { type: "audio/webm" });
   }
 
-  // Try multiple server addresses with optimized timeout
-  const serverUrls = [
-    "http://localhost:8008/api/speech-to-text",
-    "http://127.0.0.1:8008/api/speech-to-text"
-  ];
+  // Optimize blob if it's too large (more than 50KB)
+  if (processedBlob.size > 50000) {
+    console.log(`🎤 Audio blob is large (${processedBlob.size} bytes), truncating to optimize`);
+    processedBlob = new Blob([await processedBlob.slice(0, 50000).arrayBuffer()], { type: processedBlob.type });
+  }
 
-  let lastError: string | Error | null = null;
+  // Get auth token from localStorage or cookies if available
+  const authToken = localStorage.getItem('auth_token') || getCookie('auth_token') || '';
 
-  // Use Promise.race to implement timeout
-  const timeoutPromise = new Promise<Response>((_, reject) => {
-    setTimeout(() => reject(new Error('Request timeout')), 8000);
-  });
+  const formData = new FormData();
+  formData.append("audio", processedBlob);
 
-  for (const serverUrl of serverUrls) {
+  let response: Response;
+  let result: SpeechToTextResult = { transcript: "" };
+  let serverUrl = "";
+
+  // Determine language-specific endpoint
+  const languageCode = language.toLowerCase().includes('fi') ? 'fi' : 'en';
+
+  console.log(`🎤 Language detected: ${language}, using endpoint for: ${languageCode}`);
+
+  try {
+    // Try direct server first with language-specific endpoint
+    serverUrl = `http://localhost:9095/identify_service/speech-to-text/${languageCode}`;
+    console.log(`🎤 Sending request to direct server: ${serverUrl}`);
+
+    response = await Promise.race([
+      fetch(serverUrl, {
+        method: "POST",
+        body: formData,
+        headers: {
+          // Add authentication header if token exists
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        }
+      }),
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timeout")), timeoutValue)
+      ) as Promise<Response>
+    ]);
+
+    // If direct server succeeds, process response
+    if (response.ok) {
+      result = await response.json();
+    } else {
+      // If direct server gives auth error, throw specific error
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please log in to use speech-to-text service.");
+      }
+      // For other errors, try fallback
+      throw new Error(`Server error: ${response.status}`);
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.log(`🎤 Error with direct server (${errorMessage}), trying fallback`);
+
+    // Fallback to proxy server with language-specific endpoint
     try {
-      console.log(`Trying server at ${serverUrl}`);
+      serverUrl = `http://localhost:8008/api/speech-to-text/${languageCode}`;
+      console.log(`🎤 Sending request to fallback server: ${serverUrl}`);
 
-      const formData = new FormData();
-      formData.append("file", optimizedBlob, "recording.webm");
-      formData.append("language", language);
-      // Add optimization hint to server
-      formData.append("optimize", "true");
-      formData.append("priority", "speed");
-
-      // Use Promise.race for timeout
-      const response = await Promise.race([
+      response = await Promise.race([
         fetch(serverUrl, {
           method: "POST",
           body: formData,
+          headers: {
+            // Add authentication header if token exists
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+          }
         }),
-        timeoutPromise
-      ]) as Response;
-
-      console.log(`Server response status: ${response.status}`);
+        new Promise<Response>((_, reject) =>
+          setTimeout(() => reject(new Error("Request timeout")), timeoutValue)
+        ) as Promise<Response>
+      ]);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Server error (${response.status}): ${errorText}`);
-        lastError = `Server error: ${response.status}`;
-        continue; // Try next server
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please log in to use speech-to-text service.");
+        }
+        throw new Error(`Server error: ${response.status}`);
       }
 
-      // Get the response text from the server
-      const result = await response.json();
+      result = await response.json();
+    } catch (fallbackError: unknown) {
+      const fallbackErrorMessage = fallbackError instanceof Error ?
+        fallbackError.message : String(fallbackError);
+      console.error(`🎤 Speech to text error (${serverUrl}):`, fallbackErrorMessage);
 
-      // Check if the server returned an error
-      if (result.error) {
-        console.error("Server returned error:", result.error);
-        return language === "fi-FI"
-          ? `Virhe puheen tunnistuksessa: ${result.error}`
-          : `Error in speech recognition: ${result.error}`;
+      // If language-specific endpoint fails, try general endpoint as final fallback
+      try {
+        serverUrl = `http://localhost:8008/api/speech-to-text`;
+        console.log(`🎤 Trying general endpoint as final fallback: ${serverUrl}`);
+
+        const generalFallbackResponse = await fetch(serverUrl, {
+          method: "POST",
+          body: formData,
+          headers: {
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+          }
+        });
+
+        if (generalFallbackResponse.ok) {
+          result = await generalFallbackResponse.json();
+        } else {
+          throw new Error(`General fallback failed with status: ${generalFallbackResponse.status}`);
+        }
+      } catch {
+        // If all attempts fail, return error message in transcript
+        return {
+          transcript: `Error: ${fallbackErrorMessage || "Failed to process speech"}. Please try again.`
+        };
       }
-
-      // Extract the transcription text - check for both field names
-      const transcription = result.transcript || result.text || "";
-      console.log(`Transcription: "${transcription}"`);
-
-      // If transcription is empty, return a message
-      if (!transcription || transcription.trim() === "") {
-        return language === "fi-FI"
-          ? "Ei tunnistettu puhetta. Kokeile puhua kovempaa tai tarkista mikrofonisi."
-          : "No speech detected. Try speaking louder or check your microphone.";
-      }
-
-      return transcription;
-    } catch (error) {
-      console.error(`Error with server ${serverUrl}:`, error);
-      lastError = error instanceof Error ? error.message : String(error);
     }
   }
 
-  // If we reach here, all server attempts failed
-  console.error("All server attempts failed, last error:", lastError);
+  const endTime = performance.now();
+  console.log(`🎤 Speech to text completed in ${Math.round(endTime - startTime)}ms: "${result.transcript}"`);
 
-  return language === "fi-FI"
-    ? "Whisper-palvelin ei ole käytettävissä. Tarkista palvelimen tila."
-    : "Whisper server is not available. Check the server status.";
-};
+  return result;
+}
+
+// Helper function to get a cookie value by name
+function getCookie(name: string): string | undefined {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return undefined;
+}
 
 /**
- * Optimize audio blob for speech recognition by resampling to 16kHz mono
- * and compressing to reduce size
+ * Calculate optimal timeout value based on the audio blob size
  */
-const optimizeAudioForSpeechRecognition = async (audioBlob: Blob): Promise<Blob> => {
-  // For now, just return the original blob
-  // In a production environment, you would implement audio resampling/compression here
-  // using Web Audio API or a library like audio-buffer-utils
-
-  // Simple size check - if blob is already small enough, don't try to optimize
-  if (audioBlob.size < 50000) {
-    return audioBlob;
+function calculateTimeout(blobSize: number): number {
+  // Scale the timeout based on blob size
+  if (blobSize < 5000) {
+    return 5000; // 5s for very small blobs
+  } else if (blobSize < 20000) {
+    return 8000; // 8s for small blobs
+  } else if (blobSize < 50000) {
+    return 12000; // 12s for medium blobs
+  } else {
+    return 20000; // 20s for large blobs
   }
-
-  // Basic compression using canvas to reduce quality
-  try {
-    // Create an audio element to hold the audio data
-    const audioElement = document.createElement('audio');
-    const audioUrl = URL.createObjectURL(audioBlob);
-    audioElement.src = audioUrl;
-
-    // Wait for audio metadata to load
-    await new Promise(resolve => {
-      audioElement.onloadedmetadata = resolve;
-      // Timeout in case the audio fails to load
-      setTimeout(resolve, 1000);
-    });
-
-    // For webm audio, we can't easily resample without a dedicated library
-    // Just return the original for now
-    return audioBlob;
-  } catch (error) {
-    console.warn('Audio optimization failed, using original blob:', error);
-    return audioBlob;
-  }
-};
+}
 
 /**
  * Convert text to speech

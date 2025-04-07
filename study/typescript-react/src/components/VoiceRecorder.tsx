@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Button,
   Box,
-  CircularProgress,
-  Typography,
+  Button,
   Paper,
-  IconButton,
-  Alert
+  Typography,
+  CircularProgress,
+  Alert,
+  IconButton
 } from "@mui/material";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
@@ -14,6 +14,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import {
   convertSpeechToText,
   isPythonServerRunning
+  // SpeechToTextResult is used through the convertSpeechToText return type
 } from "../services/SpeechService";
 import { LANGUAGE_CONFIG } from "../services/SpeechService";
 
@@ -48,6 +49,7 @@ declare global {
     SpeechRecognition: new () => SpeechRecognition;
     webkitSpeechRecognition: new () => SpeechRecognition;
     voiceRecorderServerChecked?: boolean;
+    webkitAudioContext: typeof AudioContext;
   }
 }
 
@@ -65,12 +67,10 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   disabled = false
 }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioURL, setAudioURL] = useState<string | null>(null);
+  const [_audioURL, setAudioURL] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [browserTranscript, setBrowserTranscript] = useState<string>("");
   const [useFallback, setUseFallback] = useState<boolean>(false);
-  const [processingTranscript, setProcessingTranscript] =
-    useState<boolean>(false);
   const [initializing, setInitializing] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
@@ -80,136 +80,246 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   }>({ hasBrowserSupport: true, usesWhisper: false });
   const [serverRunning, setServerRunning] = useState<boolean | null>(null);
   const [serverTranscript, setServerTranscript] = useState<string>("");
-  const [audioProcessing, setAudioProcessing] = useState<boolean>(false);
-  const [recordingStatus, setRecordingStatus] = useState<string>("");
+  const [isProcessingServerChunks, setIsProcessingServerChunks] =
+    useState(false);
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [_transcript_ref, _setTranscript_ref] = useState<string>("");
+  const [_isCoolingDown_ref, _setIsCoolingDown_ref] = useState<boolean>(false);
+  const [_isProcessingFinnish_ref, _setIsProcessingFinnish_ref] =
+    useState<boolean>(false);
+  const [_finnishAudioChunks_ref, _setFinnishAudioChunks_ref] = useState<
+    Blob[]
+  >([]);
+  const [silenceDetectionEnabled] = useState<boolean>(false); // Default to false since we're not implementing it
+  const [recognitionEnded, setRecognitionEnded] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null); // Properly typed
   const fullTranscriptRef = useRef<string>(""); // Store complete transcript that won't be affected by re-renders
+  const lastRecognitionRestartRef = useRef<number>(0); // Track last restart time to prevent too many restarts
 
-  const [chunksToProcess, setChunksToProcess] = useState<Blob[]>([]);
-  const [isProcessingServerChunks, setIsProcessingServerChunks] =
-    useState(false);
   const processingTimerRef = useRef<ReturnType<typeof setInterval> | null>(
     null
   );
 
   // Add WebSocket support for real-time Finnish transcription
-  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
-  const [wsConnected, setWsConnected] = useState<boolean>(false);
+  const [_wsConnection_ref, _setWsConnection_ref] = useState<WebSocket | null>(
+    null
+  );
+
+  // Reference to store the WebSocket connection
+  const wsConnectionRef = useRef<WebSocket | null>(null);
+
+  // Function to set the WebSocket connection safely
+  const setWsConnection = (ws: WebSocket | null) => {
+    wsConnectionRef.current = ws;
+    _setWsConnection_ref(ws);
+  };
 
   // Add a dedicated timer reference for periodic transcription
   const transcriptionTimerRef = useRef<ReturnType<typeof setInterval> | null>(
     null
   );
-  const accumulatedChunksRef = useRef<Blob[]>([]);
 
   // Add variables for speech detection
-  const [hasSpeech, setHasSpeech] = useState<boolean>(false);
-  const lastSpeechTimestampRef = useRef<number>(0);
-  const silenceThresholdRef = useRef<number>(1500); // 1.5 seconds of silence threshold
-  const audioAnalyserRef = useRef<AnalyserNode | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const speechDetectionTimerRef = useRef<ReturnType<typeof setInterval> | null>(
-    null
-  );
+  const [hasSpeech_ref, setHasSpeech_ref] = useState<boolean>(false);
+  const lastSpeechTimestampRef_ref = useRef<number>(0);
+  const silenceThresholdRef_ref = useRef<number>(1500); // 1.5 seconds of silence threshold
+  const audioAnalyserRef_ref = useRef<AnalyserNode | null>(null);
+  const audioContextRef_ref = useRef<AudioContext | null>(null);
 
   // Add variables to track transcription progress
-  const [lastProcessedTranscript, setLastProcessedTranscript] =
-    useState<string>("");
-  const lastTranscriptLengthRef = useRef<number>(0);
+  const [processingTranscript, setProcessingTranscript] =
+    useState<boolean>(false);
 
   // Add variables for speech processing optimization
-  const minChunkSizeRef = useRef<number>(3000); // Minimum significant audio size in bytes
-  const minProcessingIntervalRef = useRef<number>(800); // Minimum time between API calls in ms
-  const lastProcessingTimeRef = useRef<number>(0);
+  const minProcessingIntervalRef_ref = useRef<number>(800); // Minimum time between API calls in ms
+  const lastProcessingTimeRef_ref = useRef<number>(0);
 
   // Add tracking for consecutive speech frames to avoid sporadic noise
-  let consecutiveSpeechFramesRef = useRef<number>(0);
-  const REQUIRED_CONSECUTIVE_FRAMES = 5; // Require 5 consecutive frames of speech (250ms at 50ms intervals)
-  const MIN_SPEECH_DURATION_MS = 500; // Minimum 500ms of speech before processing
-  let speechStartTimeRef = useRef<number>(0);
+  const consecutiveSpeechFramesRef_ref = useRef<number>(0);
+  const REQUIRED_CONSECUTIVE_FRAMES_ref = 5; // Require 5 consecutive frames of speech (250ms at 50ms intervals)
+  const MIN_SPEECH_DURATION_MS_ref = 500; // Minimum 500ms of speech before processing
+  const speechStartTimeRef_ref = useRef<number>(0);
 
   // Add reference for API call lock and content comparison
-  const isProcessingApiRef = useRef<boolean>(false);
-  const lastProcessedContentRef = useRef<string>("");
-  const lastAudioSizeRef = useRef<number>(0);
-  const emptyCallCountRef = useRef<number>(0);
+  const lastProcessedContentRef_ref = useRef<string>("");
+  const lastAudioSizeRef_ref = useRef<number>(0);
+  const emptyCallCountRef_ref = useRef<number>(0);
 
-  // Add references for error handling and stopping collection after server errors
-  const errorCountRef = useRef<number>(0);
-  const MAX_CONSECUTIVE_ERRORS = 3;
-  const MAX_API_CALLS = 5;
-  const apiCallCountRef = useRef<number>(0);
-  const lastErrorTimeRef = useRef<number>(0);
-  const serverDownRef = useRef<boolean>(false);
+  // Add a retry counter for WebSocket connection attempts
+  const _wsRetryCountRef_ref = useRef<number>(0);
+  const _MAX_WS_RETRY_ATTEMPTS_ref = 3;
 
-  // Add a function to check if the server is likely down
-  const isServerLikelyDown = (): boolean => {
-    // If we've had errors recently
-    const recentError = Date.now() - lastErrorTimeRef.current < 10000; // Within 10 seconds
-    return (
-      serverDownRef.current ||
-      (errorCountRef.current >= MAX_CONSECUTIVE_ERRORS && recentError)
-    );
-  };
+  // Re-add the necessary references that were removed
+  const processingTranscriptRef = useRef<boolean>(false);
+  const setProcessingTranscriptRef_ref = useCallback((value: boolean) => {
+    processingTranscriptRef.current = value;
+    setProcessingTranscript(value); // Also update the state for UI
+  }, []);
 
-  // Clear waiting state after a timeout (in case the parent doesn't properly re-enable)
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  // Helper function to write a string to a DataView
+  const writeString = useCallback(
+    (view: DataView, offset: number, string: string): void => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    },
+    []
+  );
 
-    if (waitingForResponse) {
-      timeoutId = setTimeout(() => {
-        setWaitingForResponse(false);
-      }, 30000); // 30 seconds max wait time
-    }
+  // Define the audioBufferToWav function with useCallback to prevent it changing on every render
+  const audioBufferToWav = useCallback(
+    (buffer: AudioBuffer): Blob => {
+      const numChannels = buffer.numberOfChannels;
+      const sampleRate = buffer.sampleRate;
+      const length = buffer.length;
+      const bitDepth = 16; // 16-bit audio
 
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [waitingForResponse]);
+      // Calculate data sizes
+      const dataSize = length * numChannels * (bitDepth / 8);
+      const headerSize = 44; // Standard WAV header size
+      const totalSize = headerSize + dataSize;
 
-  // Pre-initialize audio stream to speed up first recording
-  useEffect(() => {
-    let stream: MediaStream | null = null;
+      // Create a buffer to hold the WAV file
+      const arrayBuffer = new ArrayBuffer(totalSize);
+      const view = new DataView(arrayBuffer);
 
-    const initializeAudio = async () => {
-      if (!isInitialized && !initializing) {
-        try {
-          setInitializing(true);
-          console.log("🎤 Pre-initializing audio stream...");
+      // Write the WAV header
+      // "RIFF" chunk descriptor
+      writeString(view, 0, "RIFF");
+      view.setUint32(4, totalSize - 8, true);
+      writeString(view, 8, "WAVE");
 
-          // Request audio permission early to warm up the API
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // "fmt " sub-chunk
+      writeString(view, 12, "fmt ");
+      view.setUint32(16, 16, true); // fmt chunk size
+      view.setUint16(20, 1, true); // PCM format
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * numChannels * (bitDepth / 8), true); // Byte rate
+      view.setUint16(32, numChannels * (bitDepth / 8), true); // Block align
+      view.setUint16(34, bitDepth, true);
 
-          // Clean up the stream immediately after getting permission
-          setTimeout(() => {
-            if (stream) {
-              stream.getTracks().forEach((track) => track.stop());
-              stream = null;
-            }
-            setIsInitialized(true);
-            setInitializing(false);
-            console.log("🎤 Audio system pre-initialized successfully");
-          }, 500);
-        } catch (error) {
-          console.error("Error pre-initializing audio:", error);
-          setInitializing(false);
+      // "data" sub-chunk
+      writeString(view, 36, "data");
+      view.setUint32(40, dataSize, true);
+
+      // Write the audio data
+      const volume = 1;
+      let offset = 44;
+
+      for (let i = 0; i < length; i++) {
+        for (let channel = 0; channel < numChannels; channel++) {
+          // Get the sample from the channel
+          let sample = buffer.getChannelData(channel)[i];
+
+          // Clamp the value to the range of -1 to 1
+          sample = Math.max(-1, Math.min(1, sample));
+
+          // Apply volume
+          sample = sample * volume;
+
+          // Convert to 16-bit sample
+          const sample16 = Math.round(
+            sample < 0 ? sample * 32768 : sample * 32767
+          );
+
+          // Write the sample
+          view.setInt16(offset, sample16, true);
+          offset += 2;
         }
       }
-    };
 
-    initializeAudio();
+      return new Blob([view], { type: "audio/wav" });
+    },
+    [writeString]
+  );
 
-    return () => {
-      // Clean up stream if component unmounts during initialization
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+  // Function to convert audio blob to WAV format
+  const convertToWav = useCallback(
+    async (audioBlob: Blob): Promise<Blob> => {
+      // If the blob is already a WAV, just return it
+      if (audioBlob.type === "audio/wav") {
+        return audioBlob;
       }
-    };
-  }, [isInitialized, initializing]);
+
+      console.log(
+        `Converting audio from ${audioBlob.type} to WAV format, size: ${audioBlob.size} bytes`
+      );
+
+      // Skip conversion for very small chunks as they might not contain enough data
+      if (audioBlob.size < 1000) {
+        console.log("Audio chunk too small, skipping conversion");
+        return audioBlob;
+      }
+
+      // Create audio context
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContext();
+
+      return new Promise<Blob>((resolve) => {
+        // Create a file reader to read the blob
+        const fileReader = new FileReader();
+
+        fileReader.onload = async (event) => {
+          if (!event.target) {
+            console.error("File reader event target is null");
+            resolve(audioBlob); // Fallback to original blob
+            return;
+          }
+
+          const arrayBuffer = event.target.result as ArrayBuffer;
+
+          try {
+            // Decode the audio data
+            const audioBuffer = await audioContext
+              .decodeAudioData(arrayBuffer)
+              .catch((err) => {
+                console.error("Error in decodeAudioData:", err);
+                throw err;
+              });
+
+            // Convert to WAV
+            const wavBlob = audioBufferToWav(audioBuffer);
+            console.log(`WAV conversion successful: ${wavBlob.size} bytes`);
+            resolve(wavBlob);
+          } catch (error) {
+            console.error("Error decoding audio data:", error);
+
+            // If the audio can't be decoded, try to use the original blob
+            // This is better than failing completely
+            console.log("Using original audio blob as fallback");
+
+            // Try to create a new blob with explicit audio MIME type
+            try {
+              const fallbackBlob = new Blob([arrayBuffer], {
+                type: "audio/webm"
+              });
+              resolve(fallbackBlob);
+            } catch (fallbackError) {
+              console.error("Error creating fallback blob:", fallbackError);
+              // Last resort, return the original blob
+              resolve(audioBlob);
+            }
+          }
+        };
+
+        fileReader.onerror = () => {
+          console.error("Error reading audio blob");
+          // Fallback to original blob
+          resolve(audioBlob);
+        };
+
+        // Read the blob as an array buffer
+        fileReader.readAsArrayBuffer(audioBlob);
+      });
+    },
+    [audioBufferToWav]
+  );
 
   // Check language support
   useEffect(() => {
@@ -225,7 +335,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
       if (langConfig) {
         // Finnish primarily uses Whisper and doesn't have good browser support
-        if (language === "fi-FI") {
+        if (language.toLowerCase().includes("fi")) {
           hasBrowserSupport = false;
           usesWhisper = true;
           console.log("🎤 Finnish language detected, using Whisper for STT");
@@ -307,103 +417,138 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   }, [language, languageSupport.usesWhisper, browserTranscript]);
 
-  // Initialize Web Speech API if available and supported for this language
+  // Add an effect to initialize speech recognition when needed
   useEffect(() => {
-    // Skip if this is Finnish language - we'll use Whisper directly
-    if (language === "fi-FI") {
-      setUseFallback(true);
-      return;
-    }
+    // Initialize speech recognition
+    if (!isInitialized && !initializing) {
+      setInitializing(true);
 
-    // Check if the SpeechRecognition API is available
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+      // Check if speech recognition is available
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    // Only initialize if we have browser support for this language
-    if (
-      !recognitionRef.current &&
-      SpeechRecognition &&
-      languageSupport.hasBrowserSupport
-    ) {
-      try {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = language;
+      if (SpeechRecognition) {
+        try {
+          console.log("Initializing speech recognition");
 
-        console.log("🎤 Speech recognition initialized");
-      } catch (e) {
-        console.warn("Browser speech recognition not available:", e);
+          // Create the recognition object
+          recognitionRef.current = new SpeechRecognition();
+
+          // Configure for continuous speech recognition
+          recognitionRef.current.continuous = true;
+          recognitionRef.current.interimResults = true;
+
+          // Try to set maxAlternatives if supported (this is not standard in all browsers)
+          try {
+            // Create a properly typed interface extension for our specific use
+            interface ExtendedSpeechRecognition extends SpeechRecognition {
+              maxAlternatives?: number;
+            }
+
+            // Cast to our extended interface and set the property
+            (
+              recognitionRef.current as ExtendedSpeechRecognition
+            ).maxAlternatives = 3;
+          } catch {
+            console.log("maxAlternatives not supported in this browser");
+          }
+
+          recognitionRef.current.lang = language;
+
+          console.log("Speech recognition created with language:", language);
+
+          // Set up handlers
+          recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+            console.log(
+              "Speech recognition result received:",
+              event.results.length,
+              "results"
+            );
+
+            const transcript = Array.from(event.results)
+              .map((result) => result[0].transcript)
+              .join(" ");
+
+            console.log("Recognition result:", transcript);
+
+            fullTranscriptRef.current = transcript;
+            setBrowserTranscript(transcript);
+
+            if (onSpeechRecognized) {
+              onSpeechRecognized(transcript);
+            }
+          };
+
+          recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
+            console.error(
+              "Speech recognition error:",
+              event.error,
+              event.message
+            );
+
+            // Don't set this as an error for the user, just log it
+            if (event.error !== "no-speech") {
+              setError(`Speech recognition error: ${event.error}`);
+            }
+          };
+
+          recognitionRef.current.onend = () => {
+            console.log("Browser Speech Recognition Ended");
+            setRecognitionEnded(true);
+          };
+
+          // Add optional event handlers if supported by the browser
+          try {
+            // Add event listeners for non-standard events using addEventListener
+            if ("addEventListener" in recognitionRef.current) {
+              (recognitionRef.current as EventTarget).addEventListener(
+                "start",
+                () => {
+                  console.log("Speech recognition started");
+                  setRecognitionEnded(false);
+                }
+              );
+
+              (recognitionRef.current as EventTarget).addEventListener(
+                "soundstart",
+                () => {
+                  console.log("Speech recognition detected sound");
+                }
+              );
+
+              (recognitionRef.current as EventTarget).addEventListener(
+                "speechstart",
+                () => {
+                  console.log("Speech recognition detected speech");
+                }
+              );
+            }
+          } catch {
+            console.log(
+              "Some speech recognition events not supported in this browser"
+            );
+          }
+
+          setIsInitialized(true);
+          console.log("Speech recognition initialized successfully");
+        } catch (error) {
+          console.error("Error initializing speech recognition:", error);
+          setUseFallback(true);
+        }
+      } else {
+        // Browser doesn't support speech recognition
         setUseFallback(true);
+        console.log("Speech recognition not available in this browser");
       }
-    } else if (!SpeechRecognition || !languageSupport.hasBrowserSupport) {
-      console.warn(`Web Speech API not supported for ${language}`);
-      setUseFallback(true);
+
+      setInitializing(false);
     }
-
-    // Initialize event handlers (do this on every dependency change)
-    if (recognitionRef.current) {
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-        // Only process results when actively recording and not waiting
-        if (!isRecording || waitingForResponse || disabled) {
-          console.log(
-            "🎤 Ignoring speech recognition results - not in recording state"
-          );
-          return;
-        }
-
-        let interimTranscript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            // Add final transcript to our full transcript
-            fullTranscriptRef.current += " " + transcript;
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        // Use the full transcript + current interim
-        const currentTranscript =
-          fullTranscriptRef.current +
-          (interimTranscript ? " " + interimTranscript : "");
-
-        // Only update UI if we have content
-        if (currentTranscript.trim()) {
-          setBrowserTranscript(currentTranscript.trim());
-
-          // Send real-time transcript updates to parent
-          if (onSpeechRecognized && currentTranscript) {
-            onSpeechRecognized(currentTranscript.trim());
-          }
-        }
-      };
-
-      recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
-        console.error(`🎤 [Browser Speech Recognition] Error: ${event.error}`);
-        // If there's an error, set to use fallback
-        setUseFallback(true);
-      };
-
-      // Handle recognition ending
-      recognitionRef.current.onend = () => {
-        console.log("🎤 [Browser Speech Recognition] Ended");
-      };
-    }
-  }, [
-    language,
-    isRecording,
-    waitingForResponse,
-    disabled,
-    onSpeechRecognized,
-    languageSupport.hasBrowserSupport
-  ]); // Include all dependencies
+  }, [isInitialized, initializing, language, onSpeechRecognized]);
 
   // Update speech recognition based on recording state
   useEffect(() => {
     // Skip Web Speech API completely for Finnish
-    if (language === "fi-FI") {
+    if (language.toLowerCase().includes("fi")) {
       return;
     }
 
@@ -432,7 +577,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               console.log("🎤 Starting speech recognition");
               recognitionRef.current.start();
             }
-          }, 300); // Small delay to ensure recognition completes
+          }, 300);
         } catch (e) {
           console.warn("Could not stop/start speech recognition:", e);
           // Try to recover by recreating the recognition object
@@ -491,24 +636,191 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   }, [language]);
 
-  // Add this effect to periodically send chunks for Finnish transcription
+  // Add a counter to keep track of consecutive no-speech errors
+  const noSpeechErrorCountRef = useRef<number>(0);
+
+  // Add effect to restart speech recognition if it ends while still recording
   useEffect(() => {
-    // Only for Finnish and only when recording
-    if (language !== "fi-FI" || !isRecording) {
+    // Skip restart for Finnish which uses server-side recognition
+    if (
+      language === "fi-FI" ||
+      useFallback ||
+      !recognitionEnded ||
+      !isRecording
+    ) {
       return;
     }
+
+    // Prevent too many restarts in a short period (throttle to once per second)
+    const now = Date.now();
+    if (now - lastRecognitionRestartRef.current < 1000) {
+      return;
+    }
+    lastRecognitionRestartRef.current = now;
+
+    console.log(
+      "🎤 Speech recognition ended while recording, automatically restarting"
+    );
+
+    // Function to restart speech recognition
+    const startSpeechRecognition = () => {
+      // Completely recreate the recognition instance to avoid getting stuck
+      try {
+        // Get speech recognition constructor
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        // Store the current transcript before restarting
+        const existingTranscript = fullTranscriptRef.current;
+        const existingBrowserTranscript = browserTranscript;
+
+        // Stop the existing recognition if it exists
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch {
+            // Ignore errors when stopping
+          }
+        }
+
+        // Create a new instance
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = language;
+
+        // Set up event handlers
+        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+          // Get only the new content from current recognition session
+          const currentSessionTranscript = Array.from(event.results)
+            .map((result) => result[0].transcript)
+            .join(" ");
+
+          // Combine with previous transcript, ensuring we don't duplicate content
+          // Only append if we have new content to avoid duplicating the last word
+          if (currentSessionTranscript.trim()) {
+            // If the transcript has changed significantly, append it
+            const combinedTranscript = existingTranscript
+              ? `${existingTranscript} ${currentSessionTranscript}`
+              : currentSessionTranscript;
+
+            fullTranscriptRef.current = combinedTranscript;
+            setBrowserTranscript(combinedTranscript);
+          } else {
+            // If no new content, just keep the existing transcript
+            fullTranscriptRef.current = existingTranscript;
+            setBrowserTranscript(existingBrowserTranscript);
+          }
+
+          // Reset no-speech error counter when we get a result
+          noSpeechErrorCountRef.current = 0;
+
+          if (onSpeechRecognized) {
+            onSpeechRecognized(fullTranscriptRef.current);
+          }
+        };
+
+        recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
+          console.error(
+            "Speech recognition error:",
+            event.error,
+            event.message
+          );
+
+          // Track consecutive no-speech errors
+          if (event.error === "no-speech") {
+            noSpeechErrorCountRef.current++;
+
+            // If we've had too many consecutive no-speech errors, try to reset the system
+            if (noSpeechErrorCountRef.current > 3) {
+              console.log(
+                "🎤 Multiple no-speech errors, trying to reset audio system"
+              );
+              // This will trigger a clean restart through the recognitionEnded state
+              if (recognitionRef.current) {
+                recognitionRef.current.stop();
+              }
+            }
+          } else {
+            // Don't set this as an error for the user, just log it
+            setError(`Speech recognition error: ${event.error}`);
+          }
+        };
+
+        recognitionRef.current.onend = () => {
+          console.log("Browser Speech Recognition Ended");
+          setRecognitionEnded(true);
+        };
+
+        // Start the new recognition instance
+        recognitionRef.current.start();
+        setRecognitionEnded(false);
+        console.log(
+          "🎤 Successfully restarted speech recognition with new instance"
+        );
+      } catch (error) {
+        console.error("Failed to restart speech recognition:", error);
+
+        // If we can't restart recognition, may need to fall back to server-side processing
+        if (languageSupport.usesWhisper) {
+          console.log("🎤 Falling back to Whisper for continued processing");
+          setUseFallback(true);
+        }
+      }
+    };
+
+    // Add a small delay before restarting
+    const restartTimer = setTimeout(() => {
+      startSpeechRecognition();
+    }, 300);
+
+    // Clean up timer on unmount or when dependencies change
+    return () => {
+      clearTimeout(restartTimer);
+    };
+  }, [
+    recognitionEnded,
+    isRecording,
+    language,
+    useFallback,
+    languageSupport.usesWhisper,
+    onSpeechRecognized,
+    browserTranscript
+  ]);
+
+  // Fix the dependencies in the useEffect for processFinnishChunks timer
+  useEffect(() => {
+    // Only for Finnish and only when recording
+    if (!language.toLowerCase().includes("fi") || !isRecording) {
+      return;
+    }
+
+    // If WebSocket is connected and active, don't use the HTTP API
+    if (
+      wsConnectionRef.current &&
+      wsConnectionRef.current.readyState === WebSocket.OPEN
+    ) {
+      console.log("WebSocket active for Finnish, skipping HTTP API processing");
+      return;
+    }
+
+    console.log("Setting up HTTP API fallback for Finnish transcription");
 
     // Clear any existing timer
     if (processingTimerRef.current) {
       clearInterval(processingTimerRef.current);
     }
 
-    // Set up timer to process chunks every 2 seconds
+    // Set up timer to process chunks more frequently (every 1 second)
     processingTimerRef.current = setInterval(() => {
-      if (audioChunksRef.current.length > 0 && !isProcessingServerChunks) {
-        processFinnishChunks();
+      if (
+        audioChunksRef.current.length > 0 &&
+        !isProcessingServerChunks &&
+        processFinnishChunksRef.current
+      ) {
+        processFinnishChunksRef.current();
       }
-    }, 2000);
+    }, 1000); // Reduced from 2000ms to 1000ms for more responsive experience
 
     // Clean up timer
     return () => {
@@ -517,885 +829,204 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         processingTimerRef.current = null;
       }
     };
-  }, [language, isRecording]);
+  }, [language, isRecording, isProcessingServerChunks, wsConnectionRef]);
 
-  // Add function to process Finnish audio chunks
-  const processFinnishChunks = async () => {
-    if (isProcessingServerChunks || audioChunksRef.current.length === 0) {
+  // Fix the dependencies in the useEffect for server health tracking
+  useEffect(() => {
+    // Only for Finnish recording
+    if (!language.toLowerCase().includes("fi") || !isRecording) {
       return;
     }
 
+    // Track successful and failed requests to determine server health
+    const serverHealthTracker = {
+      lastSuccessTime: Date.now(),
+      failureCount: 0,
+      currentInterval: 1000, // Start with 1 second interval
+      maxInterval: 5000, // Maximum 5 second interval when server is stressed
+
+      // Function to adjust the request frequency based on server health
+      checkServerHealth: () => {
+        // If we've had consecutive failures, implement exponential backoff
+        if (serverHealthTracker.failureCount > 0) {
+          // Calculate new interval with exponential backoff (up to maxInterval)
+          const newInterval = Math.min(
+            serverHealthTracker.maxInterval,
+            1000 * Math.pow(1.5, Math.min(serverHealthTracker.failureCount, 5))
+          );
+
+          if (newInterval !== serverHealthTracker.currentInterval) {
+            serverHealthTracker.currentInterval = newInterval;
+
+            // Update the processing timer with the new interval
+            if (processingTimerRef.current) {
+              clearInterval(processingTimerRef.current);
+              processingTimerRef.current = setInterval(() => {
+                if (
+                  audioChunksRef.current.length > 0 &&
+                  !isProcessingServerChunks &&
+                  processFinnishChunksRef.current
+                ) {
+                  processFinnishChunksRef.current();
+                }
+              }, serverHealthTracker.currentInterval);
+
+              console.log(
+                `🎤 Server health issues detected, adjusting request frequency to ${serverHealthTracker.currentInterval}ms`
+              );
+            }
+          }
+        } else if (
+          serverHealthTracker.failureCount === 0 &&
+          serverHealthTracker.currentInterval > 1000
+        ) {
+          // If server is healthy again, gradually reduce the interval
+          const newInterval = Math.max(
+            1000,
+            serverHealthTracker.currentInterval / 1.5
+          );
+
+          if (newInterval !== serverHealthTracker.currentInterval) {
+            serverHealthTracker.currentInterval = newInterval;
+
+            // Update the processing timer with the new interval
+            if (processingTimerRef.current) {
+              clearInterval(processingTimerRef.current);
+              processingTimerRef.current = setInterval(() => {
+                if (
+                  audioChunksRef.current.length > 0 &&
+                  !isProcessingServerChunks &&
+                  processFinnishChunksRef.current
+                ) {
+                  processFinnishChunksRef.current();
+                }
+              }, serverHealthTracker.currentInterval);
+
+              console.log(
+                `🎤 Server appears to be recovering, adjusting request frequency to ${serverHealthTracker.currentInterval}ms`
+              );
+            }
+          }
+        }
+      }
+    };
+
+    // Subscribe to serverTranscript changes to track success/failure
+    const watchServerTranscript = () => {
+      if (
+        serverTranscript &&
+        serverTranscript.trim() &&
+        !serverTranscript.includes("Whisper-palvelin ei ole käytettävissä")
+      ) {
+        // Server responded successfully
+        serverHealthTracker.lastSuccessTime = Date.now();
+        serverHealthTracker.failureCount = 0;
+        serverHealthTracker.checkServerHealth(); // Might reduce interval if was previously increased
+      } else if (
+        serverTranscript &&
+        serverTranscript.includes("Whisper-palvelin ei ole käytettävissä")
+      ) {
+        // Server failed to respond
+        serverHealthTracker.failureCount++;
+        serverHealthTracker.checkServerHealth();
+      }
+    };
+
+    // Watch for transcript changes
+    watchServerTranscript();
+
+    // Return cleanup function
+    return () => {
+      // Clean up any timers if needed
+    };
+  }, [language, isRecording, serverTranscript, isProcessingServerChunks]);
+
+  // Add necessary refs for Finnish transcription if needed
+  // Make sure this is defined before the function that uses it
+  const processFinnishChunksRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Define the processFinnishChunks function using useCallback
+  const processFinnishChunks = useCallback(async () => {
+    if (!isRecording || processingTranscriptRef.current) return;
+
+    // Get chunks to process
+    const chunks = audioChunksRef.current;
+    if (chunks.length === 0) {
+      console.log("No audio chunks to process");
+      return;
+    }
+
+    // Try to process the chunks
     try {
       setIsProcessingServerChunks(true);
+      setProcessingTranscriptRef_ref(true);
 
-      // Create a blob from all chunks collected so far
-      const audioBlob = new Blob(audioChunksRef.current, {
-        type: mediaRecorderRef.current?.mimeType || "audio/webm"
-      });
+      // Get the MIME type from the MediaRecorder
+      const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
 
-      console.log(
-        `🎤 [Real-time Finnish] Processing ${audioChunksRef.current.length} chunks, ${audioBlob.size} bytes`
-      );
+      // Combine the blobs - use only recent chunks to keep processing time reasonable
+      const chunksToProcess = chunks.slice(-2); // Use last 2 chunks
+      const combinedBlob = new Blob(chunksToProcess, { type: mimeType });
 
-      // Only process if we have enough audio data
-      if (audioBlob.size < 5000) {
-        console.log("🎤 [Real-time Finnish] Not enough audio data yet");
-        setIsProcessingServerChunks(false);
-        return;
+      console.log(`Processing audio with language: ${language}`);
+
+      // Skip the WAV conversion for WebSocket streaming which uses direct WebM
+      let blobToProcess = combinedBlob;
+
+      // Only convert to WAV for HTTP API requests, not for WebSocket
+      if (
+        !wsConnectionRef.current ||
+        wsConnectionRef.current.readyState !== WebSocket.OPEN
+      ) {
+        try {
+          // Convert to WAV if needed
+          blobToProcess = await convertToWav(combinedBlob);
+        } catch (conversionError) {
+          console.error(
+            "Error converting to WAV, using original blob",
+            conversionError
+          );
+          // Continue with original blob if conversion fails
+          blobToProcess = combinedBlob;
+        }
       }
 
-      // Use the server-side speech-to-text service
-      const transcript = await convertSpeechToText(audioBlob, language);
-      console.log(`🎤 [Real-time Finnish] Got transcript: "${transcript}"`);
+      // Process the combined blob with the correct language
+      const result = await convertSpeechToText(blobToProcess, language);
 
-      // Update UI with the transcript if it's meaningful
-      if (
-        transcript &&
-        transcript.trim() &&
-        !transcript.includes("Ei tunnistettu") &&
-        !transcript.includes("Virhe") &&
-        !transcript.includes("palvelin")
-      ) {
-        setBrowserTranscript(transcript);
-        setServerTranscript(transcript);
+      if (result && result.transcript) {
+        // Update the server transcript
+        setServerTranscript((prev) => {
+          // Only update if there's significant new content
+          if (result.transcript && result.transcript.length > prev.length) {
+            return result.transcript;
+          }
+          return prev;
+        });
       }
     } catch (error) {
-      console.error("🎤 [Real-time Finnish] Error processing chunks:", error);
+      console.error("Error processing Finnish chunks:", error);
+      // Don't display error to user for every transcription attempt
     } finally {
       setIsProcessingServerChunks(false);
+      setProcessingTranscriptRef_ref(false);
     }
-  };
+  }, [
+    isRecording,
+    convertToWav,
+    setProcessingTranscriptRef_ref,
+    setIsProcessingServerChunks,
+    setServerTranscript,
+    language
+  ]);
 
-  // Add this effect to establish WebSocket connection for Finnish real-time transcription
+  // Assign the processFinnishChunks function to the ref after it's defined
   useEffect(() => {
-    // Only establish WebSocket for Finnish language and clear any existing connection otherwise
-    if (language !== "fi-FI") {
-      if (wsConnection) {
-        console.log("🎤 [WebSocket] Closing connection (language changed)");
-        wsConnection.close();
-        setWsConnection(null);
-        setWsConnected(false);
-      }
-      return;
-    }
-
-    // Don't establish connection if we already have one
-    if (wsConnection && wsConnected) {
-      return;
-    }
-
-    // Connect to the WebSocket server
-    try {
-      console.log(
-        "🎤 [WebSocket] Attempting to connect to Whisper real-time service"
-      );
-
-      // Try both localhost and 127.0.0.1
-      const wsUrl = "ws://localhost:8008/ws/finnish";
-      const newWsConnection = new WebSocket(wsUrl);
-
-      newWsConnection.onopen = () => {
-        console.log("🎤 [WebSocket] Connection established");
-        setWsConnected(true);
-      };
-
-      newWsConnection.onmessage = (event) => {
-        try {
-          const transcription = JSON.parse(event.data);
-          console.log(
-            "🎤 [WebSocket] Real-time transcript:",
-            transcription.text
-          );
-
-          // Update UI with real-time transcription
-          if (transcription.text && !transcription.text.includes("Error")) {
-            setBrowserTranscript(transcription.text);
-            setServerTranscript(transcription.text);
-          }
-        } catch (error) {
-          console.error("🎤 [WebSocket] Error parsing message:", error);
-        }
-      };
-
-      newWsConnection.onerror = (error) => {
-        console.error("🎤 [WebSocket] Connection error:", error);
-        setWsConnected(false);
-
-        // Try fallback to our existing approach
-        console.log("🎤 [WebSocket] Falling back to chunk-based API");
-      };
-
-      newWsConnection.onclose = () => {
-        console.log("🎤 [WebSocket] Connection closed");
-        setWsConnected(false);
-      };
-
-      setWsConnection(newWsConnection);
-    } catch (error) {
-      console.error("🎤 [WebSocket] Setup error:", error);
-      setWsConnected(false);
-    }
-
-    // Cleanup function to close WebSocket connection
-    return () => {
-      if (wsConnection) {
-        console.log("🎤 [WebSocket] Cleaning up connection");
-        wsConnection.close();
-        setWsConnection(null);
-        setWsConnected(false);
-      }
-    };
-  }, [language]);
-
-  // Update the detectSpeech function to be much more strict
-  const detectSpeech = (audioData: Uint8Array): boolean => {
-    // Simple energy-based voice activity detection
-    const sum = audioData.reduce((acc, val) => acc + val, 0);
-    const average = sum / audioData.length;
-
-    // Higher threshold for speech detection to avoid false positives
-    const threshold = 35; // Increased from 28 to be much more strict
-
-    // Require a significant number of samples above threshold for better detection
-    const samplesAboveThreshold = audioData.filter(
-      (val) => val > threshold * 1.5
-    ).length;
-    const percentAboveThreshold =
-      (samplesAboveThreshold / audioData.length) * 100;
-
-    // Track consecutive frames with speech for validation
-    const hasSufficientEnergy = average > threshold;
-    const hasSufficientSamples = percentAboveThreshold > 12; // Increased from 7%
-
-    // Enhanced detection that requires both conditions to be true
-    // AND with higher thresholds to avoid false positives
-    return hasSufficientEnergy && hasSufficientSamples;
-  };
-
-  // Modify the startRecording function for better real-time transcription sending to n8n
-  const startRecording = async () => {
-    try {
-      // Reset transcripts for a new recording
-      fullTranscriptRef.current = "";
-      setBrowserTranscript("");
-      setServerTranscript("");
-      setWaitingForResponse(false);
-      setHasSpeech(false);
-      lastSpeechTimestampRef.current = Date.now();
-      lastProcessingTimeRef.current = 0;
-
-      // Reset all error tracking and API call counters
-      errorCountRef.current = 0;
-      apiCallCountRef.current = 0;
-      serverDownRef.current = false;
-      lastErrorTimeRef.current = 0;
-      isProcessingApiRef.current = false;
-      lastProcessedContentRef.current = "";
-      lastAudioSizeRef.current = 0;
-      emptyCallCountRef.current = 0;
-
-      // Reset accumulated chunks
-      accumulatedChunksRef.current = [];
-
-      // Clear any existing timers
-      if (processingTimerRef.current) {
-        clearInterval(processingTimerRef.current);
-        processingTimerRef.current = null;
-      }
-
-      if (transcriptionTimerRef.current) {
-        clearInterval(transcriptionTimerRef.current);
-        transcriptionTimerRef.current = null;
-      }
-
-      if (speechDetectionTimerRef.current) {
-        clearInterval(speechDetectionTimerRef.current);
-        speechDetectionTimerRef.current = null;
-      }
-
-      // Clear previous recognized speech when starting a new recording
-      if (onSpeechRecognized) {
-        onSpeechRecognized("");
-      }
-
-      // Set recording state first to show UI feedback immediately
-      setIsRecording(true);
-
-      console.log("🎤 Requesting microphone access");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log("🎤 Microphone access granted");
-
-      // Set up audio analysis for voice activity detection
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext();
-      }
-      const audioContext = audioContextRef.current;
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 512; // Higher resolution for better detection
-      source.connect(analyser);
-      audioAnalyserRef.current = analyser;
-
-      // Small delay to ensure everything is initialized properly
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Determine the best audio MIME type for this browser
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : MediaRecorder.isTypeSupported("audio/mp4")
-        ? "audio/mp4"
-        : "audio/wav";
-
-      console.log(`🎤 Using MIME type: ${mimeType} for recording`);
-
-      // Create the MediaRecorder with the best available options
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType,
-        audioBitsPerSecond: 16000 // Optimized for speech
-      });
-
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      // Collect audio chunks
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-
-          // Only add to accumulated chunks if speech was detected
-          if (hasSpeech) {
-            accumulatedChunksRef.current.push(event.data);
-            console.log(
-              `🎤 Audio chunk with speech collected: ${event.data.size} bytes`
-            );
-          }
-        }
-      };
-
-      // For Finnish, set up real-time transcription with voice activity detection
-      if (language === "fi-FI") {
-        // Set up speech detection timer - check more frequently for better responsiveness
-        speechDetectionTimerRef.current = setInterval(() => {
-          if (!audioAnalyserRef.current || !isRecording) return;
-
-          // Get audio data
-          const dataArray = new Uint8Array(
-            audioAnalyserRef.current.frequencyBinCount
-          );
-          audioAnalyserRef.current.getByteFrequencyData(dataArray);
-
-          // Detect if speech is present
-          const speechDetected = detectSpeech(dataArray);
-
-          if (speechDetected) {
-            // Count consecutive frames with speech
-            consecutiveSpeechFramesRef.current++;
-
-            // Only consider it actual speech after several consecutive frames
-            if (
-              consecutiveSpeechFramesRef.current >= REQUIRED_CONSECUTIVE_FRAMES
-            ) {
-              // If this is the start of speech, note the timestamp
-              if (!hasSpeech) {
-                speechStartTimeRef.current = Date.now();
-                console.log(
-                  "🎤 Potential speech detected, monitoring duration..."
-                );
-              }
-
-              // Check if we've had speech for the minimum duration
-              const speechDuration = Date.now() - speechStartTimeRef.current;
-              if (!hasSpeech && speechDuration >= MIN_SPEECH_DURATION_MS) {
-                console.log(
-                  `🎤 Confirmed speech detected after ${speechDuration}ms, starting to collect audio`
-                );
-                setHasSpeech(true);
-              }
-
-              // Update last activity timestamp (only after confirmed speech)
-              if (hasSpeech) {
-                lastSpeechTimestampRef.current = Date.now();
-              }
-            }
-          } else {
-            // Reset consecutive counter when no speech detected
-            consecutiveSpeechFramesRef.current = 0;
-
-            // If we were in speech mode, check for silence duration
-            if (hasSpeech) {
-              // Check if silence has lasted long enough to consider speech ended
-              const silenceDuration =
-                Date.now() - lastSpeechTimestampRef.current;
-              if (silenceDuration > silenceThresholdRef.current) {
-                console.log(
-                  `🎤 Silence detected for ${silenceDuration}ms, processing speech`
-                );
-                setHasSpeech(false);
-
-                // Only process accumulated chunks if:
-                // 1. We have enough audio data (increased minimum)
-                // 2. Enough time has passed since last processing
-                // 3. We actually have some accumulated chunks to process
-                const currentTime = Date.now();
-                const hasMinimumAudioData =
-                  accumulatedChunksRef.current.length > 3; // Increased from 2
-                const totalAudioDuration =
-                  currentTime - speechStartTimeRef.current;
-                const enoughTimePassed =
-                  currentTime - lastProcessingTimeRef.current >
-                  minProcessingIntervalRef.current;
-
-                if (
-                  hasMinimumAudioData &&
-                  enoughTimePassed &&
-                  accumulatedChunksRef.current.length > 0 &&
-                  totalAudioDuration > 1000 // Require at least 1 second of audio
-                ) {
-                  console.log(
-                    "🎤 Processing accumulated speech after silence detected"
-                  );
-                  processAccumulatedChunks(mimeType);
-                  lastProcessingTimeRef.current = currentTime;
-                } else {
-                  console.log(
-                    "🎤 Not enough speech data to process after silence, skipping API call"
-                  );
-                  // Reset state
-                  accumulatedChunksRef.current = [];
-                }
-
-                // Reset speech tracking
-                consecutiveSpeechFramesRef.current = 0;
-                speechStartTimeRef.current = 0;
-              }
-            }
-          }
-        }, 50); // Check for speech every 50ms
-      }
-
-      // Handle recording stop event
-      mediaRecorder.onstop = async () => {
-        console.log(
-          `🎤 MediaRecorder stopped, creating audio blob from ${audioChunksRef.current.length} chunks`
-        );
-
-        // Clear real-time transcription timer
-        if (transcriptionTimerRef.current) {
-          clearInterval(transcriptionTimerRef.current);
-          transcriptionTimerRef.current = null;
-        }
-
-        // Clean up audio analysis
-        if (audioAnalyserRef.current) {
-          audioAnalyserRef.current = null;
-        }
-
-        if (audioChunksRef.current.length === 0) {
-          console.error("🎤 No audio data recorded!");
-          setIsRecording(false);
-          setWaitingForResponse(false);
-          return;
-        }
-
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: mimeType
-        });
-
-        console.log(`🎤 Audio blob created: ${audioBlob.size} bytes`);
-        const url = URL.createObjectURL(audioBlob);
-        setAudioURL(url);
-
-        // Get the final transcript, either from the ref or from the UI
-        let finalTranscript = fullTranscriptRef.current.trim();
-        const uiTranscript = serverTranscript || browserTranscript;
-
-        // If the ref is empty but we have a UI transcript, use that
-        if (!finalTranscript && uiTranscript && uiTranscript.trim()) {
-          finalTranscript = uiTranscript.trim();
-          console.log(
-            `🎤 Using UI transcript for final result: "${finalTranscript}"`
-          );
-        }
-
-        // If still no transcript, try one last transcription
-        if (!finalTranscript && language === "fi-FI" && audioBlob.size > 5000) {
-          console.log(
-            `🎤 No transcript yet, trying one final transcription...`
-          );
-          try {
-            const lastTranscript = await convertSpeechToText(
-              audioBlob,
-              language
-            );
-            if (lastTranscript && !lastTranscript.includes("Error")) {
-              finalTranscript = lastTranscript.trim();
-              console.log(`🎤 Got final transcription: "${finalTranscript}"`);
-
-              // Update UI with this transcript
-              setServerTranscript(finalTranscript);
-              setBrowserTranscript(finalTranscript);
-            }
-          } catch (e) {
-            console.error("Failed to get final transcription:", e);
-          }
-        }
-
-        // If we have a transcript and it hasn't been sent yet, use it
-        if (finalTranscript && onSpeechRecognized) {
-          console.log(
-            `🎤 Sending final transcript to n8n: "${finalTranscript}"`
-          );
-          onSpeechRecognized(finalTranscript);
-        }
-
-        // For browsers with Web Speech API support and supported languages
-        if (language === "fi-FI") {
-          // We already have the transcript from real-time, just send the recording
-          console.log(
-            `🎤 Sending recording to parent with transcript: "${finalTranscript}"`
-          );
-          onAudioRecorded(audioBlob, finalTranscript);
-        } else {
-          console.log(`🎤 Using browser transcript: "${finalTranscript}"`);
-          onAudioRecorded(audioBlob, finalTranscript);
-        }
-
-        // Clean up the stream tracks
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      console.log("🎤 Starting MediaRecorder");
-      // Use smaller slices for real-time processing
-      mediaRecorder.start(400); // 400ms chunks for better real-time quality
-      console.log(`🎤 MediaRecorder started with 400ms slice interval`);
-
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      setIsRecording(false);
-
-      // Show error in UI
-      setBrowserTranscript(
-        "Error accessing microphone. Please check permissions."
-      );
-    }
-  };
-
-  // Update processAccumulatedChunks to be smarter about server errors
-  const processAccumulatedChunks = async (
-    mimeType: string,
-    clearAllChunks = true
-  ) => {
-    // Check if we've reached the maximum number of API calls
-    if (apiCallCountRef.current >= MAX_API_CALLS) {
-      console.log(
-        `🎤 Maximum API calls (${MAX_API_CALLS}) reached, not making more calls until recording stops`
-      );
-      return;
-    }
-
-    // Check if server is likely down based on recent errors
-    if (isServerLikelyDown()) {
-      console.log("🎤 Server appears to be down, not making more API calls");
-      // Update the UI to inform the user
-      setBrowserTranscript(
-        "Whisper-palvelin ei ole käytettävissä. Tarkista palvelimen tila."
-      );
-      setServerTranscript(
-        "Whisper-palvelin ei ole käytettävissä. Tarkista palvelimen tila."
-      );
-      // Clear accumulated chunks to avoid growing memory usage
-      accumulatedChunksRef.current = [];
-      return;
-    }
-
-    // Don't process if we're already processing an API call
-    if (isProcessingApiRef.current) {
-      console.log("🎤 Already processing an API call, skipping");
-      return;
-    }
-
-    if (accumulatedChunksRef.current.length === 0) {
-      console.log("🎤 No audio chunks to process, skipping API call");
-      return;
-    }
-
-    try {
-      // Create a blob from accumulated chunks
-      const audioBlob = new Blob(accumulatedChunksRef.current, {
-        type: mimeType
-      });
-
-      // Check if audio is basically empty (too small)
-      if (audioBlob.size < 2000) {
-        // Less than 2KB is probably empty/noise
-        console.log(
-          `🎤 Audio too small to process (${audioBlob.size} bytes), skipping API call`
-        );
-        emptyCallCountRef.current++;
-
-        // If we've had multiple empty calls, clear chunks to reset
-        if (emptyCallCountRef.current >= 3) {
-          console.log(
-            "🎤 Multiple empty recordings detected, clearing audio buffer"
-          );
-          accumulatedChunksRef.current = [];
-          emptyCallCountRef.current = 0;
-        }
-        return;
-      }
-
-      // If this audio has the same size as the last processed one, likely no new content
-      if (
-        Math.abs(audioBlob.size - lastAudioSizeRef.current) < 1000 &&
-        lastAudioSizeRef.current > 0
-      ) {
-        console.log(
-          `🎤 No significant change in audio size (${audioBlob.size} vs ${lastAudioSizeRef.current}), skipping API call`
-        );
-        return;
-      }
-
-      // Set the lock - we're starting an API call
-      isProcessingApiRef.current = true;
-
-      // Increment API call counter
-      apiCallCountRef.current++;
-
-      console.log(
-        `🎤 Processing ${accumulatedChunksRef.current.length} speech chunks (${audioBlob.size} bytes) - Call ${apiCallCountRef.current} of ${MAX_API_CALLS}`
-      );
-
-      // Update the last processed audio size
-      lastAudioSizeRef.current = audioBlob.size;
-
-      // Send to server for transcription with timeout handling
-      try {
-        const transcript = await convertSpeechToText(audioBlob, language);
-
-        // Reset error counter since we got a successful response
-        errorCountRef.current = 0;
-        serverDownRef.current = false;
-
-        // Reset the empty call counter since we processed something
-        emptyCallCountRef.current = 0;
-
-        // Check if we got a server error message
-        if (
-          transcript &&
-          (transcript.includes("Whisper-palvelin ei ole käytettävissä") ||
-            transcript.includes("Error") ||
-            transcript.includes("Virhe"))
-        ) {
-          console.log("🎤 Server returned error message:", transcript);
-          // Track error
-          errorCountRef.current++;
-          lastErrorTimeRef.current = Date.now();
-
-          if (errorCountRef.current >= MAX_CONSECUTIVE_ERRORS) {
-            console.log("🎤 Too many server errors, marking server as down");
-            serverDownRef.current = true;
-            // Clear accumulated chunks
-            accumulatedChunksRef.current = [];
-          }
-
-          // Update UI
-          setServerTranscript(transcript);
-          setBrowserTranscript(transcript);
-
-          // Release lock
-          isProcessingApiRef.current = false;
-          return;
-        }
-
-        // Only update if we got meaningful content
-        if (transcript) {
-          console.log(`🎤 [Real-time Finnish] Got transcript: "${transcript}"`);
-
-          // Check if the transcript is empty or basically empty
-          if (!transcript.trim()) {
-            console.log("🎤 Empty transcript received, not updating UI");
-            isProcessingApiRef.current = false;
-            return;
-          }
-
-          // Check if this is the same as the last processed content
-          if (transcript.trim() === lastProcessedContentRef.current.trim()) {
-            console.log("🎤 Same transcript as before, not updating UI");
-            isProcessingApiRef.current = false;
-            return;
-          }
-
-          // Store the new transcript for future comparison
-          lastProcessedContentRef.current = transcript;
-
-          // Always store the latest valid transcript in the fullTranscriptRef
-          if (transcript.trim().length > 0) {
-            fullTranscriptRef.current = transcript;
-            console.log(
-              `🎤 Updated fullTranscriptRef.current to: "${fullTranscriptRef.current}"`
-            );
-          }
-
-          // Check if there's new content since the last processed transcript
-          // Only update if substantially different (more than just noise)
-          const newContentSize =
-            transcript.length - lastTranscriptLengthRef.current;
-          const hasSignificantChange = newContentSize > 10; // More threshold for significance
-
-          if (hasSignificantChange) {
-            setLastProcessedTranscript(transcript);
-            lastTranscriptLengthRef.current = transcript.length;
-
-            // Update the UI display
-            setServerTranscript(transcript);
-            setBrowserTranscript(transcript);
-
-            // Send to n8n for immediate feedback if the transcript is substantial
-            if (transcript.length > 10 && onSpeechRecognized) {
-              console.log(
-                `🎤 Sending real-time transcript to n8n: "${transcript}"`
-              );
-              onSpeechRecognized(transcript);
-            }
-          } else {
-            console.log(
-              `🎤 No significant change in transcript, not updating UI`
-            );
-          }
-        } else {
-          console.log("🎤 No meaningful transcript received, not updating UI");
-        }
-      } catch (error) {
-        // Handle API errors
-        console.error("Error in speech-to-text API call:", error);
-        errorCountRef.current++;
-        lastErrorTimeRef.current = Date.now();
-
-        if (errorCountRef.current >= MAX_CONSECUTIVE_ERRORS) {
-          console.log("🎤 Too many consecutive errors, marking server as down");
-          serverDownRef.current = true;
-
-          // Update UI with error message
-          const errorMessage =
-            "Whisper-palvelin ei ole käytettävissä. Tarkista palvelimen tila.";
-          setServerTranscript(errorMessage);
-          setBrowserTranscript(errorMessage);
-
-          // Clear accumulated chunks
-          accumulatedChunksRef.current = [];
-        }
-      }
-
-      // Reset accumulated chunks but keep some for context if needed
-      if (clearAllChunks) {
-        // Keep last 2 chunks for overlap
-        if (accumulatedChunksRef.current.length > 2) {
-          accumulatedChunksRef.current = accumulatedChunksRef.current.slice(-2);
-        } else {
-          accumulatedChunksRef.current = [];
-        }
-      } else {
-        // Keep last 5 chunks for ongoing speech
-        if (accumulatedChunksRef.current.length > 5) {
-          accumulatedChunksRef.current = accumulatedChunksRef.current.slice(-5);
-        }
-      }
-    } catch (error) {
-      console.error("Error in processing speech chunks:", error);
-      errorCountRef.current++;
-      lastErrorTimeRef.current = Date.now();
-    } finally {
-      // Always release the lock when done, whether successful or error
-      isProcessingApiRef.current = false;
-    }
-  };
-
-  const processServerTranscription = async (audioBlob: Blob) => {
-    console.log("Processing server transcription");
-    console.log(`Audio blob size: ${audioBlob.size} bytes`);
-
-    setAudioProcessing(true);
-
-    if (language === "fi-FI") {
-      setRecordingStatus("Analysoidaan ääntä Whisperillä...");
-    } else {
-      setRecordingStatus("Processing audio with Whisper...");
-    }
-
-    try {
-      // Convert speech to text using the server
-      const transcript = await convertSpeechToText(audioBlob, language);
-      console.log("Got transcript from server:", transcript);
-
-      // Removed the debug popup
-
-      // Update the UI immediately with the transcript
-      setServerTranscript(
-        transcript ||
-          (language === "fi-FI"
-            ? "Ei tunnistettu puhetta. Kokeile puhua kovempaa."
-            : "No speech detected. Try speaking louder.")
-      );
-
-      // Update the browser transcript as well to ensure it's visible in all UI locations
-      setBrowserTranscript(transcript);
-
-      setAudioProcessing(false);
-      if (language === "fi-FI") {
-        setRecordingStatus("Äänitys valmis");
-      } else {
-        setRecordingStatus("Recording finished");
-      }
-
-      return transcript;
-    } catch (error) {
-      console.error("Error during server speech processing:", error);
-      const errorMessage =
-        language === "fi-FI"
-          ? "Virhe puheen tunnistuksessa. Whisper-palvelin saattaa olla pois päältä."
-          : "Error processing speech. Whisper server might be offline.";
-
-      setServerTranscript(errorMessage);
-      setAudioProcessing(false);
-      setRecordingStatus("Error");
-      return "";
-    }
-  };
-
-  const sendRecording = (audioBlob: Blob, transcript: string) => {
-    try {
-      console.log(`🎤 Sending recording with transcript: "${transcript}"`);
-
-      // Make sure we have a transcript to send
-      if (!transcript || transcript.trim() === "") {
-        console.warn("🎤 Empty transcript, using placeholder");
-        transcript = "I couldn't hear what you said. Please try again.";
-      }
-
-      // Send recording to parent
-      onAudioRecorded(audioBlob, transcript);
-
-      // Don't clear the transcript - keep it visible in the UI
-      // This ensures the Whisper recognition content remains visible
-
-      // Keep waiting for response
-      // This will be reset when startRecording is called again
-    } catch (error) {
-      console.error("Error sending recording:", error);
-      // Re-enable button on error
-      setWaitingForResponse(false);
-    }
-  };
-
-  // Update the clearTranscript function without removing important functionality
-  const clearTranscript = useCallback(() => {
-    console.log("🎤 Clearing transcript");
-    fullTranscriptRef.current = "";
-    setBrowserTranscript("");
-    setServerTranscript("");
-
-    // Reset the recording time to 0
-    setRecordingTime(0);
-
-    // Clear the timer if it's running
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    // If we're still recording, restart the timer
-    if (isRecording) {
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-    }
-
-    // Notify parent component
-    if (onSpeechRecognized) {
-      onSpeechRecognized("");
-    }
-  }, [isRecording, onSpeechRecognized]);
-
-  // Function to manually initialize the microphone
-  const initializeRecording = async () => {
-    try {
-      setInitializing(true);
-      console.log("🎤 Initializing audio stream...");
-
-      // Request audio permission
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Clean up the stream after getting permission
-      setTimeout(() => {
-        if (stream) {
-          stream.getTracks().forEach((track) => track.stop());
-        }
-        setIsInitialized(true);
-        setInitializing(false);
-        console.log("🎤 Audio system initialized successfully");
-      }, 500);
-    } catch (error) {
-      console.error("Error initializing audio:", error);
-      setInitializing(false);
-      // Show error in UI
-      setBrowserTranscript(
-        "Error accessing microphone. Please check permissions."
-      );
-    }
-  };
-
-  // Check if 'disabled' prop changed from true to false or from false to true
-  useEffect(() => {
-    // When the parent component re-enables us, reset waiting state
-    if (!disabled && waitingForResponse) {
-      setWaitingForResponse(false);
-    }
-
-    // When the component becomes disabled (AI starts speaking), stop recognition
-    if (disabled && recognitionRef.current) {
-      try {
-        // Stop speech recognition if it's running
-        recognitionRef.current.stop();
-        console.log(
-          "🎤 Speech recognition stopped due to component being disabled"
-        );
-
-        // Clear any transcript that might have been captured from AI speech
-        setBrowserTranscript("");
-        fullTranscriptRef.current = "";
-      } catch {
-        // Ignore errors when stopping
-      }
-    }
-  }, [disabled, waitingForResponse]);
-
-  useEffect(() => {
-    // Cleanup function to stop recording when component unmounts
-    return () => {
-      if (mediaRecorderRef.current && isRecording) {
-        mediaRecorderRef.current.stop();
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-
-      // Stop speech recognition
-      if (recognitionRef.current && !useFallback) {
-        try {
-          recognitionRef.current.stop();
-        } catch {
-          // Ignore, might not be started
-          console.debug("Error stopping recognition on cleanup:");
-        }
-      }
-    };
-  }, [isRecording, useFallback]);
-
-  const formatTime = (seconds: number) => {
+    processFinnishChunksRef.current = processFinnishChunks;
+  }, [processFinnishChunks]);
+
+  // Format a time value in seconds to a MM:SS display
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs
@@ -1403,113 +1034,616 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       .padStart(2, "0")}`;
   };
 
-  // Update the stopRecording function to clean up all resources
-  const stopRecording = () => {
-    // Capture the current transcript before stopping
-    const finalTranscript = fullTranscriptRef.current.trim();
-    console.log(`🎤 Final transcript before stopping: "${finalTranscript}"`);
+  // Add the initializeRecording function
+  const initializeRecording = async () => {
+    if (initializing) return;
 
-    // Clear any real-time processing timers
-    if (transcriptionTimerRef.current) {
-      clearInterval(transcriptionTimerRef.current);
-      transcriptionTimerRef.current = null;
-      console.log("🎤 Cleaned up real-time transcription timer");
-    }
+    try {
+      setInitializing(true);
 
-    if (processingTimerRef.current) {
-      clearInterval(processingTimerRef.current);
-      processingTimerRef.current = null;
-      console.log("🎤 Cleaned up processing timer");
-    }
+      // Request microphone permission
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    // Clear speech detection timer
-    if (speechDetectionTimerRef.current) {
-      clearInterval(speechDetectionTimerRef.current);
-      speechDetectionTimerRef.current = null;
-      console.log("🎤 Cleaned up speech detection timer");
-    }
+      // Clean up immediately
+      stream.getTracks().forEach((track) => track.stop());
 
-    // Set waiting for response to disable recording
-    setWaitingForResponse(true);
+      // Mark as initialized
+      setIsInitialized(true);
+      setInitializing(false);
 
-    // Stop the media recorder to create the audio blob
-    if (mediaRecorderRef.current && isRecording) {
-      // Get any existing transcript from the UI before stopping
-      const uiTranscript = serverTranscript || browserTranscript;
-
-      // If there's a valid transcript in the UI, update our refs
-      if (uiTranscript && uiTranscript.trim().length > 0) {
-        fullTranscriptRef.current = uiTranscript.trim();
-        console.log(
-          `🎤 Using UI transcript for final result: "${uiTranscript}"`
-        );
+      // Check if server is running for Finnish
+      if (language.toLowerCase().includes("fi")) {
+        isPythonServerRunning().then((running) => {
+          setServerRunning(running);
+        });
       }
-
-      // Stop the media recorder to create the complete audio blob
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    } else if (recognitionRef.current && !useFallback) {
-      // If using browser recognition, stop it first
-      try {
-        recognitionRef.current.stop();
-        // Give a small delay to ensure final recognition results are processed
-        setTimeout(() => {
-          if (mediaRecorderRef.current && isRecording) {
-            // Get any existing transcript from the UI before stopping
-            const uiTranscript = serverTranscript || browserTranscript;
-
-            // If there's a valid transcript in the UI, update our refs
-            if (uiTranscript && uiTranscript.trim().length > 0) {
-              fullTranscriptRef.current = uiTranscript.trim();
-              console.log(
-                `🎤 Using UI transcript for final result: "${uiTranscript}"`
-              );
-            }
-
-            mediaRecorderRef.current.stop();
-            setIsRecording(false);
-          }
-        }, 300); // Small delay to ensure recognition completes
-      } catch (e) {
-        console.warn("Error stopping speech recognition:", e);
-        // If error in stopping recognition, still stop recording
-        if (mediaRecorderRef.current && isRecording) {
-          // Get any existing transcript from the UI before stopping
-          const uiTranscript = serverTranscript || browserTranscript;
-
-          // If there's a valid transcript in the UI, update our refs
-          if (uiTranscript && uiTranscript.trim().length > 0) {
-            fullTranscriptRef.current = uiTranscript.trim();
-            console.log(
-              `🎤 Using UI transcript for final result: "${uiTranscript}"`
-            );
-          }
-
-          mediaRecorderRef.current.stop();
-          setIsRecording(false);
-        }
-      }
+    } catch (error) {
+      console.error("Error initializing recording:", error);
+      setInitializing(false);
+      setBrowserTranscript(
+        "Could not access microphone. Please check browser permissions."
+      );
     }
-
-    // Clear timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-      setRecordingTime(0);
-    }
-
-    // Reset transcript tracking
-    lastTranscriptLengthRef.current = 0;
-    setLastProcessedTranscript("");
-
-    // Reset all API tracking variables
-    errorCountRef.current = 0;
-    apiCallCountRef.current = 0;
-    serverDownRef.current = false;
-    lastErrorTimeRef.current = 0;
-    isProcessingApiRef.current = false;
   };
 
+  // Add the startRecording function
+  const startRecording = async () => {
+    if (mediaRecorderRef.current || isRecording) {
+      return;
+    }
+
+    try {
+      setError("");
+      setIsLoading(true);
+
+      console.log(`Starting recording for language: ${language}`);
+
+      // Define audio constraints for better quality and compatibility
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        // Set reasonable audio settings to ensure compatibility
+        channelCount: 1,
+        sampleRate: 44100,
+        sampleSize: 16
+      };
+
+      // Try to get the audio stream with more detailed logs
+      console.log(
+        "Attempting to access microphone with constraints:",
+        audioConstraints
+      );
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints
+      });
+
+      // Log successful access to microphone
+      console.log(
+        "Successfully accessed microphone. Tracks:",
+        stream.getAudioTracks().length
+      );
+      const track = stream.getAudioTracks()[0];
+      if (track) {
+        console.log("Audio track settings:", track.getSettings());
+        console.log("Audio track constraints:", track.getConstraints());
+        console.log("Audio track ID:", track.id);
+        console.log("Audio track label:", track.label);
+        console.log("Audio track enabled:", track.enabled);
+        console.log("Audio track muted:", track.muted);
+        console.log("Audio track readyState:", track.readyState);
+      }
+
+      // Use a more compatible MIME type if available
+      let mimeType = "audio/webm";
+      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        mimeType = "audio/webm;codecs=opus";
+        console.log("Using opus codec for better audio quality");
+      }
+
+      // Initialize MediaRecorder with better settings
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType: mimeType,
+        audioBitsPerSecond: 128000 // Higher bitrate for better quality
+      });
+
+      console.log("MediaRecorder created with mime type:", mimeType);
+      console.log("MediaRecorder state:", mediaRecorderRef.current.state);
+
+      // Reset audio chunks
+      audioChunksRef.current = [];
+
+      // Handle data availability
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          console.log(
+            `Received audio chunk: ${event.data.size} bytes, type: ${event.data.type}`
+          );
+          audioChunksRef.current.push(event.data);
+        } else {
+          console.warn("Received empty audio chunk");
+        }
+      };
+
+      // Handle recording stop
+      mediaRecorderRef.current.onstop = async () => {
+        console.log(
+          `Recording stopped with ${audioChunksRef.current.length} chunks collected`
+        );
+        // Create a blob from all chunks
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mediaRecorderRef.current?.mimeType || "audio/webm"
+        });
+
+        console.log(
+          `Final audio size: ${audioBlob.size} bytes, type: ${audioBlob.type}`
+        );
+
+        // Create an object URL for the audio
+        const url = URL.createObjectURL(audioBlob);
+        setAudioURL(url);
+
+        // Send the audio and transcript to the parent component
+        const finalTranscript = fullTranscriptRef.current.trim();
+        console.log(`Sending final transcript: "${finalTranscript}"`);
+        onAudioRecorded(audioBlob, finalTranscript);
+
+        // Clean up
+        stream.getTracks().forEach((track) => track.stop());
+        setWaitingForResponse(false);
+      };
+
+      // Listen for errors
+      mediaRecorderRef.current.onerror = (event) => {
+        console.error("MediaRecorder error:", event);
+        setError(`MediaRecorder error: ${event.error}`);
+      };
+
+      // Start the media recorder
+      mediaRecorderRef.current.start(1000); // Collect chunks every second
+      console.log("MediaRecorder started");
+
+      // Start the timer
+      const startTime = Date.now();
+
+      // Update timer every second
+      timerRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setRecordingTime(elapsed);
+
+        // Also check for silence during recording
+        if (silenceDetectionEnabled && elapsed > 2) {
+          detectSilence();
+        }
+
+        // Log audio status every 5 seconds for debugging
+        if (elapsed % 5 === 0) {
+          console.log(
+            `Recording in progress, ${elapsed}s elapsed, ${audioChunksRef.current.length} chunks collected`
+          );
+          if (mediaRecorderRef.current) {
+            console.log("MediaRecorder state:", mediaRecorderRef.current.state);
+          }
+        }
+      }, 1000);
+
+      // Set recording state
+      setIsRecording(true);
+
+      // Also ensure we start with fresh transcript text
+      setBrowserTranscript("");
+      setServerTranscript("");
+      fullTranscriptRef.current = "";
+
+      console.log("Recording started successfully");
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      setIsRecording(false);
+      setError(
+        `Could not access microphone. Please ensure you have granted permission and that no other app is using it. Error: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add the stopRecording function
+  const stopRecording = async () => {
+    // Only attempt to stop if we're recording
+    if (!isRecording || !mediaRecorderRef.current) {
+      return;
+    }
+
+    console.log("🎤 Stopping recording...");
+
+    try {
+      // If there's an active timer, clear it
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // If we have a speech recognition instance, stop it
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // Ignore errors when stopping
+        }
+      }
+
+      // Stop the media recorder
+      if (mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+
+        // Also stop the media stream tracks
+        if (mediaRecorderRef.current.stream) {
+          mediaRecorderRef.current.stream.getTracks().forEach((track) => {
+            track.stop();
+          });
+        }
+      }
+
+      // Update state
+      setIsRecording(false);
+      setRecordingTime(0);
+      setWaitingForResponse(true);
+
+      // Clear WebSocket timer if active
+      if (transcriptionTimerRef.current) {
+        clearInterval(transcriptionTimerRef.current);
+        transcriptionTimerRef.current = null;
+      }
+
+      // Clear the processing timer if active
+      if (processingTimerRef.current) {
+        clearInterval(processingTimerRef.current);
+        processingTimerRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping recording:", error);
+      setIsRecording(false);
+      setWaitingForResponse(false);
+    }
+  };
+
+  // Add function to clear transcript
+  const clearTranscript = () => {
+    // Clear the text content
+    setBrowserTranscript("");
+    setServerTranscript("");
+    setRecordingTime(0);
+    fullTranscriptRef.current = "";
+
+    // Revoke any existing audio URL if not recording
+    if (_audioURL && !isRecording) {
+      URL.revokeObjectURL(_audioURL);
+      setAudioURL(null);
+    }
+
+    // Reset speech recognition without stopping the recording
+    if (isRecording && !useFallback && language !== "fi-FI") {
+      // Stop the existing recognition if it exists
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // Ignore errors when stopping
+        }
+      }
+
+      // Wait a small delay to ensure everything is reset
+      setTimeout(() => {
+        // Create a new recognition instance
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRecognition) {
+          // Create and configure new recognition instance
+          recognitionRef.current = new SpeechRecognition();
+          recognitionRef.current.continuous = true;
+          recognitionRef.current.interimResults = true;
+          recognitionRef.current.lang = language;
+
+          // Set up event handlers
+          recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+            const transcript = Array.from(event.results)
+              .map((result) => result[0].transcript)
+              .join(" ");
+
+            fullTranscriptRef.current = transcript;
+            setBrowserTranscript(transcript);
+
+            if (onSpeechRecognized) {
+              onSpeechRecognized(transcript);
+            }
+          };
+
+          recognitionRef.current.onerror = (event: SpeechRecognitionError) => {
+            console.error(
+              "Speech recognition error:",
+              event.error,
+              event.message
+            );
+
+            if (event.error !== "no-speech") {
+              setError(`Speech recognition error: ${event.error}`);
+            }
+          };
+
+          recognitionRef.current.onend = () => {
+            console.log("Browser Speech Recognition Ended");
+            setRecognitionEnded(true);
+          };
+
+          // Start the recognition
+          try {
+            recognitionRef.current.start();
+            setRecognitionEnded(false);
+            console.log(
+              "Speech recognition restarted after clearing transcript"
+            );
+          } catch (error) {
+            console.error("Could not restart speech recognition:", error);
+          }
+        }
+      }, 300);
+    }
+  };
+
+  // Move the detectSilence function up before it's used
+  const detectSilence = useCallback(() => {
+    // This is a placeholder function since we're not implementing silence detection
+    console.log("Silence detection not implemented");
+  }, []);
+
+  // Add back the missing audio conversion utilities (after the declaration of state variables)
+  // Add audio format conversion utilities
+  const convertBlobToFloat32Array_ref = async (
+    blob: Blob
+  ): Promise<Float32Array> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const arrayBuffer = reader.result as ArrayBuffer;
+          resolve(new Float32Array(arrayBuffer)); // Simply return the raw data as Float32Array
+        } catch (error) {
+          console.error("Error converting blob to float32 array:", error);
+          reject(error);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
+    });
+  };
+
+  // Clear waiting state after a timeout (in case the parent doesn't properly re-enable)
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    if (waitingForResponse) {
+      timeoutId = setTimeout(() => {
+        setWaitingForResponse(false);
+      }, 30000); // 30 seconds max wait time
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [waitingForResponse]);
+
+  // Pre-initialize audio stream to speed up first recording
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+
+    const initializeAudio = async () => {
+      if (!isInitialized && !initializing) {
+        try {
+          setInitializing(true);
+          console.log("🎤 Pre-initializing audio stream...");
+
+          // Request audio permission early to warm up the API
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+          // Clean up the stream immediately after getting permission
+          setTimeout(() => {
+            if (stream) {
+              stream.getTracks().forEach((track) => track.stop());
+              stream = null;
+            }
+            setIsInitialized(true);
+            setInitializing(false);
+            console.log("🎤 Audio system pre-initialized successfully");
+          }, 500);
+        } catch (error) {
+          console.error("Error pre-initializing audio:", error);
+          setInitializing(false);
+        }
+      }
+    };
+
+    initializeAudio();
+
+    return () => {
+      // Clean up stream if component unmounts during initialization
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [isInitialized, initializing]);
+
+  // Set up WebSocket connection for real-time transcription
+  useEffect(() => {
+    // Don't set up WebSocket if not recording
+    if (!isRecording) {
+      return;
+    }
+
+    // Close any existing connection
+    if (wsConnectionRef.current) {
+      wsConnectionRef.current.close();
+      setWsConnection(null);
+    }
+
+    // For English, prefer browser's native speech recognition rather than WebSocket
+    if (language.toLowerCase().includes("en")) {
+      console.log("Using browser's native speech recognition for English");
+      return; // Skip WebSocket setup for English
+    }
+
+    // Determine WebSocket endpoint based on language
+    let wsEndpoint = "";
+
+    if (language.toLowerCase().includes("fi")) {
+      wsEndpoint = "ws://localhost:8008/ws/finnish";
+      console.log(`Using Finnish WebSocket endpoint: ${wsEndpoint}`);
+    } else {
+      wsEndpoint = "ws://localhost:8008/ws/english";
+      console.log(`Using English WebSocket endpoint: ${wsEndpoint}`);
+    }
+
+    console.log(
+      `Setting up WebSocket for real-time ${language} transcription: ${wsEndpoint}`
+    );
+
+    // Track connection attempts to prevent infinite reconnection
+    let connectionAttempts = 0;
+    const MAX_ATTEMPTS = 2;
+
+    const connectWebSocket = () => {
+      if (connectionAttempts >= MAX_ATTEMPTS) {
+        console.log(
+          `Maximum connection attempts (${MAX_ATTEMPTS}) reached, giving up`
+        );
+        return;
+      }
+
+      connectionAttempts++;
+
+      try {
+        // Create new WebSocket connection
+        const ws = new WebSocket(wsEndpoint);
+
+        // Set up event handlers
+        ws.onopen = () => {
+          console.log(`WebSocket connection established for ${language}`);
+          connectionAttempts = 0; // Reset counter on successful connection
+
+          // Send configuration to the server
+          ws.send(
+            JSON.stringify({
+              language: language.substring(0, 2),
+              chunkSize: 30000
+            })
+          );
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            if (data.status === "success" && data.text) {
+              console.log(`Received real-time transcript: ${data.text}`);
+
+              // Update the transcript
+              setServerTranscript(data.text);
+
+              // Also update the full transcript reference
+              if (data.text.length > fullTranscriptRef.current.length) {
+                fullTranscriptRef.current = data.text;
+              }
+
+              // Call callback if provided
+              if (onSpeechRecognized) {
+                onSpeechRecognized(data.text);
+              }
+            } else if (data.error) {
+              console.error(`WebSocket error: ${data.error}`);
+
+              // Check if this is a tensor type error (common with faster-whisper)
+              if (
+                data.error.includes("ONNX") ||
+                data.error.includes("tensor")
+              ) {
+                console.log(
+                  "Received ONNX tensor error - this is usually temporary, will retry"
+                );
+                // Don't show this error to user as it's usually just a temporary issue
+              } else {
+                // Display other errors to the user
+                setError(`Speech recognition error: ${data.error}`);
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing WebSocket message:", e);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error(`WebSocket error:`, error);
+          // Don't try to reconnect on error - this can cause infinite loops
+        };
+
+        ws.onclose = () => {
+          console.log(`WebSocket closed for ${language}`);
+
+          // Clean up reference
+          if (wsConnectionRef.current === ws) {
+            setWsConnection(null);
+          }
+        };
+
+        // Store the WebSocket connection
+        setWsConnection(ws);
+
+        // Set up interval to send audio chunks only if the connection is open
+        const wsInterval = setInterval(() => {
+          if (
+            ws.readyState === WebSocket.OPEN &&
+            audioChunksRef.current.length > 0 &&
+            isRecording
+          ) {
+            // Get latest chunk
+            const latestChunk =
+              audioChunksRef.current[audioChunksRef.current.length - 1];
+
+            // Send the audio chunk
+            if (latestChunk) {
+              console.log(
+                `Sending audio chunk via WebSocket for ${language}: ${latestChunk.size} bytes`
+              );
+
+              try {
+                // Clone the blob to avoid any potential issues with the original being modified
+                const blobToSend = latestChunk.slice(0, latestChunk.size);
+                ws.send(blobToSend);
+              } catch (sendError) {
+                console.error(
+                  "Error sending audio chunk via WebSocket:",
+                  sendError
+                );
+                // Clear the interval if we encounter an error sending data
+                clearInterval(wsInterval);
+              }
+            }
+          } else if (
+            ws.readyState !== WebSocket.OPEN &&
+            ws.readyState !== WebSocket.CONNECTING
+          ) {
+            // Clear interval if connection is closed or closing
+            clearInterval(wsInterval);
+          }
+        }, 1000); // Send every second
+
+        // Clean up function
+        return () => {
+          clearInterval(wsInterval);
+
+          if (
+            ws.readyState === WebSocket.OPEN ||
+            ws.readyState === WebSocket.CONNECTING
+          ) {
+            console.log(`Closing WebSocket connection for ${language}`);
+            // Use a clean close code
+            ws.close(1000, "Component unmounting");
+          }
+
+          setWsConnection(null);
+        };
+      } catch (error) {
+        console.error("Error setting up WebSocket:", error);
+        return undefined;
+      }
+    };
+
+    // Initial connection
+    connectWebSocket();
+  }, [isRecording, language, onSpeechRecognized]);
+
+  // Return component JSX here
   return (
     <Paper elevation={3} style={{ padding: "16px", marginBottom: "16px" }}>
       <Box
@@ -1599,10 +1733,15 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             <Typography
               variant="body1"
               component="div"
-              sx={{ fontWeight: language === "fi-FI" ? "medium" : "normal" }}
+              sx={{
+                fontWeight: language.toLowerCase().includes("fi")
+                  ? "medium"
+                  : "normal"
+              }}
             >
-              {languageSupport.usesWhisper || language === "fi-FI"
-                ? language === "fi-FI"
+              {languageSupport.usesWhisper ||
+              language.toLowerCase().includes("fi")
+                ? language.toLowerCase().includes("fi")
                   ? `Analysoidaan Whisperillä...`
                   : `Processing with Whisper...`
                 : `Processing transcription...`}
@@ -1616,9 +1755,13 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             <Typography
               variant="body1"
               component="div"
-              sx={{ fontWeight: language === "fi-FI" ? "medium" : "normal" }}
+              sx={{
+                fontWeight: language.toLowerCase().includes("fi")
+                  ? "medium"
+                  : "normal"
+              }}
             >
-              {language === "fi-FI"
+              {language.toLowerCase().includes("fi")
                 ? "Käsitellään..."
                 : "Processing request..."}
             </Typography>
@@ -1681,9 +1824,26 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           </Box>
         </Paper>
 
-        {audioURL && !isRecording && (
+        {_audioURL && !isRecording && (
           <Box sx={{ mt: 2, width: "100%" }}>
-            <audio src={audioURL} controls style={{ width: "100%" }} />
+            <audio src={_audioURL} controls style={{ width: "100%" }} />
+          </Box>
+        )}
+
+        {/* Display an error message if there is one */}
+        {error && (
+          <Typography color="error" sx={{ mt: 1 }}>
+            {error}
+          </Typography>
+        )}
+
+        {/* Show loading indicator when initializing or processing */}
+        {isLoading && (
+          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+            <CircularProgress size={16} sx={{ mr: 1 }} />
+            <Typography variant="body1" component="div">
+              Loading...
+            </Typography>
           </Box>
         )}
       </Box>

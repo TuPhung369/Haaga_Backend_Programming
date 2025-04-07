@@ -24,6 +24,19 @@ from typing import List, Optional, Dict, Any, Set
 import functools
 import threading
 from collections import deque
+import subprocess
+
+# Add faster-whisper import
+try:
+    from faster_whisper import WhisperModel
+
+    faster_whisper_available = True
+    logging.info("Successfully initialized faster-whisper")
+except ImportError:
+    faster_whisper_available = False
+    logging.warning(
+        "faster-whisper not available. Install with: pip install faster-whisper"
+    )
 
 # Handle missing speechbrain components
 speechbrain_tts_available = False
@@ -107,10 +120,13 @@ hifigan_models = {}
 
 # Add model cache for Whisper
 whisper_models = {}
+# Add cache for faster-whisper model
+faster_whisper_model = None
 # Add a cache for recent results to avoid duplicate processing
 recent_transcriptions = deque(maxlen=50)
 # Create a mutex for whisper model access
 whisper_mutex = threading.RLock()
+faster_whisper_mutex = threading.RLock()
 
 # Add a global set to track active WebSocket connections
 active_connections: Set[WebSocket] = set()
@@ -159,7 +175,10 @@ LANGUAGE_CONFIG = {
     },
     "fi-FI": {
         "code": "fi",
-        "stt_models": ["whisper"],  # Whisper is good for Finnish
+        "stt_models": [
+            "faster-whisper",
+            "whisper",
+        ],  # Prefer faster-whisper for Finnish
         "tts_models": ["gtts"],  # Using gTTS for Finnish as requested
         "whisper_size": "medium",  # medium is better for Finnish
     },
@@ -203,6 +222,44 @@ def get_whisper_model(model_size: str = "base"):
                 return None
 
         return whisper_models[model_size]
+
+
+# Add function to get or initialize faster-whisper model
+def get_faster_whisper_model(model_size: str = "large-v3"):
+    """Load or retrieve faster-whisper model"""
+    global faster_whisper_model
+
+    with faster_whisper_mutex:
+        if faster_whisper_model is None:
+            if not faster_whisper_available:
+                logger.warning("faster-whisper is not available, can't load model")
+                return None
+
+            logger.info(f"Loading faster-whisper {model_size} model")
+            try:
+                # Initialize with CUDA if available, or fall back to CPU
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                compute_type = "float16" if device == "cuda" else "int8"
+
+                # Force model to use float32 for processing to avoid double/float64 issues
+                faster_whisper_model = WhisperModel(
+                    model_size,
+                    device=device,
+                    compute_type=compute_type,
+                    download_root="./models",  # Cache models locally
+                    local_files_only=False,  # Allow downloading if needed
+                    cpu_threads=4,  # Set reasonable number of CPU threads
+                    num_workers=2,  # Set reasonable number of workers for better performance
+                )
+
+                logger.info(
+                    f"faster-whisper {model_size} model loaded successfully on {device} with compute type {compute_type}"
+                )
+            except Exception as e:
+                logger.error(f"Failed to load faster-whisper model: {str(e)}")
+                return None
+
+        return faster_whisper_model
 
 
 def get_tts_models(language="en", voice="neutral"):
@@ -573,211 +630,240 @@ async def health_check():
 
 
 @app.post("/api/speech-to-text")
-async def speech_to_text(
+async def transcribe_speech(
     file: UploadFile = File(...),
-    language: str = Form("en-US"),
+    language: str = Form("en"),
     optimize: str = Form("false"),
-    priority: str = Form("quality"),
+    priority: str = Form("accuracy"),
+    chunk_size: str = Form("0"),
 ):
     """
-    Convert speech to text with support for multiple languages
-    Now with optimization options for faster processing of small chunks
+    Transcribe speech from an audio file using Whisper.
     """
-    temp_path = None
+    logger.info(
+        f"Received request to general /api/speech-to-text endpoint with language={language}"
+    )
+
+    # Validate the file
+    if not file or not file.filename:
+        return {"transcript": "No file provided", "error": "missing_file"}
+
+    # Check if file has content
+    try:
+        content_length = file.size
+        if content_length is not None and content_length <= 0:
+            return {"transcript": "Empty file provided", "error": "empty_file"}
+    except:
+        # Size might not be available
+        pass
+
+    # Check content type
+    valid_mime_types = [
+        "audio/webm",
+        "audio/wav",
+        "audio/mp3",
+        "audio/mpeg",
+        "audio/ogg",
+        "application/octet-stream",
+    ]
+    content_type = file.content_type or ""
+
+    # Log request details
+    logger.info(
+        f"File: {file.filename}, Content-Type: {content_type}, Language: {language}"
+    )
+
+    # Allow any audio content or unknown content type (treat as binary)
+    if not (
+        content_type.startswith("audio/") or content_type == "application/octet-stream"
+    ):
+        logger.warning(
+            f"Unexpected content type: {content_type}, but proceeding anyway"
+        )
+
+    return await _transcribe_speech(file, language, optimize, priority, chunk_size)
+
+
+@app.post("/api/speech-to-text/en")
+async def transcribe_speech_english(
+    file: UploadFile = File(...),
+    optimize: str = Form("false"),
+    priority: str = Form("accuracy"),
+    chunk_size: str = Form("0"),
+):
+    """
+    Transcribe speech from an audio file using Whisper specifically for English.
+    """
+    logger.info(f"Received request to English /api/speech-to-text/en endpoint")
+    return await _transcribe_speech(file, "en", optimize, priority, chunk_size)
+
+
+@app.post("/api/speech-to-text/fi")
+async def transcribe_speech_finnish(
+    file: UploadFile = File(...),
+    optimize: str = Form("false"),
+    priority: str = Form("accuracy"),
+    chunk_size: str = Form("0"),
+):
+    """
+    Transcribe speech from an audio file using Whisper specifically for Finnish.
+    """
+    logger.info(f"Received request to Finnish /api/speech-to-text/fi endpoint")
+    return await _transcribe_speech(file, "fi", optimize, priority, chunk_size)
+
+
+async def _transcribe_speech(
+    file: UploadFile,
+    language: str,
+    optimize: str,
+    priority: str,
+    chunk_size: str,
+):
+    """
+    Internal function that handles the actual transcription logic.
+    """
+    request_id = str(uuid.uuid4())[:8]  # Generate unique ID for request tracking
     start_time = time.time()
+    logger.info(
+        f"[{request_id}] Received audio file: {file.filename or 'unknown'}, size: {file.size}, language: {language}"
+    )
+
+    # Log more details about the file for debugging
+    logger.info(
+        f"[{request_id}] Content type: {file.content_type}, headers: {file.headers}"
+    )
+
+    is_small_chunk = False
+    try:
+        chunk_size_int = int(chunk_size)
+        if chunk_size_int > 0 and chunk_size_int < 15000:
+            is_small_chunk = True
+            logger.info(
+                f"[{request_id}] Small chunk detected ({chunk_size_int} bytes), fast processing mode"
+            )
+    except ValueError:
+        pass
 
     try:
-        # Check if Whisper is required for this language
-        lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
-        if "whisper" in lang_config["stt_models"] and not whisper_available:
-            if language == "fi-FI":
-                return {
-                    "error": "Whisper not available for Finnish. Install with: pip install openai-whisper",
-                    "transcript": "Virhe: Whisper-malli ei ole käytettävissä. Asenna se komennolla: pip install openai-whisper",
-                }
+        # Read the file
+        contents = await file.read()
+        logger.info(f"[{request_id}] Read {len(contents)} bytes of audio data")
+
+        if len(contents) < 500:
+            logger.warning(
+                f"[{request_id}] Audio file too small ({len(contents)} bytes), not enough data"
+            )
+            return {"transcript": "Audio too short"}
+
+        # Save to temporary file for processing
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_file:
+            temp_file_path = temp_file.name
+            temp_file.write(contents)
+            logger.info(f"[{request_id}] Saved audio to {temp_file_path}")
+
+        # Process with FFmpeg to convert to proper WAV format
+        output_path = f"{temp_file_path}_converted.wav"
+
+        # Try to convert the audio using FFmpeg with more robust settings
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            temp_file_path,
+            "-ar",
+            "16000",
+            "-ac",
+            "1",
+            "-c:a",
+            "pcm_s16le",
+            # Add extra flags to handle potentially corrupted inputs
+            "-fflags",
+            "+discardcorrupt+genpts+igndts",
+            "-err_detect",
+            "ignore_err",
+            output_path,
+        ]
+
+        try:
+            logger.info(
+                f"[{request_id}] Converting audio with command: {' '.join(cmd)}"
+            )
+            process = subprocess.run(cmd, capture_output=True, text=True)
+
+            if process.returncode != 0:
+                stderr_text = process.stderr
+                logger.error(f"[{request_id}] FFmpeg conversion failed: {stderr_text}")
+
+                # Try to extract more information about the error
+                if "Invalid data found" in stderr_text:
+                    logger.error(
+                        f"[{request_id}] Audio format issue detected, input might be corrupted"
+                    )
+
+                is_finnish = language.lower().startswith("fi")
+                if is_finnish:
+                    return {"transcript": "Äänitiedoston muuntaminen epäonnistui."}
+                else:
+                    return {"transcript": "Failed to convert audio file."}
+        except Exception as e:
+            logger.error(f"[{request_id}] Error running FFmpeg: {str(e)}")
+            return {"transcript": "Error processing audio"}
+
+        # Check if output file exists and has content
+        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+            logger.error(f"[{request_id}] FFmpeg produced empty output file")
+            is_finnish = language.lower().startswith("fi")
+            if is_finnish:
+                return {"transcript": "Äänitiedoston muuntaminen epäonnistui."}
             else:
-                return {
-                    "error": "Whisper not available but required for this language",
-                    "transcript": "Error: Whisper model is not available but required for this language.",
-                }
+                return {"transcript": "Failed to convert audio file."}
 
-        # Create a unique filename to avoid conflicts
-        unique_filename = f"audio_{uuid.uuid4().hex}.wav"
-        temp_path = os.path.join(tempfile.gettempdir(), unique_filename)
+        logger.info(f"[{request_id}] Successfully converted audio to WAV format")
 
-        # Write file content
-        content = await file.read()
+        # Use the converted file for transcription
+        if whisper_available:
+            # Use regular whisper for consistent results
+            logger.info(f"[{request_id}] Starting transcription with Whisper")
+            result = transcribe_with_whisper(output_path, language)
 
-        # Check if content is too small - under 1KB is likely empty
-        if len(content) < 1024:
-            return {
-                "transcript": "Too short or empty audio. Please speak longer.",
-                "processing_time": 0,
-            }
-
-        # Check cache based on content hash before processing
-        audio_hash = get_audio_hash(content, language)
-        for item in recent_transcriptions:
-            if item["hash"] == audio_hash:
-                logger.info(f"Cache hit for audio hash {audio_hash}")
-                processing_time = time.time() - start_time
-                return {
-                    "transcript": item["transcript"],
-                    "cached": True,
-                    "processing_time": processing_time,
-                }
-
-        with open(temp_path, "wb") as f:
-            f.write(content)
-
-        # Default transcript if all methods fail
-        transcript = "I couldn't transcribe the audio clearly."
-        transcription_success = False
-
-        # Get language configuration
-        lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
-
-        # Method 1: Try Whisper if available and configured for this language
-        if (
-            not transcription_success
-            and whisper_available
-            and "whisper" in lang_config["stt_models"]
-        ):
+            # Clean up temporary files
             try:
-                logger.info(f"Using Whisper for {language} transcription")
-
-                # Choose model size based on content length and optimization settings
-                file_size = os.path.getsize(temp_path)
-
-                # Determine model size - use smaller models for real-time chunks
-                if priority == "speed" or optimize == "true" or file_size < 300000:
-                    # For short recordings or when speed is prioritized, use tiny/base models
-                    if file_size < 100000:  # < 100KB
-                        model_size = "tiny"
-                    else:
-                        model_size = "base"
-                else:
-                    # For longer recordings, use the configured model size
-                    model_size = lang_config.get("whisper_size", "base")
-
-                logger.info(f"Selected {model_size} model for {file_size} bytes audio")
-                model = get_whisper_model(model_size)
-
-                if model:
-                    # Optimize transcription options based on priority
-                    options = {
-                        "language": (
-                            lang_config["code"] if language == "fi-FI" else None
-                        ),
-                    }
-
-                    # For speed priority, add performance optimizations
-                    if priority == "speed" or optimize == "true":
-                        options.update(
-                            {
-                                "beam_size": 1,  # Reduce beam size for faster results
-                                "best_of": 1,  # Don't generate multiple candidates
-                                "temperature": 0.0,  # Deterministic results
-                                "fp16": False,  # Avoid precision issues
-                                "condition_on_previous_text": False,  # Skip context conditioning
-                            }
-                        )
-
-                    # Process with Whisper
-                    result = model.transcribe(temp_path, **options)
-
-                    if result and "text" in result:
-                        transcript = result["text"].strip()
-                        logger.info(f"Whisper transcription: {transcript}")
-                        if transcript:
-                            transcription_success = True
-
-                            # Add to cache
-                            recent_transcriptions.append(
-                                {
-                                    "hash": audio_hash,
-                                    "transcript": transcript,
-                                    "timestamp": time.time(),
-                                }
-                            )
-                else:
-                    # Model couldn't be loaded
-                    logger.error(f"Whisper model for {model_size} couldn't be loaded")
-                    if language == "fi-FI":
-                        return {
-                            "error": "Whisper model couldn't be loaded",
-                            "transcript": "Virhe: Whisper-mallia ei voitu ladata. Tarkista että openai-whisper on asennettu oikein.",
-                        }
-                    return {
-                        "error": "Whisper model couldn't be loaded",
-                        "transcript": "Error: Whisper model couldn't be loaded. Check that openai-whisper is installed correctly.",
-                    }
+                os.unlink(temp_file_path)
+                if os.path.exists(output_path):
+                    os.unlink(output_path)
             except Exception as e:
-                error_msg = str(e)
-                logger.error(f"Whisper transcription error: {error_msg}")
+                logger.warning(f"[{request_id}] Error removing temp files: {str(e)}")
 
-                # If the error indicates an installation issue, provide specific guidance
-                if (
-                    "No module named" in error_msg
-                    or "not installed" in error_msg.lower()
-                ):
-                    missing_module = (
-                        error_msg.split("'")[1]
-                        if "'" in error_msg
-                        else "required dependency"
-                    )
-                    specific_error = f"Missing dependency: {missing_module}"
-                    if language == "fi-FI":
-                        return {
-                            "error": specific_error,
-                            "transcript": f"Virhe: Puuttuva riippuvuus: {missing_module}. Asenna se pip:llä.",
-                        }
+            # Return appropriate message if transcription is empty
+            if not result or not result.get("text", "").strip():
+                is_finnish = language.lower().startswith("fi")
+                if is_finnish:
                     return {
-                        "error": specific_error,
-                        "transcript": f"Error: Missing dependency: {missing_module}. Install it using pip.",
+                        "transcript": "En saanut selvää puheesta. Yritä puhua selkeämmin."
                     }
+                else:
+                    return {"transcript": "I couldn't transcribe the audio clearly."}
 
-        # Calculate processing time
-        processing_time = time.time() - start_time
-        logger.info(f"Speech-to-text processing time: {processing_time:.2f} seconds")
-
-        return {"transcript": transcript, "processing_time": processing_time}
-
+            transcript_text = result.get("text", "")
+            processing_time = time.time() - start_time
+            logger.info(
+                f"[{request_id}] Transcription completed in {processing_time:.2f}s: {transcript_text}"
+            )
+            return {"transcript": transcript_text}
+        else:
+            # No transcription model available
+            is_finnish = language.lower().startswith("fi")
+            if is_finnish:
+                return {"transcript": "Whisper-malli ei ole käytettävissä."}
+            else:
+                return {"transcript": "Whisper model is not available."}
     except Exception as e:
-        error_message = str(e)
-        logger.error(f"Error in speech-to-text: {error_message}")
-
-        # Calculate processing time even for errors
-        processing_time = time.time() - start_time
-
-        # Provide language-specific error messages
-        if language == "fi-FI":
-            return {
-                "error": error_message,
-                "transcript": "Virhe tekstintunnistuksessa. Tarkista että Whisper-palvelin on käynnissä ja Whisper on asennettu.",
-                "processing_time": processing_time,
-            }
-        return {
-            "error": error_message,
-            "transcript": f"Error: {error_message}",
-            "processing_time": processing_time,
-        }
-    finally:
-        # Clean up temp file with retries in case it's still being accessed
-        if temp_path and os.path.exists(temp_path):
-            for _ in range(3):  # Try 3 times
-                try:
-                    os.unlink(temp_path)
-                    break
-                except PermissionError:
-                    # File might still be in use, wait a bit
-                    logger.warning(
-                        f"Couldn't delete {temp_path} immediately, retrying..."
-                    )
-                    await asyncio.sleep(0.5)
-                except Exception as e:
-                    logger.error(f"Error deleting temp file: {str(e)}")
-                    break
+        logger.error(f"[{request_id}] General error in transcribe_speech: {str(e)}")
+        is_finnish = language.lower().startswith("fi")
+        if is_finnish:
+            return {"transcript": "Palvelinvirhe äänen käsittelyssä."}
+        else:
+            return {"transcript": "Server error processing audio."}
 
 
 @app.post("/api/text-to-speech")
@@ -1078,7 +1164,7 @@ async def get_language_proficiency(userId: str, language: Optional[str] = None):
         )
 
 
-# Add WebSocket endpoint for Finnish transcription
+# Replace existing WebSocket endpoint for Finnish transcription with optimized version
 @app.websocket("/ws/finnish")
 async def websocket_finnish(websocket: WebSocket):
     await websocket.accept()
@@ -1086,79 +1172,368 @@ async def websocket_finnish(websocket: WebSocket):
 
     logger.info("WebSocket connection established for Finnish transcription")
 
-    # Buffer to accumulate audio chunks
-    audio_buffer = io.BytesIO()
-    last_transcription_time = time.time()
+    # Get configuration from client
+    config = None
+    try:
+        config = await asyncio.wait_for(websocket.receive_json(), timeout=5.0)
+        logger.info(f"Received client configuration: {config}")
+    except Exception as e:
+        logger.warning(f"No initial config received: {str(e)}")
+        config = {"language": "fi"}
+
+    language = "fi"
+    # Make sure to parse chunk_size_limit as an integer
+    chunk_size_limit = int(config.get("chunkSize", 50000))  # Default 50KB limit
+
+    await handle_websocket_transcription(websocket, language, chunk_size_limit)
+
+
+@app.websocket("/ws/english")
+async def websocket_english(websocket: WebSocket):
+    await websocket.accept()
+    active_connections.add(websocket)
+
+    logger.info("WebSocket connection established for English transcription")
+
+    # Get configuration from client
+    config = None
+    try:
+        config = await asyncio.wait_for(websocket.receive_json(), timeout=5.0)
+        logger.info(f"Received client configuration: {config}")
+    except Exception as e:
+        logger.warning(f"No initial config received: {str(e)}")
+        config = {"language": "en"}
+
+    language = "en"
+    # Make sure to parse chunk_size_limit as an integer
+    chunk_size_limit = int(config.get("chunkSize", 50000))  # Default 50KB limit
+
+    await handle_websocket_transcription(websocket, language, chunk_size_limit)
+
+
+async def handle_websocket_transcription(
+    websocket: WebSocket, language: str, chunk_size_limit: int
+):
+    """
+    Shared handler for WebSocket-based speech recognition for different languages.
+    """
+    logger.info(
+        f"WebSocket configured with language={language}, chunk_size_limit={chunk_size_limit}"
+    )
+
+    # Determine which model to use based on language
+    use_faster_whisper = True
+    model_size = "large-v3"
+
+    if language == "en":
+        # For English, we can use a smaller model for better performance
+        model_size = "base" if faster_whisper_available else "small"
+    else:  # Finnish or other languages
+        model_size = "large-v3" if faster_whisper_available else "medium"
+
+    # Get faster-whisper model if available
+    model = None
+    if faster_whisper_available and use_faster_whisper:
+        model = get_faster_whisper_model(model_size)
+
+    # Fall back to standard whisper if needed
+    if model is None:
+        # Use appropriate model size based on language
+        whisper_size = "medium" if language == "fi" else "base"
+        model = get_whisper_model(whisper_size)
+
+    if model is None:
+        await websocket.close(code=1011, reason="No transcription model available")
+        active_connections.remove(websocket)
+        return
 
     try:
         while True:
-            # Receive binary audio data
-            audio_chunk = await websocket.receive_bytes()
-            logger.info(f"Received audio chunk: {len(audio_chunk)} bytes")
+            # Receive binary audio chunk
+            try:
+                audio_chunk = await websocket.receive_bytes()
+                chunk_size = len(audio_chunk)
+                logger.info(
+                    f"Received {language} WebSocket audio chunk: {chunk_size} bytes"
+                )
 
-            # Append to buffer
-            audio_buffer.write(audio_chunk)
-            audio_buffer.seek(0, io.SEEK_END)  # Move to end after writing
-            buffer_size = audio_buffer.tell()  # Get current size
+                # Send immediate acknowledgment to client
+                await websocket.send_json(
+                    {"status": "chunk_received", "size": chunk_size}
+                )
 
-            # Process if we have enough data or enough time has passed
-            current_time = time.time()
-            time_since_last = current_time - last_transcription_time
+                # Skip processing if chunk is too small or empty
+                if chunk_size < 1000:
+                    await websocket.send_json({"status": "need_more_audio"})
+                    continue
 
-            if (
-                buffer_size > 16000 or time_since_last > 2.0
-            ):  # Process every 2 seconds or when buffer is large enough
-                logger.info(f"Processing audio buffer of size {buffer_size} bytes")
+                # Limit chunk size for faster processing
+                if chunk_size > chunk_size_limit:
+                    logger.info(
+                        f"Limiting chunk size from {chunk_size} to {chunk_size_limit} bytes"
+                    )
+                    audio_chunk = audio_chunk[:chunk_size_limit]
+            except WebSocketDisconnect:
+                logger.info(f"{language} WebSocket disconnected during receive")
+                break
+            except Exception as e:
+                logger.error(f"Error receiving WebSocket data: {str(e)}")
+                try:
+                    await websocket.send_json({"error": "Failed to receive audio data"})
+                except:
+                    # If we can't send a message, the connection is probably closed
+                    logger.error(
+                        "Failed to send error message, connection may be closed"
+                    )
+                    break
+                continue
 
-                # Create a temporary file
+            # Skip processing if chunk is too small
+            if len(audio_chunk) < 4000:  # At least 0.25s of audio @ 16kHz
+                await websocket.send_json({"status": "need_more_audio"})
+                continue
+
+            try:
+                # Save audio chunk to temporary file to ensure it can be processed correctly
                 with tempfile.NamedTemporaryFile(
                     suffix=".webm", delete=False
                 ) as temp_file:
-                    # Reset buffer position and write to temp file
-                    audio_buffer.seek(0)
-                    temp_file.write(audio_buffer.read())
-                    temp_path = temp_file.name
+                    temp_file_path = temp_file.name
+                    temp_file.write(audio_chunk)
 
-                try:
-                    # Reset buffer for new data but keep a small overlap
-                    if buffer_size > 4000:  # Keep last 4KB for overlap
-                        audio_buffer.seek(max(0, buffer_size - 4000))
-                        overlap_data = audio_buffer.read()
-                        audio_buffer = io.BytesIO()
-                        audio_buffer.write(overlap_data)
-                    else:
-                        audio_buffer = io.BytesIO()  # Reset if too small
+                # Process with faster-whisper if available
+                if faster_whisper_available and isinstance(model, WhisperModel):
+                    try:
+                        # Convert WebM to WAV using ffmpeg for better compatibility
+                        wav_path = f"{temp_file_path}.wav"
 
-                    # Use Whisper for transcription if available
-                    if whisper_available:
-                        whisper_model = get_whisper_model(
-                            "medium"
-                        )  # Use medium model for Finnish
+                        # Use FFmpeg to convert WebM to WAV
+                        cmd = [
+                            "ffmpeg",
+                            "-y",
+                            "-i",
+                            temp_file_path,
+                            "-ar",
+                            "16000",
+                            "-ac",
+                            "1",
+                            "-c:a",
+                            "pcm_s16le",
+                            "-fflags",
+                            "+discardcorrupt+genpts+igndts",
+                            "-err_detect",
+                            "ignore_err",
+                            wav_path,
+                        ]
 
-                        if whisper_model:
-                            # Configure Whisper for Finnish
-                            options = {
-                                "language": "fi",  # Finnish language code
-                                "task": "transcribe",
-                                "fp16": False,  # Avoid precision issues
-                                "temperature": 0.0,  # Deterministic output for streaming
-                                "suppress_tokens": [
-                                    -1
-                                ],  # Avoid suppression for partial transcripts
-                                "condition_on_previous_text": True,  # Maintain context
-                            }
+                        try:
+                            logger.info(
+                                f"Converting WebM to WAV for {language} WebSocket processing"
+                            )
+                            process = subprocess.run(
+                                cmd, capture_output=True, text=True
+                            )
 
-                            try:
-                                result = whisper_model.transcribe(temp_path, **options)
-
-                                # Extract transcript
-                                transcript = result.get("text", "").strip()
+                            if process.returncode != 0:
+                                logger.warning(
+                                    f"FFmpeg conversion error: {process.stderr}"
+                                )
+                                # Try to process the original WebM file
+                            else:
                                 logger.info(
-                                    f"Real-time Finnish transcript: {transcript}"
+                                    f"Successfully converted to WAV: {wav_path}"
+                                )
+                                # Use the WAV file instead of the WebM
+                                temp_file_path = wav_path
+                        except Exception as e:
+                            logger.warning(f"FFmpeg conversion failed: {str(e)}")
+                            # Continue with original file
+
+                        # First try to load with soundfile as it's faster
+                        try:
+                            import soundfile as sf
+
+                            audio_np, sr = sf.read(temp_file_path)
+
+                            # Explicitly ensure audio is float32 type
+                            audio_np = audio_np.astype(np.float32)
+
+                            # Resample if needed
+                            if sr != 16000:
+                                from scipy import signal
+
+                                audio_np = signal.resample(
+                                    audio_np, int(len(audio_np) * 16000 / sr)
+                                ).astype(
+                                    np.float32
+                                )  # Ensure float32 after resampling
+                                sr = 16000
+                            logger.info(
+                                f"Loaded {language} WebSocket audio with soundfile: {len(audio_np)} samples, dtype: {audio_np.dtype}"
+                            )
+                        except Exception as sf_error:
+                            logger.warning(
+                                f"Soundfile loading failed: {str(sf_error)}, trying librosa"
+                            )
+                            # Fall back to librosa
+
+                            import librosa
+
+                            audio_np, sr = librosa.load(
+                                temp_file_path,
+                                sr=16000,
+                                mono=True,
+                                dtype=np.float32,  # Explicitly request float32
+                            )
+                            logger.info(
+                                f"Loaded {language} WebSocket audio with librosa: {len(audio_np)} samples, dtype: {audio_np.dtype}"
+                            )
+
+                        # If still no audio data, try raw numpy conversion
+                        if len(audio_np) == 0 or sr == 0:
+                            logger.warning(
+                                "Audio loading produced empty array, trying direct conversion"
+                            )
+                            audio_np = (
+                                np.frombuffer(audio_chunk, dtype=np.int16).astype(
+                                    np.float32  # Ensure conversion to float32
+                                )
+                                / 32768.0
+                            )
+
+                        # Final type check/conversion to ensure float32
+                        if audio_np.dtype != np.float32:
+                            logger.warning(
+                                f"Converting audio from {audio_np.dtype} to float32"
+                            )
+                            audio_np = audio_np.astype(np.float32)
+
+                        logger.info(
+                            f"Final audio data type: {audio_np.dtype}, shape: {audio_np.shape}"
+                        )
+
+                        # Ensure we have valid audio data before processing
+                        if len(audio_np) > 0:
+                            # Log detailed information about the audio data
+                            logger.info(
+                                f"Processing audio: shape={audio_np.shape}, dtype={audio_np.dtype}, "
+                                f"min={np.min(audio_np):.6f}, max={np.max(audio_np):.6f}, "
+                                f"mean={np.mean(audio_np):.6f}, std={np.std(audio_np):.6f}"
+                            )
+
+                            # Ensure array is contiguous in memory
+                            if not audio_np.flags.c_contiguous:
+                                logger.info(
+                                    "Converting audio array to be contiguous in memory"
+                                )
+                                audio_np = np.ascontiguousarray(audio_np)
+
+                            # Normalize audio if needed
+                            max_val = np.max(np.abs(audio_np))
+                            if max_val > 1.0:
+                                logger.info(
+                                    f"Normalizing audio with max value: {max_val}"
+                                )
+                                audio_np = audio_np / max_val
+
+                            # Transcribe with faster-whisper
+                            try:
+                                segments, info = model.transcribe(
+                                    audio_np,
+                                    language=language,
+                                    beam_size=5,
+                                    vad_filter=True,
+                                    vad_parameters=dict(min_silence_duration_ms=300),
                                 )
 
-                                # Build response with full and partial transcripts
-                                response = {
+                                # Collect segments
+                                segment_list = []
+                                for segment in segments:
+                                    segment_list.append(
+                                        {
+                                            "text": segment.text,
+                                            "start": segment.start,
+                                            "end": segment.end,
+                                        }
+                                    )
+
+                                # Join all text
+                                transcript = " ".join(
+                                    seg["text"] for seg in segment_list
+                                ).strip()
+
+                                # Only send if we have actual transcription
+                                if transcript:
+                                    await websocket.send_json(
+                                        {
+                                            "status": "success",
+                                            "text": transcript,
+                                            "segments": segment_list,
+                                            "is_final": False,
+                                            "language": info.language,
+                                            "language_probability": info.language_probability,
+                                        }
+                                    )
+                                else:
+                                    await websocket.send_json(
+                                        {"status": "no_speech_detected"}
+                                    )
+                            except Exception as e:
+                                # Get detailed error information
+                                import traceback
+
+                                error_details = traceback.format_exc()
+                                logger.error(
+                                    f"Transcription error: {str(e)}\n{error_details}"
+                                )
+                                await websocket.send_json(
+                                    {
+                                        "error": f"Transcription failed: {str(e)}",
+                                        "text": "",
+                                    }
+                                )
+                        else:
+                            await websocket.send_json({"status": "invalid_audio_data"})
+                    except Exception as e:
+                        logger.error(
+                            f"Error processing audio with faster-whisper: {str(e)}"
+                        )
+                        await websocket.send_json({"error": str(e), "text": ""})
+                    finally:
+                        # Clean up the temp files
+                        try:
+                            # Remove original WebM file
+                            if os.path.exists(temp_file_path):
+                                os.unlink(temp_file_path)
+
+                            # Also remove the WAV file if it was created
+                            wav_path = f"{temp_file_path}.wav"
+                            if os.path.exists(wav_path):
+                                os.unlink(wav_path)
+                        except Exception as e:
+                            logger.warning(f"Failed to delete temp files: {str(e)}")
+
+                # Fall back to original whisper implementation
+                elif whisper_available and model is not None:
+                    # Create a temporary file
+                    try:
+                        # Configure Whisper for the specified language
+                        options = {
+                            "language": language,
+                            "task": "transcribe",
+                            "fp16": False,
+                            "temperature": 0.0,
+                            "suppress_tokens": [-1],
+                            "condition_on_previous_text": True,
+                        }
+
+                        result = model.transcribe(temp_file_path, **options)
+                        transcript = result.get("text", "").strip()
+
+                        if transcript:
+                            await websocket.send_json(
+                                {
+                                    "status": "success",
                                     "text": transcript,
                                     "partial": (
                                         result.get("segments", [{}])[-1].get("text", "")
@@ -1167,43 +1542,55 @@ async def websocket_finnish(websocket: WebSocket):
                                     ),
                                     "is_final": False,
                                 }
-
-                                # Send transcription back to client
-                                await websocket.send_json(response)
-                                last_transcription_time = current_time
-                            except Exception as e:
-                                logger.error(
-                                    f"Error in Whisper transcription: {str(e)}"
-                                )
-                                await websocket.send_json(
-                                    {
-                                        "error": f"Transcription error: {str(e)}",
-                                        "text": "",
-                                    }
-                                )
-                        else:
-                            logger.error("Whisper model not available for Finnish")
-                            await websocket.send_json(
-                                {"error": "Whisper model not available", "text": ""}
                             )
-                    else:
-                        logger.error("Whisper not installed")
-                        await websocket.send_json(
-                            {"error": "Whisper not installed", "text": ""}
-                        )
-                finally:
-                    # Clean up temp file
-                    try:
-                        os.unlink(temp_path)
+                        else:
+                            await websocket.send_json({"status": "no_speech_detected"})
                     except Exception as e:
-                        logger.error(f"Error removing temp file: {str(e)}")
+                        logger.error(f"Error processing with Whisper: {str(e)}")
+                        await websocket.send_json({"error": str(e), "text": ""})
+                    finally:
+                        try:
+                            os.unlink(temp_file_path)
+                        except Exception as e:
+                            logger.error(f"Error removing temp file: {str(e)}")
+                else:
+                    await websocket.send_json(
+                        {"error": "No transcription model available", "text": ""}
+                    )
+            except Exception as e:
+                logger.error(f"Error processing audio chunk: {str(e)}")
+                await websocket.send_json({"error": str(e), "text": ""})
+
     except WebSocketDisconnect:
-        logger.info("WebSocket disconnected")
+        logger.info(f"{language} WebSocket disconnected")
     except Exception as e:
-        logger.error(f"WebSocket error: {str(e)}")
+        logger.error(f"{language} WebSocket error: {str(e)}")
     finally:
         active_connections.remove(websocket)
-        logger.info("WebSocket connection closed")
+        logger.info(f"{language} WebSocket connection closed")
+
+
+# Add health check endpoint
+@app.get("/api/speech/health")
+async def speech_health_check():
+    """Health check endpoint"""
+    model_status = "initializing"
+    device = "unknown"
+
+    if faster_whisper_available and faster_whisper_model is not None:
+        model_status = "healthy"
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    elif whisper_available and "medium" in whisper_models:
+        model_status = "healthy"
+        device = "cpu"  # Standard whisper uses CPU
+
+    return {
+        "status": model_status,
+        "model": "large-v3" if faster_whisper_available else "medium",
+        "device": device,
+        "faster_whisper_available": faster_whisper_available,
+        "whisper_available": whisper_available,
+    }
 
 
 # Add a function to check if any WebSocket connections are active
@@ -1217,8 +1604,51 @@ async def websocket_status():
     return {
         "active_connections": len(active_connections),
         "whisper_available": whisper_available,
+        "faster_whisper_available": faster_whisper_available,
         "websocket_enabled": True,
     }
+
+
+# Add function to transcribe with whisper
+def transcribe_with_whisper(audio_path, language):
+    """
+    Transcribe audio using Whisper model
+    """
+    try:
+        # Default to base model for faster processing
+        model = get_whisper_model("base")
+
+        # Use small model for non-English languages
+        if language and not language.lower().startswith("en"):
+            model = get_whisper_model("small")
+
+        # For Finnish specifically, use medium model
+        if language and language.lower().startswith("fi"):
+            model = get_whisper_model("medium")
+
+        if not model:
+            logger.error("Failed to load Whisper model")
+            return None
+
+        # Configure transcription options
+        options = {
+            "language": language[:2] if language else None,
+            "task": "transcribe",
+            "fp16": False,
+            "temperature": 0.0,
+            "beam_size": 5,
+            "best_of": 1,
+            "condition_on_previous_text": False,
+        }
+
+        # Transcribe
+        logger.info(f"Transcribing with Whisper {audio_path}")
+        result = model.transcribe(audio_path, **options)
+        return result
+
+    except Exception as e:
+        logger.error(f"Whisper transcription error: {str(e)}")
+        return None
 
 
 if __name__ == "__main__":
@@ -1229,8 +1659,17 @@ if __name__ == "__main__":
     )
     logger.info(f"To test if server is running, open: http://localhost:{port}/health")
 
-    # Make sure Whisper is available for Finnish
-    if whisper_available:
+    # Preload faster-whisper model if available
+    if faster_whisper_available:
+        logger.info("faster-whisper is available. Preloading model...")
+        try:
+            model = get_faster_whisper_model()
+            if model:
+                logger.info("faster-whisper model loaded successfully")
+        except Exception as e:
+            logger.error(f"Error preloading faster-whisper model: {e}")
+    # If not, check original whisper
+    elif whisper_available:
         logger.info("Whisper is available. Preloading models...")
         try:
             base_model = get_whisper_model("base")
@@ -1247,7 +1686,7 @@ if __name__ == "__main__":
             logger.error(f"Error preloading Whisper models: {e}")
     else:
         logger.warning(
-            "Whisper is NOT available - Finnish speech recognition will not work"
+            "Neither faster-whisper nor whisper is available - Finnish speech recognition will not work properly"
         )
 
     uvicorn.run(app, host="0.0.0.0", port=port)
