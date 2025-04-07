@@ -4,7 +4,7 @@ import {
   Button,
   CircularProgress,
   Typography,
-  IconButton
+  IconButton,
 } from "@mui/material";
 import { MicNone, Stop, Clear } from "@mui/icons-material";
 // We're now using direct fetch calls instead of the SpeechService
@@ -56,20 +56,16 @@ interface VoiceRecorderProps {
 }
 
 // Increase Finnish processing interval to collect more data
-const FINNISH_PROCESSING_INTERVAL_MS = 5000; // Keep at 5 seconds but increase chunk size
-// Define a larger chunk size for Finnish processing (50KB)
-const FINNISH_CHUNK_SIZE = 50000; // 50KB chunk size for better processing
+const FINNISH_PROCESSING_INTERVAL_MS = 10000; // Increase to 10 seconds to collect more audio
+// Define a larger chunk size for Finnish processing (100KB)
+const FINNISH_CHUNK_SIZE = 100000; // 100KB chunk size for better processing
 
 const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
   onAudioRecorded,
   onSpeechRecognized,
   language,
-  disabled = false
+  disabled = false,
 }) => {
-  console.log(
-    "SimpleVoiceRecorder mounted/rerendered. Language prop:",
-    language
-  );
   // Basic state
   const [isRecording, setIsRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
@@ -301,7 +297,7 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
         "http://localhost:8008/api/speech-to-text/fi",
         {
           method: "POST",
-          body: formData
+          body: formData,
         }
       ).then((res) => {
         console.log(`🇫🇮 Response status: ${res.status}`);
@@ -326,35 +322,35 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
         // This allows us to see the actual server response in the UI
         const transcriptText = response.transcript.trim();
 
-        // Only clear chunks if we got a non-empty, reasonable transcript
-        // Otherwise keep accumulating (we want at least 15 chunks - about 7.5 seconds)
+        // Always continue accumulating chunks regardless of response
+        // This ensures we have enough audio data for the server to process
+        console.log(`🇫🇮 Continuing to accumulate chunks for better audio quality`);
+        
+        // Only clear chunks if we got a useful transcript that's not an error message
+        // and we have accumulated a significant amount of audio (at least 30 chunks - about 15 seconds)
         if (
           transcriptText &&
           transcriptText !== "Äänitiedosto on liian lyhyt." &&
-          finnishChunksRef.current.length > 15
+          finnishChunksRef.current.length > 30
         ) {
-          console.log(`🇫🇮 Got useful transcript, clearing chunks`);
+          console.log(`🇫🇮 Got useful transcript and have enough chunks, clearing chunks`);
           finnishChunksRef.current = [];
           setFinnishChunks([]);
-        } else {
-          console.log(
-            `🇫🇮 Continuing to accumulate chunks for better audio quality`
-          );
         }
 
-        // Always append new transcript to existing one, regardless of content
+        // Only append meaningful transcripts to the existing one
         setTranscript((prevTranscript) => {
-          // Check if it's not the "too short" error before appending
-          if (transcriptText === "Äänitiedosto on liian lyhyt.") {
-            console.log(
-              `🇫🇮 Got "file too short" message, not adding to transcript`
-            );
-            return prevTranscript; // Don't add error message to transcript
+          // Skip error messages and empty responses
+          if (
+            !transcriptText || 
+            transcriptText === "Äänitiedosto on liian lyhyt." ||
+            transcriptText.trim() === ""
+          ) {
+            console.log(`🇫🇮 Got empty or error message, not adding to transcript`);
+            return prevTranscript;
           }
 
-          // Skip if empty
-          if (!transcriptText) return prevTranscript;
-
+          console.log(`🇫🇮 Adding valid transcript: "${transcriptText}"`);
           const combined = prevTranscript
             ? `${prevTranscript} ${transcriptText}`
             : transcriptText;
@@ -439,7 +435,7 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
         "audio/webm;codecs=pcm", // PCM audio in WebM container
         "audio/webm;codecs=opus", // Opus audio in WebM container
         "audio/ogg", // Ogg container
-        "audio/mp4" // MP4 container
+        "audio/mp4", // MP4 container
       ];
 
       // Find the best supported option
@@ -498,7 +494,7 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
         // Combine ALL collected chunks for the final audio file
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: recorder.mimeType || "audio/webm"
+          type: recorder.mimeType || "audio/webm",
         });
 
         // Log more detailed information about the final audio blob
@@ -520,9 +516,14 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
               `🇫🇮 Found ${finnishChunksRef.current.length} remaining chunks in onstop handler`
             );
             try {
-              // No minimum size check - always try to process remaining audio
+              // Check if we have enough data to process
+              if (finnishChunksRef.current.length < 10) {
+                console.log(`🇫🇮 Not enough final chunks (${finnishChunksRef.current.length} < 10), skipping final processing`);
+                return;
+              }
+              
               console.log(
-                "🇫🇮 Processing all remaining chunks regardless of size"
+                `🇫🇮 Processing final ${finnishChunksRef.current.length} chunks`
               );
 
               // Create a blob with all chunks for final processing
@@ -530,7 +531,7 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
               const mimeType = recorder.mimeType || "audio/webm";
               const fileExtension = mimeType.includes("wav") ? "wav" : "webm";
               const finalBlob = new Blob(finnishChunksRef.current, {
-                type: mimeType
+                type: mimeType,
               });
 
               const blobSizeKB = Math.round(finalBlob.size / 1024);
@@ -556,7 +557,7 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
                   "http://localhost:8008/api/speech-to-text/fi",
                   {
                     method: "POST",
-                    body: formData
+                    body: formData,
                   }
                 ).then(async (res) => {
                   console.log(`🇫🇮 Final response status: ${res.status}`);
@@ -660,19 +661,19 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
           // Only process if we have chunks and are still recording
           if (finnishChunksRef.current.length > 0 && isRecordingRef.current) {
-            // Check if we have enough data (minimum threshold) before attempting processing
-            // This can help avoid the "Audio file too short" error
-            if (finnishChunksRef.current.length >= 3) {
+            // Require a minimum number of chunks before attempting processing
+            // This helps avoid the "Audio file too short" error
+            if (finnishChunksRef.current.length >= 10) {
               processFinnishSpeechRecognition();
             } else {
-              console.log("🇫🇮 Not enough chunks yet, waiting for more data");
+              console.log(`🇫🇮 Not enough chunks yet (${finnishChunksRef.current.length}/10), waiting for more data`);
             }
           } else {
             console.log("🇫🇮 Skipping processing - no chunks or not recording");
           }
         };
 
-        // Process after a longer initial delay to collect sufficient audio
+        // Process after a much longer initial delay to collect sufficient audio
         setTimeout(() => {
           if (isRecordingRef.current) {
             console.log(
@@ -680,7 +681,7 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
             );
             runFinnishProcessing();
           }
-        }, 4000); // Give it 4 seconds to collect initial audio (increased from 3s)
+        }, 8000); // Give it 8 seconds to collect initial audio
 
         // Start the interval timer for regular processing
         finnishRecognitionTimerRef.current = setInterval(() => {
@@ -700,7 +701,7 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
         mimeType: recorder.mimeType,
         state: recorder.state,
         audioBitsPerSecond: recorder.audioBitsPerSecond,
-        videoBitsPerSecond: recorder.videoBitsPerSecond
+        videoBitsPerSecond: recorder.videoBitsPerSecond,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -1052,7 +1053,7 @@ const SimpleVoiceRecorder: React.FC<VoiceRecorderProps> = ({
             borderColor: "divider", // Use theme's divider color
             borderRadius: 1,
             minHeight: "4em", // Ensure minimum height
-            bgcolor: "action.hover" // Subtle background
+            bgcolor: "action.hover", // Subtle background
           }}
         >
           {/* Final Transcript */}

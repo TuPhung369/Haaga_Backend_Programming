@@ -1,65 +1,83 @@
 // LanguageService.ts
 // Service for managing language sessions and interactions
 
-import { LanguageSession, LanguageInteraction, LanguageFeedback } from '../models/LanguageAI';
+import {
+  LanguageSession,
+  LanguageInteraction,
+  LanguageFeedback,
+} from "../models/LanguageAI";
 
-export const API_URL = 'http://localhost:9095/identify_service'; // Spring Boot server URL
-export const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook/c1784e69-2d89-45fb-b47d-dd13dddcf31e/chat';
+export const API_URL = "http://localhost:9095/identify_service"; // Spring Boot server URL
+export const N8N_WEBHOOK_URL =
+  "http://localhost:5678/webhook/c1784e69-2d89-45fb-b47d-dd13dddcf31e/chat";
 
 // Debug utility for localStorage inspection
 export const inspectLocalStorage = () => {
-  console.log('📊 Examining localStorage for stored sessions and interactions:');
+  console.log(
+    "📊 Examining localStorage for stored sessions and interactions:"
+  );
 
   // Count items by type
   let sessionCount = 0;
   let interactionCount = 0;
-  const sessions: Array<{ key: string; id?: string; userId?: string; language?: string; error?: string }> = [];
-  const interactions: Array<{ key: string; id?: string; sessionId?: string; messagePreview?: string; error?: string }> = [];
+  const sessions: Array<{
+    key: string;
+    id?: string;
+    userId?: string;
+    language?: string;
+    error?: string;
+  }> = [];
+  const interactions: Array<{
+    key: string;
+    id?: string;
+    sessionId?: string;
+    messagePreview?: string;
+    error?: string;
+  }> = [];
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key) continue;
 
-    if (key.startsWith('session_')) {
+    if (key.startsWith("session_")) {
       sessionCount++;
       try {
-        const sessionData = JSON.parse(localStorage.getItem(key) || '{}');
-        sessions.push({ key, id: sessionData.id || '', userId: sessionData.userId || '', language: sessionData.language || '' });
-      } catch {
-        sessions.push({ key, error: 'Failed to parse' });
-      }
-    } else if (key.startsWith('interaction_')) {
-      interactionCount++;
-      try {
-        const interactionData = JSON.parse(localStorage.getItem(key) || '{}');
-        interactions.push({
+        const sessionData = JSON.parse(localStorage.getItem(key) || "{}");
+        sessions.push({
           key,
-          id: interactionData.id || '',
-          sessionId: interactionData.sessionId || '',
-          messagePreview: interactionData.userMessage ?
-            interactionData.userMessage.substring(0, 20) + '...' : 'N/A'
+          id: sessionData.id || "",
+          userId: sessionData.userId || "",
+          language: sessionData.language || "",
         });
       } catch {
-        interactions.push({ key, error: 'Failed to parse' });
+        sessions.push({ key, error: "Failed to parse" });
+      }
+    } else if (key.startsWith("interaction_")) {
+      interactionCount++;
+      try {
+        const interactionData = JSON.parse(localStorage.getItem(key) || "{}");
+        interactions.push({
+          key,
+          id: interactionData.id || "",
+          sessionId: interactionData.sessionId || "",
+          messagePreview: interactionData.userMessage
+            ? interactionData.userMessage.substring(0, 20) + "..."
+            : "N/A",
+        });
+      } catch {
+        interactions.push({ key, error: "Failed to parse" });
       }
     }
   }
 
-  console.log(`Found ${sessionCount} sessions and ${interactionCount} interactions in localStorage`);
-  console.log('Sessions:', sessions);
-  console.log('Recent Interactions:', interactions.slice(-5)); // Show only the last 5 to avoid console flood
+  console.log(
+    `Found ${sessionCount} sessions and ${interactionCount} interactions in localStorage`
+  );
+  console.log("Sessions:", sessions);
+  console.log("Recent Interactions:", interactions.slice(-5)); // Show only the last 5 to avoid console flood
 
   return { sessionCount, interactionCount, sessions, interactions };
 };
-
-// Define a type for the Redux store
-interface ReduxStore {
-  getState: () => {
-    auth?: {
-      token?: string;
-    };
-  };
-}
 
 // Add TypeScript types for window extensions
 declare global {
@@ -72,7 +90,7 @@ declare global {
       };
     };
     myApplication?: {
-      findAuthToken: () => { token: string, source: string } | null;
+      findAuthToken: () => { token: string; source: string } | null;
     };
   }
 }
@@ -98,7 +116,8 @@ function convertArrayToDate(dateArray: number[]): Date {
     return new Date();
   }
 
-  const [year, month, day, hour = 0, minute = 0, second = 0, ms = 0] = dateArray;
+  const [year, month, day, hour = 0, minute = 0, second = 0, ms = 0] =
+    dateArray;
   // Note: Month is 0-based in JS Date, but 1-based in the array from Java
   return new Date(year, month - 1, day, hour, minute, second, ms / 1000000);
 }
@@ -113,8 +132,8 @@ function convertArrayToDate(dateArray: number[]): Date {
  */
 export const createLanguageSession = async (
   language: string,
-  proficiencyLevel: string = 'intermediate',
-  userId: string = 'guest',
+  proficiencyLevel: string = "intermediate",
+  userId: string = "guest",
   token?: string
 ): Promise<LanguageSession> => {
   try {
@@ -127,26 +146,28 @@ export const createLanguageSession = async (
       language,
       userId,
       proficiencyLevel,
-      recaptchaToken: "mock-token-for-development" // Add required token for backend validation
+      recaptchaToken: "mock-token-for-development", // Add required token for backend validation
     };
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
     // First, try using the direct token passed in
     if (token) {
       console.log(`Using token passed directly to the function`);
-      headers['Authorization'] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     } else {
       // Fallback to findAuthToken() for backwards compatibility
       const tokenInfo = findAuthToken();
 
       if (tokenInfo) {
         console.log(`Using auth token from ${tokenInfo.source}`);
-        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+        headers["Authorization"] = `Bearer ${tokenInfo.token}`;
       } else {
-        console.log(`No auth token found - request may fail with 401 Unauthorized`);
+        console.log(
+          `No auth token found - request may fail with 401 Unauthorized`
+        );
       }
     }
 
@@ -160,7 +181,7 @@ export const createLanguageSession = async (
         console.log(`Session already exists for user: ${userId}`);
         // Return a properly formatted session object
         return {
-          id: userId.startsWith('session-') ? userId : `session-${userId}`,
+          id: userId.startsWith("session-") ? userId : `session-${userId}`,
           userId,
           language,
           createdAt: new Date().toISOString(),
@@ -169,15 +190,19 @@ export const createLanguageSession = async (
       }
       console.log(`No existing session found for user: ${userId}`);
     } catch (error) {
-      console.log(`Error checking for existing session: ${error instanceof Error ? error.message : String(error)}`);
+      console.log(
+        `Error checking for existing session: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       // Continue with session creation attempt
     }
 
     const response = await fetch(`${API_URL}/api/language-ai/sessions/dev`, {
-      method: 'POST',
+      method: "POST",
       headers,
       body: JSON.stringify(payload),
-      credentials: 'include' // This enables sending cookies with the request
+      credentials: "include", // This enables sending cookies with the request
     });
 
     if (!response.ok) {
@@ -189,14 +214,16 @@ export const createLanguageSession = async (
       • Payload: ${JSON.stringify(payload)}
       • Status: ${response.status} ${response.statusText}`);
 
-      throw new Error(`Failed to create language session: ${response.statusText}`);
+      throw new Error(
+        `Failed to create language session: ${response.statusText}`
+      );
     }
 
     const data = await response.json();
 
     // Ensure session ID follows the expected format (with 'session-' prefix)
-    let sessionId = data.id || '';
-    if (sessionId && !sessionId.startsWith('session-')) {
+    let sessionId = data.id || "";
+    if (sessionId && !sessionId.startsWith("session-")) {
       // If session ID is returned without the prefix, add it
       sessionId = `session-${sessionId}`;
       console.log(`Added 'session-' prefix to session ID: ${sessionId}`);
@@ -206,7 +233,10 @@ export const createLanguageSession = async (
 
     // Store the session in localStorage for backup/debugging
     try {
-      localStorage.setItem(`session_${sessionId}`, JSON.stringify({ ...data, id: sessionId }));
+      localStorage.setItem(
+        `session_${sessionId}`,
+        JSON.stringify({ ...data, id: sessionId })
+      );
     } catch (error) {
       console.log("Could not save to localStorage:", error);
     }
@@ -215,18 +245,24 @@ export const createLanguageSession = async (
       id: sessionId || `mock-session-${Date.now()}`,
       userId: data.userId || userId,
       language: data.language || language,
-      createdAt: data.createdAt ? data.createdAt.toISOString() : new Date().toISOString(),
-      updatedAt: data.updatedAt ? data.updatedAt.toISOString() : new Date().toISOString(),
+      createdAt: data.createdAt
+        ? data.createdAt.toISOString()
+        : new Date().toISOString(),
+      updatedAt: data.updatedAt
+        ? data.updatedAt.toISOString()
+        : new Date().toISOString(),
     };
   } catch (error) {
     console.log(`=== ERROR CREATING SESSION ===`);
-    console.log(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    console.log(
+      `Error: ${error instanceof Error ? error.message : String(error)}`
+    );
 
     // Generate a fallback session
     const mockSessionId = `mock-${Date.now()}`;
     const mockSession: LanguageSession = {
       id: mockSessionId,
-      userId: 'guest',
+      userId: "guest",
       language,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -236,7 +272,10 @@ export const createLanguageSession = async (
 
     // Store mock session in localStorage for consistency
     try {
-      localStorage.setItem(`session_${mockSessionId}`, JSON.stringify(mockSession));
+      localStorage.setItem(
+        `session_${mockSessionId}`,
+        JSON.stringify(mockSession)
+      );
     } catch (error) {
       console.log("Could not save to localStorage:", error);
     }
@@ -251,37 +290,39 @@ export const createLanguageSession = async (
  * @param interactionData The interaction data containing userId, messages, language, etc.
  * @returns Promise with the saved interaction data (likely representing the saved AI response message).
  */
-export const saveInteraction = async (
-  interactionData: {
-    // sessionId is no longer sent from frontend for saving
-    userMessage: string;
-    aiResponse: string;
-    userId: string;
-    language: string;        // Language is now mandatory
-    proficiencyLevel: string; // Proficiency is now mandatory
-    audioUrl?: string;
-    userAudioUrl?: string;   // Added userAudioUrl field if available
-    feedback?: LanguageFeedback;
-    token?: string; // Optional token for authorization
-  }
-): Promise<LanguageInteraction> => {
+export const saveInteraction = async (interactionData: {
+  // sessionId is no longer sent from frontend for saving
+  userMessage: string;
+  aiResponse: string;
+  userId: string;
+  language: string; // Language is now mandatory
+  proficiencyLevel: string; // Proficiency is now mandatory
+  audioUrl?: string;
+  userAudioUrl?: string; // Added userAudioUrl field if available
+  feedback?: LanguageFeedback;
+  token?: string; // Optional token for authorization
+}): Promise<LanguageInteraction> => {
   try {
     console.log(`Saving interaction for user: ${interactionData.userId}`);
-    console.log(`Message: "${interactionData.userMessage.substring(0, 50)}..."`);
-    console.log(`Response: "${interactionData.aiResponse.substring(0, 50)}..."`);
+    console.log(
+      `Message: "${interactionData.userMessage.substring(0, 50)}..."`
+    );
+    console.log(
+      `Response: "${interactionData.aiResponse.substring(0, 50)}..."`
+    );
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
     // Add authorization if we have a token
     if (interactionData.token) {
-      headers['Authorization'] = `Bearer ${interactionData.token}`;
+      headers["Authorization"] = `Bearer ${interactionData.token}`;
       delete interactionData.token; // Remove token from payload
     } else {
       const tokenInfo = findAuthToken();
       if (tokenInfo) {
-        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+        headers["Authorization"] = `Bearer ${tokenInfo.token}`;
       }
     }
 
@@ -292,7 +333,7 @@ export const saveInteraction = async (
       // Create a payload including the recaptchaToken
       const requestPayload = {
         ...interactionData,
-        recaptchaToken: recaptchaToken // Add required token for backend validation
+        recaptchaToken: recaptchaToken, // Add required token for backend validation
       };
 
       // Remove token from the payload as it's already in headers
@@ -301,19 +342,23 @@ export const saveInteraction = async (
       }
 
       const response = await fetch(`${API_URL}/api/language-ai/interactions`, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify(requestPayload),
-        credentials: 'include' // This enables sending cookies with the request
+        credentials: "include", // This enables sending cookies with the request
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to save interaction: ${response.status} - ${errorText}`);
+        throw new Error(
+          `Failed to save interaction: ${response.status} - ${errorText}`
+        );
       }
 
       const savedData = await response.json();
-      console.log(`Interaction saved successfully with ID: ${savedData.id || 'unknown'}`);
+      console.log(
+        `Interaction saved successfully with ID: ${savedData.id || "unknown"}`
+      );
 
       // Return a properly formatted LanguageInteraction object
       return {
@@ -324,14 +369,19 @@ export const saveInteraction = async (
         createdAt: new Date().toISOString(),
         // Add the optional fields
         audioUrl: interactionData.audioUrl,
-        feedback: interactionData.feedback
+        feedback: interactionData.feedback,
       };
-
     } catch (apiError) {
-      console.log(`API Error: ${apiError instanceof Error ? apiError.message : String(apiError)}`);
+      console.log(
+        `API Error: ${
+          apiError instanceof Error ? apiError.message : String(apiError)
+        }`
+      );
 
       // For development/demo purposes, return a mock success response with the same data
-      console.log(`Using fallback response - creating local interaction record`);
+      console.log(
+        `Using fallback response - creating local interaction record`
+      );
 
       // Create a properly formatted LanguageInteraction
       return {
@@ -342,11 +392,15 @@ export const saveInteraction = async (
         createdAt: new Date().toISOString(),
         // Add the optional fields
         audioUrl: interactionData.audioUrl,
-        feedback: interactionData.feedback
+        feedback: interactionData.feedback,
       };
     }
   } catch (error) {
-    console.error(`Error in saveInteraction: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Error in saveInteraction: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
 
     // Always return a valid LanguageInteraction even in error cases
     return {
@@ -354,7 +408,7 @@ export const saveInteraction = async (
       sessionId: `session-${interactionData.userId}`,
       userMessage: interactionData.userMessage,
       aiResponse: interactionData.aiResponse || "Error saving interaction",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
   }
 };
@@ -366,54 +420,60 @@ export const saveInteraction = async (
  * @param level The proficiency level
  * @returns A simulated AI response
  */
-const generateFallbackResponse = (userInput: string, language: string, level: string): string => {
+const generateFallbackResponse = (
+  userInput: string,
+  language: string,
+  level: string
+): string => {
   // Simple templates based on proficiency level
   const templates = {
     beginner: [
       "That's a good start! Let me help you with a simpler way to say that: [simplified version].",
       "I understand what you're trying to say. For beginners, I'd recommend: [simplified version].",
-      "Good effort! Here's how to say that more clearly: [simplified version]."
+      "Good effort! Here's how to say that more clearly: [simplified version].",
     ],
     intermediate: [
       "That's well said! Here's a suggestion to make it more natural: [improved version].",
       "Good job! To sound more fluent, you could say: [improved version].",
-      "That's quite good! A native speaker might phrase it like: [improved version]."
+      "That's quite good! A native speaker might phrase it like: [improved version].",
     ],
     advanced: [
       "Excellent! To add some sophistication, consider: [advanced version].",
       "Very well expressed! For more variety in your vocabulary, try: [advanced version].",
-      "That's great! To sound even more natural, you might say: [advanced version]."
+      "That's great! To sound even more natural, you might say: [advanced version].",
     ],
     fluent: [
       "Your language skills are impressive! Just a minor refinement: [refined version].",
       "Almost perfect! A slight nuance you might consider: [refined version].",
-      "Excellent communication! For absolute perfection, try: [refined version]."
+      "Excellent communication! For absolute perfection, try: [refined version].",
     ],
     native: [
       "That sounds very natural! For stylistic variety, you could also say: [stylistic variation].",
       "Perfect! Another way to express that might be: [stylistic variation].",
-      "Couldn't have said it better myself! For variety's sake: [stylistic variation]."
-    ]
+      "Couldn't have said it better myself! For variety's sake: [stylistic variation].",
+    ],
   };
 
   // Default to intermediate if level isn't recognized
-  const levelTemplates = templates[level as keyof typeof templates] || templates.intermediate;
+  const levelTemplates =
+    templates[level as keyof typeof templates] || templates.intermediate;
 
   // Select a random template
-  const template = levelTemplates[Math.floor(Math.random() * levelTemplates.length)];
+  const template =
+    levelTemplates[Math.floor(Math.random() * levelTemplates.length)];
 
   // Create response based on language
   let response = template;
 
-  if (language.startsWith('fi')) {
+  if (language.startsWith("fi")) {
     response = `[FINNISH SIMULATION] ${template}\n\nTämä on simuloitu vastaus. Oikea tekoäly käyttäisi kontekstia ja kieltäsi paremmin.`;
-  } else if (language.startsWith('sv')) {
+  } else if (language.startsWith("sv")) {
     response = `[SWEDISH SIMULATION] ${template}\n\nDetta är ett simulerat svar. En riktig AI skulle använda sammanhang och ditt språk bättre.`;
-  } else if (language.startsWith('de')) {
+  } else if (language.startsWith("de")) {
     response = `[GERMAN SIMULATION] ${template}\n\nDies ist eine simulierte Antwort. Eine echte KI würde Kontext und Ihre Sprache besser nutzen.`;
-  } else if (language.startsWith('fr')) {
+  } else if (language.startsWith("fr")) {
     response = `[FRENCH SIMULATION] ${template}\n\nCeci est une réponse simulée. Une véritable IA utiliserait mieux le contexte et votre langue.`;
-  } else if (language.startsWith('es')) {
+  } else if (language.startsWith("es")) {
     response = `[SPANISH SIMULATION] ${template}\n\nEsta es una respuesta simulada. Una IA real usaría mejor el contexto y tu idioma.`;
   } else {
     // Default to English
@@ -461,15 +521,15 @@ export const getAIResponseFromN8n = async (
       proficiencyLevel: level,
       userId: userId,
       sessionId: sessionId, // Include sessionId for N8N
-      recaptchaToken: "mock-token-for-development" // Add recaptcha token that might be expected
+      recaptchaToken: "mock-token-for-development", // Add recaptcha token that might be expected
     };
 
     //const startTime = performance.now();
     const response = await fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer fake-auth-for-n8n' // Add a fake auth token just in case
+        "Content-Type": "application/json",
+        "Authorization": "Bearer fake-auth-for-n8n", // Add a fake auth token just in case
       },
       body: JSON.stringify(payload),
     });
@@ -493,24 +553,26 @@ export const getAIResponseFromN8n = async (
     } catch (/* eslint-disable-line @typescript-eslint/no-unused-vars */ _parseError) {
       // If parsing fails, just use the text response directly
       console.log(`Response is not valid JSON, using as plain text`);
-      return responseText.length > 0 ? responseText : generateFallbackResponse(userInput, language, level);
+      return responseText.length > 0
+        ? responseText
+        : generateFallbackResponse(userInput, language, level);
     }
 
     // Extract response from different possible formats
-    let aiResponse = '';
-    if (typeof data.aiResponse === 'string') {
+    let aiResponse = "";
+    if (typeof data.aiResponse === "string") {
       aiResponse = data.aiResponse;
-    } else if (typeof data.message === 'string') {
+    } else if (typeof data.message === "string") {
       aiResponse = data.message;
-    } else if (typeof data.output === 'string') {
+    } else if (typeof data.output === "string") {
       aiResponse = data.output;
-    } else if (typeof data.response === 'string') {
+    } else if (typeof data.response === "string") {
       aiResponse = data.response;
-    } else if (typeof data.text === 'string') {
+    } else if (typeof data.text === "string") {
       aiResponse = data.text;
-    } else if (typeof data === 'string') {
+    } else if (typeof data === "string") {
       aiResponse = data;
-    } else if (typeof data.content === 'string') {
+    } else if (typeof data.content === "string") {
       aiResponse = data.content;
     } else {
       console.log(`No recognized response format from N8N, using fallback`);
@@ -519,9 +581,17 @@ export const getAIResponseFromN8n = async (
 
     return aiResponse;
   } catch (error) {
-    console.log(`Error getting AI response: ${error instanceof Error ? error.message : String(error)}`);
+    console.log(
+      `Error getting AI response: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
     // Use the fallback response generator instead of a static message
-    const fallbackResponse = generateFallbackResponse(userInput, language, level);
+    const fallbackResponse = generateFallbackResponse(
+      userInput,
+      language,
+      level
+    );
     console.log(`Using fallback AI response`);
     return fallbackResponse;
   }
@@ -620,7 +690,9 @@ export const getSessionInteractions = async (
     return [];
   } catch {
     // Just return an empty array without throwing an error
-    console.log("ℹ️ Returning empty interactions array - using simplified flow");
+    console.log(
+      "ℹ️ Returning empty interactions array - using simplified flow"
+    );
     return [];
   }
 };
@@ -631,46 +703,62 @@ export const getSessionInteractions = async (
  * @param token Optional JWT token for authorization
  * @returns Promise resolving to boolean indicating if session exists
  */
-export const verifySessionExists = async (sessionId: string, token?: string): Promise<boolean> => {
+export const verifySessionExists = async (
+  sessionId: string,
+  token?: string
+): Promise<boolean> => {
   try {
     console.log(`Verifying session exists: ${sessionId}`);
 
     // Try both formats - with and without prefix
-    const withPrefix = sessionId.startsWith('session-') ? sessionId : `session-${sessionId}`;
-    const withoutPrefix = sessionId.startsWith('session-') ? sessionId.substring(8) : sessionId;
+    const withPrefix = sessionId.startsWith("session-")
+      ? sessionId
+      : `session-${sessionId}`;
+    const withoutPrefix = sessionId.startsWith("session-")
+      ? sessionId.substring(8)
+      : sessionId;
 
     console.log(`Checking backend with ID: ${withoutPrefix} (without prefix)`);
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
     // First, try using the direct token passed in
     if (token) {
-      console.log(`Using token passed directly to the verifySessionExists function`);
-      headers['Authorization'] = `Bearer ${token}`;
+      console.log(
+        `Using token passed directly to the verifySessionExists function`
+      );
+      headers["Authorization"] = `Bearer ${token}`;
     } else {
       // Fallback to findAuthToken() for backwards compatibility
       const tokenInfo = findAuthToken();
 
       if (tokenInfo) {
         console.log(`Using auth token from ${tokenInfo.source}`);
-        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+        headers["Authorization"] = `Bearer ${tokenInfo.token}`;
       } else {
-        console.log(`No auth token found - request may fail with 401 Unauthorized`);
+        console.log(
+          `No auth token found - request may fail with 401 Unauthorized`
+        );
       }
     }
 
     // Always use the version without prefix for backend API calls
-    const response = await fetch(`${API_URL}/api/language-ai/sessions/${withoutPrefix}/exists`, {
-      method: 'GET',
-      headers,
-      credentials: 'include' // This enables sending cookies with the request
-    });
+    const response = await fetch(
+      `${API_URL}/api/language-ai/sessions/${withoutPrefix}/exists`,
+      {
+        method: "GET",
+        headers,
+        credentials: "include", // This enables sending cookies with the request
+      }
+    );
 
     if (response.ok) {
       const data = await response.json();
-      console.log(`Session verification response: ${data.exists ? 'EXISTS' : 'NOT FOUND'}`);
+      console.log(
+        `Session verification response: ${data.exists ? "EXISTS" : "NOT FOUND"}`
+      );
       return data.exists === true;
     }
 
@@ -681,7 +769,9 @@ export const verifySessionExists = async (sessionId: string, token?: string): Pr
     }
 
     // For other errors, log them but don't fail the check
-    console.log(`Error verifying session: ${response.status} ${response.statusText}`);
+    console.log(
+      `Error verifying session: ${response.status} ${response.statusText}`
+    );
 
     // Try to get more info from the response
     try {
@@ -694,7 +784,11 @@ export const verifySessionExists = async (sessionId: string, token?: string): Pr
     // Default to false on error
     return false;
   } catch (error) {
-    console.log(`Exception verifying session: ${error instanceof Error ? error.message : String(error)}`);
+    console.log(
+      `Exception verifying session: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
     return false;
   }
 };
@@ -704,12 +798,19 @@ export const verifySessionExists = async (sessionId: string, token?: string): Pr
  * @param sessionId The session ID to debug
  * @param token Optional JWT token for authorization
  */
-export const debugSessionId = async (sessionId: string, token?: string): Promise<void> => {
+export const debugSessionId = async (
+  sessionId: string,
+  token?: string
+): Promise<void> => {
   console.log(`=== DEBUGGING SESSION ID: ${sessionId} ===`);
 
   // Check different session ID formats
-  const withPrefix = sessionId.startsWith('session-') ? sessionId : `session-${sessionId}`;
-  const withoutPrefix = sessionId.startsWith('session-') ? sessionId.substring(8) : sessionId;
+  const withPrefix = sessionId.startsWith("session-")
+    ? sessionId
+    : `session-${sessionId}`;
+  const withoutPrefix = sessionId.startsWith("session-")
+    ? sessionId.substring(8)
+    : sessionId;
 
   console.log(`Session ID with prefix: ${withPrefix}`);
   console.log(`Session ID without prefix: ${withoutPrefix}`);
@@ -722,19 +823,27 @@ export const debugSessionId = async (sessionId: string, token?: string): Promise
     console.log(`Session found in localStorage with key: ${localStorageKey}`);
     try {
       const parsed = JSON.parse(sessionData);
-      console.log(`Session data: userId=${parsed.userId}, language=${parsed.language}`);
+      console.log(
+        `Session data: userId=${parsed.userId}, language=${parsed.language}`
+      );
     } catch (error) {
       console.log(`Could not parse session data: ${error}`);
     }
   } else {
-    console.log(`Session NOT found in localStorage with key: ${localStorageKey}`);
+    console.log(
+      `Session NOT found in localStorage with key: ${localStorageKey}`
+    );
 
     // Try the alternative format in localStorage
-    const altLocalStorageKey = `session_${sessionId.startsWith('session-') ? withoutPrefix : withPrefix}`;
+    const altLocalStorageKey = `session_${
+      sessionId.startsWith("session-") ? withoutPrefix : withPrefix
+    }`;
     const altSessionData = localStorage.getItem(altLocalStorageKey);
 
     if (altSessionData) {
-      console.log(`Session found in localStorage with alternative key: ${altLocalStorageKey}`);
+      console.log(
+        `Session found in localStorage with alternative key: ${altLocalStorageKey}`
+      );
     }
   }
 
@@ -742,11 +851,21 @@ export const debugSessionId = async (sessionId: string, token?: string): Promise
   try {
     console.log(`Checking backend for session with prefix: ${withPrefix}`);
     const existsWithPrefix = await verifySessionExists(withPrefix, token);
-    console.log(`Backend result for ID with prefix: ${existsWithPrefix ? 'EXISTS' : 'NOT FOUND'}`);
+    console.log(
+      `Backend result for ID with prefix: ${
+        existsWithPrefix ? "EXISTS" : "NOT FOUND"
+      }`
+    );
 
-    console.log(`Checking backend for session without prefix: ${withoutPrefix}`);
+    console.log(
+      `Checking backend for session without prefix: ${withoutPrefix}`
+    );
     const existsWithoutPrefix = await verifySessionExists(withoutPrefix, token);
-    console.log(`Backend result for ID without prefix: ${existsWithoutPrefix ? 'EXISTS' : 'NOT FOUND'}`);
+    console.log(
+      `Backend result for ID without prefix: ${
+        existsWithoutPrefix ? "EXISTS" : "NOT FOUND"
+      }`
+    );
   } catch (error) {
     console.log(`Error verifying session in backend: ${error}`);
   }
@@ -758,41 +877,51 @@ export const debugSessionId = async (sessionId: string, token?: string): Promise
  * Finds authentication token from various sources
  * @returns Object with token and source
  */
-export const findAuthToken = (): { token: string, source: string } | null => {
+export const findAuthToken = (): { token: string; source: string } | null => {
   try {
     // Check Redux store first (will be fastest and most reliable)
-    if (typeof window !== 'undefined' && window.__REDUX_STORE__) {
+    if (typeof window !== "undefined" && window.__REDUX_STORE__) {
       const state = window.__REDUX_STORE__.getState();
       if (state?.auth?.token) {
-        return { token: state.auth.token, source: 'redux' };
+        return { token: state.auth.token, source: "redux" };
       }
     }
 
     // Check localStorage
-    const localStorageToken = localStorage.getItem('auth_token');
+    const localStorageToken = localStorage.getItem("auth_token");
     if (localStorageToken) {
-      return { token: localStorageToken, source: 'localStorage' };
+      return { token: localStorageToken, source: "localStorage" };
     }
 
     // Check sessionStorage
-    const sessionStorageToken = sessionStorage.getItem('auth_token');
+    const sessionStorageToken = sessionStorage.getItem("auth_token");
     if (sessionStorageToken) {
-      return { token: sessionStorageToken, source: 'sessionStorage' };
+      return { token: sessionStorageToken, source: "sessionStorage" };
     }
 
     // Check for refresh token in cookies
-    const cookies = document.cookie.split(';');
+    const cookies = document.cookie.split(";");
     for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === 'refresh_token') {
-        return { token: decodeURIComponent(value), source: 'cookie:refresh_token' };
+      const [name, value] = cookie.trim().split("=");
+      if (name === "refresh_token") {
+        return {
+          token: decodeURIComponent(value),
+          source: "cookie:refresh_token",
+        };
       }
     }
 
     // Check other common token names in localStorage
     const commonTokenNames = [
-      'token', 'jwt_token', 'access_token', 'id_token', 'idToken',
-      'accessToken', 'jwtToken', 'authToken', 'refresh_token'
+      "token",
+      "jwt_token",
+      "access_token",
+      "id_token",
+      "idToken",
+      "accessToken",
+      "jwtToken",
+      "authToken",
+      "refresh_token",
     ];
 
     for (const name of commonTokenNames) {
@@ -809,16 +938,10 @@ export const findAuthToken = (): { token: string, source: string } | null => {
 
     return null;
   } catch (e) {
-    console.error('Error while finding auth token:', e);
+    console.error("Error while finding auth token:", e);
     return null;
   }
 };
-
-// Expose the findAuthToken function to the window object for WebSocket access
-if (typeof window !== 'undefined') {
-  window.myApplication = window.myApplication || {};
-  window.myApplication.findAuthToken = findAuthToken;
-}
 
 /**
  * Get recent language messages for a user
@@ -836,25 +959,28 @@ export const getUserLanguageMessages = async (
     console.log(`Fetching recent language messages for user: ${userId}`);
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
     // Add authorization if we have a token
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     } else {
       const tokenInfo = findAuthToken();
       if (tokenInfo) {
-        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+        headers["Authorization"] = `Bearer ${tokenInfo.token}`;
       }
     }
 
     // Direct query to the language_message table
-    const response = await fetch(`${API_URL}/api/language-ai/messages/user/${userId}?limit=${limit}`, {
-      method: 'GET',
-      headers,
-      credentials: 'include'
-    });
+    const response = await fetch(
+      `${API_URL}/api/language-ai/messages/user/${userId}?limit=${limit}`,
+      {
+        method: "GET",
+        headers,
+        credentials: "include",
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -862,18 +988,20 @@ export const getUserLanguageMessages = async (
 
       // If response is not ok, return mock data
       if (!response.ok) {
-        console.log('Using mock data for language messages');
+        console.log("Using mock data for language messages");
         return generateMockLanguageMessages(userId, limit);
       }
 
-      throw new Error(`Failed to fetch language messages: ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch language messages: ${response.statusText}`
+      );
     }
 
     const data = await response.json();
 
     // Process the data to match our expected format
     // Map database fields to our model fields
-    const messages = Array.isArray(data) ? data : (data.content || []);
+    const messages = Array.isArray(data) ? data : data.content || [];
 
     return messages.map((msg: ApiLanguageMessage) => {
       // Convert createdAt to Date with proper type handling
@@ -882,7 +1010,7 @@ export const getUserLanguageMessages = async (
         if (msg.created_at) {
           if (Array.isArray(msg.created_at)) {
             createdAtDate = convertArrayToDate(msg.created_at);
-          } else if (typeof msg.created_at === 'string') {
+          } else if (typeof msg.created_at === "string") {
             createdAtDate = new Date(msg.created_at);
           } else if (msg.created_at instanceof Date) {
             createdAtDate = msg.created_at;
@@ -898,16 +1026,18 @@ export const getUserLanguageMessages = async (
       }
 
       return {
-        id: msg.id || `mock-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        id:
+          msg.id ||
+          `mock-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         sessionId: msg.sessionId || `session-${userId}`,
-        userMessage: msg.message_type === 'USER_MESSAGE' ? msg.content : '',
-        aiResponse: msg.message_type === 'AI_RESPONSE' ? msg.content : '',
+        userMessage: msg.message_type === "USER_MESSAGE" ? msg.content : "",
+        aiResponse: msg.message_type === "AI_RESPONSE" ? msg.content : "",
         createdAt: createdAtDate.toISOString(),
-        messageType: msg.message_type || ''
+        messageType: msg.message_type || "",
       };
     });
   } catch (error) {
-    console.error('Error fetching language messages:', error);
+    console.error("Error fetching language messages:", error);
     return generateMockLanguageMessages(userId, limit);
   }
 };
@@ -915,7 +1045,7 @@ export const getUserLanguageMessages = async (
 /**
  * Get conversations grouped by user messages and AI responses
  * This function fetches recent language messages from the API and groups them into pairs.
- * 
+ *
  * @param userId User ID to fetch messages for
  * @param limit Maximum number of messages to fetch
  * @param token Optional JWT token for authorization
@@ -927,84 +1057,94 @@ export const getLanguageConversations = async (
   token?: string
 ): Promise<LanguageInteraction[]> => {
   try {
-    console.log(`Fetching language conversations for user: ${userId}, limit: ${limit}`);
-
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
     // Use either the provided token or try to find one
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     } else {
       const tokenInfo = findAuthToken();
       if (tokenInfo) {
-        headers['Authorization'] = `Bearer ${tokenInfo.token}`;
+        headers["Authorization"] = `Bearer ${tokenInfo.token}`;
       }
     }
 
     // Use the new API endpoint to get messages for a user
-    const response = await fetch(`${API_URL}/api/language-ai/messages/user/${userId}?limit=${limit}`, {
-      method: 'GET',
-      headers,
-      credentials: 'include'
-    });
+    const response = await fetch(
+      `${API_URL}/api/language-ai/messages/user/${userId}?limit=${limit}`,
+      {
+        method: "GET",
+        headers,
+        credentials: "include",
+      }
+    );
 
     if (!response.ok) {
-      console.error(`Error fetching language conversations: ${response.status} ${response.statusText}`);
-      throw new Error(`Failed to fetch language conversations: ${response.statusText}`);
+      console.error(
+        `Error fetching language conversations: ${response.status} ${response.statusText}`
+      );
+      throw new Error(
+        `Failed to fetch language conversations: ${response.statusText}`
+      );
     }
 
     const data = await response.json();
-    console.log(`Successfully fetched ${data.length} messages for user ${userId}`);
 
     // Process messages into properly structured LanguageInteraction objects
-    const conversations: LanguageInteraction[] = data.map((message: ApiLanguageMessage) => {
-      // Handle date fields safely
-      let createdAtDate: Date;
-      try {
-        // Try to parse a date from various possible formats
-        const dateSource = message.created_at || message.createdAt;
-        if (dateSource) {
-          if (dateSource instanceof Date) {
-            createdAtDate = dateSource;
-          } else if (Array.isArray(dateSource)) {
-            // Use the convertArrayToDate function
-            createdAtDate = convertArrayToDate(dateSource);
-          } else if (typeof dateSource === 'string') {
-            // Convert string to Date
-            createdAtDate = new Date(dateSource);
+    const conversations: LanguageInteraction[] = data.map(
+      (message: ApiLanguageMessage) => {
+        // Handle date fields safely
+        let createdAtDate: Date;
+        try {
+          // Try to parse a date from various possible formats
+          const dateSource = message.created_at || message.createdAt;
+          if (dateSource) {
+            if (dateSource instanceof Date) {
+              createdAtDate = dateSource;
+            } else if (Array.isArray(dateSource)) {
+              // Use the convertArrayToDate function
+              createdAtDate = convertArrayToDate(dateSource);
+            } else if (typeof dateSource === "string") {
+              // Convert string to Date
+              createdAtDate = new Date(dateSource);
+            } else {
+              createdAtDate = new Date();
+            }
           } else {
             createdAtDate = new Date();
           }
-        } else {
+        } catch (error) {
+          console.error("Error processing date:", error);
           createdAtDate = new Date();
         }
-      } catch (error) {
-        console.error("Error processing date:", error);
-        createdAtDate = new Date();
-      }
 
-      // Create a properly typed message object
-      return {
-        id: message.id || `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        sessionId: message.sessionId || `session-${userId}`,
-        userMessage: message.content && message.messageType === 'USER_MESSAGE'
-          ? message.content
-          : message.userMessage || '',
-        aiResponse: message.content && message.messageType === 'AI_RESPONSE'
-          ? message.content
-          : message.aiResponse || '',
-        messageType: message.messageType || '',
-        language: message.language || 'en-US',
-        createdAt: createdAtDate.toISOString(),
-        userId: message.userId || userId
-      };
-    });
+        // Create a properly typed message object
+        return {
+          id:
+            message.id ||
+            `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          sessionId: message.sessionId || `session-${userId}`,
+          userMessage:
+            message.content && message.messageType === "USER_MESSAGE"
+              ? message.content
+              : message.userMessage || "",
+          aiResponse:
+            message.content && message.messageType === "AI_RESPONSE"
+              ? message.content
+              : message.aiResponse || "",
+          messageType: message.messageType || "",
+          language: message.language || "en-US",
+          createdAt: createdAtDate.toISOString(),
+          userId: message.userId || userId,
+        };
+      }
+    );
 
     return conversations;
   } catch (error) {
-    console.error('Error in getLanguageConversations:', error);
+    console.error("Error in getLanguageConversations:", error);
 
     // In case of error, return mock data for development
     return generateMockLanguageMessages(userId, limit);
@@ -1014,10 +1154,13 @@ export const getLanguageConversations = async (
 /**
  * Generate mock language messages for development/testing
  */
-export const generateMockLanguageMessages = (userId: string, limit: number): LanguageInteraction[] => {
+export const generateMockLanguageMessages = (
+  userId: string,
+  limit: number
+): LanguageInteraction[] => {
   const messages: LanguageInteraction[] = [];
-  const mockLanguages = ['en-US', 'es-ES', 'fr-FR', 'de-DE'];
-  const mockLevels = ['beginner', 'intermediate', 'advanced'];
+  const mockLanguages = ["en-US", "es-ES", "fr-FR", "de-DE"];
+  const mockLevels = ["beginner", "intermediate", "advanced"];
 
   // Create mock messages
   for (let i = 0; i < limit; i++) {
@@ -1028,9 +1171,15 @@ export const generateMockLanguageMessages = (userId: string, limit: number): Lan
     messages.push({
       id: `mock-msg-${i}`,
       sessionId: `session-${userId}`,
-      userMessage: `This is user message ${i + 1}. How do I say this in ${mockLanguages[i % mockLanguages.length]}?`,
-      aiResponse: `This is AI response ${i + 1}. You would say: "Example translated text for ${mockLevels[i % mockLevels.length]} level"`,
-      createdAt: date.toISOString()
+      userMessage: `This is user message ${i + 1}. How do I say this in ${
+        mockLanguages[i % mockLanguages.length]
+      }?`,
+      aiResponse: `This is AI response ${
+        i + 1
+      }. You would say: "Example translated text for ${
+        mockLevels[i % mockLevels.length]
+      } level"`,
+      createdAt: date.toISOString(),
     });
   }
 

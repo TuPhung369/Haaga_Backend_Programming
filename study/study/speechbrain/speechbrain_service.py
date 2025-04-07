@@ -709,6 +709,10 @@ async def transcribe_speech_finnish(
     logger.info(f"Optimize: {optimize}, Priority: {priority}, Chunk Size: {chunk_size}")
     contents = await file.read()
     logger.info(f"File contents length: {len(contents)}")
+    
+    # Reset file position to the beginning
+    await file.seek(0)
+    
     return await _transcribe_speech(file, "fi", optimize, priority, chunk_size)
 
 
@@ -720,7 +724,7 @@ async def _transcribe_speech(
     logger.info(f"[{request_id}] Processing file: {file.filename}, size: {file.size}")
 
     contents = await file.read()
-    if len(contents) < 500:
+    if len(contents) < 50:
         return {
             "transcript": (
                 "Äänitiedosto on liian lyhyt."
@@ -1315,7 +1319,11 @@ async def handle_websocket_transcription(
                             audio_np, sr = sf.read(temp_file_path)
 
                             # Explicitly ensure audio is float32 type
-                            audio_np = audio_np.astype(np.float32)
+                            if hasattr(audio_np, 'astype'):
+                                audio_np = audio_np.astype(np.float32)
+                            else:
+                                # Handle case where audio_np is a tuple
+                                audio_np = np.array(audio_np[0], dtype=np.float32)
 
                             # Resample if needed
                             if sr != 16000:
@@ -1487,18 +1495,20 @@ async def handle_websocket_transcription(
                         }
 
                         result = model.transcribe(temp_file_path, **options)
-                        transcript = result.get("text", "").strip()
+                        # Handle result as a dictionary, not a tuple
+                        if isinstance(result, dict):
+                            transcript = result.get("text", "").strip()
+                        else:
+                            # If result is a tuple or other type, try to extract text differently
+                            transcript = str(result[0]) if result and len(result) > 0 else ""
+                            transcript = transcript.strip()
 
                         if transcript:
                             await websocket.send_json(
                                 {
                                     "status": "success",
                                     "text": transcript,
-                                    "partial": (
-                                        result.get("segments", [{}])[-1].get("text", "")
-                                        if result.get("segments")
-                                        else ""
-                                    ),
+                                        "partial": "",  # Simplified to avoid tuple access issues
                                     "is_final": False,
                                 }
                             )

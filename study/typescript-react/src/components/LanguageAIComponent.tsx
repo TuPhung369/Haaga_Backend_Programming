@@ -984,9 +984,6 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
       if (filteredVoices.length > 0) {
         setSupportedVoices(filteredVoices);
         setSelectedVoice(filteredVoices[0].id);
-        console.log(
-          `Initialized ${filteredVoices.length} voices for ${language}. Default: ${filteredVoices[0].id}`
-        );
       }
     }, 0);
   }, [language]);
@@ -1034,8 +1031,6 @@ const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
         );
       });
     }
-
-    console.log(`Filtered ${filteredVoices.length} voices for ${language}`);
 
     // Set the filtered voices
     setSupportedVoices(filteredVoices);
