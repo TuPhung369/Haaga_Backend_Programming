@@ -709,10 +709,10 @@ async def transcribe_speech_finnish(
     logger.info(f"Optimize: {optimize}, Priority: {priority}, Chunk Size: {chunk_size}")
     contents = await file.read()
     logger.info(f"File contents length: {len(contents)}")
-    
+
     # Reset file position to the beginning
     await file.seek(0)
-    
+
     return await _transcribe_speech(file, "fi", optimize, priority, chunk_size)
 
 
@@ -1186,13 +1186,13 @@ async def handle_websocket_transcription(
 
     # Determine which model to use based on language
     use_faster_whisper = True
-    model_size = "large-v3"
+    model_size = "medium"  # "large-v3" base
 
     if language == "en":
         # For English, we can use a smaller model for better performance
-        model_size = "base" if faster_whisper_available else "small"
+        model_size = "medium" if faster_whisper_available else "small"
     else:  # Finnish or other languages
-        model_size = "large-v3" if faster_whisper_available else "medium"
+        model_size = "medium" if faster_whisper_available else "medium"
 
     # Get faster-whisper model if available
     model = None
@@ -1202,7 +1202,7 @@ async def handle_websocket_transcription(
     # Fall back to standard whisper if needed
     if model is None:
         # Use appropriate model size based on language
-        whisper_size = "medium" if language == "fi" else "base"
+        whisper_size = "medium" if language == "fi" else "medium"
         model = get_whisper_model(whisper_size)
 
     if model is None:
@@ -1319,7 +1319,7 @@ async def handle_websocket_transcription(
                             audio_np, sr = sf.read(temp_file_path)
 
                             # Explicitly ensure audio is float32 type
-                            if hasattr(audio_np, 'astype'):
+                            if hasattr(audio_np, "astype"):
                                 audio_np = audio_np.astype(np.float32)
                             else:
                                 # Handle case where audio_np is a tuple
@@ -1500,7 +1500,9 @@ async def handle_websocket_transcription(
                             transcript = result.get("text", "").strip()
                         else:
                             # If result is a tuple or other type, try to extract text differently
-                            transcript = str(result[0]) if result and len(result) > 0 else ""
+                            transcript = (
+                                str(result[0]) if result and len(result) > 0 else ""
+                            )
                             transcript = transcript.strip()
 
                         if transcript:
@@ -1508,7 +1510,7 @@ async def handle_websocket_transcription(
                                 {
                                     "status": "success",
                                     "text": transcript,
-                                        "partial": "",  # Simplified to avoid tuple access issues
+                                    "partial": "",  # Simplified to avoid tuple access issues
                                     "is_final": False,
                                 }
                             )

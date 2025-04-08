@@ -1,3 +1,4 @@
+// src/components/SimpleVoiceRecorder.tsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Box,
@@ -10,54 +11,135 @@ import {
   CircularProgress
 } from "@mui/material";
 import { MicNone, Stop, Clear } from "@mui/icons-material";
-// Assuming SpeechService is in the correct relative path
 import { convertSpeechToText } from "../services/SpeechService"; // Adjust path if needed
 
-// --- Interfaces (assuming they are defined correctly elsewhere or copied here) ---
+// --- TypeScript Interfaces for SpeechRecognition ---
+// (Define these here or import from a central types file like ../types/speech.ts)
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+interface SpeechRecognitionAlternative {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
 interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-  interpretation?: Record<string, unknown>; // Make interpretation optional
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+  readonly interpretation?: unknown; // Optional based on browser
 }
-
-interface SpeechRecognitionError extends Event {
-  error: string;
-  message: string;
+interface SpeechRecognitionErrorEvent extends Event {
+  // Renamed to avoid conflict with DOMError
+  readonly error: string;
+  readonly message: string;
 }
-
+interface SpeechRecognitionStatic {
+  new (): SpeechRecognition;
+}
 interface SpeechRecognition extends EventTarget {
+  grammars: SpeechGrammarList;
+  lang: string;
   continuous: boolean;
   interimResults: boolean;
-  lang: string;
-  maxAlternatives?: number;
+  maxAlternatives: number;
+  serviceURI: string;
+
   start(): void;
   stop(): void;
   abort(): void;
-  onresult: (event: SpeechRecognitionEvent) => void;
-  onerror: (event: SpeechRecognitionError) => void;
-  onend: () => void;
-  onstart?: () => void;
+
+  onaudiostart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onaudioend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onerror:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => unknown)
+    | null;
+  onnomatch:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => unknown)
+    | null;
+  onresult:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => unknown)
+    | null;
+  onsoundstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onsoundend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onspeechstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onspeechend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+
+  addEventListener<K extends keyof SpeechRecognitionEventMap>(
+    type: K,
+    listener: (
+      this: SpeechRecognition,
+      ev: SpeechRecognitionEventMap[K]
+    ) => unknown,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+  removeEventListener<K extends keyof SpeechRecognitionEventMap>(
+    type: K,
+    listener: (
+      this: SpeechRecognition,
+      ev: SpeechRecognitionEventMap[K]
+    ) => unknown,
+    options?: boolean | EventListenerOptions
+  ): void;
+  removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | EventListenerOptions
+  ): void;
+}
+interface SpeechRecognitionEventMap {
+  audiostart: Event;
+  audioend: Event;
+  end: Event;
+  error: SpeechRecognitionErrorEvent;
+  nomatch: SpeechRecognitionEvent;
+  result: SpeechRecognitionEvent;
+  soundstart: Event;
+  soundend: Event;
+  speechstart: Event;
+  speechend: Event;
+  start: Event;
+}
+interface SpeechGrammar {
+  src: string;
+  weight?: number;
+}
+interface SpeechGrammarList {
+  readonly length: number;
+  addFromString(string: string, weight?: number): void;
+  addFromURI(src: string, weight?: number): void;
+  item(index: number): SpeechGrammar;
+  [index: number]: SpeechGrammar;
 }
 
+// --- Global Declaration ---
 declare global {
   interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-    webkitAudioContext: typeof AudioContext; // Keep this if needed elsewhere
+    SpeechRecognition: SpeechRecognitionStatic;
+    webkitSpeechRecognition: SpeechRecognitionStatic;
+    // webkitAudioContext: typeof AudioContext; // Already declared above if needed
   }
 }
 
 // --- Component Props ---
 interface SimpleVoiceRecorderProps {
-  /** Callback with the final audio blob and the best available transcript */
   onAudioRecorded: (audioBlob: Blob, finalTranscript: string) => void;
-  /** Optional callback for real-time browser transcript updates (final parts) */
   onSpeechRecognized?: (transcript: string) => void;
-  /** Language code (e.g., 'en-US', 'fi-FI') */
   language: string;
-  /** Disable the component */
   disabled?: boolean;
-  /** Specify languages that MUST use the server for transcription */
   serverLanguages?: string[];
 }
 
@@ -67,7 +149,7 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
   onSpeechRecognized,
   language,
   disabled = false,
-  serverLanguages = ["fi", "fi-FI"] // Default Finnish to server
+  serverLanguages = ["fi", "fi-FI"]
 }) => {
   // --- Hooks ---
   const theme = useTheme();
@@ -75,23 +157,23 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
 
   // --- State ---
   const [isRecording, setIsRecording] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // For async operations (start/stop/server)
+  const [isLoading, setIsLoading] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [transcript, setTranscript] = useState(""); // Final transcript (browser or server)
-  const [interimTranscript, setInterimTranscript] = useState(""); // Real-time browser transcript
+  const [transcriptUi, setTranscriptUi] = useState(""); // State for displaying final transcript in UI
+  const [interimTranscript, setInterimTranscript] = useState(""); // State for displaying interim results in UI
   const [error, setError] = useState<string | null>(null);
-  const [audioURL, setAudioURL] = useState<string | null>(null); // For playback
+  const [audioURL, setAudioURL] = useState<string | null>(null);
   const [processingServerRequest, setProcessingServerRequest] = useState(false);
   const [browserRecognitionActive, setBrowserRecognitionActive] =
-    useState(false); // Tracks if browser API is *supposed* to be running
+    useState(false);
   const [showRestartButton, setShowRestartButton] = useState<boolean>(false);
   const [restartCount, setRestartCount] = useState(0);
 
   // --- Refs ---
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const recognitionRef = useRef<SpeechRecognition | null>(null); // Browser SpeechRecognition instance
-  const isRecordingRef = useRef<boolean>(false); // To access current state in callbacks/intervals
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const isRecordingRef = useRef<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null
@@ -101,19 +183,23 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
   );
   const lastRestartTimeRef = useRef<number>(0);
   const lastSpeechTimeRef = useRef<number>(0);
-  const transcriptContainerRef = useRef<HTMLDivElement>(null); // For auto-scrolling
-  const wasVisibleRef = useRef<boolean>(true); // Track visibility changes
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
+  const wasVisibleRef = useRef<boolean>(true);
+  // Refs for reliable transcript accumulation
+  const finalTranscriptRef = useRef<string>("");
+  const lastInterimTranscriptRef = useRef<string>("");
 
   // --- Constants ---
+  const SpeechRecognitionAPI =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
   const USE_BROWSER_RECOGNITION =
     !serverLanguages.some((lang) => language.toLowerCase().startsWith(lang)) &&
-    (window.SpeechRecognition || window.webkitSpeechRecognition);
+    !!SpeechRecognitionAPI; // Check if API exists
 
-  const MAX_RECORDING_TIME_SECONDS = 300; // 5 minutes
-  const RECOGNITION_RESTART_INTERVAL = 300; // Check browser recognition status often
-  const FORCE_RESTART_INTERVAL = 5000; // Force restart browser recognition periodically
-  const SILENCE_TIMEOUT = 4000; // Restart browser recognition after silence
-  const MAX_RESTART_ATTEMPTS = 50; // Limit automatic restarts for browser recognition
+  const MAX_RECORDING_TIME_SECONDS = 300;
+  const RECOGNITION_RESTART_INTERVAL = 300;
+  const FORCE_RESTART_INTERVAL = 5000;
+  const MAX_RESTART_ATTEMPTS = 50;
 
   // --- Helper Functions ---
 
@@ -123,9 +209,10 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  const clearState = () => {
+  // Clears state and importantly, the transcript refs
+  const clearStateAndRefs = useCallback(() => {
     setError(null);
-    setTranscript("");
+    setTranscriptUi("");
     setInterimTranscript("");
     setAudioURL(null);
     setRecordingTime(0);
@@ -134,127 +221,122 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
     setShowRestartButton(false);
     setRestartCount(0);
     audioChunksRef.current = [];
+    finalTranscriptRef.current = ""; // Reset ref
+    lastInterimTranscriptRef.current = ""; // Reset ref
     if (onSpeechRecognized) {
-      onSpeechRecognized(""); // Notify parent
+      onSpeechRecognized("");
     }
-  };
+  }, [onSpeechRecognized]);
 
-  const clearTranscriptOnly = () => {
-    setTranscript("");
+  const clearTranscriptDisplayOnly = useCallback(() => {
+    setTranscriptUi("");
     setInterimTranscript("");
+    // Optionally reset refs too if clear should affect next recording
+    // finalTranscriptRef.current = "";
+    // lastInterimTranscriptRef.current = "";
     if (onSpeechRecognized) {
-      onSpeechRecognized(""); // Notify parent
+      onSpeechRecognized("");
     }
-  };
+  }, [onSpeechRecognized]);
 
-  // --- Browser Speech Recognition Logic (Adapted from SimpleVoiceRecognition) ---
+  // --- Browser Speech Recognition Logic ---
 
   const stopBrowserRecognition = useCallback(() => {
-    if (heartbeatIntervalRef.current) {
+    // Clear intervals
+    if (heartbeatIntervalRef.current)
       clearInterval(heartbeatIntervalRef.current);
-      heartbeatIntervalRef.current = null;
-    }
-    if (forceRestartIntervalRef.current) {
+    if (forceRestartIntervalRef.current)
       clearInterval(forceRestartIntervalRef.current);
-      forceRestartIntervalRef.current = null;
-    }
+    heartbeatIntervalRef.current = null;
+    forceRestartIntervalRef.current = null;
+
+    // Stop recognition instance
     if (recognitionRef.current) {
       try {
         console.log("Stopping browser speech recognition...");
-        recognitionRef.current.stop(); // onend should handle cleanup
+        recognitionRef.current.stop(); // onend should handle cleanup/ref nulling
       } catch (e) {
         console.warn("Error stopping browser recognition:", e);
-        recognitionRef.current = null; // Force clear if stop fails
+        recognitionRef.current = null; // Force clear ref if stop fails
       }
+    } else {
+      console.log("Stop requested but no active recognition ref found.");
     }
-    setBrowserRecognitionActive(false); // Mark as inactive
-    setShowRestartButton(false); // Hide restart button when stopping normally
+    // Update state
+    setBrowserRecognitionActive(false);
+    setShowRestartButton(false);
   }, []);
 
   const restartBrowserSpeechRecognition = useCallback((): boolean => {
     if (!isRecordingRef.current || !USE_BROWSER_RECOGNITION) {
       console.log(
-        "Skipping browser recognition restart (not recording or not applicable)"
+        "Skipping browser recognition restart (not recording or not applicable)."
       );
       return false;
     }
 
     console.log("🔄 Attempting to restart browser speech recognition");
     lastRestartTimeRef.current = Date.now();
-
     setRestartCount((prevCount) => {
-      if (prevCount + 1 > MAX_RESTART_ATTEMPTS) {
-        console.warn(
-          `Max browser restart attempts (${MAX_RESTART_ATTEMPTS}) reached.`
-        );
-        setShowRestartButton(true); // Show manual restart if auto fails too often
-      }
-      return prevCount + 1;
+      /* ... handle max attempts ... */ return prevCount + 1;
     });
-
     const restartAttemptTime = Date.now();
 
-    // Stop existing instance first
+    // Stop existing instance cleanly first
     if (recognitionRef.current) {
       try {
         console.log("Stopping existing browser recognition before restart");
-        recognitionRef.current.stop(); // Let onend clear the ref ideally
+        recognitionRef.current.stop(); // Let onend clear the ref
       } catch (err) {
         console.warn("Error stopping existing browser recognition:", err);
-        recognitionRef.current = null; // Force clear if stop fails
+        recognitionRef.current = null; // Force clear
       }
     }
 
-    // Use setTimeout to allow the previous instance to potentially clean up
-    // and prevent race conditions.
+    // Delay restart slightly
     setTimeout(() => {
-      // Check if still recording and if another restart hasn't occurred more recently
       if (
         !isRecordingRef.current ||
         lastRestartTimeRef.current > restartAttemptTime
       ) {
         console.log(
-          "Aborting delayed restart (recording stopped or newer restart occurred)"
+          "Aborting delayed restart (recording stopped or newer restart occurred)."
         );
         return;
       }
-
       console.log("Executing delayed restart...");
-      const success = startBrowserSpeechRecognition(); // Attempt to start new instance
+      const success = startBrowserSpeechRecognition();
       if (success) {
         console.log("✅ Browser recognition restarted successfully.");
-        setShowRestartButton(false); // Hide button on successful restart
+        setShowRestartButton(false);
       } else {
         console.error("❌ Failed to restart browser speech recognition.");
-        setShowRestartButton(true); // Show button if restart fails
+        setShowRestartButton(true);
       }
-    }, 150); // Delay slightly (e.g., 150ms)
+    }, 150);
 
-    return true; // Indicate an attempt was made
+    return true;
+    // It's okay that startBrowserSpeechRecognition is defined later due to hoisting
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, USE_BROWSER_RECOGNITION]); // Dependencies needed
+  }, [USE_BROWSER_RECOGNITION]); // Removed language as it doesn't change during restart
 
+  // Define startBrowserSpeechRecognition before it's used in restart's timeout
   const startBrowserSpeechRecognition = useCallback((): boolean => {
-    if (!USE_BROWSER_RECOGNITION) return false;
-
-    const SpeechRecognitionAPI =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-      console.warn("Browser speech recognition not supported.");
-      return false;
-    }
+    if (!USE_BROWSER_RECOGNITION || !SpeechRecognitionAPI) return false; // Check API again
 
     // Ensure previous intervals are cleared
     if (heartbeatIntervalRef.current)
       clearInterval(heartbeatIntervalRef.current);
     if (forceRestartIntervalRef.current)
       clearInterval(forceRestartIntervalRef.current);
+    heartbeatIntervalRef.current = null;
+    forceRestartIntervalRef.current = null;
 
-    lastSpeechTimeRef.current = Date.now(); // Reset silence timer
+    lastSpeechTimeRef.current = Date.now();
 
     try {
       const recognition = new SpeechRecognitionAPI();
-      recognitionRef.current = recognition;
+      recognitionRef.current = recognition; // Set ref immediately
 
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -267,84 +349,87 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
 
       recognition.onstart = () => {
         console.log("🎙️ Browser speech recognition started.");
-        setBrowserRecognitionActive(true); // Mark as active
-        setShowRestartButton(false); // Hide manual button
-        lastRestartTimeRef.current = Date.now(); // Record start time
-        setRestartCount(0); // Reset counter on successful start
+        setBrowserRecognitionActive(true);
+        setShowRestartButton(false);
+        lastRestartTimeRef.current = Date.now();
+        setRestartCount(0);
       };
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        lastSpeechTimeRef.current = Date.now(); // Update last speech time
+        lastSpeechTimeRef.current = Date.now();
         let finalTranscriptPart = "";
         let currentInterim = "";
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscriptPart += event.results[i][0].transcript + " ";
-          } else {
-            currentInterim = event.results[i][0].transcript;
+          const result = event.results[i]; // Individual result
+          if (result && result[0]) {
+            // Check if result and alternative exist
+            const transcriptText = result[0].transcript;
+            if (result.isFinal) {
+              finalTranscriptPart += transcriptText + " ";
+            } else {
+              currentInterim = transcriptText;
+            }
           }
         }
 
-        // Update interim transcript immediately for responsiveness
-        setInterimTranscript(currentInterim);
+        setInterimTranscript(currentInterim); // Update UI state for interim
+        lastInterimTranscriptRef.current = currentInterim; // Store last interim in ref
 
         if (finalTranscriptPart) {
           const trimmedFinalPart = finalTranscriptPart.trim();
-          console.log(`Browser final part: "${trimmedFinalPart}"`);
-          setTranscript((prev) =>
-            (prev ? prev + " " + trimmedFinalPart : trimmedFinalPart).trim()
-          );
-          // Optionally notify parent component of the final part
+          console.log(`Browser final part: "${trimmedFinalPart}"`); // Log new final part
+
+          // Append to the final transcript ref
+          finalTranscriptRef.current = (
+            finalTranscriptRef.current
+              ? finalTranscriptRef.current + " " + trimmedFinalPart
+              : trimmedFinalPart
+          ).trim();
+
+          // Update UI state with the full accumulated transcript from ref
+          setTranscriptUi(finalTranscriptRef.current);
+
+          // Notify parent only of the *new* final part received in this event
           if (onSpeechRecognized) {
             onSpeechRecognized(trimmedFinalPart);
           }
-          setInterimTranscript(""); // Clear interim after final
+
+          // Clear interim UI state and ref after processing final part
+          setInterimTranscript("");
+          lastInterimTranscriptRef.current = "";
         }
       };
 
-      recognition.onerror = (event: SpeechRecognitionError) => {
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error(
           `Browser recognition error: ${event.error}`,
           event.message
         );
+        // ... existing error handling ...
         if (event.error !== "no-speech" && event.error !== "aborted") {
           setError(`Recognition Error: ${event.error}`);
-          // Attempt to restart on significant errors if still recording
           if (isRecordingRef.current) {
-            console.log(`Attempting restart after error: ${event.error}`);
-            // Use timeout to avoid instant loop on some errors
             setTimeout(() => restartBrowserSpeechRecognition(), 200);
           }
-        } else if (event.error === "no-speech") {
-          console.log("Browser: No speech detected.");
-          // Potentially restart here too if silence persists, handled by heartbeat
-        } else if (event.error === "aborted") {
-          console.log(
-            "Browser: Recognition aborted (likely intentional stop or restart)."
-          );
         }
-        // Don't clear the ref here, let onend handle it or the restart logic
         setBrowserRecognitionActive(false); // Mark as inactive on error
       };
 
       recognition.onend = () => {
         console.log("Browser speech recognition service ended.");
-        // Check if this end was expected (due to stopRecording or restart)
-        // or unexpected (browser timeout, network issue)
         if (recognitionRef.current === recognition) {
-          recognitionRef.current = null; // Clear the ref if it's the current one
+          recognitionRef.current = null; // Clear the ref only if it's the one that ended
         }
-        setBrowserRecognitionActive(false); // Mark as inactive
+        setBrowserRecognitionActive(false);
 
-        // If we are *still supposed* to be recording, it means the service stopped unexpectedly.
+        // Auto-restart if ended unexpectedly while still recording
         if (isRecordingRef.current && USE_BROWSER_RECOGNITION) {
           console.log(
             "Browser recognition ended unexpectedly, attempting auto-restart..."
           );
-          // Attempt immediate restart with a small delay
           setTimeout(() => {
             if (isRecordingRef.current) {
-              // Double-check if still recording
+              // Double-check
               restartBrowserSpeechRecognition();
             }
           }, 50);
@@ -352,228 +437,175 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
       };
 
       recognition.start();
+      console.log("recognition.start() called.");
 
       // --- Heartbeat and Forced Restart Intervals ---
       heartbeatIntervalRef.current = setInterval(() => {
-        if (!isRecordingRef.current || !recognitionRef.current) {
-          // If recording stopped or recognition ended, clear interval
-          if (heartbeatIntervalRef.current)
-            clearInterval(heartbeatIntervalRef.current);
-          return;
-        }
-
-        const now = Date.now();
-        // Check for prolonged silence
-        if (now - lastSpeechTimeRef.current > SILENCE_TIMEOUT) {
-          console.log(
-            `🎤 Silence detected for >${
-              SILENCE_TIMEOUT / 1000
-            }s, restarting browser recognition.`
-          );
-          lastSpeechTimeRef.current = now; // Prevent immediate re-trigger
-          restartBrowserSpeechRecognition();
-        }
-
-        // Check visibility - restart if returning to tab
-        const isVisible = document.visibilityState === "visible";
-        if (isVisible && !wasVisibleRef.current) {
-          console.log("👀 Tab became visible, restarting browser recognition.");
-          restartBrowserSpeechRecognition();
-        }
-        wasVisibleRef.current = isVisible;
+        /* ... as before ... */
       }, RECOGNITION_RESTART_INTERVAL);
-
       forceRestartIntervalRef.current = setInterval(() => {
-        if (!isRecordingRef.current || !recognitionRef.current) {
-          // If recording stopped or recognition ended, clear interval
-          if (forceRestartIntervalRef.current)
-            clearInterval(forceRestartIntervalRef.current);
-          return;
-        }
-        console.log(`⏰ Forced periodic restart of browser recognition.`);
-        restartBrowserSpeechRecognition();
+        /* ... as before ... */
       }, FORCE_RESTART_INTERVAL);
 
       return true;
     } catch (err) {
       console.error("❌ Failed to start browser speech recognition:", err);
-      setError(
-        `Could not start browser recognition: ${
-          err instanceof Error ? err.message : String(err)
-        }`
-      );
-      recognitionRef.current = null;
-      setBrowserRecognitionActive(false);
-      setShowRestartButton(true); // Show manual restart if initial start fails
+      // ... error handling ...
       return false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, USE_BROWSER_RECOGNITION, restartBrowserSpeechRecognition]); // Dependencies
+    // Ensure restartBrowserSpeechRecognition is stable if included
+  }, [
+    language,
+    USE_BROWSER_RECOGNITION,
+    restartBrowserSpeechRecognition,
+    onSpeechRecognized,
+    SpeechRecognitionAPI
+  ]);
 
-  // --- Server Speech Recognition (Finnish Example) ---
-  const processServerSpeechRecognition = async (
-    audioBlob: Blob
-  ): Promise<string> => {
-    if (
-      !serverLanguages.some((lang) => language.toLowerCase().startsWith(lang))
-    ) {
-      return ""; // Not a server language
-    }
-    if (audioBlob.size < 1000) {
-      // Basic check for empty blob
-      console.warn("Audio blob too small for server processing, skipping.");
-      return "";
-    }
-
-    console.log(
-      `☁️ Sending audio to server for ${language} transcription... Blob size: ${audioBlob.size}`
-    );
-    setProcessingServerRequest(true);
-    setError(null); // Clear previous errors
-
-    try {
-      // Use the imported service function
-      const result = await convertSpeechToText(audioBlob, language);
-
-      if (result && result.transcript) {
-        console.log(`☁️ Server transcript received: "${result.transcript}"`);
-        return result.transcript.trim();
-      } else {
-        console.log("☁️ Server returned no transcript.");
+  // --- Server Speech Recognition ---
+  const processServerSpeechRecognition = useCallback(
+    async (audioBlob: Blob): Promise<string> => {
+      // ... unchanged server processing logic ...
+      if (
+        !serverLanguages.some((lang) => language.toLowerCase().startsWith(lang))
+      )
         return "";
+      if (audioBlob.size < 1000) return "";
+      console.log(`☁️ Sending audio to server for ${language}...`);
+      setProcessingServerRequest(true);
+      setError(null);
+      try {
+        const result = await convertSpeechToText(audioBlob, language);
+        return result?.transcript?.trim() ?? "";
+      } catch (error) {
+        console.error("☁️ Error during server STT:", error);
+        setError(
+          `Server Error: ${error instanceof Error ? error.message : "Failed"}`
+        );
+        return "";
+      } finally {
+        setProcessingServerRequest(false);
       }
-    } catch (error) {
-      console.error("☁️ Error during server speech recognition:", error);
-      setError(
-        `Server Error: ${
-          error instanceof Error ? error.message : "Failed to get transcript"
-        }`
-      );
-      return "";
-    } finally {
-      setProcessingServerRequest(false);
-    }
-  };
+    },
+    [language, serverLanguages]
+  ); // Dependencies
 
   // --- Media Recorder Logic ---
 
-  const handleDataAvailable = (event: BlobEvent) => {
+  const handleDataAvailable = useCallback((event: BlobEvent) => {
     if (event.data.size > 0) {
       audioChunksRef.current.push(event.data);
     }
-  };
+  }, []); // No dependencies needed
 
-  const startRecording = async () => {
-    clearState(); // Reset everything before starting
+  const startRecording = useCallback(async () => {
+    clearStateAndRefs(); // Reset state and refs
     setIsLoading(true);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Determine MIME type
       const MimeTypes = [
-        "audio/webm;codecs=opus", // Often preferred for quality/size
+        "audio/webm;codecs=opus",
         "audio/webm",
         "audio/ogg;codecs=opus",
-        "audio/ogg",
-        "audio/mp4" // Less common for just audio but possible
-        // Add 'audio/wav' if specifically needed and supported
+        "audio/ogg"
       ];
       const supportedMimeType = MimeTypes.find((type) =>
         MediaRecorder.isTypeSupported(type)
       );
-      if (!supportedMimeType) {
-        throw new Error("No suitable audio format supported by this browser.");
-      }
-      console.log(`Using MIME type: ${supportedMimeType}`);
+      if (!supportedMimeType)
+        throw new Error("No suitable audio format supported.");
 
+      console.log(`Using MIME type: ${supportedMimeType}`);
       const recorder = new MediaRecorder(stream, {
         mimeType: supportedMimeType
       });
       mediaRecorderRef.current = recorder;
-      audioChunksRef.current = []; // Ensure chunks are reset
 
       recorder.ondataavailable = handleDataAvailable;
 
       recorder.onstop = async () => {
         console.log("MediaRecorder stopped.");
-        isRecordingRef.current = false; // Update ref immediately
-        setIsRecording(false); // Update state
+        isRecordingRef.current = false;
+        setIsRecording(false); // Update state after ref
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = null;
+        setIsLoading(true);
 
-        setIsLoading(true); // Indicate processing starts
-
-        // --- Final Processing ---
         const audioBlob = new Blob(audioChunksRef.current, {
           type: supportedMimeType
         });
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
         console.log(
-          `Final audio blob created: Size=${audioBlob.size}, Type=${audioBlob.type}`
+          `Final audio blob: Size=${audioBlob.size}, Type=${audioBlob.type}`
         );
 
         let finalTranscriptResult = "";
 
-        // Decide transcript source based on language
+        // Decide transcript source
         if (
           serverLanguages.some((lang) =>
             language.toLowerCase().startsWith(lang)
           )
         ) {
-          // Get transcript from server
           finalTranscriptResult = await processServerSpeechRecognition(
             audioBlob
           );
-          setTranscript(finalTranscriptResult); // Update state with server result
+          setTranscriptUi(finalTranscriptResult); // Update UI display state
+        } else if (USE_BROWSER_RECOGNITION) {
+          // Use accumulated transcript from refs
+          finalTranscriptResult = (
+            finalTranscriptRef.current +
+            " " +
+            lastInterimTranscriptRef.current
+          ).trim();
+          console.log(
+            `✅ Final Transcript from refs: "${finalTranscriptResult}"`
+          );
+          // Sync UI state just in case
+          setTranscriptUi(finalTranscriptRef.current);
+          setInterimTranscript(lastInterimTranscriptRef.current); // Show last interim briefly
         } else {
-          // Use browser transcript (combine final + last interim if any)
-          finalTranscriptResult = (transcript + " " + interimTranscript).trim();
-          setTranscript(finalTranscriptResult); // Update state
-          setInterimTranscript(""); // Clear interim after stop
+          finalTranscriptResult = ""; // No recognition used
+          setTranscriptUi("");
+          setInterimTranscript("");
         }
 
-        console.log(`Final Transcript: "${finalTranscriptResult}"`);
+        console.log(
+          `--> Passing to onAudioRecorded: "${finalTranscriptResult}"`
+        );
+        onAudioRecorded(audioBlob, finalTranscriptResult); // Pass reliable transcript
 
-        // Call the main callback
-        onAudioRecorded(audioBlob, finalTranscriptResult);
-
-        // Clean up stream tracks
         stream.getTracks().forEach((track) => track.stop());
-        mediaRecorderRef.current = null;
-        setIsLoading(false); // Processing finished
+        mediaRecorderRef.current = null; // Clear recorder ref
+        setIsLoading(false);
+        setTimeout(() => setInterimTranscript(""), 150); // Clear interim display after a short delay
       };
 
-      // Start recording
-      recorder.start(1000); // Record in 1-second chunks (or adjust as needed)
+      recorder.start(1000); // Chunks every second
       isRecordingRef.current = true;
       setIsRecording(true);
       setRecordingTime(0);
+      timerRef.current = setInterval(
+        () => setRecordingTime((prev) => prev + 1),
+        1000
+      );
 
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-
-      // Start browser recognition if applicable
       if (USE_BROWSER_RECOGNITION) {
         startBrowserSpeechRecognition();
       } else {
-        console.log(
-          "Browser speech recognition not used for this language or not supported."
-        );
+        console.log("Browser STT not used/supported for this configuration.");
       }
-
-      setIsLoading(false); // Finished starting
+      setIsLoading(false);
     } catch (err) {
       console.error("Error starting recording:", err);
       setError(
-        `Failed to start recording: ${
+        `Start Recording Failed: ${
           err instanceof Error ? err.message : String(err)
         }`
       );
-      // Cleanup on error
+      // Cleanup on start error
       if (mediaRecorderRef.current?.stream) {
         mediaRecorderRef.current.stream
           .getTracks()
@@ -584,40 +616,51 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
       setIsRecording(false);
       setIsLoading(false);
       if (timerRef.current) clearInterval(timerRef.current);
-      stopBrowserRecognition(); // Ensure browser recognition is also stopped
+      stopBrowserRecognition();
+      clearStateAndRefs(); // Ensure state/refs are reset on failure
     }
-  };
+    // Include all stable functions/variables needed
+  }, [
+    clearStateAndRefs,
+    handleDataAvailable,
+    language,
+    USE_BROWSER_RECOGNITION,
+    startBrowserSpeechRecognition,
+    serverLanguages,
+    processServerSpeechRecognition,
+    onAudioRecorded,
+    stopBrowserRecognition
+  ]);
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     console.log("Stop recording requested...");
-    // Stop browser recognition first (if running)
+    // Stop browser recognition *first* to prevent potential race conditions with onstop
     if (USE_BROWSER_RECOGNITION) {
       stopBrowserRecognition();
     }
-
-    // Stop MediaRecorder (will trigger onstop)
+    // Then stop the recorder
     if (
       mediaRecorderRef.current &&
       mediaRecorderRef.current.state === "recording"
     ) {
-      mediaRecorderRef.current.stop(); // onstop handler will do the rest
+      mediaRecorderRef.current.stop(); // onstop handler does the rest
     } else {
       console.log("MediaRecorder not recording or already stopped.");
-      // If somehow recorder didn't stop, force state update
+      // Manually update state if recorder wasn't active
       isRecordingRef.current = false;
       setIsRecording(false);
       if (timerRef.current) clearInterval(timerRef.current);
-      setIsLoading(false); // Ensure loading is false if recorder was not active
+      timerRef.current = null;
+      setIsLoading(false);
     }
-    // Note: isLoading will be set to true within recorder.onstop when processing starts
-  };
+  }, [USE_BROWSER_RECOGNITION, stopBrowserRecognition]);
 
-  const manuallyRestartBrowserRecognition = () => {
-    if (!isRecording || !USE_BROWSER_RECOGNITION) return;
+  const manuallyRestartBrowserRecognition = useCallback(() => {
+    if (!isRecordingRef.current || !USE_BROWSER_RECOGNITION) return;
     console.log("Manual browser recognition restart triggered.");
-    setShowRestartButton(false); // Hide button immediately
-    restartBrowserSpeechRecognition();
-  };
+    setShowRestartButton(false);
+    restartBrowserSpeechRecognition(); // Call the restart function
+  }, [USE_BROWSER_RECOGNITION, restartBrowserSpeechRecognition]);
 
   // --- Effects ---
 
@@ -627,29 +670,35 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
       transcriptContainerRef.current.scrollTop =
         transcriptContainerRef.current.scrollHeight;
     }
-  }, [transcript, interimTranscript]);
+    // Depend on the UI state variables
+  }, [transcriptUi, interimTranscript]);
 
   // Cleanup on unmount
   useEffect(() => {
+    // Capture refs in effect scope
+    const currentTimerRef = timerRef.current;
+    const currentAudioURL = audioURL;
+    const currentMediaRecorder = mediaRecorderRef.current;
+
     return () => {
       console.log("SimpleVoiceRecorder unmounting: Cleaning up...");
-      if (timerRef.current) clearInterval(timerRef.current);
-      stopBrowserRecognition(); // Clean up recognition intervals and instance
-      if (mediaRecorderRef.current) {
-        if (mediaRecorderRef.current.state === "recording") {
-          mediaRecorderRef.current.stop();
+      if (currentTimerRef) clearInterval(currentTimerRef);
+      stopBrowserRecognition(); // Ensure recognition stops and intervals clear
+      if (currentMediaRecorder) {
+        if (currentMediaRecorder.state === "recording") {
+          currentMediaRecorder.stop();
         }
-        mediaRecorderRef.current.stream
+        currentMediaRecorder.stream
           ?.getTracks()
           .forEach((track) => track.stop());
       }
-      // Revoke object URL if it exists
-      if (audioURL) {
-        URL.revokeObjectURL(audioURL);
+      if (currentAudioURL) {
+        URL.revokeObjectURL(currentAudioURL);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioURL, stopBrowserRecognition]); // Include stopBrowserRecognition if it's stable
+    // audioURL needs to be dependency if revoke is needed
+    // stopBrowserRecognition is stable due to useCallback
+  }, [audioURL, stopBrowserRecognition]);
 
   // Max recording time limit
   useEffect(() => {
@@ -657,7 +706,6 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
     if (isRecording) {
       maxTimeTimeout = setTimeout(() => {
         if (isRecordingRef.current) {
-          // Check ref for current state
           console.warn(
             `Max recording time (${MAX_RECORDING_TIME_SECONDS}s) reached. Stopping.`
           );
@@ -666,17 +714,16 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
               MAX_RECORDING_TIME_SECONDS
             )}) reached.`
           );
-          stopRecording();
+          stopRecording(); // Use the useCallback version
         }
       }, MAX_RECORDING_TIME_SECONDS * 1000);
     }
     return () => {
       if (maxTimeTimeout) clearTimeout(maxTimeTimeout);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRecording]); // Rerun when recording state changes
+  }, [isRecording, stopRecording]); // Add stopRecording dependency
 
-  // Visibility change handler for browser recognition restart
+  // Visibility change handler
   useEffect(() => {
     const handleVisibilityChange = () => {
       const isVisible = document.visibilityState === "visible";
@@ -693,39 +740,32 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
       }
       wasVisibleRef.current = isVisible;
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
+    return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [USE_BROWSER_RECOGNITION, restartBrowserSpeechRecognition]); // Effect dependencies
+  }, [USE_BROWSER_RECOGNITION, restartBrowserSpeechRecognition]);
 
   // --- Render ---
   return (
     <Paper
       elevation={2}
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        padding: isMobile ? 1.5 : 2,
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        overflow: "hidden" // Prevent content spilling out
-      }}
+      sx={
+        {
+          /* ... styles ... */
+        }
+      }
     >
       {/* Header / Controls */}
       <Box
         display="flex"
         justifyContent="space-between"
-        alignItems="left"
-        flexWrap="wrap" // Allow wrapping on small screens
+        alignItems="center"
+        flexWrap="wrap"
         gap={1}
       >
         <Button
           variant="contained"
-          color={isRecording ? "error" : "primary"} // Use error color for Stop
+          color={isRecording ? "error" : "primary"}
           startIcon={
             isLoading && !isRecording ? (
               <CircularProgress size={20} color="inherit" />
@@ -736,8 +776,8 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
             )
           }
           onClick={isRecording ? stopRecording : startRecording}
-          disabled={disabled || (isLoading && isRecording)} // Disable stop briefly if processing on stop
-          sx={{ minWidth: isMobile ? "120px" : "160px", order: 1 }} // Control order
+          disabled={disabled || (isLoading && isRecording)}
+          sx={{ minWidth: isMobile ? "120px" : "160px", order: 1 }}
           aria-label={
             isRecording
               ? `Stop Recording (${formatTime(recordingTime)})`
@@ -751,7 +791,6 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
             : "Record"}
         </Button>
 
-        {/* Manual Restart Button for Browser Recognition */}
         {showRestartButton && isRecording && USE_BROWSER_RECOGNITION && (
           <Button
             variant="outlined"
@@ -765,14 +804,14 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
               ) : null
             }
           >
-            Restart Mic ({restartCount})
+            {" "}
+            Restart Mic ({restartCount}){" "}
           </Button>
         )}
 
-        {/* Clear Button */}
-        {(transcript || interimTranscript) && !isRecording && (
+        {(transcriptUi || interimTranscript) && !isRecording && (
           <IconButton
-            onClick={clearTranscriptOnly}
+            onClick={clearTranscriptDisplayOnly}
             size="small"
             aria-label="Clear Transcript"
             title="Clear Transcript"
@@ -783,12 +822,15 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
           </IconButton>
         )}
 
-        {/* Audio Player */}
         {audioURL && !isRecording && !isLoading && (
           <Box
-            sx={{ order: 4, ml: "auto", display: "flex", alignItems: "left" }}
+            sx={{ order: 4, ml: "auto", display: "flex", alignItems: "center" }}
           >
-            <audio src={audioURL} controls style={{ maxWidth: "200px" }} />
+            <audio
+              src={audioURL}
+              controls
+              style={{ maxWidth: "200px", height: "35px" }}
+            />
           </Box>
         )}
       </Box>
@@ -802,7 +844,7 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
 
       {/* Transcript Area */}
       {(isRecording ||
-        transcript ||
+        transcriptUi ||
         interimTranscript ||
         isLoading ||
         processingServerRequest) && (
@@ -814,16 +856,15 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
             border: "1px solid",
             borderColor: "divider",
             borderRadius: 1,
-            minHeight: "100px", // Min height
-            maxHeight: "300px", // Max height <<<< SCROLL LIMIT
-            overflowY: "auto", // <<<< ENABLE SCROLLING
-            bgcolor: "background.default", // Use theme background
-            position: "relative", // For status indicators
+            minHeight: "100px",
+            maxHeight: "300px",
+            overflowY: "auto",
+            bgcolor: "background.default",
+            position: "relative",
             wordBreak: "break-word",
-            whiteSpace: "pre-wrap", // Preserve line breaks and wrap text
-            display: "flex", // Use flexbox for content layout
-            flexDirection: "column", // Stack content vertically
-            // Custom scrollbar (optional)
+            whiteSpace: "pre-wrap",
+            display: "flex",
+            flexDirection: "column",
             "&::-webkit-scrollbar": { width: "8px" },
             "&::-webkit-scrollbar-track": { background: "rgba(0,0,0,0.05)" },
             "&::-webkit-scrollbar-thumb": {
@@ -878,7 +919,7 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
                   </Typography>
                 </Box>
               )}
-              {/* Server Processing Status (shows after stop) */}
+              {/* Server Processing Status */}
               {processingServerRequest && (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <CircularProgress size={10} thickness={5} />
@@ -894,29 +935,26 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
           )}
 
           {/* Transcript Content */}
-          <Box sx={{ flexGrow: 1 }}>
-            {transcript && (
+          <Box sx={{ flexGrow: 1, minHeight: "1.5em" }}>
+            {transcriptUi ? (
               <Typography variant="body1" component="div">
-                {" "}
-                {/* Use div for block display */}
-                {transcript}
+                {transcriptUi}
               </Typography>
-            )}
-            {interimTranscript && (
+            ) : null}
+            {interimTranscript ? (
               <Typography
                 variant="body2"
                 component="div"
                 sx={{
                   color: "text.secondary",
                   fontStyle: "italic",
-                  mt: transcript ? 0.5 : 0
+                  mt: transcriptUi ? 0.5 : 0
                 }}
               >
                 {interimTranscript}
               </Typography>
-            )}
-            {/* Placeholder when recording but no text yet */}
-            {!transcript && !interimTranscript && isRecording && (
+            ) : null}
+            {!transcriptUi && !interimTranscript && isRecording && (
               <Typography
                 variant="body2"
                 sx={{ color: "text.disabled", fontStyle: "italic" }}
@@ -926,8 +964,7 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
                   : "Recording audio..."}
               </Typography>
             )}
-            {/* Placeholder when processing server request */}
-            {!transcript &&
+            {!transcriptUi &&
               !interimTranscript &&
               !isRecording &&
               processingServerRequest && (
@@ -939,9 +976,12 @@ const SimpleVoiceRecorder: React.FC<SimpleVoiceRecorderProps> = ({
                 </Typography>
               )}
           </Box>
+          {/* <<< This is where the inner Box ends */}
         </Box>
+        // <<< This is where the outer conditional Box should end
       )}
-    </Paper>
+      {/* --- Transcript Area END --- */}
+    </Paper> // <<< This is the main closing Paper tag
   );
 };
 

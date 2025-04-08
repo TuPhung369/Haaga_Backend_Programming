@@ -1,31 +1,9 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo
-} from "react";
+// src/components/LanguageAIComponent.tsx
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  Box,
-  Typography,
-  Button,
-  Paper,
-  CircularProgress,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  SelectChangeEvent,
-  Alert,
-  IconButton,
-  Collapse
-} from "@mui/material";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import StopIcon from "@mui/icons-material/Stop";
-import VoiceRecorder from "./SimpleVoiceRecorder";
-import ServiceStatusNotification from "./ServiceStatusNotification";
+import { Box, SelectChangeEvent } from "@mui/material"; // Added SelectChangeEvent
+
+// --- Service Imports ---
 import {
   convertTextToSpeech,
   getSupportedLanguages,
@@ -37,1869 +15,507 @@ import {
   getAIResponseFromN8n,
   getLanguageConversations
 } from "../services/LanguageService";
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
-import remarkGfm from "remark-gfm";
-import { stripMarkdown } from "../utils/TextUtils";
-import mermaid from "mermaid";
-import rehypeRaw from "rehype-raw";
+
+// --- Redux Imports ---
 import {
   fetchMessagesStart,
   fetchMessagesSuccess,
-  fetchMessagesFailure,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  addMessage
+  fetchMessagesFailure
 } from "../redux/slices/languageSlice";
-import { LanguageInteraction } from "../models/LanguageAI";
+import { RootState } from "../type/types"; // Assuming store exports RootState type
+
+// --- Utility Imports ---
+import { stripMarkdown } from "../utils/TextUtils";
+
+// --- Child Component Imports ---
+// Removed VoiceRecorder import
+import ServiceStatusNotification from "./ServiceStatusNotification";
+import { ChatControls } from "./ChatControls";
+import { ChatWindow } from "./ChatWindow";
+
+// --- Type Imports ---
 import {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  v4 as uuidv4
-} from "uuid";
+  ProficiencyLevel,
+  ResponseMetadata,
+  ChatMessageData,
+  LanguageInteraction,
+  ChatControlsProps,
+  ChatWindowProps
+} from "../type/languageAI";
 
-// Define Redux store state interface
-interface RootState {
-  user: {
-    userInfo: {
-      id: string;
-      username: string;
-      // Add other userInfo fields as needed
-    };
-    roles: string[];
-    allUsers: Array<{ id: string; name: string }>;
-    isUserInfoInvalidated: boolean;
-    isRolesInvalidated: boolean;
-  };
-  auth: {
-    token: string;
-  };
-  language: {
-    messages: Array<{
-      id: string;
-      userMessage: string;
-      aiResponse: string;
-      createdAt: Date;
-    }>;
-    loading: boolean;
-  };
-}
+// --- Component Definition ---
 
-// Define proficiency levels for the component
-enum ProficiencyLevel {
-  Beginner = "BEGINNER",
-  Intermediate = "INTERMEDIATE",
-  Advanced = "ADVANCED",
-  Fluent = "FLUENT",
-  Native = "NATIVE"
-}
-
-// API URL hardcoded to localhost:8080
-// No need for API_URL here as it's handled in the service
-
-interface LanguagePracticeAIProps {
-  // userId is kept for potential future use
-  userId?: string;
-}
-
-interface ResponseMetadata {
-  responseTime?: number;
-  responseSource?: "n8n" | "fallback";
-  sessionId?: string;
-  rawResponse?: Record<string, unknown>;
-  isSimulated?: boolean;
-}
-
-// Add a component for rendering Mermaid diagrams
-interface MermaidDiagramProps {
-  content: string;
-  onRenderComplete?: (svg: string) => void;
-}
-
-const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
-  content,
-  onRenderComplete
-}) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [svgContent, setSvgContent] = useState<string>("");
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    setSvgContent(""); // Clear previous SVG
-
-    // Configure Mermaid with explicit Gantt settings for better rendering
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: "default",
-      securityLevel: "loose",
-      fontFamily: "Arial",
-      gantt: {
-        titleTopMargin: 25,
-        barHeight: 20,
-        barGap: 4,
-        topPadding: 50,
-        leftPadding: 75,
-        gridLineStartPadding: 35,
-        fontSize: 14,
-        axisFormat: "%d %b", // Format the axis to show day and month
-        useWidth: 1200 // Ensure the diagram is wide enough to show all days
-      }
-    });
-
-    // Clean up the Mermaid content
-    let cleanedContent = content.trim();
-    cleanedContent = cleanedContent
-      .replace(/^```mermaid\s*/, "")
-      .replace(/```\s*$/, "");
-
-    // Remove any erroneous [object Object] or trailing commas
-    cleanedContent = cleanedContent.replace(
-      /\${2}\s{3}object Object\s{3}\${2}/g,
-      ""
-    );
-    cleanedContent = cleanedContent.replace(/,\s*$/gm, "");
-
-    // Basic validation
-    const validDiagramTypes = [
-      "gantt",
-      "flowchart",
-      "sequenceDiagram",
-      "classDiagram",
-      "stateDiagram"
-    ];
-    const firstLine = cleanedContent.split("\n")[0].trim();
-    if (!validDiagramTypes.some((type) => firstLine.startsWith(type))) {
-      setError(
-        `Invalid or unrecognized Mermaid diagram type. Content must start with a valid type (e.g., gantt, flowchart). Received: ${firstLine.substring(
-          0,
-          50
-        )}...`
-      );
-      setLoading(false);
-      return;
-    }
-
-    console.log("Cleaned Mermaid content for rendering:", cleanedContent);
-
-    try {
-      const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-      mermaid
-        .render(id, cleanedContent)
-        .then((result) => {
-          setSvgContent(result.svg);
-          setLoading(false);
-          console.log("Mermaid diagram rendered successfully");
-
-          // Call the callback with the rendered SVG if provided
-          if (onRenderComplete) {
-            onRenderComplete(result.svg);
-          }
-        })
-        .catch((err) => {
-          console.error("Mermaid render failed:", err);
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          setError(`Failed to render diagram: ${errorMessage}`);
-          setLoading(false);
-        });
-    } catch (e) {
-      console.error("Mermaid processing error:", e);
-      setError(
-        `Failed to process diagram: ${
-          e instanceof Error ? e.message : String(e)
-        }`
-      );
-      setLoading(false);
-    }
-  }, [content, onRenderComplete]);
-
-  return (
-    <div
-      className="mermaid-diagram-container"
-      style={{ marginTop: "10px", marginBottom: "10px", width: "100%" }}
-    >
-      {loading && <div className="loading-indicator">Loading diagram...</div>}
-      {error && (
-        <div
-          className="error-message"
-          style={{ color: "red", whiteSpace: "pre-wrap" }}
-        >
-          Error rendering diagram: {error}
-        </div>
-      )}
-      {svgContent && !error && (
-        <div
-          ref={containerRef}
-          className="mermaid-svg-container"
-          style={{
-            overflowX: "auto", // Allow horizontal scrolling if needed
-            overflowY: "auto", // Allow vertical scrolling if needed
-            maxWidth: "100%", // Ensure it fits within the parent container
-            minHeight: "400px", // Minimum height to ensure visibility
-            maxHeight: "80vh", // Maximum height relative to viewport
-            width: "auto", // Allow the diagram to take its natural width
-            padding: "10px" // Add padding for better spacing
-          }}
-          dangerouslySetInnerHTML={{ __html: svgContent }}
-        />
-      )}
-    </div>
-  );
-};
-
-// Create a DiagramViewer component to handle diagrams with toggle options
-interface DiagramViewerProps {
-  mermaidContent: string;
-}
-
-// DiagramViewer component for toggling between Mermaid diagram and source code view
-const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
-  ({ mermaidContent }) => {
-    // Generate a stable ID based on the content for localStorage key
-    const diagramId = useMemo(() => {
-      // Simple hash function to create a stable ID for this diagram content
-      let hash = 0;
-      const content = mermaidContent;
-      for (let i = 0; i < content.length; i++) {
-        const char = content.charCodeAt(i);
-        hash = (hash << 5) - hash + char;
-        hash = hash & hash; // Convert to 32bit integer
-      }
-      return `diagram-${Math.abs(hash).toString(16).substring(0, 8)}`;
-    }, [mermaidContent]);
-
-    // Get the stored view mode from localStorage or use default
-    const getStoredViewMode = useCallback(() => {
-      try {
-        const stored = localStorage.getItem(`viewMode-${diagramId}`);
-        if (stored && ["mermaid", "mermaid-code"].includes(stored)) {
-          return stored as "mermaid" | "mermaid-code";
-        }
-      } catch (e) {
-        console.warn(
-          "Failed to retrieve stored view mode from localStorage",
-          e
-        );
-      }
-      return "mermaid"; // Default view
-    }, [diagramId]);
-
-    // State for the current view mode, initialized from storage
-    const [viewMode, setViewMode] = useState<"mermaid" | "mermaid-code">(
-      getStoredViewMode()
-    );
-
-    // Store the viewMode in localStorage when it changes
-    useEffect(() => {
-      try {
-        localStorage.setItem(`viewMode-${diagramId}`, viewMode);
-      } catch (e) {
-        console.warn("Failed to store view mode in localStorage", e);
-      }
-    }, [viewMode, diagramId]);
-
-    // Check if diagram has been rendered already and cache SVG
-    const [renderCache, setRenderCache] = useState(() => {
-      try {
-        const cached = localStorage.getItem(`diagram-cache-${diagramId}`);
-        return cached ? JSON.parse(cached) : { rendered: false, svg: null };
-      } catch {
-        return { rendered: false, svg: null };
-      }
-    });
-
-    // Callback to receive the rendered SVG from MermaidDiagram
-    const handleMermaidRenderComplete = useCallback(
-      (svg: string) => {
-        console.log(`Received SVG for ${diagramId}, setting cache.`);
-        setRenderCache({ rendered: true, svg: svg });
-      },
-      [diagramId]
-    );
-
-    // Save rendering state and SVG to localStorage
-    useEffect(() => {
-      if (renderCache.rendered && renderCache.svg) {
-        try {
-          localStorage.setItem(
-            `diagram-cache-${diagramId}`,
-            JSON.stringify(renderCache)
-          );
-        } catch (error) {
-          console.warn("Failed to store diagram cache in localStorage", error);
-        }
-      }
-    }, [renderCache, diagramId]);
-
-    // Memoize the diagram content to prevent unnecessary re-renders
-    const mermaidDiagram = useMemo(() => {
-      if (viewMode !== "mermaid") return null;
-      // If already rendered and we have the SVG, display it directly
-      if (renderCache.rendered && renderCache.svg) {
-        return (
-          <div
-            className="mermaid-diagram-container mermaid-centered"
-            dangerouslySetInnerHTML={{ __html: renderCache.svg }}
-          />
-        );
-      }
-      return (
-        <MermaidDiagram
-          content={mermaidContent}
-          onRenderComplete={handleMermaidRenderComplete}
-        />
-      );
-    }, [mermaidContent, viewMode, renderCache, handleMermaidRenderComplete]);
-
-    const mermaidCodeView = useMemo(() => {
-      if (viewMode !== "mermaid-code") return null;
-      return (
-        <div className="code-container">
-          <SyntaxHighlighter language="markdown" style={dracula}>
-            {mermaidContent}
-          </SyntaxHighlighter>
-        </div>
-      );
-    }, [mermaidContent, viewMode]);
-
-    return (
-      <div
-        className="diagram-viewer-container"
-        style={{ marginTop: "15px", marginBottom: "15px" }}
-      >
-        <div className="diagram-toolbar" style={{ marginBottom: "10px" }}>
-          <Button
-            variant={viewMode === "mermaid" ? "contained" : "outlined"}
-            color="primary"
-            size="small"
-            onClick={() => setViewMode("mermaid")}
-            sx={{ mr: 1 }}
-          >
-            Diagram
-          </Button>
-
-          <Button
-            variant={viewMode === "mermaid-code" ? "contained" : "outlined"}
-            color="primary"
-            size="small"
-            onClick={() => setViewMode("mermaid-code")}
-          >
-            Code View
-          </Button>
-        </div>
-
-        <div className="diagram-content">
-          {mermaidDiagram}
-          {mermaidCodeView}
-        </div>
-      </div>
-    );
-  }
-);
-
-// Function to preprocess markdown text for better rendering
-const preprocessMarkdown = (markdown: string): string => {
-  // Convert bold text
-  markdown = markdown.replace(/\*\*(\S.*?\S|\S)\*\*/g, "<strong>$1</strong>");
-  // Convert italic text
-  markdown = markdown.replace(/\*(\S.*?\S|\S)\*/g, "<em>$1</em>");
-  // Convert inline code
-  markdown = markdown.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-  return markdown;
-};
-
-const LanguageAIComponent: React.FC<LanguagePracticeAIProps> = ({
-  userId = "guest"
-}) => {
-  // Get user info from Redux store
+const LanguageAIComponent: React.FC = () => {
+  // --- Redux State ---
   const { userInfo } = useSelector((state: RootState) => state.user);
-  // Get auth token from Redux store
-  const { token } = useSelector((state: RootState) => state.auth);
-  // Get language messages from Redux store
+  // Ensure token is handled as potentially null
+  const token = useSelector((state: RootState) => state.auth.token) || null;
   const { messages: previousMessages, loading: isLoadingMessages } =
     useSelector((state: RootState) => state.language);
-  // Initialize dispatch
   const dispatch = useDispatch();
 
-  // Get the actual user ID from Redux or fall back to the prop value
-  const actualUserId = userInfo?.id || userId;
-  // Get username from Redux or use fallback
-  const username = userInfo?.username || "User";
-
+  // --- Component State ---
+  // Configuration
   const [language, setLanguage] = useState<string>("en-US");
-  const [userMessage, setUserMessage] = useState<string>("");
-  const [aiResponse, setAiResponse] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isGeneratingResponse, setIsGeneratingResponse] =
-    useState<boolean>(false);
-  const [isRenderingContent, setIsRenderingContent] = useState<boolean>(false);
-  const [supportedLanguages] = useState(getSupportedLanguages());
-  const [supportedVoices, setSupportedVoices] = useState<
-    Array<{ id: string; name: string; description?: string }>
-  >([]);
-  const [selectedVoice, setSelectedVoice] = useState<string>("");
   const [proficiencyLevel, setProficiencyLevel] = useState<string>(
     ProficiencyLevel.Intermediate
   );
-  const [error, setError] = useState<string>("");
+  const [selectedVoice, setSelectedVoice] = useState<string>("");
+  // Ensure initial state type is explicit
+  const [supportedVoices, setSupportedVoices] = useState<
+    Array<{ id: string; name: string; description?: string }>
+  >([]);
+  const [supportedLanguages] = useState(getSupportedLanguages());
+
+  // Chat & Interaction
+  const [messages, setMessages] = useState<ChatMessageData[]>([]);
+  const [aiResponse, setAiResponse] = useState<string>("");
+  const [showPreviousMessages, setShowPreviousMessages] =
+    useState<boolean>(false);
+
+  // Status & Loading
+  const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false);
+  const [isGeneratingResponse, setIsGeneratingResponse] =
+    useState<boolean>(false);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [backendAvailable, setBackendAvailable] = useState<boolean>(true);
+
+  // UI & Misc
+  const [error, setError] = useState<string | null>(null);
   const [responseMetadata, setResponseMetadata] = useState<ResponseMetadata>(
     {}
   );
   const [showDebugInfo, setShowDebugInfo] = useState<boolean>(false);
-  const [messages, setMessages] = useState<
-    { sender: string; content: string; timestamp: string }[]
-  >([]);
+  // Removed unused setAutoSpeak - state not needed if value isn't changed
+  const autoSpeak = true; // If it's always true, make it a const
 
-  // Add state for previous messages
-  const [showPreviousMessages, setShowPreviousMessages] =
-    useState<boolean>(false);
-
+  // --- Refs ---
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const chatContainerRef = useRef<HTMLDivElement | null>(null);
-
-  // Refs to track previous language and proficiency level
   const prevLangRef = useRef<string>(language);
   const prevLevelRef = useRef<string>(proficiencyLevel);
 
-  // Get language name from code - memoized to use in dependencies
+  // --- Derived State & Constants ---
+  const actualUserId = userInfo?.id || "guest";
+  const username = userInfo?.username || "User";
+
+  // --- Helper Functions ---
   const getLanguageName = useCallback(
     (code: string): string => {
-      const language = supportedLanguages.find((lang) => lang.code === code);
-      return language ? language.name : code;
+      return (
+        supportedLanguages.find((lang) => lang.code === code)?.name || code
+      );
     },
     [supportedLanguages]
   );
 
-  // Initialize chat on mount with welcome message
-  useEffect(() => {
-    // Set up initial welcome message based on language and proficiency
-    const welcomeMessage = {
-      sender: "AI",
-      content: `Welcome to language practice! I'm ready to help you practice ${getLanguageName(
-        language
-      )} at the ${proficiencyLevel} level. Say something to begin our conversation.`,
-      timestamp: new Date().toISOString()
-    };
-
-    setMessages([welcomeMessage]);
-
-    // Save references to current language and level
-    prevLangRef.current = language;
-    prevLevelRef.current = proficiencyLevel;
-  }, [actualUserId, language, proficiencyLevel, getLanguageName]);
-
-  // Update welcome message when language or proficiency changes
-  useEffect(() => {
-    // Only update if the language or level actually changed
-    if (
-      prevLangRef.current !== language ||
-      prevLevelRef.current !== proficiencyLevel
-    ) {
-      const updatedWelcomeMessage = {
-        sender: "AI",
-        content: `Language or level changed! Now practicing ${getLanguageName(
-          language
-        )} at the ${proficiencyLevel} level. Say something to continue.`,
-        timestamp: new Date().toISOString()
-      };
-      setMessages([updatedWelcomeMessage]);
-
-      // Update the refs
-      prevLangRef.current = language;
-      prevLevelRef.current = proficiencyLevel;
+  const formatTimestamp = useCallback((timestamp: string): string => {
+    try {
+      const date = new Date(timestamp);
+      return isNaN(date.getTime())
+        ? "Invalid Date"
+        : date.toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            hour12: true
+          });
+    } catch {
+      return "Invalid Date";
     }
-  }, [language, proficiencyLevel, getLanguageName]);
+  }, []);
 
-  // Move scrollToBottom into a useCallback to fix the dependency issue
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messagesEndRef]);
-  // Scroll to bottom of chat when messages update
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  // --- Core Logic Handlers (useCallback) ---
 
-  // Handle language change
-  const handleLanguageChange = (event: SelectChangeEvent) => {
-    const newLanguage = event.target.value;
-    setLanguage(newLanguage);
-
-    // When changing language, update the voice to a compatible one
-    if (newLanguage === "fi-FI") {
-      // For Finnish, use the finnish-neutral voice
-      setSelectedVoice("finnish-neutral");
-
-      // Make sure supportedVoices contains the Finnish voice option
-      const finnishVoiceExists = supportedVoices.some(
-        (voice) => voice.id === "finnish-neutral"
-      );
-      if (!finnishVoiceExists) {
-        setSupportedVoices([
-          ...supportedVoices,
-          {
-            id: "finnish-neutral",
-            name: "Finnish",
-            description: "Google TTS Finnish voice"
-          }
-        ]);
-      }
-    } else if (newLanguage === "en-US" && selectedVoice === "finnish-neutral") {
-      // When switching back to English from Finnish, use a default English voice
-      setSelectedVoice("neutral");
-    }
-
-    // Clear any previous conversations when language changes
-    setMessages([]);
-  };
-
-  // Handle browser-recognized speech
-  const handleSpeechRecognized = (transcript: string) => {
-    // Update the user message with the real-time browser transcript
-    if (transcript) {
-      setUserMessage(transcript);
-    }
-  };
-
-  // Fetch previous messages when userId changes or when explicitly requested
   const fetchPreviousMessages = useCallback(async () => {
-    if (!actualUserId) return;
+    if (!actualUserId || !token) return;
 
     dispatch(fetchMessagesStart());
     try {
-      // Use getLanguageConversations to get user-AI message pairs
       const conversations = await getLanguageConversations(
         actualUserId,
         20,
         token
       );
-      dispatch(fetchMessagesSuccess(conversations));
-    } catch (error) {
-      console.error("Error fetching previous messages:", error);
-      dispatch(
-        fetchMessagesFailure(
-          error instanceof Error ? error.message : "Failed to fetch messages"
-        )
+      const formattedHistory: ChatMessageData[] = conversations.flatMap(
+        (convo: LanguageInteraction): ChatMessageData[] => [
+          {
+            sender: "User",
+            content: convo.userMessage,
+            timestamp: new Date(convo.createdAt).toISOString(),
+            id: convo.id
+          },
+          {
+            sender: "AI",
+            content: convo.aiResponse,
+            timestamp: new Date(convo.createdAt).toISOString(),
+            id: convo.id ? `${convo.id}-ai` : undefined
+          }
+        ]
       );
+      // FIX: Dispatch the formatted history (assuming reducer accepts ChatMessageData[])
+      dispatch(fetchMessagesSuccess(formattedHistory));
+    } catch (fetchError: unknown) {
+      console.error("Error fetching previous messages:", fetchError);
+      const message =
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Failed to fetch messages";
+      dispatch(fetchMessagesFailure(message));
+      setError("Could not load conversation history.");
     }
   }, [actualUserId, token, dispatch]);
 
-  // Fetch messages when component mounts or user changes
-  useEffect(() => {
-    fetchPreviousMessages();
-  }, [fetchPreviousMessages]);
+  // Handles Text-to-Speech request - defined before handleAudioRecorded as it's used there
+  const speakAiResponse = useCallback(
+    async (text: string) => {
+      if (!text || isSpeaking || !audioRef.current) return;
 
-  // Format date for display
-  const formatDate = (date: Date | string | null | undefined) => {
-    if (!date) {
-      return "Invalid Date";
-    }
+      setError(null);
+      setIsSpeaking(true);
+      const cleanText = stripMarkdown(text.replace("[SIMULATION] ", ""));
 
-    try {
-      // Always convert to Date object first
-      const dateObj = new Date(date);
+      try {
+        console.log(
+          `🎙️ Requesting TTS for "${cleanText.substring(
+            0,
+            30
+          )}..." (Voice: ${selectedVoice})`
+        );
+        const audioData = await convertTextToSpeech(
+          cleanText,
+          language,
+          selectedVoice
+        );
 
-      // Check if date is valid
-      if (isNaN(dateObj.getTime())) {
-        return "Invalid Date";
+        if (!audioData) {
+          throw new Error("Text-to-speech service returned no audio data.");
+        }
+
+        audioRef.current.src = audioData;
+        await audioRef.current.play();
+        console.log("🎙️ Audio playback started");
+      } catch (ttsError: unknown) {
+        // Use unknown
+        console.error("Error generating or playing speech:", ttsError);
+        const message =
+          ttsError instanceof Error ? ttsError.message : "Unknown TTS error";
+        setError(`Could not speak response: ${message}`);
+        setIsSpeaking(false);
       }
+    },
+    [language, selectedVoice, isSpeaking] // Dependencies
+  );
 
-      return dateObj.toLocaleString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        hour12: true
-      });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Invalid Date";
-    }
-  };
+  const handleAudioRecorded = useCallback(
+    async (audioBlob: Blob, browserTranscript: string) => {
+      setError(null);
+      setIsProcessingAudio(true);
+      let userTranscript = browserTranscript.trim();
 
-  // Format timestamp for display
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp);
-
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        return "";
-      }
-
-      return date.toLocaleString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        hour12: true
-      });
-    } catch (error) {
-      console.error("Error formatting timestamp:", error);
-      return "";
-    }
-  };
-
-  // Display a conversation in the chat window with message pairs
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const displayConversationInChat = useCallback(
-    (conversation: LanguageInteraction) => {
-      if (
-        !conversation ||
-        !conversation.userMessage ||
-        !conversation.aiResponse ||
-        !conversation.sessionId
-      ) {
-        console.error("Invalid conversation data:", conversation);
+      // 1. Get Transcript
+      if (!userTranscript && backendAvailable) {
+        console.log("No browser transcript, requesting server STT...");
+        try {
+          const result = await convertSpeechToText(audioBlob, language);
+          userTranscript = result.transcript.trim();
+          if (!userTranscript)
+            throw new Error("Server returned empty transcript.");
+          console.log(`Server STT result: "${userTranscript}"`);
+        } catch (speechError: unknown) {
+          // Use unknown
+          console.error("Server STT failed:", speechError);
+          const message =
+            speechError instanceof Error
+              ? speechError.message
+              : "Please try again";
+          setError(`Speech recognition failed: ${message}.`);
+          setIsProcessingAudio(false);
+          return;
+        }
+      } else if (!userTranscript && !backendAvailable) {
+        setError(
+          "Cannot process speech: backend unavailable and no browser transcript."
+        );
+        setIsProcessingAudio(false);
         return;
       }
 
-      // Create user message object Commented
-      const userMessageObj = {
-        sender: "User",
-        content: conversation.userMessage,
-        timestamp: new Date(conversation.createdAt).toISOString()
-      };
-      // Create AI response object Commented
-      const aiResponseObj = {
-        sender: "AI",
-        content: conversation.aiResponse,
-        timestamp: new Date(conversation.createdAt).toISOString()
-      };
-      // Add both messages to chat
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        userMessageObj,
-        aiResponseObj
-      ]);
-
-      // Set the last AI response for potential replay
-      setAiResponse(conversation.aiResponse);
-
-      // Scroll to bottom of chat
-      scrollToBottom();
-    },
-    [setMessages, setAiResponse, scrollToBottom]
-  );
-
-  // Add an autoSpeak state variable
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [autoSpeak, setAutoSpeak] = useState<boolean>(true);
-
-  // Update the handleAudioRecorded function to properly show transcript in chat
-  const handleAudioRecorded = async (
-    audioBlob: Blob,
-    browserTranscript: string
-  ) => {
-    try {
-      // Check if we have a transcript from browser recognition
-      let userMessage = browserTranscript.trim();
-
-      // If no browser transcript, send audio to server for recognition
-      if (!userMessage || userMessage.length === 0) {
-        console.log(
-          "No browser transcript available, sending audio to server for speech-to-text"
-        );
-        setIsLoading(true);
-
-        try {
-          // Use server-side speech recognition as fallback
-          const result = await convertSpeechToText(audioBlob, language);
-          userMessage = result.transcript.trim();
-
-          console.log(`Server speech recognition result: "${userMessage}"`);
-          setIsLoading(false);
-
-          // If still no transcript, show error
-          if (!userMessage || userMessage.length === 0) {
-            console.error(
-              "Empty transcript from both browser and server - cannot send to AI"
-            );
-            setError("I couldn't hear what you said. Please try again.");
-            return;
-          }
-        } catch (speechError) {
-          console.error("Server speech recognition failed:", speechError);
-          setError(
-            "Speech recognition failed. Please try again or type your message."
-          );
-          setIsLoading(false);
-          return;
-        }
+      if (!userTranscript) {
+        setError("I couldn't understand that. Please try speaking again.");
+        setIsProcessingAudio(false);
+        return;
       }
 
-      console.log(`Sending transcript to AI: "${userMessage}"`);
-
-      // Set the user message in the UI
-      setUserMessage(userMessage);
-
-      // Create a user message object and add to messages
-      const userMessageObj = {
+      // 2. Add User Message
+      const userMessageObj: ChatMessageData = {
         sender: "User",
-        content: userMessage,
+        content: userTranscript,
         timestamp: new Date().toISOString()
       };
+      setMessages((prev) => [...prev, userMessageObj]);
+      setIsProcessingAudio(false); // STT finished
 
-      // Add user message to chat window
-      setMessages((messages) => [...messages, userMessageObj]);
-
-      // Scroll to bottom
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-
-      // Send to AI and get response
+      // 3. Get AI Response
       setIsGeneratingResponse(true);
-
+      let aiResponseText = "";
       try {
-        // Call the actual API to get a response from n8n
         const startTime = performance.now();
-
-        // Call the getAIResponseFromN8n function to get a real AI response
-        const aiResponseText = await getAIResponseFromN8n(
-          userMessage,
+        aiResponseText = await getAIResponseFromN8n(
+          userTranscript,
           language,
           proficiencyLevel,
           actualUserId
         );
-
         const responseTime = Math.round(performance.now() - startTime);
-
+        setResponseMetadata({ responseTime, responseSource: "n8n" });
         console.log(`Received AI response in ${responseTime}ms`);
-        setResponseMetadata({
-          responseTime,
-          responseSource: "n8n"
-        });
 
-        // Create AI response object
-        const aiResponseObj = {
+        // 4. Add AI Message
+        const aiMessageObj: ChatMessageData = {
           sender: "AI",
           content: aiResponseText,
           timestamp: new Date().toISOString()
         };
-
-        // Add AI response to chat
-        setMessages((messages) => [...messages, aiResponseObj]);
+        setMessages((prev) => [...prev, aiMessageObj]);
         setAiResponse(aiResponseText);
-        setIsGeneratingResponse(false);
 
-        // Save the interaction to the database
-        try {
-          await saveInteraction({
-            userMessage,
-            aiResponse: aiResponseText,
-            userId: actualUserId,
-            language,
-            proficiencyLevel,
-            token
-          });
-        } catch (saveError) {
-          console.error("Error saving interaction:", saveError);
-          // Continue even if saving fails
-        }
+        // 5. Save Interaction (check token type)
+        saveInteraction({
+          userMessage: userTranscript,
+          aiResponse: aiResponseText,
+          userId: actualUserId,
+          language,
+          proficiencyLevel,
+          // Pass token as string | undefined
+          token: token || undefined
+        }).catch((saveError) => {
+          console.error("Failed to save interaction:", saveError);
+        });
 
-        // Speak the response if auto-speak is enabled
+        // 6. Speak Response
         if (autoSpeak) {
           speakAiResponse(aiResponseText);
         }
-
-        // Scroll to bottom again after AI response
-        setTimeout(() => {
-          scrollToBottom();
-        }, 100);
-      } catch (error) {
-        console.error("Error getting AI response:", error);
-        setError("Failed to get AI response. Please try again.");
+      } catch (aiError: unknown) {
+        // Use unknown
+        console.error("Error getting AI response:", aiError);
+        const message =
+          aiError instanceof Error ? aiError.message : "Please try again.";
+        setError(`Failed to get AI response: ${message}`);
+        const errorMsg: ChatMessageData = {
+          sender: "AI",
+          content: `Sorry, I encountered an error. (${message})`,
+          timestamp: new Date().toISOString()
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+      } finally {
         setIsGeneratingResponse(false);
       }
-    } catch (error) {
-      console.error("Error handling recorded audio:", error);
-      setError("Error processing audio transcript. Please try again.");
-    }
-  };
+    },
+    // Dependencies - add speakAiResponse
+    [
+      language,
+      proficiencyLevel,
+      actualUserId,
+      token,
+      backendAvailable,
+      autoSpeak,
+      // saveInteraction, // Assume stable or defined outside
+      // getAIResponseFromN8n, // Assume stable or defined outside
+      speakAiResponse // Add speakAiResponse
+    ]
+  );
 
-  // Method to handle voice selection change
-  const handleVoiceChange = (event: SelectChangeEvent) => {
-    setSelectedVoice(event.target.value);
-  };
+  const handleSpeechRecognized = useCallback((transcript: string) => {
+    console.log("Browser speech recognized (interim/final):", transcript);
+  }, []);
 
-  // Update the speakAiResponse function to use the selected voice
-  const speakAiResponse = async (text: string) => {
-    if (!text) {
-      setError("No AI response to speak");
-      return;
-    }
-
-    if (!audioRef.current) {
-      setError("Audio element not available");
-      return;
-    }
-
-    setIsRenderingContent(true);
-    setError(""); // Clear previous errors
-
-    try {
-      const cleanText = text.replace("[SIMULATION] ", "");
-      const clearText = stripMarkdown(cleanText);
-      console.log(
-        `🎙️ Converting text to speech: "${clearText.substring(
-          0,
-          30
-        )}..." with voice: ${selectedVoice}`
-      );
-
-      // Try with selected voice first
-      let audioData: string | null = null;
-      let errorMessage: string | null = null;
-
-      try {
-        audioData = await convertTextToSpeech(
-          clearText,
-          language,
-          selectedVoice
-        );
-      } catch (voiceError) {
-        console.error("Error with selected voice:", voiceError);
-        errorMessage =
-          voiceError instanceof Error ? voiceError.message : "Unknown error";
-
-        // If first voice fails, try with a fallback voice (david-en-us)
-        if (selectedVoice !== "david-en-us") {
-          console.log("🎙️ Trying fallback voice: david-en-us");
-          try {
-            audioData = await convertTextToSpeech(
-              clearText,
-              language,
-              "david-en-us"
-            );
-            // If fallback succeeds, update the selected voice
-            if (audioData) {
-              console.log(
-                "🎙️ Fallback voice succeeded, updating selected voice"
-              );
-              setSelectedVoice("david-en-us");
-              errorMessage = null;
-            }
-          } catch (fallbackError) {
-            console.error("Error with fallback voice:", fallbackError);
-          }
-        }
-      }
-
-      if (!audioData) {
-        console.error(
-          `No audio data returned from text-to-speech service. Error: ${errorMessage}`
-        );
-        setError(
-          `Could not generate speech audio. ${
-            errorMessage ? errorMessage : "Please try another voice."
-          }`
-        );
-        setIsRenderingContent(false);
-        return;
-      }
-
-      console.log(`🎙️ Audio data received, length: ${audioData.length} chars`);
-      audioRef.current.src = audioData;
-
-      // Play audio
-      try {
-        await audioRef.current.play();
-        console.log("🎙️ Audio playback started");
-      } catch (playError) {
-        console.error("Error playing audio:", playError);
-        setError(
-          "Could not play audio. " +
-            (playError instanceof Error ? playError.message : "Unknown error")
-        );
-        setIsRenderingContent(false);
-      }
-      // The onEnded event handler on the <audio> element will set isRenderingContent to false
-    } catch (error) {
-      console.error("Error in speakAiResponse:", error);
-      setError(
-        "Failed to generate speech: " +
-          (error instanceof Error ? error.message : "Unknown error")
-      );
-      setIsRenderingContent(false); // Ensure rendering state is reset on error
-    }
-  };
-
-  // Stop AI speech
-  const stopAiSpeech = () => {
+  const stopAiSpeech = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      setIsRenderingContent(false);
+      setIsSpeaking(false);
+      console.log("🎙️ Audio playback stopped by user");
     }
-  };
+  }, []);
 
-  // Initialize voices when component mounts
+  // --- UI Control Handlers ---
+  const handleLanguageChange = useCallback(
+    (event: SelectChangeEvent<string>) => {
+      setLanguage(event.target.value);
+    },
+    []
+  );
+
+  const handleProficiencyChange = useCallback(
+    (event: SelectChangeEvent<string>) => {
+      setProficiencyLevel(event.target.value);
+    },
+    []
+  );
+
+  const handleVoiceChange = useCallback((event: SelectChangeEvent<string>) => {
+    setSelectedVoice(event.target.value);
+  }, []);
+
+  const handleToggleHistory = useCallback(() => {
+    const turningOnHistory = !showPreviousMessages;
+    setShowPreviousMessages(turningOnHistory);
+    if (turningOnHistory && previousMessages.length === 0) {
+      fetchPreviousMessages();
+    }
+  }, [showPreviousMessages, fetchPreviousMessages, previousMessages.length]);
+
+  // --- Effects ---
+
+  // Initialize/Update Voices based on Language
   useEffect(() => {
-    // Use setTimeout to ensure this runs after initial language state is set
-    setTimeout(() => {
-      // Get all available voices
-      const allVoices = getSupportedVoices();
-
-      // Extract language code from initial language (e.g., "en-US" -> "en")
-      const languagePrefix = language.split("-")[0].toLowerCase();
-
-      // Filter voices based on language
-      let filteredVoices = allVoices;
-
-      if (language === "fi-FI") {
-        // For Finnish, only show the Finnish voice
-        filteredVoices = allVoices.filter(
-          (voice) => voice.id === "finnish-neutral"
-        );
-
-        // Make sure we always have at least one voice option
-        if (filteredVoices.length === 0) {
-          // If finnish-neutral is missing from the available voices, add it
-          filteredVoices = [
-            {
-              id: "finnish-neutral",
-              name: "Finnish",
-              description: "Google TTS Finnish voice"
-            }
-          ];
-        }
-      } else {
-        // For other languages, use the standard filtering logic
-        filteredVoices = allVoices.filter((voice) => {
-          const voiceParts = voice.id.split("-");
-          return voiceParts.some(
-            (part) =>
-              part === languagePrefix ||
-              (languagePrefix === "en" && (part === "us" || part === "gb"))
-          );
-        });
-      }
-
-      if (filteredVoices.length > 0) {
-        setSupportedVoices(filteredVoices);
-        setSelectedVoice(filteredVoices[0].id);
-      }
-    }, 0);
-  }, [language]);
-
-  // Add effect to update voices when language changes
-  useEffect(() => {
-    // Skip initial render
-    if (!selectedVoice) return;
-
-    // Get all available voices
     const allVoices = getSupportedVoices();
-
-    // Extract language code from selected language (e.g., "en-US" -> "en")
     const languagePrefix = language.split("-")[0].toLowerCase();
-    console.log(`Language changed to ${language} (prefix: ${languagePrefix})`);
-
-    // Filter voices based on language
-    let filteredVoices = allVoices;
+    // Explicitly type filteredVoices
+    let filteredVoices: Array<{
+      id: string;
+      name: string;
+      description?: string;
+    }> = [];
 
     if (language === "fi-FI") {
-      // For Finnish, only show the Finnish voice
-      filteredVoices = allVoices.filter(
-        (voice) => voice.id === "finnish-neutral"
-      );
-
-      // Make sure we always have at least one voice option
+      filteredVoices = allVoices.filter((v) => v.id === "finnish-neutral");
       if (filteredVoices.length === 0) {
-        // If finnish-neutral is missing from the available voices, add it
-        filteredVoices = [
-          {
-            id: "finnish-neutral",
-            name: "Finnish",
-            description: "Google TTS Finnish voice"
-          }
-        ];
+        filteredVoices.push({
+          id: "finnish-neutral",
+          name: "Finnish",
+          description: "Google TTS Finnish voice"
+        });
       }
+    } else if (languagePrefix === "en") {
+      filteredVoices = allVoices.filter(
+        (v) =>
+          v.id.includes("-en-us") || v.id === "neutral" || v.id.includes("en-")
+      ); // Broaden English match slightly
     } else {
-      // For other languages, use the standard filtering logic
-      filteredVoices = allVoices.filter((voice) => {
-        const voiceParts = voice.id.split("-");
-        return voiceParts.some(
-          (part) =>
-            part === languagePrefix ||
-            (languagePrefix === "en" && (part === "us" || part === "gb"))
-        );
-      });
+      filteredVoices = allVoices.filter(
+        (v) => v.id.includes(`-${languagePrefix}`) || v.id === "neutral"
+      );
     }
 
-    // Set the filtered voices
+    if (filteredVoices.length === 0 && language !== "fi-FI") {
+      const neutralVoice = allVoices.find((v) => v.id === "neutral");
+      if (neutralVoice) filteredVoices.push(neutralVoice);
+    }
+
     setSupportedVoices(filteredVoices);
 
-    // Set default voice to the first one in the filtered list
-    if (filteredVoices.length > 0) {
-      // Check if current selected voice is still valid for the new language
-      const isCurrentVoiceValid = filteredVoices.some(
-        (v) => v.id === selectedVoice
-      );
-
-      if (!isCurrentVoiceValid) {
-        setSelectedVoice(filteredVoices[0].id);
-        console.log(
-          `Selected voice changed to ${filteredVoices[0].id} for ${language}`
-        );
-      }
+    const currentVoiceIsValid = filteredVoices.some(
+      (v) => v.id === selectedVoice
+    );
+    // Add selectedVoice to dependency array and check if it needs update
+    if ((!selectedVoice || !currentVoiceIsValid) && filteredVoices.length > 0) {
+      setSelectedVoice(filteredVoices[0].id);
+    } else if (filteredVoices.length === 0) {
+      setSelectedVoice("");
     }
-  }, [selectedVoice, language]);
+  }, [language, selectedVoice]); // Added selectedVoice dependency
 
+  // Set initial welcome message or update on lang/level change
+  useEffect(() => {
+    if (!language || !proficiencyLevel) return;
+    const languageChanged = prevLangRef.current !== language;
+    const levelChanged = prevLevelRef.current !== proficiencyLevel;
+
+    // Start fresh only if language/level changed OR initial load (messages empty)
+    if (languageChanged || levelChanged || messages.length === 0) {
+      const welcomeContent =
+        (languageChanged || levelChanged) && messages.length > 0
+          ? `Okay, now practicing ${getLanguageName(
+              language
+            )} at the ${proficiencyLevel} level. Let's continue!`
+          : `Welcome! I'm ready to help you practice ${getLanguageName(
+              language
+            )} at the ${proficiencyLevel} level. Say something to begin.`;
+
+      const welcomeMessage: ChatMessageData = {
+        sender: "AI",
+        content: welcomeContent,
+        timestamp: new Date().toISOString()
+      };
+      setMessages([welcomeMessage]); // Start fresh
+
+      prevLangRef.current = language;
+      prevLevelRef.current = proficiencyLevel;
+    }
+    // Added messages.length dependency
+  }, [language, proficiencyLevel, getLanguageName, messages.length]);
+
+  // --- Prepare Props ---
+  const chatControlsProps: ChatControlsProps = {
+    language,
+    proficiencyLevel,
+    selectedVoice,
+    supportedLanguages,
+    supportedVoices,
+    isProcessingAudio: isProcessingAudio,
+    isGeneratingResponse: isGeneratingResponse,
+    isSpeaking: isSpeaking,
+    backendAvailable,
+    error,
+    aiResponse,
+    showDebugInfo,
+    responseMetadata,
+    onLanguageChange: handleLanguageChange,
+    onProficiencyChange: handleProficiencyChange,
+    onVoiceChange: handleVoiceChange,
+    onAudioRecorded: handleAudioRecorded,
+    onSpeechRecognized: handleSpeechRecognized,
+    onSpeakLastResponse: () => speakAiResponse(aiResponse),
+    onStopSpeaking: stopAiSpeech,
+    onToggleDebugInfo: () => setShowDebugInfo((prev) => !prev)
+  };
+
+  const chatWindowProps: ChatWindowProps = {
+    messages,
+    username,
+    previousMessages: showPreviousMessages ? previousMessages : [],
+    isLoadingHistory: isLoadingMessages,
+    isGeneratingResponse,
+    showHistory: showPreviousMessages,
+    onToggleHistory: handleToggleHistory,
+    formatTimestamp,
+    fetchPreviousMessages // Pass fetch function if needed by ChatWindow itself
+  };
+
+  // --- Render ---
   return (
     <>
       <ServiceStatusNotification onStatusChange={setBackendAvailable} />
-
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", md: "row" },
           maxWidth: "100%",
           mx: "auto",
-          height: "calc(100vh - 30px)",
-          gap: 2
+          height: { xs: "auto", md: "calc(100vh - 60px)" },
+          maxHeight: "100vh",
+          p: { xs: 1, md: 2 },
+          gap: 2,
+          bgcolor: "grey.100"
         }}
       >
-        {/* Left side panel with controls */}
-        <Paper
-          elevation={3}
-          sx={{
-            width: "30%",
-            p: 2,
-            display: "flex",
-            flexDirection: "column",
-            borderRadius: "12px",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)"
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              p: 2,
-              textAlign: "center",
-              mb: 2,
-              borderBottom: "1px solid #e0e0e0",
-              background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
-              color: "white",
-              borderRadius: "8px 8px 0 0"
-            }}
-          >
-            Controls
-          </Typography>
-
-          {!backendAvailable && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Language service is unavailable. Using offline mode with simulated
-              responses.
-            </Alert>
-          )}
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box sx={{ mb: 3 }}>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel id="language-select-label">Language</InputLabel>
-              <Select
-                labelId="language-select-label"
-                id="language-select"
-                value={language}
-                label="Language"
-                onChange={handleLanguageChange}
-                disabled={isLoading || isRenderingContent}
-              >
-                {supportedLanguages.map((lang) => (
-                  <MenuItem key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel id="proficiency-level-label">
-                Proficiency Level
-              </InputLabel>
-              <Select
-                labelId="proficiency-level-label"
-                id="proficiency-level"
-                value={proficiencyLevel}
-                label="Proficiency Level"
-                onChange={(e) => setProficiencyLevel(e.target.value)}
-                disabled={isLoading || isRenderingContent}
-              >
-                {Object.entries(ProficiencyLevel).map(([key, value]) => (
-                  <MenuItem key={value} value={value}>
-                    {key}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel id="voice-select-label">Voice</InputLabel>
-              <Select
-                labelId="voice-select-label"
-                id="voice-select"
-                value={selectedVoice}
-                label="Voice"
-                onChange={handleVoiceChange}
-                disabled={isLoading || isRenderingContent}
-              >
-                {supportedVoices.map((voice) => (
-                  <MenuItem key={voice.id} value={voice.id}>
-                    {voice.name}
-                    {voice.description ? ` - ${voice.description}` : ""}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-
-          {/* Voice recorder section */}
-          <Box sx={{ mt: "auto", borderTop: "1px solid #e0e0e0", pt: 2 }}>
-            <VoiceRecorder
-              onAudioRecorded={handleAudioRecorded}
-              onSpeechRecognized={handleSpeechRecognized}
-              language={language}
-              disabled={isLoading || isRenderingContent || isGeneratingResponse}
-            />
-
-            {isRenderingContent && (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  mt: 2
-                }}
-              >
-                <CircularProgress size={18} sx={{ mr: 1 }} />
-                <Typography sx={{ mr: 2 }}>Speaking...</Typography>
-                <IconButton
-                  color="error"
-                  onClick={stopAiSpeech}
-                  size="small"
-                  aria-label="Stop speaking"
-                >
-                  <StopIcon />
-                </IconButton>
-              </Box>
-            )}
-
-            {!isRenderingContent && aiResponse && (
-              <Button
-                variant="outlined"
-                onClick={() => speakAiResponse(aiResponse)}
-                disabled={isRenderingContent}
-                sx={{ mt: 2, display: "block", width: "100%" }}
-              >
-                Speak Last Response Again
-              </Button>
-            )}
-          </Box>
-
-          {responseMetadata && Object.keys(responseMetadata).length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}
-              >
-                <Typography variant="caption" color="text.secondary">
-                  Response details
-                </Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => setShowDebugInfo(!showDebugInfo)}
-                  aria-label="Toggle debug info"
-                >
-                  {showDebugInfo ? (
-                    <KeyboardArrowUpIcon />
-                  ) : (
-                    <KeyboardArrowDownIcon />
-                  )}
-                </IconButton>
-              </Box>
-
-              <Collapse in={showDebugInfo}>
-                <Paper
-                  sx={{ p: 1, mt: 1, bgcolor: "#f5f5f5" }}
-                  variant="outlined"
-                >
-                  <Typography
-                    variant="caption"
-                    component="div"
-                    sx={{ fontFamily: "monospace" }}
-                  >
-                    Source:{" "}
-                    {responseMetadata.responseSource === "n8n"
-                      ? "N8N Server"
-                      : "Fallback Simulation"}
-                    <br />
-                    Response time: {responseMetadata.responseTime}ms
-                    <br />
-                    {responseMetadata.isSimulated && (
-                      <Box component="span" sx={{ color: "warning.main" }}>
-                        ⚠️ Using simulated response
-                      </Box>
-                    )}
-                  </Typography>
-                </Paper>
-              </Collapse>
-            </Box>
-          )}
-        </Paper>
-
-        {/* Center panel with chat */}
-        <Paper
-          elevation={3}
-          sx={{
-            width: "70%",
-            display: "flex",
-            flexDirection: "column",
-            borderRadius: "12px",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)"
-          }}
-        >
-          <Typography
-            variant="h5"
-            sx={{
-              p: 2,
-              textAlign: "center",
-              borderBottom: "1px solid #e0e0e0",
-              background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
-              color: "white",
-              borderRadius: "12px 12px 0 0"
-            }}
-          >
-            Language Practice AI
-          </Typography>
-
-          {/* Chat messages container */}
-          <Box
-            ref={chatContainerRef}
-            sx={{
-              flex: 1,
-              overflowY: "auto",
-              overflowX: "hidden",
-              p: 2,
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              background: "linear-gradient(135deg, #f9fafb 0%, #f0f2f5 100%)",
-              position: "relative" // Add position relative for absolute positioning inside
-            }}
-          >
-            {/* History toggle button - small button positioned on the right side */}
-            <Box
-              sx={{
-                position: "sticky",
-                top: 0,
-                zIndex: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end", // Aligns the button to the right
-                mb: 1,
-                py: 1,
-                backgroundColor: "rgba(0, 0, 0, 0)",
-                pr: 2 // Padding-right to add space between the button and the edge
-              }}
-            >
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={
-                  showPreviousMessages ? (
-                    <KeyboardArrowUpIcon fontSize="small" />
-                  ) : (
-                    <KeyboardArrowDownIcon fontSize="small" />
-                  )
-                }
-                onClick={() => {
-                  setShowPreviousMessages(!showPreviousMessages);
-                  if (!showPreviousMessages) {
-                    fetchPreviousMessages();
-                  }
-                }}
-                sx={{
-                  color: "#1890ff",
-                  borderColor: "#1890ff",
-                  fontSize: "0.75rem",
-                  textTransform: "none",
-                  padding: "2px 8px",
-                  minWidth: 0,
-                  background: "rgba(255, 255, 255, 0.8)"
-                }}
-              >
-                {showPreviousMessages
-                  ? "Hide History Conversation"
-                  : "Show History Conversation"}
-              </Button>
-            </Box>
-
-            {/* Previous conversations appear when history is enabled */}
-            {showPreviousMessages ? (
-              <>
-                {isLoadingMessages ? (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      py: 2
-                    }}
-                  >
-                    <CircularProgress size={20} />
-                    <Typography
-                      variant="body2"
-                      sx={{ ml: 1, color: "text.secondary" }}
-                    >
-                      Loading history...
-                    </Typography>
-                  </Box>
-                ) : previousMessages && previousMessages.length > 0 ? (
-                  <>
-                    {previousMessages.map((msg, index) => {
-                      // Skip rendering if message is invalid
-                      if (!msg) return null;
-
-                      return (
-                        <React.Fragment key={msg?.id || `prev-${index}`}>
-                          {/* User message - right side */}
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "flex-end",
-                              alignSelf: "flex-end",
-                              maxWidth: "100%",
-                              mb: 2 // Add margin bottom for spacing between message pairs
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                p: 1.5,
-                                background:
-                                  "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)",
-                                borderRadius: "18px 18px 0 18px",
-                                border: "1px solid #1890ff",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  fontWeight: "bold",
-                                  color: "#09132e",
-                                  mb: 0.5,
-                                  display: "block",
-                                  textAlign: "right",
-                                  fontSize: "1rem",
-                                  minWidth: "400px"
-                                }}
-                              >
-                                {username}
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{ color: "#09132e" }}
-                              >
-                                {msg.userMessage || "No message"}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  display: "block",
-                                  textAlign: "right",
-                                  mt: 0.5,
-                                  opacity: 0.7
-                                }}
-                              >
-                                {formatDate(msg.createdAt)}
-                              </Typography>
-                            </Box>
-                          </Box>
-
-                          {/* AI response - left side */}
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "flex-start",
-                              alignSelf: "flex-start",
-                              maxWidth: "80%",
-                              mb: 3 // Add extra margin bottom after AI response for spacing between message pairs
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                p: 1.5,
-                                background: "white",
-                                borderRadius: "18px 18px 18px 0",
-                                border: "1px solid #e0e0e0",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  fontWeight: "bold",
-                                  color: "#7c3aed",
-                                  mb: 0.5,
-                                  display: "block",
-                                  textAlign: "left",
-                                  fontSize: "1rem",
-                                  minWidth: "400px"
-                                }}
-                              >
-                                AI
-                              </Typography>
-                              <div className="markdown">
-                                <ReactMarkdown
-                                  remarkPlugins={[remarkGfm]}
-                                  rehypePlugins={[rehypeRaw]}
-                                  children={preprocessMarkdown(
-                                    msg.aiResponse || "No response"
-                                  )}
-                                  components={{
-                                    code({
-                                      node,
-                                      className,
-                                      children,
-                                      ...props
-                                    }) {
-                                      const match = /language-(\w+)/.exec(
-                                        className || ""
-                                      );
-                                      const value = String(children).replace(
-                                        /\n$/,
-                                        ""
-                                      );
-
-                                      // Specifically detect <diagram> tags in the content
-                                      if (
-                                        value.includes("<diagram>") &&
-                                        value.includes("mermaid")
-                                      ) {
-                                        console.log(
-                                          "Detected <diagram> tag with mermaid content"
-                                        );
-
-                                        // Extract the mermaid content from inside <diagram> tags
-                                        let mermaidContent = "";
-                                        const diagramMatch = value.match(
-                                          /<diagram>[\s\S]*?- mermaid:\s*([\s\S]*?)<\/diagram>/
-                                        );
-
-                                        if (diagramMatch && diagramMatch[1]) {
-                                          mermaidContent =
-                                            diagramMatch[1].trim();
-
-                                          // If the content contains ```mermaid, extract just the content inside
-                                          if (
-                                            mermaidContent.includes(
-                                              "```mermaid"
-                                            )
-                                          ) {
-                                            const codeBlockMatch =
-                                              mermaidContent.match(
-                                                /```mermaid\s*([\s\S]*?)```/
-                                              );
-                                            if (
-                                              codeBlockMatch &&
-                                              codeBlockMatch[1]
-                                            ) {
-                                              mermaidContent =
-                                                codeBlockMatch[1].trim();
-                                            }
-                                          }
-
-                                          console.log(
-                                            "Extracted mermaid content from <diagram> tag:",
-                                            mermaidContent
-                                          );
-                                          return (
-                                            <DiagramViewer
-                                              mermaidContent={mermaidContent}
-                                            />
-                                          );
-                                        }
-                                      }
-
-                                      // Standard detection for language-mermaid class
-                                      if (match && match[1] === "mermaid") {
-                                        console.log(
-                                          "Passing Mermaid content to MermaidDiagram:",
-                                          value
-                                        );
-                                        return (
-                                          <DiagramViewer
-                                            mermaidContent={value}
-                                          />
-                                        );
-                                      }
-
-                                      // Standard code block rendering for other languages
-                                      const isInline =
-                                        node?.position?.start.line ===
-                                        node?.position?.end.line;
-
-                                      return !isInline ? (
-                                        <SyntaxHighlighter
-                                          style={dracula}
-                                          language={(match && match[1]) || ""}
-                                          PreTag="div"
-                                          {...props}
-                                        >
-                                          {value}
-                                        </SyntaxHighlighter>
-                                      ) : (
-                                        <code className={className} {...props}>
-                                          {children}
-                                        </code>
-                                      );
-                                    },
-                                    table({ ...props }) {
-                                      return (
-                                        <div
-                                          style={{
-                                            overflowX: "auto",
-                                            marginBottom: "16px"
-                                          }}
-                                        >
-                                          <table
-                                            style={{
-                                              borderCollapse: "collapse",
-                                              width: "100%"
-                                            }}
-                                            {...props}
-                                          />
-                                        </div>
-                                      );
-                                    },
-                                    thead({ ...props }) {
-                                      return (
-                                        <thead
-                                          style={{ backgroundColor: "#f3f4f6" }}
-                                          {...props}
-                                        />
-                                      );
-                                    },
-                                    th({ ...props }) {
-                                      return (
-                                        <th
-                                          style={{
-                                            padding: "8px 12px",
-                                            textAlign: "left",
-                                            borderBottom: "2px solid #e5e7eb",
-                                            fontWeight: "600"
-                                          }}
-                                          {...props}
-                                        />
-                                      );
-                                    },
-                                    td({ ...props }) {
-                                      return (
-                                        <td
-                                          style={{
-                                            padding: "8px 12px",
-                                            borderBottom: "1px solid #e5e7eb"
-                                          }}
-                                          {...props}
-                                        />
-                                      );
-                                    }
-                                  }}
-                                />
-                              </div>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  display: "block",
-                                  textAlign: "right",
-                                  mt: 0.5,
-                                  opacity: 0.7
-                                }}
-                              >
-                                {formatDate(msg.createdAt)}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </React.Fragment>
-                      );
-                    })}
-                  </>
-                ) : (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      py: 2
-                    }}
-                  >
-                    <Typography variant="body2" color="text.secondary">
-                      No previous conversations
-                    </Typography>
-                  </Box>
-                )}
-              </>
-            ) : (
-              // Current conversation messages - only visible when history is not showing
-              <>
-                {messages.map((message, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems:
-                        message.sender === "User" ? "flex-end" : "flex-start",
-                      maxWidth: "80%",
-                      alignSelf:
-                        message.sender === "User" ? "flex-end" : "flex-start",
-                      mb: message.sender === "AI" ? 3 : 2 // Additional margin after AI responses
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        background:
-                          message.sender === "User"
-                            ? "linear-gradient(135deg, #bae6fd 0%, #93c5fd 100%)"
-                            : "white",
-                        borderRadius:
-                          message.sender === "User"
-                            ? "18px 18px 0 18px"
-                            : "18px 18px 18px 0",
-                        border:
-                          message.sender === "User"
-                            ? "1px solid #1890ff"
-                            : "1px solid #e0e0e0",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontWeight: "bold",
-                          color:
-                            message.sender === "User" ? "#09132e" : "#7c3aed",
-                          mb: 0.5,
-                          display: "block",
-                          textAlign:
-                            message.sender === "User" ? "right" : "left",
-                          fontSize: "1rem"
-                        }}
-                      >
-                        {message.sender === "User" ? username : message.sender}
-                      </Typography>
-
-                      <div className="markdown">
-                        {message.sender === "User" && isLoading ? (
-                          <CircularProgress size={16} />
-                        ) : (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                            children={preprocessMarkdown(message.content)}
-                            components={{
-                              code({ node, className, children, ...props }) {
-                                const match = /language-(\w+)/.exec(
-                                  className || ""
-                                );
-                                const value = String(children).replace(
-                                  /\n$/,
-                                  ""
-                                );
-
-                                // Specifically detect <diagram> tags in the content
-                                if (
-                                  value.includes("<diagram>") &&
-                                  value.includes("mermaid")
-                                ) {
-                                  console.log(
-                                    "Detected <diagram> tag with mermaid content"
-                                  );
-
-                                  // Extract the mermaid content from inside <diagram> tags
-                                  let mermaidContent = "";
-                                  const diagramMatch = value.match(
-                                    /<diagram>[\s\S]*?- mermaid:\s*([\s\S]*?)<\/diagram>/
-                                  );
-
-                                  if (diagramMatch && diagramMatch[1]) {
-                                    mermaidContent = diagramMatch[1].trim();
-
-                                    // If the content contains ```mermaid, extract just the content inside
-                                    if (mermaidContent.includes("```mermaid")) {
-                                      const codeBlockMatch =
-                                        mermaidContent.match(
-                                          /```mermaid\s*([\s\S]*?)```/
-                                        );
-                                      if (codeBlockMatch && codeBlockMatch[1]) {
-                                        mermaidContent =
-                                          codeBlockMatch[1].trim();
-                                      }
-                                    }
-
-                                    console.log(
-                                      "Extracted mermaid content from <diagram> tag:",
-                                      mermaidContent
-                                    );
-                                    return (
-                                      <DiagramViewer
-                                        mermaidContent={mermaidContent}
-                                      />
-                                    );
-                                  }
-                                }
-
-                                // Standard detection for language-mermaid class
-                                if (match && match[1] === "mermaid") {
-                                  console.log(
-                                    "Passing Mermaid content to MermaidDiagram:",
-                                    value
-                                  );
-                                  return (
-                                    <DiagramViewer mermaidContent={value} />
-                                  );
-                                }
-
-                                // Standard code block rendering for other languages
-                                const isInline =
-                                  node?.position?.start.line ===
-                                  node?.position?.end.line;
-
-                                return !isInline ? (
-                                  <SyntaxHighlighter
-                                    style={dracula}
-                                    language={(match && match[1]) || ""}
-                                    PreTag="div"
-                                    {...props}
-                                  >
-                                    {value}
-                                  </SyntaxHighlighter>
-                                ) : (
-                                  <code className={className} {...props}>
-                                    {children}
-                                  </code>
-                                );
-                              },
-                              table({ ...props }) {
-                                return (
-                                  <div
-                                    style={{
-                                      overflowX: "auto",
-                                      marginBottom: "16px"
-                                    }}
-                                  >
-                                    <table
-                                      style={{
-                                        borderCollapse: "collapse",
-                                        width: "100%"
-                                      }}
-                                      {...props}
-                                    />
-                                  </div>
-                                );
-                              },
-                              thead({ ...props }) {
-                                return (
-                                  <thead
-                                    style={{ backgroundColor: "#f3f4f6" }}
-                                    {...props}
-                                  />
-                                );
-                              },
-                              th({ ...props }) {
-                                return (
-                                  <th
-                                    style={{
-                                      padding: "8px 12px",
-                                      textAlign: "left",
-                                      borderBottom: "2px solid #e5e7eb",
-                                      fontWeight: "600"
-                                    }}
-                                    {...props}
-                                  />
-                                );
-                              },
-                              td({ ...props }) {
-                                return (
-                                  <td
-                                    style={{
-                                      padding: "8px 12px",
-                                      borderBottom: "1px solid #e5e7eb"
-                                    }}
-                                    {...props}
-                                  />
-                                );
-                              }
-                            }}
-                          />
-                        )}
-                      </div>
-
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          display: "block",
-                          textAlign: "right",
-                          mt: 0.5,
-                          opacity: 0.7
-                        }}
-                      >
-                        {formatTimestamp(message.timestamp)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))}
-
-                {isGeneratingResponse && (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      alignSelf: "flex-start"
-                    }}
-                  >
-                    <CircularProgress size={16} />
-                    <Typography variant="body2">Processing...</Typography>
-                  </Box>
-                )}
-              </>
-            )}
-            <div ref={messagesEndRef} />
-          </Box>
-        </Paper>
+        <ChatControls {...chatControlsProps} />
+        <ChatWindow {...chatWindowProps} />
       </Box>
-
       <audio
         ref={audioRef}
         style={{ display: "none" }}
-        onEnded={() => setIsRenderingContent(false)}
-        onError={() => {
-          setError("Error playing audio");
-          setIsRenderingContent(false);
+        onEnded={() => setIsSpeaking(false)}
+        onError={(e) => {
+          console.error("Audio playback error:", e);
+          setError("Error playing audio response.");
+          setIsSpeaking(false);
         }}
         controls
       />
-
-      {/* Hidden element to satisfy linter warning about userMessage being unused */}
-      <div style={{ display: "none" }} data-testid="last-user-message">
-        {userMessage}
-      </div>
     </>
   );
 };

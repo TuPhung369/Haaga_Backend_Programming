@@ -326,7 +326,7 @@ export interface EmailOtpAuthenticationRequest {
 }
 
 export interface LanguageState {
-  messages: LanguageMessage[];
+  messages: ChatMessageData[];
   loading: boolean;
   error: string | null;
 }
@@ -338,4 +338,9 @@ export interface LanguageMessage {
   aiResponse: string;
   createdAt: Date;
 }
-
+export interface ChatMessageData {
+  sender: "User" | "AI";
+  content: string;
+  timestamp: string; // ISO String
+  id?: string; // Optional ID from DB for history or unique message key
+}
