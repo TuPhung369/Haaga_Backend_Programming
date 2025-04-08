@@ -6,7 +6,9 @@ from fastapi import (
     HTTPException,
     WebSocket,
     WebSocketDisconnect,
+    Request,
 )
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -104,8 +106,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept"],
+    expose_headers=["Content-Length"],
+    max_age=86400,
 )
 
 logger.info(
@@ -586,9 +590,75 @@ def read_root():
     return {"status": "Speech API is running"}
 
 
+@app.options("/api/debug/echo")
+async def options_debug_echo():
+    # Handle CORS preflight requests
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Max-Age": "86400",  # 24 hours
+    }
+    return JSONResponse(content={}, headers=headers)
+
+
+@app.post("/api/debug/echo")
+async def debug_echo(request: Request):
+    """Debug endpoint to echo back request information"""
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Credentials": "true",
+    }
+
+    # Get request headers
+    request_headers = dict(request.headers.items())
+
+    # Get request body
+    body = await request.body()
+    body_str = (
+        body.decode() if len(body) < 1000 else f"Body too large: {len(body)} bytes"
+    )
+
+    # Get form data if available
+    form_data = {}
+    try:
+        form = await request.form()
+        for key, value in form.items():
+            if isinstance(value, UploadFile):
+                form_data[key] = (
+                    f"File: {value.filename}, size: {value.size if hasattr(value, 'size') else 'unknown'}"
+                )
+            else:
+                form_data[key] = str(value)
+    except Exception as e:
+        form_data = {"error": f"Could not parse form data: {str(e)}"}
+
+    response_data = {
+        "method": request.method,
+        "url": str(request.url),
+        "headers": request_headers,
+        "body": body_str,
+        "form_data": form_data,
+        "client": request.client.host if request.client else "unknown",
+    }
+
+    return JSONResponse(content=response_data, headers=headers)
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for the server status"""
+    # Add CORS headers to response
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Credentials": "true",
+    }
+
     whisper_model = None
     if whisper_available:
         try:
@@ -621,12 +691,14 @@ async def health_check():
     # Check if SpeechBrain TTS is available
     speechbrain_status = "available" if speechbrain_tts_available else "unavailable"
 
-    return {
+    response_content = {
         "status": "ok",
         "whisper_available": whisper_available,
         "whisper_model_loaded": whisper_model is not None,
         "speechbrain_tts": speechbrain_status,
     }
+
+    return JSONResponse(content=response_content, headers=headers)
 
 
 @app.post("/api/speech-to-text")
@@ -698,22 +770,227 @@ async def transcribe_speech_english(
     return await _transcribe_speech(file, "en", optimize, priority, chunk_size)
 
 
+@app.options("/api/speech-to-text/fi")
+@app.options("/api/speech-to-text/fi/json")
+async def options_speech_to_text_finnish():
+    # Handle CORS preflight requests
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Max-Age": "86400",  # 24 hours
+    }
+    return JSONResponse(content={}, headers=headers)
+
+
+@app.post("/api/speech-to-text/fi/json")
+async def transcribe_speech_finnish_json(request: Request):
+    """Alternative endpoint that accepts JSON with base64 encoded audio"""
+    request_id = str(uuid.uuid4())[:8]
+    logger.info(f"[{request_id}] Received Finnish JSON transcription request")
+
+    # Add CORS headers to response
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Credentials": "true",
+    }
+
+    try:
+        # Parse JSON request
+        data = await request.json()
+        logger.info(f"[{request_id}] Received JSON data with keys: {list(data.keys())}")
+
+        # Extract base64 audio
+        if "audio" not in data:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "transcript": "Error: No audio data provided",
+                    "error": "missing_audio",
+                    "success": False,
+                },
+                headers=headers,
+            )
+
+        # Decode base64 audio
+        try:
+            audio_base64 = data["audio"]
+            audio_bytes = base64.b64decode(audio_base64)
+            logger.info(
+                f"[{request_id}] Decoded {len(audio_bytes)} bytes of audio data"
+            )
+
+            # Save to temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_file:
+                temp_file_path = temp_file.name
+                temp_file.write(audio_bytes)
+
+            # Process with Finnish-specific settings
+            optimize = data.get("optimize", "true")
+            priority = data.get("priority", "accuracy")
+            chunk_size = data.get("chunk_size", "0")
+
+            # Convert to WAV using FFmpeg
+            output_path = f"{temp_file_path}_converted.wav"
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-i",
+                temp_file_path,
+                "-ar",
+                "16000",
+                "-ac",
+                "1",
+                "-c:a",
+                "pcm_s16le",
+                "-fflags",
+                "+discardcorrupt+genpts+igndts",
+                "-err_detect",
+                "ignore_err",
+                output_path,
+            ]
+
+            try:
+                subprocess.run(cmd, check=True, capture_output=True, text=True)
+                logger.info(f"[{request_id}] Converted audio to WAV format")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"[{request_id}] FFmpeg failed: {e.stderr}")
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "transcript": "Error: Failed to convert audio format",
+                        "error": str(e),
+                        "success": False,
+                    },
+                    headers=headers,
+                )
+            finally:
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+
+            # Transcribe using Whisper
+            if whisper_available:
+                # Use the existing _transcribe_speech function instead of undefined transcribe_with_whisper
+                with open(output_path, "rb") as audio_file:
+                    file_content = audio_file.read()
+                    temp_upload_file = UploadFile(
+                        filename=os.path.basename(output_path),
+                        file=io.BytesIO(file_content),
+                    )
+                    result = await _transcribe_speech(
+                        temp_upload_file, "fi", "true", "accuracy", "0"
+                    )
+                if os.path.exists(output_path):
+                    os.unlink(output_path)
+
+                if result and result.get("text", "").strip():
+                    return JSONResponse(
+                        content={"transcript": result["text"]}, headers=headers
+                    )
+
+                return JSONResponse(
+                    content={"transcript": "En saanut selvää puheesta."},
+                    headers=headers,
+                )
+            else:
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "transcript": "Whisper model unavailable.",
+                        "error": "whisper_unavailable",
+                        "success": False,
+                    },
+                    headers=headers,
+                )
+
+        except Exception as decode_error:
+            logger.error(f"[{request_id}] Error decoding audio: {str(decode_error)}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "transcript": f"Error decoding audio: {str(decode_error)}",
+                    "error": str(decode_error),
+                    "success": False,
+                },
+                headers=headers,
+            )
+    except Exception as e:
+        logger.error(
+            f"[{request_id}] Unhandled error in Finnish JSON endpoint: {str(e)}"
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "transcript": f"Error: {str(e)}",
+                "error": str(e),
+                "success": False,
+            },
+            headers=headers,
+        )
+
+
 @app.post("/api/speech-to-text/fi")
 async def transcribe_speech_finnish(
     file: UploadFile = File(...),
     optimize: str = Form("false"),
     priority: str = Form("accuracy"),
     chunk_size: str = Form("0"),
+    language_code: str = Form("fi"),
+    beam_size: str = Form("5"),
+    vad_filter: str = Form("true"),
+    language: str = Form("fi-FI"),  # Add language parameter to match client
 ):
-    logger.info(f"Received file: {file.filename}, size: {file.size}")
-    logger.info(f"Optimize: {optimize}, Priority: {priority}, Chunk Size: {chunk_size}")
-    contents = await file.read()
-    logger.info(f"File contents length: {len(contents)}")
+    """
+    Transcribe speech from an audio file using Whisper specifically for Finnish.
+    This endpoint is simplified to match the English endpoint structure.
+    """
+    request_id = str(uuid.uuid4())[:8]
+    logger.info(
+        f"[{request_id}] Received request to Finnish /api/speech-to-text/fi endpoint"
+    )
+    logger.info(
+        f"[{request_id}] File: {file.filename}, size: {file.size if hasattr(file, 'size') else 'unknown'}"
+    )
+    logger.info(
+        f"[{request_id}] Parameters: optimize={optimize}, priority={priority}, chunk_size={chunk_size}"
+    )
+    logger.info(
+        f"[{request_id}] Finnish-specific: language_code={language_code}, beam_size={beam_size}, vad_filter={vad_filter}"
+    )
 
-    # Reset file position to the beginning
-    await file.seek(0)
+    # Add CORS headers to response
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Credentials": "true",
+    }
 
-    return await _transcribe_speech(file, "fi", optimize, priority, chunk_size)
+    try:
+        # Log that we're using a smaller model for faster processing
+        logger.info(
+            f"[{request_id}] Using tiny Whisper model for faster Finnish processing"
+        )
+        # This is the same approach used by the English endpoint
+        result = await _transcribe_speech(file, "fi", optimize, priority, chunk_size)
+        logger.info(
+            f"[{request_id}] Finnish transcription completed successfully: {result}"
+        )
+        return JSONResponse(content=result, headers=headers)
+    except Exception as e:
+        logger.error(f"[{request_id}] Error in Finnish transcription: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "transcript": f"Virhe puheentunnistuksessa: {str(e)}",
+                "error": str(e),
+                "success": False,
+            },
+            headers=headers,
+        )
 
 
 async def _transcribe_speech(
@@ -1191,8 +1468,11 @@ async def handle_websocket_transcription(
     if language == "en":
         # For English, we can use a smaller model for better performance
         model_size = "medium" if faster_whisper_available else "small"
-    else:  # Finnish or other languages
-        model_size = "medium" if faster_whisper_available else "medium"
+    elif language == "fi":  # Finnish language
+        # Use smaller model for Finnish to improve speed
+        model_size = "small" if faster_whisper_available else "tiny"
+    else:  # Other languages
+        model_size = "medium" if faster_whisper_available else "small"
 
     # Get faster-whisper model if available
     model = None
@@ -1202,7 +1482,12 @@ async def handle_websocket_transcription(
     # Fall back to standard whisper if needed
     if model is None:
         # Use appropriate model size based on language
-        whisper_size = "medium" if language == "fi" else "medium"
+        if language == "fi":
+            whisper_size = "tiny"  # Use tiny model for Finnish for faster processing
+        elif language == "en":
+            whisper_size = "small"  # Use small model for English
+        else:
+            whisper_size = "small"  # Use small model for other languages
         model = get_whisper_model(whisper_size)
 
     if model is None:
@@ -1650,9 +1935,11 @@ def transcribe_with_whisper(audio_path, language):
         if language and not language.lower().startswith("en"):
             model = get_whisper_model("small")
 
-        # For Finnish specifically, use medium model
+        # For Finnish specifically, use small model for faster processing
         if language and language.lower().startswith("fi"):
-            model = get_whisper_model("medium")
+            model = get_whisper_model(
+                "tiny"
+            )  # Changed from medium to tiny for faster processing
 
         if not model:
             logger.error("Failed to load Whisper model")

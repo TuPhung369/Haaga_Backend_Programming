@@ -377,6 +377,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   // API URL - using the same base URI as SpeechService
   const API_BASE_URI = "http://localhost:8008";
 
+  // Log the API base URI to ensure it's correct
+  console.log(`🎤 VoiceRecorder: Using API base URI: ${API_BASE_URI}`);
+
   function getTranscriptionEndpoint(language: string) {
     const langPrefix = language.split("-")[0].toLowerCase();
     if (langPrefix === "fi") {
@@ -398,21 +401,55 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     console.log(
       `🎤 VoiceRecorder: Using specialized Finnish transcription service`
     );
-
-    // Show a specific message for Finnish
-    setServerTranscript(
-      "Processing Finnish audio... This may take several minutes."
+    console.log(
+      `🎤 VoiceRecorder: Finnish audio blob size: ${file.size} bytes, type: ${file.type}`
     );
 
+    // Show a specific message for Finnish
+    setServerTranscript("Processing Finnish audio... This may take a moment.");
+
+    // Set loading state to true at the beginning
+    setIsLoading(true);
+
     try {
+      // First check if the server is available
+      const healthCheck = await fetch(`${API_BASE_URI}/health`, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+        },
+      });
+
+      console.log(
+        `🎤 VoiceRecorder: Finnish health check status: ${healthCheck.status}`
+      );
+
+      if (!healthCheck.ok) {
+        console.error(
+          `🎤 VoiceRecorder: Finnish server health check failed with status: ${healthCheck.status}`
+        );
+        setIsLoading(false); // Clear loading state
+        return "Error: Speech recognition server is not available. Please try again later.";
+      }
+
       // Use our specialized Finnish speech service
+      console.log(
+        `🎤 VoiceRecorder: Calling convertFinnishSpeechToText with ${file.size} bytes`
+      );
       const result = await convertFinnishSpeechToText(file);
+      console.log(`🎤 VoiceRecorder: Finnish transcription result:`, result);
+
+      // Clear loading state after successful response
+      setIsLoading(false);
       return result.transcript;
     } catch (error) {
       console.error("🎤 VoiceRecorder: Finnish API request failed:", error);
 
+      // Clear loading state on error
+      setIsLoading(false);
+
       if (error instanceof DOMException && error.name === "AbortError") {
-        return "Finnish request timed out after 3 minutes. The server may be busy processing your audio.";
+        return "Finnish request timed out. The server may be busy processing your audio.";
       }
 
       return `Error: ${error instanceof Error ? error.message : String(error)}`;
@@ -470,6 +507,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     // Use specialized function for Finnish
     const isFinnish = language.toLowerCase().includes("fi");
     if (isFinnish) {
+      console.log(
+        "🎤 VoiceRecorder: Using specialized Finnish transcription path"
+      );
       // We already checked if it's Finnish above, so no need to check again
       return transcribeFinnishAudio(file);
     }
@@ -482,45 +522,16 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     // Add language parameter for all endpoints for consistency
     formData.append("language", language);
 
-    // Add Finnish-specific parameters if needed
-    if (isFinnish) {
-      formData.append("optimize", "true");
-      formData.append("priority", "accuracy");
-      formData.append("beam_size", "5"); // Larger beam size for better accuracy
-      formData.append("vad_filter", "true"); // Voice activity detection
-    }
-
     try {
-      // Show a more specific message for Finnish
-      if (isFinnish) {
-        setServerTranscript(
-          "Processing Finnish audio... This may take a moment."
-        );
-      } else {
-        setServerTranscript("Processing audio...");
-      }
+      // Show a processing message
+      setServerTranscript("Processing audio...");
 
       console.log(
         `🎤 VoiceRecorder: Sending ${file.size} bytes to ${endpoint}`
       );
 
-      // Special handling for Finnish endpoint which may take longer - we already have isFinnish from above
-      const timeoutDuration = isFinnish ? 180000 : 60000; // 3 minutes for Finnish, 1 minute for others
-
-      if (isFinnish) {
-        console.log(
-          `🎤 VoiceRecorder: Using extended timeout of ${
-            timeoutDuration / 1000
-          } seconds for Finnish`
-        );
-        // Pre-process the audio for Finnish to make it smaller if possible
-        if (file.size > 100000) {
-          // If larger than 100KB
-          console.log(
-            `🎤 VoiceRecorder: Large Finnish audio file (${file.size} bytes), server may take longer to process`
-          );
-        }
-      }
+      // Standard timeout for all languages
+      const timeoutDuration = 60000; // 1 minute
 
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
@@ -531,26 +542,22 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             timeoutDuration / 1000
           } seconds`
         );
-      }, timeoutDuration); // Use the language-specific timeout
+      }, timeoutDuration);
 
       const response = await fetch(endpoint, {
         method: "POST",
         body: formData,
         signal: controller.signal,
         headers: {
-          // Add CORS headers
-          "Accept": "application/json",
-          // Don't set Content-Type with FormData as the browser will set it with the boundary
-        },
-        // Ensure credentials are included if needed
-        credentials: "same-origin",
+          "Accept": "application/json"
+        }
       });
-
+      
       clearTimeout(timeoutId);
       console.log(
         `🎤 VoiceRecorder: Received response with status: ${response.status}`
       );
-
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error(

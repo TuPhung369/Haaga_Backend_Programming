@@ -40,17 +40,15 @@ function calculateTimeout(
   blobSize: number,
   language: string = "en-US"
 ): number {
-  // Use longer timeout for Finnish language which requires more processing time
+  // Use appropriate timeout for Finnish language (now using a smaller model)
   const isFinnish = language.toLowerCase().includes("fi");
-  const baseTimeout = isFinnish ? 45000 : 30000; // 45 seconds base for Finnish, 30 for others
+  const baseTimeout = isFinnish ? 30000 : 30000; // 30 seconds base for all languages
 
-  // More generous adjustment for Finnish
-  const sizeAdjustment = isFinnish
-    ? Math.floor(blobSize / 8000) * 5000 // Add 5 sec per 8KB for Finnish
-    : Math.floor(blobSize / 10000) * 5000; // Add 5 sec per 10KB for others
+  // Adjust based on audio size
+  const sizeAdjustment = Math.floor(blobSize / 10000) * 5000; // Add 5 sec per 10KB for all languages
 
-  // Higher cap for Finnish
-  const maxTimeout = isFinnish ? 180000 : 120000; // 3 minutes for Finnish, 2 for others
+  // Cap timeout
+  const maxTimeout = isFinnish ? 60000 : 120000; // 1 minute for Finnish, 2 for others
 
   return Math.min(baseTimeout + sizeAdjustment, maxTimeout);
 }

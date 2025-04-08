@@ -2,6 +2,9 @@
  * Specialized service for handling Finnish speech-to-text operations
  * This is separated from the main SpeechService to handle the specific requirements
  * of Finnish speech recognition
+ * 
+ * Note: This service now uses a smaller 'tiny' Whisper model for faster processing
+ * with reduced timeout (60 seconds instead of 180 seconds)
  */
 
 // API URL - using the Python server directly
@@ -25,13 +28,13 @@ export async function convertFinnishSpeechToText(
     `ud83cudfa4 FINNISH: Starting specialized Finnish speech-to-text conversion`
   );
 
-  // Calculate timeout - Finnish needs more time
-  const timeoutValue = 180000; // 3 minutes for Finnish
+  // Calculate timeout - Using a smaller model now so we can reduce the timeout
+  const timeoutValue = 60000; // 1 minute for Finnish (reduced from 3 minutes)
   console.log(
     `ud83cudfa4 FINNISH: Processing audio: ${audioBlob.size} bytes, ${audioBlob.type}, timeout: ${timeoutValue}ms`
   );
 
-  // Create FormData for the request
+  // Create FormData for the request - SIMPLIFIED VERSION - SIMPLIFIED VERSION
   const formData = new FormData();
   const fileExtension = audioBlob.type.includes("wav") ? "wav" : "webm";
   const filename = `finnish_recording.${fileExtension}`;
@@ -40,10 +43,29 @@ export async function convertFinnishSpeechToText(
   // Add Finnish-specific parameters
   formData.append("language", "fi-FI");
   formData.append("optimize", "true");
-  formData.append("priority", "accuracy");
-  formData.append("beam_size", "5"); // Larger beam size for better accuracy
-  formData.append("vad_filter", "true"); // Voice activity detection
+  // Use speed priority since we're now using a smaller model
+  formData.append("priority", "speed"); // Changed from accuracy to speed
   formData.append("language_code", "fi"); // Explicitly set language code
+
+  // Log all form data entries for debugging
+  console.log(`ud83cudfa4 FINNISH: FormData entries:`);
+  // Use type assertion to access entries() method which exists at runtime but TypeScript doesn't recognize
+  const formDataAny = formData as any;
+  if (typeof formDataAny.entries === "function") {
+    for (const pair of formDataAny.entries()) {
+      if (pair[0] === "file") {
+        console.log(
+          `ud83cudfa4 FINNISH: ${pair[0]}: ${pair[1].name}, size: ${pair[1].size} bytes, type: ${pair[1].type}`
+        );
+      } else {
+        console.log(`ud83cudfa4 FINNISH: ${pair[0]}: ${pair[1]}`);
+      }
+    }
+  } else {
+    console.log(
+      `ud83cudfa4 FINNISH: FormData logging not supported in this environment`
+    );
+  }
 
   // Verify the server is available with a quick health check
   try {
@@ -52,6 +74,9 @@ export async function convertFinnishSpeechToText(
     );
     const healthResponse = await fetch(`${API_BASE_URI}/health`, {
       method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
     });
 
     if (!healthResponse.ok) {
@@ -63,9 +88,6 @@ export async function convertFinnishSpeechToText(
           "Error: Speech recognition server is not available. Please try again later.",
       };
     }
-
-    // Add a small delay to ensure server is ready
-    await new Promise((resolve) => setTimeout(resolve, 500));
   } catch (healthError) {
     console.error(
       `ud83cudfa4 FINNISH: Server health check failed:`,
@@ -76,7 +98,7 @@ export async function convertFinnishSpeechToText(
     };
   }
 
-  // Determine the correct endpoint
+  // Use the same endpoint structure as the English endpoint
   const serverUrl = `${API_BASE_URI}/api/speech-to-text/fi`;
   console.log(`ud83cudfa4 FINNISH: Using endpoint: ${serverUrl}`);
 
@@ -92,17 +114,15 @@ export async function convertFinnishSpeechToText(
 
   try {
     console.log(`ud83cudfa4 FINNISH: Sending fetch request to server`);
+
+    // Send the request with a timeout - SIMPLIFIED VERSION
     const response = await fetch(serverUrl, {
       method: "POST",
       body: formData,
       signal: controller.signal,
       headers: {
-        // Add CORS headers
         "Accept": "application/json",
-        // Don't set Content-Type with FormData as the browser will set it with the boundary
       },
-      // Ensure credentials are included if needed
-      credentials: "same-origin",
     });
 
     clearTimeout(timeoutId);
@@ -111,16 +131,33 @@ export async function convertFinnishSpeechToText(
     );
 
     if (response.ok) {
-      const data = await response.json();
-      const result = { transcript: data.transcript || "" };
+      try {
+        const data = await response.json();
+        const result = { transcript: data.transcript || "" };
 
-      const endTime = performance.now();
-      console.log(
-        `ud83cudfa4 FINNISH: Speech to text completed in ${Math.round(
-          endTime - startTime
-        )}ms: "${result.transcript}"`
-      );
-      return result;
+        const endTime = performance.now();
+        const processingTime = Math.round(endTime - startTime);
+        console.log(
+          `ud83cudfa4 FINNISH: Speech to text completed in ${processingTime}ms: "${result.transcript}"`
+        );
+        
+        // Add a note about using the tiny model if processing was fast
+        if (processingTime < 10000) { // Less than 10 seconds
+          console.log(`ud83cudfa4 FINNISH: Fast processing achieved using tiny Whisper model`);
+        }
+        return result;
+      } catch (parseError) {
+        console.error(
+          `ud83cudfa4 FINNISH: Error parsing response: ${parseError}`
+        );
+        return {
+          transcript: `Error parsing server response: ${
+            parseError instanceof Error
+              ? parseError.message
+              : String(parseError)
+          }`,
+        };
+      }
     } else {
       let errorBody = `Server returned status code ${response.status}`;
       try {
@@ -159,3 +196,4 @@ export async function convertFinnishSpeechToText(
     };
   }
 }
+
