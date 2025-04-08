@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { MicNone, Stop } from "@mui/icons-material";
-import { convertFinnishSpeechToText } from "../services/FinnishSpeechService";
+
+// Import API_BASE_URI from SpeechService
+const API_BASE_URI = "http://localhost:8008";
 
 // Interface definitions (unchanged)
 interface SpeechRecognitionEvent extends Event {
@@ -374,8 +376,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  // API URL - using the same base URI as SpeechService
-  const API_BASE_URI = "http://localhost:8008";
 
   // Log the API base URI to ensure it's correct
   console.log(`🎤 VoiceRecorder: Using API base URI: ${API_BASE_URI}`);
@@ -399,7 +399,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   // Special function for Finnish transcription with extended timeout
   async function transcribeFinnishAudio(file: Blob) {
     console.log(
-      `🎤 VoiceRecorder: Using specialized Finnish transcription service`
+      `🎤 VoiceRecorder: Using Finnish transcription service from SpeechService`
     );
     console.log(
       `🎤 VoiceRecorder: Finnish audio blob size: ${file.size} bytes, type: ${file.type}`
@@ -432,11 +432,13 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         return "Error: Speech recognition server is not available. Please try again later.";
       }
 
-      // Use our specialized Finnish speech service
+      // Use the main SpeechService with Finnish language code
       console.log(
-        `🎤 VoiceRecorder: Calling convertFinnishSpeechToText with ${file.size} bytes`
+        `🎤 VoiceRecorder: Calling convertSpeechToText with ${file.size} bytes and language fi-FI`
       );
-      const result = await convertFinnishSpeechToText(file);
+      // Import the function from SpeechService
+      const { convertSpeechToText } = await import("../services/SpeechService");
+      const result = await convertSpeechToText(file, "fi-FI");
       console.log(`🎤 VoiceRecorder: Finnish transcription result:`, result);
 
       // Clear loading state after successful response
@@ -549,15 +551,15 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         body: formData,
         signal: controller.signal,
         headers: {
-          "Accept": "application/json"
-        }
+          "Accept": "application/json",
+        },
       });
-      
+
       clearTimeout(timeoutId);
       console.log(
         `🎤 VoiceRecorder: Received response with status: ${response.status}`
       );
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(
