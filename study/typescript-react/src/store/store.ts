@@ -8,7 +8,7 @@ import kanbanReducer from "./kanbanSlice";
 import authReducer from "./authSlice";
 import userReducer from "./userSlice";
 import assistantAIReducer from "./assistantAISlice";
-import languageReducer from "../redux/slices/languageSlice";
+import languageReducer from "./languageSlice";
 import { RootState, AuthState, KanbanState, UserState } from "../type/types";
 import { resetAllData } from "./resetActions";
 
@@ -58,9 +58,15 @@ const loadState = (): Partial<RootState> | undefined => {
       validState.user = parsedState.user;
     }
 
-    if (parsedState.assistantAI && Array.isArray(parsedState.assistantAI.messages)) {
-      console.log('Found assistantAI state in localStorage with',
-        parsedState.assistantAI.messages.length, 'messages');
+    if (
+      parsedState.assistantAI &&
+      Array.isArray(parsedState.assistantAI.messages)
+    ) {
+      console.log(
+        "Found assistantAI state in localStorage with",
+        parsedState.assistantAI.messages.length,
+        "messages"
+      );
       validState.assistantAI = parsedState.assistantAI;
     } else {
       console.warn(
@@ -70,8 +76,11 @@ const loadState = (): Partial<RootState> | undefined => {
 
     // Add check for language state
     if (parsedState.language && Array.isArray(parsedState.language.messages)) {
-      console.log('Found language state in localStorage with',
-        parsedState.language.messages.length, 'messages');
+      console.log(
+        "Found language state in localStorage with",
+        parsedState.language.messages.length,
+        "messages"
+      );
       validState.language = parsedState.language;
     } else {
       console.warn(
@@ -140,13 +149,13 @@ const rootReducer: Reducer<
   state: RootState | Partial<RootState> | undefined,
   action: Action
 ): RootState => {
-    // When a logout action is dispatched, reset the state to initial state
-    if (action.type === resetAllData.type) {
-      localStorage.removeItem("appState");
-      return appReducer(undefined, action);
-    }
-    return appReducer(state, action);
-  };
+  // When a logout action is dispatched, reset the state to initial state
+  if (action.type === resetAllData.type) {
+    localStorage.removeItem("appState");
+    return appReducer(undefined, action);
+  }
+  return appReducer(state, action);
+};
 
 // Create store with the root reducer
 const store = configureStore({

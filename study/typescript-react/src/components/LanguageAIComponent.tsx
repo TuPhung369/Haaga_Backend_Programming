@@ -21,7 +21,7 @@ import {
   fetchMessagesStart,
   fetchMessagesSuccess,
   fetchMessagesFailure,
-} from "../redux/slices/languageSlice";
+} from "../store/languageSlice";
 import { RootState } from "../type/types"; // Assuming store exports RootState type
 
 // --- Utility Imports ---

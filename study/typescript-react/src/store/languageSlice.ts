@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 // Import both types
-import { ChatMessageData, LanguageInteraction } from '../../type/languageAI';
+import { ChatMessageData, LanguageInteraction } from "../type/languageAI";
 
 interface LanguageState {
   messages: ChatMessageData[];
@@ -15,7 +15,7 @@ const initialState: LanguageState = {
 };
 
 export const languageSlice = createSlice({
-  name: 'language',
+  name: "language",
   initialState,
   reducers: {
     fetchMessagesStart: (state) => {
@@ -32,24 +32,35 @@ export const languageSlice = createSlice({
       state.error = action.payload;
     },
     // FIX: Transform LanguageInteraction into ChatMessageData
-    addInteractionMessages: (state, action: PayloadAction<LanguageInteraction>) => {
+    addInteractionMessages: (
+      state,
+      action: PayloadAction<LanguageInteraction>
+    ) => {
       const interaction = action.payload;
 
       // Ensure required fields exist (optional safety check)
-      if (!interaction.id || !interaction.userMessage || !interaction.aiResponse) {
-        console.error('Attempted to add interaction with missing data:', interaction);
+      if (
+        !interaction.id ||
+        !interaction.userMessage ||
+        !interaction.aiResponse
+      ) {
+        console.error(
+          "Attempted to add interaction with missing data:",
+          interaction
+        );
         return;
       }
 
       // Ensure createdAt is a valid ISO string (it should be from your type)
-      const timestamp = typeof interaction.createdAt === 'string'
-        ? interaction.createdAt
-        : new Date().toISOString(); // Fallback, but ideally createdAt is always valid
+      const timestamp =
+        typeof interaction.createdAt === "string"
+          ? interaction.createdAt
+          : new Date().toISOString(); // Fallback, but ideally createdAt is always valid
 
       // Create User Message object
       const userMessageData: ChatMessageData = {
         id: interaction.id, // Use interaction ID for the user part
-        sender: 'User',
+        sender: "User",
         content: interaction.userMessage,
         timestamp: timestamp,
       };
@@ -57,7 +68,7 @@ export const languageSlice = createSlice({
       // Create AI Message object
       const aiMessageData: ChatMessageData = {
         id: `${interaction.id}-ai`, // Create a unique ID for the AI part
-        sender: 'AI',
+        sender: "AI",
         content: interaction.aiResponse,
         timestamp: timestamp, // Use the same timestamp as the interaction
       };
@@ -73,8 +84,8 @@ export const languageSlice = createSlice({
     },
     clearMessages: (state) => {
       state.messages = [];
-    }
-  }
+    },
+  },
 });
 
 // Rename the exported action for clarity
@@ -83,7 +94,7 @@ export const {
   fetchMessagesSuccess,
   fetchMessagesFailure,
   addInteractionMessages, // Renamed export
-  clearMessages
+  clearMessages,
 } = languageSlice.actions;
 
 export default languageSlice.reducer;
