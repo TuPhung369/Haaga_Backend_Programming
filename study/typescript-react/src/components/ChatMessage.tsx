@@ -5,7 +5,7 @@ import {
   Typography,
   CircularProgress,
   Button,
-  Paper // Keep necessary MUI imports
+  Paper, // Keep necessary MUI imports
 } from "@mui/material";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -58,8 +58,8 @@ const MermaidDiagramRenderer: React.FC<MermaidDiagramProps> = React.memo(
               gridLineStartPadding: 35,
               fontSize: 14,
               axisFormat: "%Y-%m-%d",
-              useWidth: 1000
-            }
+              useWidth: 1000,
+            },
           });
           const cleanedContent = content
             .trim()
@@ -108,7 +108,7 @@ const MermaidDiagramRenderer: React.FC<MermaidDiagramProps> = React.memo(
               alignItems: "center",
               gap: 1,
               color: "text.secondary",
-              p: 1
+              p: 1,
             }}
           >
             {" "}
@@ -124,7 +124,7 @@ const MermaidDiagramRenderer: React.FC<MermaidDiagramProps> = React.memo(
               borderColor: "error.main",
               color: "error.dark",
               whiteSpace: "pre-wrap",
-              fontSize: "0.8rem"
+              fontSize: "0.8rem",
             }}
           >
             {" "}
@@ -136,7 +136,7 @@ const MermaidDiagramRenderer: React.FC<MermaidDiagramProps> = React.memo(
                 padding: "5px",
                 borderRadius: "4px",
                 maxHeight: "100px",
-                overflow: "auto"
+                overflow: "auto",
               }}
             >
               {" "}
@@ -155,8 +155,8 @@ const MermaidDiagramRenderer: React.FC<MermaidDiagramProps> = React.memo(
                 maxWidth: "none",
                 height: "auto",
                 display: "block",
-                margin: "auto"
-              }
+                margin: "auto",
+              },
             }}
             dangerouslySetInnerHTML={{ __html: svgContent }}
           />
@@ -183,7 +183,7 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
           my: 2,
           border: "1px solid",
           borderColor: "divider",
-          borderRadius: 1
+          borderRadius: 1,
         }}
       >
         {/* Toolbar */}
@@ -193,7 +193,7 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
             borderBottom: "1px solid",
             borderColor: "divider",
             display: "flex",
-            gap: 1
+            gap: 1,
           }}
         >
           <Button
@@ -256,7 +256,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
           flexDirection: "column",
           alignItems: isUser ? "flex-end" : "flex-start",
           maxWidth: "85%",
-          alignSelf: isUser ? "flex-end" : "flex-start"
+          alignSelf: isUser ? "flex-end" : "flex-start",
         }}
       >
         <Box
@@ -270,7 +270,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
             borderColor: isUser ? "#7dd3fc" : "#e0e0e0",
             boxShadow: "0 1px 3px rgba(0,0,0,0.07)",
             wordBreak: "break-word",
-            overflow: "hidden"
+            overflow: "hidden",
           }}
         >
           {/* Sender Name */}
@@ -282,7 +282,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
               mb: 0.5,
               display: "block",
               textAlign: isUser ? "right" : "left",
-              fontSize: "0.9rem"
+              fontSize: "0.9rem",
             }}
           >
             {isUser ? username : message.sender}
@@ -297,7 +297,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
               "& p": { my: 0.5 },
               "& ul": { pl: 2.5, my: 1 },
               "& ol": { pl: 2.5, my: 1 },
-              "& li": { mb: 0.5 }
+              "& li": { mb: 0.5 },
             }}
           >
             <ReactMarkdown
@@ -328,7 +328,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
                           padding: "2px 5px",
                           borderRadius: "4px",
                           fontSize: "0.875em",
-                          fontFamily: "monospace"
+                          fontFamily: "monospace",
                         }}
                         {...props}
                       >
@@ -356,7 +356,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
                         borderRadius: "4px",
                         overflowX: "auto",
                         margin: "8px 0",
-                        fontSize: "0.875rem"
+                        fontSize: "0.875rem",
                       }}
                     >
                       <code className={className || "language-text"} {...props}>
@@ -365,17 +365,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
                     </pre>
                   );
                 },
-                // FIX: Destructure node, pass valid props to Box
-                p: ({ node: _node, ...props }) => (
-                  // Use Typography for better paragraph semantics & styling control if desired
-                  // Or keep Box if div semantics are preferred
+                // Handle paragraph elements
+                p: ({ children, className, style }) => (
+                  // Use Typography for better paragraph semantics & styling control
+                  // Only pass safe props to avoid type conflicts with ref
                   <Typography
                     component="div"
                     variant="body2"
                     sx={{ my: 0.5 }}
-                    {...props}
-                  />
-                  // <Box component="div" sx={{ my: 0.5 }} {...props} />
+                    className={className}
+                    style={style}
+                  >
+                    {children}
+                  </Typography>
                 ),
                 table: ({ ...props }) => (
                   <Box
@@ -384,7 +386,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
                       my: 2,
                       border: "1px solid",
                       borderColor: "divider",
-                      borderRadius: 1
+                      borderRadius: 1,
                     }}
                   >
                     <table
@@ -406,7 +408,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
                       textAlign: "left",
                       borderBottom: "2px solid",
                       borderColor: "divider",
-                      fontWeight: 600
+                      fontWeight: 600,
                     }}
                     {...props}
                   />
@@ -416,7 +418,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
                     style={{
                       padding: "8px 12px",
                       borderBottom: "1px solid",
-                      borderColor: "divider"
+                      borderColor: "divider",
                     }}
                     {...props}
                   />
@@ -425,13 +427,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
                   <a
                     style={{
                       color: "primary.main",
-                      textDecoration: "underline"
+                      textDecoration: "underline",
                     }}
                     target="_blank"
                     rel="noopener noreferrer"
                     {...props}
                   />
-                ) // Add target blank for external links
+                ), // Add target blank for external links
                 // Use MUI Typography for lists for consistent styling, or keep raw elements
                 // ul: ({ ...props }) => <Typography component="ul" sx={{ pl: 2.5, my: 1 }} {...props} />,
                 // ol: ({ ...props }) => <Typography component="ol" sx={{ pl: 2.5, my: 1 }} {...props} />,
@@ -448,7 +450,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
               textAlign: "right",
               mt: 1,
               opacity: 0.7,
-              fontSize: "0.7rem"
+              fontSize: "0.7rem",
             }}
           >
             {formatTimestamp(message.timestamp)}
@@ -458,3 +460,4 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
     );
   }
 );
+

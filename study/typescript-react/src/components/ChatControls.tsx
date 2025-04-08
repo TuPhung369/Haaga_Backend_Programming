@@ -12,7 +12,7 @@ import {
   InputLabel,
   Alert,
   IconButton,
-  Collapse
+  Collapse,
 } from "@mui/material"; // Added SelectChangeEvent
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
@@ -46,7 +46,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
     onSpeechRecognized,
     onSpeakLastResponse,
     onStopSpeaking,
-    onToggleDebugInfo
+    onToggleDebugInfo,
   }) => {
     const isBusy = isProcessingAudio || isGeneratingResponse || isSpeaking;
     return (
@@ -62,7 +62,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
           border: "1px solid",
           borderColor: "divider",
           height: { xs: "auto", md: "100%" }, // Full height on medium+ screens
-          overflowY: "auto" // Allow scrolling if content overflows
+          overflowY: "auto", // Allow scrolling if content overflows
         }}
       >
         {/* Header */}
@@ -76,7 +76,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
             borderBottom: "1px solid",
             borderColor: "divider",
             color: "primary.main", // Use theme color
-            fontWeight: 600
+            fontWeight: 600,
           }}
         >
           Controls
@@ -165,7 +165,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
             borderTop: "1px solid",
             borderColor: "divider",
             pt: 2.5,
-            mt: 2
+            mt: 2,
           }}
         >
           {/* Use VoiceRecorder here */}
@@ -186,7 +186,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
                 justifyContent: "center",
                 py: 1,
                 gap: 1,
-                height: "40px"
+                height: "40px",
               }}
             >
               <CircularProgress size={20} thickness={4} />
@@ -210,7 +210,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              py: 1
+              py: 1,
             }}
           >
             {!isSpeaking &&
@@ -239,7 +239,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
               onClick={onToggleDebugInfo}
               role="button"
@@ -275,7 +275,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
                   sx={{
                     fontFamily: "monospace",
                     fontSize: "0.7rem",
-                    wordBreak: "break-all"
+                    wordBreak: "break-all",
                   }}
                 >
                   Source: {responseMetadata.responseSource ?? "N/A"}
@@ -290,3 +290,4 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
     );
   }
 );
+

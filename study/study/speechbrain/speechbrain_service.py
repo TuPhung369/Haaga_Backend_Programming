@@ -1329,11 +1329,27 @@ async def handle_websocket_transcription(
                             if sr != 16000:
                                 from scipy import signal
 
-                                audio_np = signal.resample(
+                                resampled = signal.resample(
                                     audio_np, int(len(audio_np) * 16000 / sr)
-                                ).astype(
-                                    np.float32
-                                )  # Ensure float32 after resampling
+                                )
+                                # Handle potential tuple return from resample
+                                try:
+                                    # Try to convert directly to float32
+                                    audio_np = np.array(resampled, dtype=np.float32)
+                                except Exception as e:
+                                    logger.warning(
+                                        f"Error converting resampled audio: {str(e)}"
+                                    )
+                                    # Handle case where resampled is a tuple
+                                    if isinstance(resampled, tuple):
+                                        audio_np = np.array(
+                                            resampled[0], dtype=np.float32
+                                        )
+                                    else:
+                                        # Last resort - try to make it work somehow
+                                        audio_np = np.array(
+                                            resampled, dtype=np.float32, copy=True
+                                        )
                                 sr = 16000
                             logger.info(
                                 f"Loaded {language} WebSocket audio with soundfile: {len(audio_np)} samples, dtype: {audio_np.dtype}"
@@ -1369,39 +1385,80 @@ async def handle_websocket_transcription(
                             )
 
                         # Final type check/conversion to ensure float32
-                        if audio_np.dtype != np.float32:
+                        if (
+                            hasattr(audio_np, "dtype")
+                            and hasattr(audio_np, "astype")
+                            and audio_np.dtype != np.float32
+                        ):
                             logger.warning(
                                 f"Converting audio from {audio_np.dtype} to float32"
                             )
                             audio_np = audio_np.astype(np.float32)
-
-                        logger.info(
-                            f"Final audio data type: {audio_np.dtype}, shape: {audio_np.shape}"
-                        )
-
-                        # Ensure we have valid audio data before processing
-                        if len(audio_np) > 0:
-                            # Log detailed information about the audio data
-                            logger.info(
-                                f"Processing audio: shape={audio_np.shape}, dtype={audio_np.dtype}, "
-                                f"min={np.min(audio_np):.6f}, max={np.max(audio_np):.6f}, "
-                                f"mean={np.mean(audio_np):.6f}, std={np.std(audio_np):.6f}"
+                        elif not hasattr(audio_np, "astype"):
+                            # Handle case where audio_np might be a tuple
+                            logger.warning(
+                                "Audio data doesn't have astype method, converting to numpy array"
+                            )
+                            audio_np = np.array(
+                                (
+                                    audio_np[0]
+                                    if isinstance(audio_np, tuple)
+                                    else audio_np
+                                ),
+                                dtype=np.float32,
                             )
 
-                            # Ensure array is contiguous in memory
-                            if not audio_np.flags.c_contiguous:
-                                logger.info(
-                                    "Converting audio array to be contiguous in memory"
-                                )
-                                audio_np = np.ascontiguousarray(audio_np)
+                        # Safely log audio information
+                        if hasattr(audio_np, "dtype") and hasattr(audio_np, "shape"):
+                            logger.info(
+                                f"Final audio data type: {audio_np.dtype}, shape: {audio_np.shape}"
+                            )
+                        else:
+                            logger.warning(
+                                "Cannot log audio data type and shape - not a NumPy array"
+                            )
 
-                            # Normalize audio if needed
-                            max_val = np.max(np.abs(audio_np))
-                            if max_val > 1.0:
-                                logger.info(
-                                    f"Normalizing audio with max value: {max_val}"
+                        # Ensure we have valid audio data before processing
+                        if hasattr(audio_np, "__len__") and len(audio_np) > 0:
+                            # Log detailed information about the audio data if it's a proper NumPy array
+                            if hasattr(audio_np, "shape") and hasattr(
+                                audio_np, "dtype"
+                            ):
+                                try:
+                                    logger.info(
+                                        f"Processing audio: shape={audio_np.shape}, dtype={audio_np.dtype}, "
+                                        f"min={np.min(audio_np):.6f}, max={np.max(audio_np):.6f}, "
+                                        f"mean={np.mean(audio_np):.6f}, std={np.std(audio_np):.6f}"
+                                    )
+                                except Exception as e:
+                                    logger.warning(
+                                        f"Error logging audio stats: {str(e)}"
+                                    )
+                            else:
+                                logger.warning(
+                                    "Cannot log detailed audio stats - not a proper NumPy array"
                                 )
-                                audio_np = audio_np / max_val
+
+                            # Ensure array is contiguous in memory (if it's a NumPy array)
+                            if hasattr(audio_np, "flags") and hasattr(
+                                audio_np.flags, "c_contiguous"
+                            ):
+                                if not audio_np.flags.c_contiguous:
+                                    logger.info(
+                                        "Converting audio array to be contiguous in memory"
+                                    )
+                                    audio_np = np.ascontiguousarray(audio_np)
+
+                            # Normalize audio if needed (only for NumPy arrays)
+                            try:
+                                max_val = np.max(np.abs(audio_np))
+                                if max_val > 1.0:
+                                    logger.info(
+                                        f"Normalizing audio with max value: {max_val}"
+                                    )
+                                    audio_np = audio_np / max_val
+                            except Exception as e:
+                                logger.warning(f"Could not normalize audio: {str(e)}")
 
                             # Transcribe with faster-whisper
                             try:
