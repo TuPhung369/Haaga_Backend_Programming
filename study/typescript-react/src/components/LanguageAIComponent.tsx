@@ -8,19 +8,19 @@ import {
   convertTextToSpeech,
   getSupportedLanguages,
   getSupportedVoices,
-  convertSpeechToText
+  convertSpeechToText,
 } from "../services/SpeechService";
 import {
   saveInteraction,
   getAIResponseFromN8n,
-  getLanguageConversations
+  getLanguageConversations,
 } from "../services/LanguageService";
 
 // --- Redux Imports ---
 import {
   fetchMessagesStart,
   fetchMessagesSuccess,
-  fetchMessagesFailure
+  fetchMessagesFailure,
 } from "../redux/slices/languageSlice";
 import { RootState } from "../type/types"; // Assuming store exports RootState type
 
@@ -40,7 +40,7 @@ import {
   ChatMessageData,
   LanguageInteraction,
   ChatControlsProps,
-  ChatWindowProps
+  ChatWindowProps,
 } from "../type/languageAI";
 
 // --- Component Definition ---
@@ -118,7 +118,7 @@ const LanguageAIComponent: React.FC = () => {
             day: "numeric",
             hour: "numeric",
             minute: "numeric",
-            hour12: true
+            hour12: true,
           });
     } catch {
       return "Invalid Date";
@@ -143,14 +143,14 @@ const LanguageAIComponent: React.FC = () => {
             sender: "User",
             content: convo.userMessage,
             timestamp: new Date(convo.createdAt).toISOString(),
-            id: convo.id
+            id: convo.id,
           },
           {
             sender: "AI",
             content: convo.aiResponse,
             timestamp: new Date(convo.createdAt).toISOString(),
-            id: convo.id ? `${convo.id}-ai` : undefined
-          }
+            id: convo.id ? `${convo.id}-ai` : undefined,
+          },
         ]
       );
       // FIX: Dispatch the formatted history (assuming reducer accepts ChatMessageData[])
@@ -251,7 +251,7 @@ const LanguageAIComponent: React.FC = () => {
       const userMessageObj: ChatMessageData = {
         sender: "User",
         content: userTranscript,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMessageObj]);
       setIsProcessingAudio(false); // STT finished
@@ -275,7 +275,7 @@ const LanguageAIComponent: React.FC = () => {
         const aiMessageObj: ChatMessageData = {
           sender: "AI",
           content: aiResponseText,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, aiMessageObj]);
         setAiResponse(aiResponseText);
@@ -288,7 +288,7 @@ const LanguageAIComponent: React.FC = () => {
           language,
           proficiencyLevel,
           // Pass token as string | undefined
-          token: token || undefined
+          token: token || undefined,
         }).catch((saveError) => {
           console.error("Failed to save interaction:", saveError);
         });
@@ -306,7 +306,7 @@ const LanguageAIComponent: React.FC = () => {
         const errorMsg: ChatMessageData = {
           sender: "AI",
           content: `Sorry, I encountered an error. (${message})`,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, errorMsg]);
       } finally {
@@ -323,7 +323,7 @@ const LanguageAIComponent: React.FC = () => {
       autoSpeak,
       // saveInteraction, // Assume stable or defined outside
       // getAIResponseFromN8n, // Assume stable or defined outside
-      speakAiResponse // Add speakAiResponse
+      speakAiResponse, // Add speakAiResponse
     ]
   );
 
@@ -386,7 +386,7 @@ const LanguageAIComponent: React.FC = () => {
         filteredVoices.push({
           id: "finnish-neutral",
           name: "Finnish",
-          description: "Google TTS Finnish voice"
+          description: "Google TTS Finnish voice",
         });
       }
     } else if (languagePrefix === "en") {
@@ -438,7 +438,7 @@ const LanguageAIComponent: React.FC = () => {
       const welcomeMessage: ChatMessageData = {
         sender: "AI",
         content: welcomeContent,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
       setMessages([welcomeMessage]); // Start fresh
 
@@ -470,7 +470,7 @@ const LanguageAIComponent: React.FC = () => {
     onSpeechRecognized: handleSpeechRecognized,
     onSpeakLastResponse: () => speakAiResponse(aiResponse),
     onStopSpeaking: stopAiSpeech,
-    onToggleDebugInfo: () => setShowDebugInfo((prev) => !prev)
+    onToggleDebugInfo: () => setShowDebugInfo((prev) => !prev),
   };
 
   const chatWindowProps: ChatWindowProps = {
@@ -482,7 +482,7 @@ const LanguageAIComponent: React.FC = () => {
     showHistory: showPreviousMessages,
     onToggleHistory: handleToggleHistory,
     formatTimestamp,
-    fetchPreviousMessages // Pass fetch function if needed by ChatWindow itself
+    fetchPreviousMessages, // Pass fetch function if needed by ChatWindow itself
   };
 
   // --- Render ---
@@ -493,13 +493,15 @@ const LanguageAIComponent: React.FC = () => {
         sx={{
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
+          width: "100%",
           maxWidth: "100%",
           mx: "auto",
           height: { xs: "auto", md: "calc(100vh - 60px)" },
           maxHeight: "100vh",
           p: { xs: 1, md: 2 },
           gap: 2,
-          bgcolor: "grey.100"
+          bgcolor: "grey.100",
+          justifyContent: "space-between",
         }}
       >
         <ChatControls {...chatControlsProps} />
@@ -521,3 +523,4 @@ const LanguageAIComponent: React.FC = () => {
 };
 
 export default LanguageAIComponent;
+

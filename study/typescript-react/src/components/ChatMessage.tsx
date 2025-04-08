@@ -256,21 +256,30 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
           flexDirection: "column",
           alignItems: isUser ? "flex-end" : "flex-start",
           maxWidth: "85%",
+          width: isUser ? "auto" : "85%",
           alignSelf: isUser ? "flex-end" : "flex-start",
+          mr: isUser ? 0 : 2,
+          ml: isUser ? 2 : 0,
         }}
       >
         <Box
           sx={{
-            p: 1.5,
+            p: 2,
             background: isUser
               ? "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)"
               : "#ffffff",
             borderRadius: isUser ? "18px 18px 0 18px" : "18px 18px 18px 0",
             border: "1px solid",
             borderColor: isUser ? "#7dd3fc" : "#e0e0e0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.07)",
+            boxShadow: isUser
+              ? "0 2px 5px rgba(0,0,0,0.1)"
+              : "0 1px 3px rgba(0,0,0,0.07)",
             wordBreak: "break-word",
             overflow: "hidden",
+            transition: "box-shadow 0.2s ease",
+            "&:hover": {
+              boxShadow: "0 3px 8px rgba(0,0,0,0.12)",
+            },
           }}
         >
           {/* Sender Name */}

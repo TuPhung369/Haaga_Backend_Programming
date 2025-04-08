@@ -207,16 +207,150 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             );
             setServerTranscript("English detected but no transcript available");
 
+            // Update the transcript container immediately
+            const container = document.getElementById("transcript-container");
+            if (container) {
+              const processingBox = document.createElement("div");
+              processingBox.style.padding = "16px";
+              processingBox.style.margin = "8px";
+              processingBox.style.backgroundColor = "rgba(25, 118, 210, 0.08)";
+              processingBox.style.borderRadius = "4px";
+              processingBox.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+              processingBox.style.border = "1px solid #90caf9";
+
+              const titleEl = document.createElement("div");
+              titleEl.style.fontWeight = "600";
+              titleEl.style.marginBottom = "10px";
+              titleEl.style.fontSize = "1rem";
+              titleEl.style.color = "#1976d2";
+              titleEl.textContent = "Processing...";
+
+              const loadingIndicator = document.createElement("div");
+              loadingIndicator.style.display = "inline-block";
+              loadingIndicator.style.width = "16px";
+              loadingIndicator.style.height = "16px";
+              loadingIndicator.style.border =
+                "3px solid rgba(25, 118, 210, 0.3)";
+              loadingIndicator.style.borderRadius = "50%";
+              loadingIndicator.style.borderTop = "3px solid #1976d2";
+              loadingIndicator.style.animation = "spin 1s linear infinite";
+              loadingIndicator.style.marginRight = "10px";
+              loadingIndicator.style.verticalAlign = "middle";
+
+              titleEl.insertBefore(loadingIndicator, titleEl.firstChild);
+
+              const contentEl = document.createElement("div");
+              contentEl.style.fontSize = "1.1rem";
+              contentEl.style.lineHeight = "1.5";
+              contentEl.style.color = "#1976d2";
+              contentEl.textContent =
+                "Converting speech to text using server...";
+
+              processingBox.appendChild(titleEl);
+              processingBox.appendChild(contentEl);
+
+              // Clear container first
+              while (container.firstChild) {
+                container.removeChild(container.firstChild);
+              }
+
+              container.appendChild(processingBox);
+            }
+
             // Return empty string to trigger server fallback in parent component
             onAudioRecorded(audioBlob, "");
           } else {
             // Use the captured transcript value for English fallback
+            // Transcribe using server
+            // Show processing message in transcript container
+            const container = document.getElementById("transcript-container");
+            if (container) {
+              const processingBox = document.createElement("div");
+              processingBox.style.padding = "16px";
+              processingBox.style.margin = "8px";
+              processingBox.style.backgroundColor = "rgba(25, 118, 210, 0.08)";
+              processingBox.style.borderRadius = "4px";
+              processingBox.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+              processingBox.style.border = "1px solid #90caf9";
+
+              const titleEl = document.createElement("div");
+              titleEl.style.fontWeight = "600";
+              titleEl.style.marginBottom = "10px";
+              titleEl.style.fontSize = "1rem";
+              titleEl.style.color = "#1976d2";
+              titleEl.textContent = "Processing...";
+
+              const loadingIndicator = document.createElement("div");
+              loadingIndicator.style.display = "inline-block";
+              loadingIndicator.style.width = "16px";
+              loadingIndicator.style.height = "16px";
+              loadingIndicator.style.border =
+                "3px solid rgba(25, 118, 210, 0.3)";
+              loadingIndicator.style.borderRadius = "50%";
+              loadingIndicator.style.borderTop = "3px solid #1976d2";
+              loadingIndicator.style.animation = "spin 1s linear infinite";
+              loadingIndicator.style.marginRight = "10px";
+              loadingIndicator.style.verticalAlign = "middle";
+
+              titleEl.insertBefore(loadingIndicator, titleEl.firstChild);
+
+              const contentEl = document.createElement("div");
+              contentEl.style.fontSize = "1.1rem";
+              contentEl.style.lineHeight = "1.5";
+              contentEl.style.color = "#1976d2";
+              contentEl.textContent = "Transcribing audio...";
+
+              processingBox.appendChild(titleEl);
+              processingBox.appendChild(contentEl);
+
+              // Clear container first
+              while (container.firstChild) {
+                container.removeChild(container.firstChild);
+              }
+
+              container.appendChild(processingBox);
+            }
+
             // Transcribe using server
             const serverResult = await transcribeAudio(
               audioBlob,
               currentTranscriptValue
             );
             setServerTranscript(serverResult);
+
+            // Update transcript container with result
+            if (container) {
+              // Clear container
+              while (container.firstChild) {
+                container.removeChild(container.firstChild);
+              }
+
+              const resultBox = document.createElement("div");
+              resultBox.style.padding = "16px";
+              resultBox.style.margin = "8px";
+              resultBox.style.backgroundColor = "white";
+              resultBox.style.borderRadius = "4px";
+              resultBox.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+              resultBox.style.border = "1px solid #e0e0e0";
+
+              const titleEl = document.createElement("div");
+              titleEl.style.fontWeight = "600";
+              titleEl.style.marginBottom = "10px";
+              titleEl.style.fontSize = "1rem";
+              titleEl.style.color = "#333";
+              titleEl.textContent = "Server Transcript:";
+
+              const contentEl = document.createElement("div");
+              contentEl.style.fontSize = "1.1rem";
+              contentEl.style.lineHeight = "1.5";
+              contentEl.style.color = "#000";
+              contentEl.style.fontWeight = "500";
+              contentEl.textContent = serverResult;
+
+              resultBox.appendChild(titleEl);
+              resultBox.appendChild(contentEl);
+              container.appendChild(resultBox);
+            }
 
             // Pass both audio and transcript to parent
             onAudioRecorded(audioBlob, serverResult);
@@ -375,7 +509,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     const secs = seconds % 60;
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
-
 
   // Log the API base URI to ensure it's correct
   console.log(`🎤 VoiceRecorder: Using API base URI: ${API_BASE_URI}`);
@@ -599,8 +732,136 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   // Determine if we're processing Finnish audio
   const isFinnishLanguage = language.toLowerCase().includes("fi");
 
+  // Function to update transcript in the container
+  useEffect(() => {
+    const updateTranscriptContainer = () => {
+      const container = document.getElementById("transcript-container");
+      if (container) {
+        // Clear previous content
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+
+        // For English, show server transcript if available (when browser transcript is empty)
+        const isEnglish = language.toLowerCase().includes("en");
+        const hasServerTranscript =
+          serverTranscript && serverTranscript.trim() !== "";
+        const hasTranscript = transcript && transcript.trim() !== "";
+
+        // Determine what to display
+        let displayText = "";
+        let titleText = "";
+        let isProcessing = false;
+
+        if (isEnglish) {
+          // For English
+          if (hasTranscript) {
+            displayText = transcript;
+            titleText = "Transcript:";
+          } else if (
+            hasServerTranscript &&
+            !serverTranscript.startsWith("Using browser")
+          ) {
+            displayText = serverTranscript;
+            titleText = "Server Transcript:";
+          } else if (isLoading) {
+            displayText = "Converting speech to text...";
+            titleText = "Processing...";
+            isProcessing = true;
+          }
+        } else if (isFinnishLanguage) {
+          // For Finnish
+          if (hasServerTranscript) {
+            if (serverTranscript.startsWith("Processing")) {
+              displayText =
+                "Converting speech to text. This may take a moment...";
+              titleText = "Processing...";
+              isProcessing = true;
+            } else {
+              displayText = serverTranscript;
+              titleText = "Finnish Transcript:";
+            }
+          } else if (isLoading) {
+            displayText = "Processing Finnish audio... This may take a moment.";
+            titleText = "Processing...";
+            isProcessing = true;
+          }
+        }
+
+        // Only create box if we have something to display
+        if (displayText) {
+          const transcriptBox = document.createElement("div");
+          transcriptBox.style.padding = "16px";
+          transcriptBox.style.margin = "8px";
+          transcriptBox.style.backgroundColor = isProcessing
+            ? "rgba(25, 118, 210, 0.08)"
+            : "white";
+          transcriptBox.style.borderRadius = "4px";
+          transcriptBox.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+          transcriptBox.style.border = "1px solid";
+          transcriptBox.style.borderColor = isProcessing
+            ? "#90caf9"
+            : "#e0e0e0";
+
+          const titleEl = document.createElement("div");
+          titleEl.style.fontWeight = "600";
+          titleEl.style.marginBottom = "10px";
+          titleEl.style.fontSize = "1rem";
+          titleEl.style.color = isProcessing ? "#1976d2" : "#333";
+          titleEl.textContent = titleText;
+
+          const contentEl = document.createElement("div");
+          contentEl.style.fontSize = "1.1rem";
+          contentEl.style.lineHeight = "1.5";
+          contentEl.style.color = isProcessing ? "#1976d2" : "#000";
+          contentEl.style.fontWeight = isProcessing ? "400" : "500";
+          contentEl.textContent = displayText;
+
+          transcriptBox.appendChild(titleEl);
+          transcriptBox.appendChild(contentEl);
+          container.appendChild(transcriptBox);
+
+          // Add a loading indicator if processing
+          if (isProcessing) {
+            const loadingIndicator = document.createElement("div");
+            loadingIndicator.style.display = "inline-block";
+            loadingIndicator.style.width = "16px";
+            loadingIndicator.style.height = "16px";
+            loadingIndicator.style.border = "3px solid rgba(25, 118, 210, 0.3)";
+            loadingIndicator.style.borderRadius = "50%";
+            loadingIndicator.style.borderTop = "3px solid #1976d2";
+            loadingIndicator.style.animation = "spin 1s linear infinite";
+            loadingIndicator.style.marginRight = "10px";
+            loadingIndicator.style.verticalAlign = "middle";
+
+            // Add keyframes for the spin animation
+            const style = document.createElement("style");
+            style.textContent = `
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `;
+            document.head.appendChild(style);
+
+            titleEl.insertBefore(loadingIndicator, titleEl.firstChild);
+          }
+        }
+      }
+    };
+
+    updateTranscriptContainer();
+
+    // Update when any relevant state changes
+    const intervalId = setInterval(updateTranscriptContainer, 500); // Update every 500ms to catch changes
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [transcript, serverTranscript, isLoading, language, isFinnishLanguage]);
+
   return (
-    <Box sx={{ mb: 2 }}>
+    <Box sx={{ mb: 0 }}>
       {error && (
         <Typography color="error" variant="body2" sx={{ mb: 1 }}>
           {error}
@@ -611,82 +872,38 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         <Button
           variant="contained"
           color={isRecording ? "secondary" : "primary"}
-          startIcon={isRecording ? <Stop /> : <MicNone />}
           onClick={isRecording ? stopRecording : startRecording}
           disabled={disabled || isLoading}
+          sx={{
+            minWidth: "unset",
+            width: "36px",
+            height: "36px",
+            p: 0,
+            borderRadius: "50%",
+          }}
+          aria-label={isRecording ? "Stop recording" : "Start recording"}
         >
           {isLoading ? (
-            <CircularProgress size={24} color="inherit" />
+            <CircularProgress size={20} color="inherit" />
           ) : isRecording ? (
-            `Stop (${formatTime(recordingTime)})`
-          ) : isFinnishLanguage ? (
-            "Record Finnish"
+            <Stop fontSize="small" />
           ) : (
-            "Record"
+            <MicNone fontSize="small" />
           )}
         </Button>
 
-        {audioURL && !isRecording && <audio src={audioURL} controls />}
+        {isRecording && (
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+            {formatTime(recordingTime)}
+          </Typography>
+        )}
+
+        {audioURL && !isRecording && (
+          <audio src={audioURL} controls style={{ height: "36px" }} />
+        )}
       </Box>
 
-      {/* Processing indicator for Finnish */}
-      {isLoading && isFinnishLanguage && (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            mt: 2,
-            p: 2,
-            bgcolor: "info.light",
-            color: "info.contrastText",
-            borderRadius: 1,
-          }}
-        >
-          <CircularProgress size={20} sx={{ mr: 1 }} color="inherit" />
-          <Typography variant="body2">
-            Processing Finnish audio... This may take longer than other
-            languages.
-          </Typography>
-        </Box>
-      )}
-
-      {transcript && language.includes("en") && (
-        <Typography
-          variant="body1"
-          sx={{ mt: 2, p: 2, bgcolor: "rgba(0, 0, 0, 0.05)", borderRadius: 1 }}
-        >
-          Browser Transcript: {transcript}
-        </Typography>
-      )}
-      {serverTranscript && isFinnishLanguage && (
-        <Typography
-          variant="body1"
-          sx={{
-            mt: 2,
-            p: 2,
-            bgcolor: serverTranscript.startsWith("Processing")
-              ? "rgba(25, 118, 210, 0.1)"
-              : "rgba(0, 0, 0, 0.05)",
-            borderRadius: 1,
-            color: serverTranscript.startsWith("Processing")
-              ? "primary.main"
-              : "text.primary",
-          }}
-        >
-          Server Transcript: {serverTranscript}
-        </Typography>
-      )}
-
-      {/* Finnish language tips */}
-      {isFinnishLanguage && !isRecording && !isLoading && (
-        <Typography
-          variant="caption"
-          sx={{ display: "block", mt: 2, color: "text.secondary" }}
-        >
-          Tip: For Finnish speech recognition, speak clearly and pause briefly
-          between sentences for better results.
-        </Typography>
-      )}
+      {/* Transcript content is now displayed in the transcript-container */}
     </Box>
   );
 };
