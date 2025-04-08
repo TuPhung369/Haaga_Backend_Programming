@@ -3,6 +3,7 @@
 ## Current Mode: PLAN
 
 ## Current Focus: API Design
+
 - Defining API endpoints
   - HTTP methods
   - URL paths
@@ -13,6 +14,7 @@
 - Documenting API specification in api-spec.md
 
 ## Next Steps
+
 - Collaborate with user to define API endpoints
 - Prompt for input on key API design decisions
 - Document each endpoint in api-spec.md
