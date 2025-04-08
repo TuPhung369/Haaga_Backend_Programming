@@ -58,6 +58,90 @@ export async function convertAudioFormat(audioBlob: Blob): Promise<Blob> {
 }
 
 /**
+ * Split a large audio blob into smaller chunks
+ * @param audioBlob The original large audio blob
+ * @param maxChunkSize Maximum size of each chunk in bytes
+ * @returns Array of smaller audio blobs
+ */
+function splitAudioBlob(audioBlob: Blob, maxChunkSize: number = 1048576): Blob[] {
+  // If the blob is already small enough, just return it
+  if (audioBlob.size <= maxChunkSize) {
+    return [audioBlob];
+  }
+
+  const chunks: Blob[] = [];
+  let start = 0;
+
+  // Create chunks of the specified size
+  while (start < audioBlob.size) {
+    const end = Math.min(start + maxChunkSize, audioBlob.size);
+    chunks.push(audioBlob.slice(start, end, audioBlob.type));
+    start = end;
+  }
+
+  console.log(`🎤 Split audio blob into ${chunks.length} chunks (${chunks.map(c => Math.round(c.size / 1024) + 'KB').join(', ')})`);
+  return chunks;
+}
+
+/**
+ * Try a direct XHR request instead of fetch to get more detailed error information
+ * @param url The URL to send the request to
+ * @param formData The form data to send
+ * @returns Promise with the response text
+ */
+function sendXHRRequest(url: string, formData: FormData): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    // Add event listeners
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        console.log(`🎤 Upload progress: ${percentComplete}%`);
+      }
+    };
+
+    xhr.onreadystatechange = () => {
+      console.log(`🎤 XHR state changed: ${xhr.readyState} (${getReadyStateText(xhr.readyState)})`);
+      if (xhr.readyState === 4) {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.responseText);
+        } else {
+          reject(new Error(`XHR failed with status: ${xhr.status}, response: ${xhr.responseText}`));
+        }
+      }
+    };
+
+    xhr.onerror = (e) => {
+      console.error('🎤 XHR error:', e);
+      reject(new Error('Network error occurred'));
+    };
+
+    xhr.ontimeout = () => {
+      console.error('🎤 XHR timeout');
+      reject(new Error('Request timed out'));
+    };
+
+    // Open and send the request
+    xhr.open('POST', url, true);
+    xhr.timeout = 120000; // 2 minutes timeout
+    xhr.send(formData);
+  });
+}
+
+// Helper function to convert XHR readyState to text
+function getReadyStateText(state: number): string {
+  switch (state) {
+    case 0: return 'UNSENT';
+    case 1: return 'OPENED';
+    case 2: return 'HEADERS_RECEIVED';
+    case 3: return 'LOADING';
+    case 4: return 'DONE';
+    default: return 'UNKNOWN';
+  }
+}
+
+/**
  * Converts speech from audio blob to text using Whisper
  * @param audioBlob - The audio blob to transcribe
  * @param language - The language of the audio (fi-FI for Finnish)
@@ -72,12 +156,54 @@ export async function convertSpeechToText(audioBlob: Blob, language: string = 'e
 
   console.log(`🎤 STEP 2: Processing audio: ${audioBlob.size} bytes, ${audioBlob.type}, timeout: ${timeoutValue}ms, language: ${language}`);
 
-  // Use the blob directly - don't try to convert it
-  const processedBlob = audioBlob;
+  // Check if the blob is too large
+  const blobSizeKB = Math.round(audioBlob.size / 1024);
+  if (blobSizeKB > 1024) {
+    console.log(`🎤 Warning: Audio file is large (${blobSizeKB} KB), will try chunking approach`);
+  }
+
+  // Create a new blob with the correct type for better server compatibility
+  // Some webm codecs might cause issues, so we ensure we're using a standard format
+  let processedBlob: Blob;
+  if (audioBlob.type.includes('codecs=pcm')) {
+    console.log(`🎤 STEP 3: Converting PCM encoded audio to standard webm for better compatibility`);
+    // Create a new blob with just webm type without specifying codec
+    processedBlob = new Blob([audioBlob], { type: 'audio/webm' });
+  } else {
+    processedBlob = audioBlob;
+  }
+
+  // For large blobs (>1MB), try to reduce size to improve request reliability
+  if (processedBlob.size > 1048576) { // 1MB
+    try {
+      // Try to reduce audio quality to make file smaller
+      console.log(`🎤 STEP 3.5: Reducing audio blob size for better upload reliability`);
+
+      // Chunk the audio for large files
+      if (processedBlob.size > 2097152) { // 2MB
+        // For files larger than 2MB, try the smaller first chunk first
+        const chunks = splitAudioBlob(processedBlob, 1048576); // 1MB chunks
+        console.log(`🎤 Using first ${Math.min(2, chunks.length)} chunks of audio for processing`);
+
+        // Create a blob with just the first 2 chunks (or fewer if we don't have 2)
+        const firstChunks = chunks.slice(0, Math.min(2, chunks.length));
+        processedBlob = new Blob(firstChunks, { type: processedBlob.type });
+
+        console.log(`🎤 Reduced audio size from ${blobSizeKB}KB to ${Math.round(processedBlob.size / 1024)}KB by using first chunks`);
+      }
+    } catch (error) {
+      console.warn(`🎤 Error reducing audio size:`, error);
+      // Continue with original blob if reduction fails
+    }
+  }
 
   const formData = new FormData();
-  // Important: The server expects the file parameter to be named "file", not "audio"
-  formData.append("file", processedBlob, "recording.webm");
+  // Use the proper extension based on the blob type
+  const fileExtension = processedBlob.type.includes('wav') ? 'wav' : 'webm';
+  const filename = `recording.${fileExtension}`;
+
+  // Important: The server expects the file parameter to be named "file"
+  formData.append("file", processedBlob, filename);
   // The server also expects these Form parameters
   formData.append("optimize", "false");
   formData.append("priority", "accuracy");
@@ -94,30 +220,69 @@ export async function convertSpeechToText(audioBlob: Blob, language: string = 'e
 
   try {
     console.log(`🎤 STEP 6: Sending request to server: ${serverUrl}`);
+    console.log(`🎤 Trying XHR request for better diagnostics instead of fetch`);
 
-    const response = await Promise.race([
-      fetch(serverUrl, {
-        method: "POST",
-        body: formData
-      }),
-      new Promise<Response>((_, reject) =>
-        setTimeout(() => reject(new Error("Request timeout")), timeoutValue)
-      ) as Promise<Response>
-    ]);
+    // Try XHR request first for better diagnostics
+    try {
+      const responseText = await sendXHRRequest(serverUrl, formData);
+      console.log(`🎤 STEP 7: XHR request successful, parsing response`);
 
-    console.log(`🎤 STEP 7: Received response with status: ${response.status}`);
+      try {
+        const data = JSON.parse(responseText);
+        result = { transcript: data.transcript || "" };
+        console.log(`🎤 STEP 8: Successfully parsed response JSON: "${result.transcript.substring(0, 50)}${result.transcript.length > 50 ? '...' : ''}"`);
+      } catch (parseError) {
+        console.error(`🎤 Error parsing response JSON:`, parseError);
+        return { transcript: `Error parsing server response. Please try again.` };
+      }
+    } catch (xhrError) {
+      console.error(`🎤 XHR request failed, falling back to fetch:`, xhrError);
 
-    if (response.ok) {
-      result = await response.json();
-      console.log(`🎤 STEP 8: Successfully parsed response JSON`);
-    } else {
-      console.log(`🎤 STEP 8: Server error with status ${response.status}`);
-      return {
-        transcript: `Error: Server returned status code ${response.status}. Please try again.`
-      };
+      // Fall back to fetch approach if XHR fails
+      // Create an AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.log(`🎤 Request timeout after ${timeoutValue}ms`);
+      }, timeoutValue);
+
+      try {
+        const response = await fetch(serverUrl, {
+          method: "POST",
+          body: formData,
+          signal: controller.signal
+        });
+
+        // Clear the timeout since we got a response
+        clearTimeout(timeoutId);
+
+        console.log(`🎤 STEP 7: Received response with status: ${response.status}`);
+
+        if (response.ok) {
+          result = await response.json();
+          console.log(`🎤 STEP 8: Successfully parsed response JSON`);
+        } else {
+          console.log(`🎤 STEP 8: Server error with status ${response.status}`);
+          return {
+            transcript: `Error: Server returned status code ${response.status}. Please try again.`
+          };
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId); // Clean up timeout
+        throw fetchError; // Re-throw to be handled by outer catch
+      }
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Check if this is an abort error (timeout)
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      console.log(`🎤 STEP 8: Request timed out after ${timeoutValue}ms`);
+      return {
+        transcript: `Error: Request timed out after ${Math.round(timeoutValue / 1000)} seconds. The server may be busy or the audio file is too large.`
+      };
+    }
+
     console.log(`🎤 STEP 8: Request error: ${errorMessage}`);
 
     return {
