@@ -28,6 +28,16 @@ import threading
 from collections import deque
 import subprocess
 
+# Import Wav2Vec2 module for Finnish
+try:
+    from wav2vec2_finnish import transcribe_audio_with_wav2vec2, test_wav2vec2
+
+    wav2vec2_available = True
+    print("Wav2Vec2 module for Finnish is available")
+except ImportError as e:
+    wav2vec2_available = False
+    print(f"Wav2Vec2 module for Finnish is not available: {e}")
+
 # Add faster-whisper import
 try:
     from faster_whisper import WhisperModel
@@ -42,11 +52,13 @@ except ImportError:
 
 # Handle missing speechbrain components
 speechbrain_tts_available = False
+speechbrain_available = False  # Add this for STT
 try:
     from speechbrain.inference import Tacotron2
     from speechbrain.inference import HIFIGAN
 
     speechbrain_tts_available = True
+    speechbrain_available = True  # Set to True if SpeechBrain is available
     logging.info("Successfully loaded SpeechBrain TTS modules")
 except ImportError:
     logging.warning(
@@ -180,9 +192,10 @@ LANGUAGE_CONFIG = {
     "fi-FI": {
         "code": "fi",
         "stt_models": [
+            "wav2vec2-finnish",  # Use specialized Finnish model as first choice
             "faster-whisper",
             "whisper",
-        ],  # Prefer faster-whisper for Finnish
+        ],  # Prefer wav2vec2-finnish for Finnish
         "tts_models": ["gtts"],  # Using gTTS for Finnish as requested
         "whisper_size": "medium",  # medium is better for Finnish
     },
@@ -970,10 +983,71 @@ async def transcribe_speech_finnish(
     }
 
     try:
-        # Log that we're using a smaller model for faster processing
-        logger.info(
-            f"[{request_id}] Using tiny Whisper model for faster Finnish processing"
-        )
+        # Determine which model to use
+        model_to_use = get_stt_model("fi-FI")
+        logger.info(f"[{request_id}] Using {model_to_use} model for Finnish processing")
+
+        # Process with the selected model
+        if model_to_use == "wav2vec2-finnish" and wav2vec2_available:
+            # Use Wav2Vec2 for Finnish
+            logger.info(f"[{request_id}] Using specialized Wav2Vec2 model for Finnish")
+
+            # Save and convert audio
+            contents = await file.read()
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_file:
+                temp_file_path = temp_file.name
+                temp_file.write(contents)
+
+            # Convert to WAV
+            output_path = f"{temp_file_path}_converted.wav"
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-i",
+                temp_file_path,
+                "-ar",
+                "16000",
+                "-ac",
+                "1",
+                "-c:a",
+                "pcm_s16le",
+                output_path,
+            ]
+
+            try:
+                subprocess.run(cmd, check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"[{request_id}] FFmpeg failed: {e.stderr}")
+                os.unlink(temp_file_path)
+                return JSONResponse(
+                    content={"transcript": "Äänitiedoston muuntaminen epäonnistui."},
+                    headers=headers,
+                )
+            finally:
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+
+            # Use Wav2Vec2 model
+            result = transcribe_with_wav2vec2_finnish(output_path)
+
+            # Clean up
+            if os.path.exists(output_path):
+                os.unlink(output_path)
+
+            if result and result.get("text", "").strip():
+                return JSONResponse(
+                    content={"transcript": result["text"]}, headers=headers
+                )
+
+            # Fall back to Whisper if Wav2Vec2 fails
+            logger.warning(
+                f"[{request_id}] Wav2Vec2 transcription failed, falling back to Whisper"
+            )
+
+        # Use Whisper as fallback
+        logger.info(f"[{request_id}] Using Whisper model for Finnish processing")
+        # Set priority to speed for faster processing
+        priority = "speed"
         # This is the same approach used by the English endpoint
         result = await _transcribe_speech(file, "fi", optimize, priority, chunk_size)
         logger.info(
@@ -1883,6 +1957,35 @@ async def handle_websocket_transcription(
         logger.info(f"{language} WebSocket connection closed")
 
 
+# Function to get the appropriate STT model based on language
+def get_stt_model(language: str) -> str:
+    """Get the appropriate STT model for the given language."""
+    if language in LANGUAGE_CONFIG:
+        # Check if the preferred model is available
+        preferred_models = LANGUAGE_CONFIG[language]["stt_models"]
+        for model in preferred_models:
+            if (
+                model == "wav2vec2-finnish"
+                and wav2vec2_available
+                and language == "fi-FI"
+            ):
+                return model
+            elif model == "faster-whisper" and faster_whisper_available:
+                return model
+            elif model == "whisper" and whisper_available:
+                return model
+            elif model == "speechbrain" and speechbrain_available:
+                return model
+
+        # If no preferred model is available, return the first one that is
+        if faster_whisper_available:
+            return "faster-whisper"
+        elif whisper_available:
+            return "whisper"
+
+    return "whisper"  # Default to whisper
+
+
 # Add health check endpoint
 @app.get("/api/speech/health")
 async def speech_health_check():
@@ -1897,12 +2000,16 @@ async def speech_health_check():
         model_status = "healthy"
         device = "cpu"  # Standard whisper uses CPU
 
+    # Add Wav2Vec2 status
+    wav2vec2_status = "available" if wav2vec2_available else "unavailable"
+
     return {
         "status": model_status,
         "model": "large-v3" if faster_whisper_available else "medium",
         "device": device,
         "faster_whisper_available": faster_whisper_available,
         "whisper_available": whisper_available,
+        "wav2vec2_finnish_available": wav2vec2_status,
     }
 
 
@@ -1922,6 +2029,24 @@ async def websocket_status():
     }
 
 
+# Add function to transcribe with Wav2Vec2 Finnish model
+def transcribe_with_wav2vec2_finnish(audio_path):
+    """
+    Transcribe audio using Wav2Vec2 Finnish model
+    """
+    try:
+        if not wav2vec2_available:
+            logger.error("Wav2Vec2 Finnish model not available")
+            return None
+
+        # Use the imported function from wav2vec2_finnish.py
+        result = transcribe_audio_with_wav2vec2(audio_path)
+        return result
+    except Exception as e:
+        logger.error(f"Wav2Vec2 Finnish transcription error: {str(e)}")
+        return None
+
+
 # Add function to transcribe with whisper
 def transcribe_with_whisper(audio_path, language):
     """
@@ -1935,11 +2060,11 @@ def transcribe_with_whisper(audio_path, language):
         if language and not language.lower().startswith("en"):
             model = get_whisper_model("small")
 
-        # For Finnish specifically, use small model for faster processing
+        # For Finnish specifically, use medium model for better accuracy
         if language and language.lower().startswith("fi"):
             model = get_whisper_model(
-                "tiny"
-            )  # Changed from medium to tiny for faster processing
+                "medium"
+            )  # Changed from tiny to medium for better accuracy
 
         if not model:
             logger.error("Failed to load Whisper model")
@@ -1973,6 +2098,21 @@ if __name__ == "__main__":
         f"CORS origins allowed: {['http://localhost:3000', 'http://127.0.0.1:3000']}"
     )
     logger.info(f"To test if server is running, open: http://localhost:{port}/health")
+
+    # Preload Wav2Vec2 model for Finnish if available
+    if wav2vec2_available:
+        logger.info("Wav2Vec2 Finnish model is available. Preloading model...")
+        try:
+            # Just initialize the model without actual transcription
+            from wav2vec2_finnish import load_wav2vec2_model
+
+            model, processor = load_wav2vec2_model()
+            if model is not None and processor is not None:
+                logger.info("Wav2Vec2 Finnish model loaded successfully")
+            else:
+                logger.warning("Failed to load Wav2Vec2 Finnish model")
+        except Exception as e:
+            logger.error(f"Error preloading Wav2Vec2 Finnish model: {e}")
 
     # Preload faster-whisper model if available
     if faster_whisper_available:

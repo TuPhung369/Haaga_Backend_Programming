@@ -58,10 +58,22 @@ public class SpeechController {
         response.put("status", "unhealthy");
         log.warn("Speech API returned non-200 status: {}", serviceResponse.getStatusCode());
       }
-    } catch (Exception e) {
+    } catch (HttpClientErrorException | org.springframework.web.client.ResourceAccessException e) {
       response.put("status", "unhealthy");
-      response.put("error", e.getMessage());
+      response.put("error", e instanceof HttpClientErrorException ?
+          "HTTP client error: " + e.getMessage() :
+          "Service unavailable: " + e.getMessage());
       log.error("Error checking Speech API health: {}", e.getMessage());
+    } catch (org.springframework.web.client.RestClientException e) {
+      // Catch any other REST client exceptions not caught above
+      response.put("status", "unhealthy");
+      response.put("error", "REST client error: " + e.getMessage());
+      log.error("REST client error checking Speech API health: {}", e.getMessage());
+    } catch (Exception e) {
+      // Fallback for any truly unexpected exceptions
+      response.put("status", "unhealthy");
+      response.put("error", "Unexpected error: " + e.getMessage());
+      log.error("Unexpected error checking Speech API health: {}", e.getMessage());
     }
 
     return ResponseEntity.ok(response);
@@ -93,8 +105,19 @@ public class SpeechController {
       return ResponseEntity
           .status(e.getStatusCode())
           .body(Map.of("error", "Text-to-speech service error: " + e.getResponseBodyAsString()));
+    } catch (org.springframework.web.client.ResourceAccessException e) {
+      log.error("Service unavailable during text-to-speech: {}", e.getMessage());
+      return ResponseEntity
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .body(Map.of("error", "Text-to-speech service unavailable: " + e.getMessage()));
+    } catch (org.springframework.web.client.RestClientException e) {
+      log.error("REST client error during text-to-speech: {}", e.getMessage());
+      return ResponseEntity
+          .status(HttpStatus.BAD_GATEWAY)
+          .body(Map.of("error", "Text-to-speech service communication error: " + e.getMessage()));
     } catch (Exception e) {
-      log.error("Error during text-to-speech: {}", e.getMessage());
+      // Fallback for any other unexpected exceptions
+      log.error("Unexpected error during text-to-speech: {}", e.getMessage());
       return ResponseEntity
           .status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(Map.of("error", "Failed to convert text to speech: " + e.getMessage()));
@@ -144,8 +167,19 @@ public class SpeechController {
       return ResponseEntity
           .status(e.getStatusCode())
           .body(Map.of("error", "Speech-to-text service error: " + e.getResponseBodyAsString()));
+    } catch (org.springframework.web.client.ResourceAccessException e) {
+      log.error("Service unavailable during speech-to-text: {}", e.getMessage());
+      return ResponseEntity
+          .status(HttpStatus.SERVICE_UNAVAILABLE)
+          .body(Map.of("error", "Speech-to-text service unavailable: " + e.getMessage()));
+    } catch (org.springframework.web.client.RestClientException e) {
+      log.error("REST client error during speech-to-text: {}", e.getMessage());
+      return ResponseEntity
+          .status(HttpStatus.BAD_GATEWAY)
+          .body(Map.of("error", "Speech-to-text service communication error: " + e.getMessage()));
     } catch (Exception e) {
-      log.error("Error during speech-to-text: {}", e.getMessage());
+      // Fallback for any other unexpected exceptions
+      log.error("Unexpected error during speech-to-text: {}", e.getMessage());
       return ResponseEntity
           .status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(Map.of("error", "Failed to convert speech to text: " + e.getMessage()));
@@ -239,8 +273,24 @@ public class SpeechController {
         errorResponse.put("error", "Failed to create language session");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
       }
+    } catch (org.springframework.web.client.HttpStatusCodeException e) {
+      log.error("HTTP status error when creating language session: {}", e.getStatusCode(), e);
+      Map<String, String> errorResponse = new HashMap<>();
+      errorResponse.put("error", "Language session service returned error: " + e.getMessage());
+      return ResponseEntity.status(e.getStatusCode()).body(errorResponse);
+    } catch (org.springframework.web.client.ResourceAccessException e) {
+      log.error("Service unavailable when creating language session", e);
+      Map<String, String> errorResponse = new HashMap<>();
+      errorResponse.put("error", "Language session service unavailable: " + e.getMessage());
+      return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
+    } catch (org.springframework.web.client.RestClientException e) {
+      log.error("REST client error when creating language session", e);
+      Map<String, String> errorResponse = new HashMap<>();
+      errorResponse.put("error", "Language session service communication error: " + e.getMessage());
+      return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(errorResponse);
     } catch (Exception e) {
-      log.error("Error creating language session", e);
+      // Fallback for any other unexpected exceptions
+      log.error("Unexpected error creating language session", e);
       Map<String, String> errorResponse = new HashMap<>();
       errorResponse.put("error", "Error creating language session: " + e.getMessage());
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);

@@ -5,7 +5,7 @@ import {
   LanguageSession,
   LanguageInteraction,
   LanguageFeedback,
-} from "../type/languageAI";
+} from "../types/LanguageAITypes";
 
 export const API_URL = "http://localhost:9095/identify_service"; // Spring Boot server URL
 export const N8N_WEBHOOK_URL =
