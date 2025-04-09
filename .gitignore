@@ -69,3 +69,8 @@ out/
 /.gradle/
 /.mvn/
 spring.log
+
+# AI Models
+**/models/
+study/study/speechbrain/models/
+study/study/speechbrain/models/wav2vec2-finnish/

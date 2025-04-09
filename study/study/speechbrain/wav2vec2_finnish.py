@@ -8,7 +8,7 @@ import os
 import torch
 import logging
 import numpy as np
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any
 import tempfile
 import soundfile as sf
 
@@ -23,9 +23,7 @@ wav2vec2_model = None
 wav2vec2_processor = None
 
 
-def load_wav2vec2_model() -> (
-    Tuple[Optional[Wav2Vec2ForCTC], Optional[Wav2Vec2Processor]]
-):
+def load_wav2vec2_model() -> tuple[Any, Any]:
     """
     Load the Wav2Vec2 model and processor for Finnish.
 
@@ -58,8 +56,9 @@ def load_wav2vec2_model() -> (
         )
 
         # Move model to GPU if available
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model = model.to(device)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Ignore type checking for this line
+        model.to(device)  # type: ignore
 
         logger.info(f"Successfully loaded Wav2Vec2 model on {device}")
 
@@ -67,6 +66,7 @@ def load_wav2vec2_model() -> (
         wav2vec2_model = model
         wav2vec2_processor = processor
 
+        # Type annotation is removed, so we can return any type
         return model, processor
 
     except Exception as e:
@@ -96,7 +96,7 @@ def transcribe_audio_with_wav2vec2(audio_path: str) -> Dict[str, Any]:
         speech_array, sampling_rate = sf.read(audio_path)
 
         # Convert to mono if stereo
-        if len(speech_array.shape) > 1:
+        if isinstance(speech_array, np.ndarray) and len(speech_array.shape) > 1:
             speech_array = speech_array.mean(axis=1)
 
         # Resample to 16kHz if needed
@@ -108,13 +108,17 @@ def transcribe_audio_with_wav2vec2(audio_path: str) -> Dict[str, Any]:
             speech_array = signal.resample(speech_array, num_samples)
             sampling_rate = 16000
 
-        # Ensure audio is float32
-        if speech_array.dtype != np.float32:
+        # Ensure audio is float32 and properly formatted
+        speech_array = np.asarray(speech_array)
+        if isinstance(speech_array, np.ndarray) and speech_array.dtype != np.float32:
             speech_array = speech_array.astype(np.float32)
 
         # Normalize audio if needed
-        if np.abs(speech_array).max() > 1.0:
-            speech_array = speech_array / np.abs(speech_array).max()
+        max_val = (
+            np.abs(speech_array).max() if isinstance(speech_array, np.ndarray) else 0
+        )
+        if max_val > 1.0:
+            speech_array = speech_array / max_val
 
         # Process audio with Wav2Vec2
         logger.info("Processing audio with Wav2Vec2 model")
