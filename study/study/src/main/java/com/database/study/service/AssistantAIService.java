@@ -111,8 +111,10 @@ public class AssistantAIService {
         try {
             // Create request body
             ObjectNode requestBody = objectMapper.createObjectNode();
-            requestBody.put("chatInput", request.getMessage());
+            requestBody.put("message", request.getMessage());
             requestBody.put("sessionId", request.getSessionId());
+            requestBody.put("userId", request.getUserId());
+            requestBody.put("output", request.getMessage()); // Add output field for compatibility
 
             // Set up headers
             HttpHeaders headers = new HttpHeaders();
@@ -121,10 +123,11 @@ public class AssistantAIService {
             // Create the request entity
             HttpEntity<String> entity = new HttpEntity<>(requestBody.toString(), headers);
 
-            log.info("Calling n8n webhook for message processing");
+            log.info("Calling n8n webhook for message processing with payload: {}", requestBody);
 
             // Call n8n webhook
             String response = restTemplate.postForObject(n8nWebhookUrl, entity, String.class);
+            log.info("Received response from n8n: {}", response);
 
             // Extract response text
             JsonNode responseNode = objectMapper.readTree(response);
@@ -135,11 +138,18 @@ public class AssistantAIService {
             } else if (responseNode.has("response")) {
                 return responseNode.get("response").asText();
             } else {
+                log.warn("No recognized response field found in n8n response: {}", response);
                 return "I couldn't process your request. Please try again.";
             }
+        } catch (org.springframework.web.client.RestClientException e) {
+            log.error("Error connecting to n8n webhook: ", e);
+            return "Sorry, I encountered an error while connecting to the AI service. Please try again later.";
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            log.error("Error processing JSON response from n8n: ", e);
+            return "Sorry, I encountered an error while processing the AI response. Please try again.";
         } catch (Exception e) {
-            log.error("Error calling n8n webhook: ", e);
-            return "Sorry, I encountered an error while processing your request.";
+            log.error("Unexpected error calling n8n webhook: ", e);
+            return "Sorry, I encountered an unexpected error. Please try again later.";
         }
     }
 

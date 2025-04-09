@@ -1,7 +1,8 @@
 """
 Finnish speech recognition using Wav2Vec2 model.
 This module provides functions to transcribe Finnish speech using the
-aapot/wav2vec2-xlsr-300m-finnish model from HuggingFace.
+aapot/wav2vec2-xlsr-1b-finnish-lm-v2 model from HuggingFace.
+This model includes a KenLM language model for improved accuracy.
 """
 
 import os
@@ -37,7 +38,7 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
         return wav2vec2_model, wav2vec2_processor
 
     try:
-        logger.info("Loading aapot/wav2vec2-xlsr-300m-finnish model and processor")
+        logger.info("Loading aapot/wav2vec2-xlsr-1b-finnish-lm-v2 model and processor")
 
         # Create models directory if it doesn't exist
         os.makedirs("models", exist_ok=True)
@@ -48,11 +49,11 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
 
         # Load processor and model
         processor = Wav2Vec2Processor.from_pretrained(
-            "aapot/wav2vec2-xlsr-300m-finnish", cache_dir=cache_dir
+            "aapot/wav2vec2-xlsr-1b-finnish-lm-v2", cache_dir=cache_dir
         )
 
         model = Wav2Vec2ForCTC.from_pretrained(
-            "aapot/wav2vec2-xlsr-300m-finnish", cache_dir=cache_dir
+            "aapot/wav2vec2-xlsr-1b-finnish-lm-v2", cache_dir=cache_dir
         )
 
         # Move model to GPU if available
@@ -131,13 +132,26 @@ def transcribe_audio_with_wav2vec2(audio_path: str) -> Dict[str, Any]:
         with torch.no_grad():
             logits = model(**inputs).logits
 
-        # Decode the predicted IDs
+        # Get predicted IDs
         predicted_ids = torch.argmax(logits, dim=-1)
-        transcription = processor.batch_decode(predicted_ids)[0]
+
+        # Decode the predicted IDs
+        # Check if processor has a language model (LM) decoder
+        if hasattr(processor, "decoder") and processor.decoder is not None:
+            # Use language model for decoding
+            logger.info("Using KenLM language model for decoding")
+            transcription = processor.decode(predicted_ids[0].cpu().numpy())
+        else:
+            # Standard decoding without LM
+            transcription = processor.batch_decode(predicted_ids)[0]
 
         logger.info(f"Transcription completed: {transcription}")
 
-        return {"text": transcription, "model": "wav2vec2-finnish", "success": True}
+        return {
+            "text": transcription,
+            "model": "wav2vec2-xlsr-1b-finnish-lm-v2",
+            "success": True,
+        }
 
     except Exception as e:
         logger.error(f"Error in Wav2Vec2 transcription: {str(e)}")
@@ -188,7 +202,9 @@ def test_wav2vec2():
             logger.error("Failed to load Wav2Vec2 model and processor")
             return False
 
-        logger.info("Wav2Vec2 model and processor loaded successfully")
+        logger.info(
+            "Wav2Vec2 model (aapot/wav2vec2-xlsr-1b-finnish-lm-v2) and processor loaded successfully"
+        )
         return True
 
     except Exception as e:
