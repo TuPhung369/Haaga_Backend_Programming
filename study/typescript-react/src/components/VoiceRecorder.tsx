@@ -64,6 +64,10 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const currentTranscriptRef = useRef<string>("");
+  const isRecordingRef = useRef<boolean>(false);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  );
 
   // Check if the server is available
   const checkServerAvailability = async (): Promise<boolean> => {
@@ -360,9 +364,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         stream.getTracks().forEach((track) => track.stop());
         setIsLoading(false);
         setIsRecording(false);
+        isRecordingRef.current = false;
         if (timerRef.current) {
           clearInterval(timerRef.current);
           timerRef.current = null;
+        }
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
         }
       };
 
@@ -373,6 +382,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       }, 1000);
 
       setIsRecording(true);
+      isRecordingRef.current = true;
       setIsLoading(false);
 
       // Always try to use browser speech recognition for English
@@ -396,6 +406,15 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   const stopRecording = () => {
     if (!isRecording || !mediaRecorderRef.current) return;
+
+    // Set recording flag to false to prevent auto-restart
+    isRecordingRef.current = false;
+
+    // Clear any heartbeat interval
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
 
     // Store the current transcript before stopping recognition
     const currentTranscript = transcript;
@@ -495,10 +514,46 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
       recognition.onend = () => {
         console.log("Speech recognition ended");
+
+        // Auto-restart if we're still in recording mode
+        if (isRecordingRef.current) {
+          console.log("Auto-restarting speech recognition...");
+          setTimeout(() => {
+            if (isRecordingRef.current) {
+              try {
+                startBrowserSpeechRecognition();
+              } catch (err) {
+                console.error("Error restarting speech recognition:", err);
+              }
+            }
+          }, 100); // Small delay before restarting
+        }
       };
 
       recognition.start();
       recognitionRef.current = recognition;
+
+      // Set up a heartbeat to ensure continuous recording
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+
+      heartbeatIntervalRef.current = setInterval(() => {
+        if (
+          isRecordingRef.current &&
+          (!recognitionRef.current || document.hidden)
+        ) {
+          console.log("Heartbeat check: Restarting speech recognition");
+          try {
+            if (recognitionRef.current) {
+              recognitionRef.current.stop();
+            }
+            startBrowserSpeechRecognition();
+          } catch (err) {
+            console.error("Error in heartbeat restart:", err);
+          }
+        }
+      }, 5000); // Check every 5 seconds
     } catch (err) {
       console.error("Error starting speech recognition:", err);
     }
@@ -719,6 +774,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (heartbeatIntervalRef.current)
+        clearInterval(heartbeatIntervalRef.current);
       if (
         mediaRecorderRef.current &&
         mediaRecorderRef.current.state !== "inactive"
@@ -726,6 +783,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         mediaRecorderRef.current.stop();
       }
       if (recognitionRef.current) recognitionRef.current.stop();
+      isRecordingRef.current = false;
     };
   }, []);
 
@@ -868,7 +926,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         </Typography>
       )}
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 2, width: "100%" }}
+      >
         <Button
           variant="contained"
           color={isRecording ? "secondary" : "primary"}
@@ -880,6 +940,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             height: "36px",
             p: 0,
             borderRadius: "50%",
+            flexShrink: 0, // Prevent the button from shrinking
           }}
           aria-label={isRecording ? "Stop recording" : "Start recording"}
         >
@@ -893,13 +954,23 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         </Button>
 
         {isRecording && (
-          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ ml: 1, flexShrink: 0 }}
+          >
             {formatTime(recordingTime)}
           </Typography>
         )}
 
         {audioURL && !isRecording && (
-          <audio src={audioURL} controls style={{ height: "36px" }} />
+          <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
+            <audio
+              src={audioURL}
+              controls
+              style={{ height: "36px", width: "100%" }}
+            />
+          </Box>
         )}
       </Box>
 
