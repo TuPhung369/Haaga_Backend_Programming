@@ -139,7 +139,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
               onClick={handleHistoryToggleClick}
               sx={{
                 borderRadius: "20px",
-                borderColor: "rgba(255, 255, 255, 0.5)",
+                backgroundColor: "rgba(255, 255, 255, 0.7)",
                 px: 2,
                 py: 0.5,
                 boxShadow: "0 2px 5px rgba(0,0,0,0.1)",

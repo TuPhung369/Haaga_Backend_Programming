@@ -58,6 +58,7 @@ storybook-static/
 .next/
 out/
 .vite/
+.augmentignore
 
 # Spring Boot-specific ignore
 /target/
