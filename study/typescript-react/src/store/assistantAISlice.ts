@@ -1,36 +1,28 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { ChatMessage } from '../types/assistantAI';
-
-interface AssistantAIState {
-  messages: ChatMessage[];
-  loading: boolean;
-  hasMore: boolean;
-  page: number;
-  size: number;
-}
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { ChatMessage, AssistantAIState } from "../types/AssistantAITypes";
 
 const initialState: AssistantAIState = {
   messages: [],
   loading: false,
   hasMore: true,
   page: 0,
-  size: 20
+  size: 20,
 };
 
 const assistantAISlice = createSlice({
-  name: 'assistantAI',
+  name: "assistantAI",
   initialState,
   reducers: {
     setMessages: (state, action: PayloadAction<ChatMessage[]>) => {
-      console.log('Redux: Setting messages', action.payload);
+      console.log("Redux: Setting messages", action.payload);
       state.messages = action.payload;
     },
     addMessage: (state, action: PayloadAction<ChatMessage>) => {
-      console.log('Redux: Adding user message', action.payload);
+      console.log("Redux: Adding user message", action.payload);
       state.messages.push(action.payload);
     },
     addAIResponse: (state, action: PayloadAction<ChatMessage>) => {
-      console.log('Redux: Adding AI response', action.payload);
+      console.log("Redux: Adding AI response", action.payload);
       state.messages.push(action.payload);
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
@@ -46,7 +38,7 @@ const assistantAISlice = createSlice({
       state.messages = [];
       state.page = 0;
       state.hasMore = true;
-    }
+    },
   },
 });
 
@@ -57,7 +49,7 @@ export const {
   setLoading,
   setHasMore,
   incrementPage,
-  clearMessages
+  clearMessages,
 } = assistantAISlice.actions;
 
-export default assistantAISlice.reducer; 
+export default assistantAISlice.reducer;

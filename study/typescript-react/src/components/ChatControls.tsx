@@ -20,8 +20,8 @@ import ReplayIcon from "@mui/icons-material/Replay";
 
 // Import VoiceRecorder here
 import VoiceRecorder from "./VoiceRecorder";
-// Import types from parent
-import { ProficiencyLevel, ChatControlsProps } from "../type/languageAI";
+// Import types from the new types structure
+import { ProficiencyLevel, ChatControlsProps } from "../types/LanguageAITypes";
 
 export const ChatControls: React.FC<ChatControlsProps> = React.memo(
   ({

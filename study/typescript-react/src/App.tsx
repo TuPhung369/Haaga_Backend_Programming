@@ -7,7 +7,7 @@ import {
   BrowserRouter as Router,
   Route,
   Routes,
-  useNavigate
+  useNavigate,
 } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Layout } from "antd";
@@ -37,11 +37,11 @@ import ProfilePage from "./pages/ProfilePage";
 import SettingPage from "./pages/SettingPage";
 import {
   introspectToken,
-  refreshTokenFromCookie
+  refreshTokenFromCookie,
 } from "./services/authService";
 import { clearAuthData, setAuthData } from "./store/authSlice";
 import { resetAllData } from "./store/resetActions";
-import { RootState } from "./type/types";
+import { RootState } from "./types";
 import { setupTokenRefresh } from "./utils/tokenRefresh";
 import "./styles/Totp.css";
 import { notification } from "antd";
@@ -57,15 +57,15 @@ const theme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#3f51b5" // Indigo
+      main: "#3f51b5", // Indigo
     },
     secondary: {
-      main: "#f50057" // Pink
-    }
+      main: "#f50057", // Pink
+    },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-  }
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+  },
 });
 
 // AuthWrapper component with the authentication check logic
@@ -107,7 +107,7 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
                 setAuthData({
                   token: refreshResponse.result.token,
                   isAuthenticated: true,
-                  loginSocial: false
+                  loginSocial: false,
                 })
               );
               setupTokenRefresh(refreshResponse.result.token);
@@ -137,7 +137,7 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
               notification.info({
                 message: "Session Expired",
                 description: "Your session has expired. Please log in again.",
-                key: "session-expired"
+                key: "session-expired",
               });
             }
 
@@ -188,14 +188,14 @@ const MainLayout = ({ children }: { children: ReactNode }) => {
     background: "linear-gradient(45deg, #1a3478 0%, #3a7bd5 70%)",
     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
     backdropFilter: "blur(10px)",
-    WebkitBackdropFilter: "blur(10px)"
+    WebkitBackdropFilter: "blur(10px)",
   };
 
   // Main layout styling
   const layoutStyle = {
     minHeight: "100vh",
     background: "#182538",
-    display: "flex"
+    display: "flex",
   };
 
   return (
@@ -287,3 +287,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

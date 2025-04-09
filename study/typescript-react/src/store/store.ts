@@ -9,7 +9,10 @@ import authReducer from "./authSlice";
 import userReducer from "./userSlice";
 import assistantAIReducer from "./assistantAISlice";
 import languageReducer from "./languageSlice";
-import { RootState, AuthState, KanbanState, UserState } from "../type/types";
+import { AuthState } from "../types/AuthTypes";
+import { RootState } from "../types/RootStateTypes";
+import { KanbanState } from "../types/KanbanTypes";
+import { UserState } from "../types/UserTypes";
 import { resetAllData } from "./resetActions";
 
 // Environment check for development mode
@@ -181,5 +184,5 @@ store.subscribe(() => {
 // Export store and types
 export default store;
 export type AppDispatch = typeof store.dispatch;
-export type { RootState } from "../type/types";
+export type { RootState } from "../types/RootStateTypes";
 

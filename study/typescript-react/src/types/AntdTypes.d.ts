@@ -1,4 +1,5 @@
-// src/types/antd.d.ts or any .d.ts file in your project
+// src/types/AntdTypes.d.ts
+// Type definitions for Ant Design components
 
 declare module "antd" {
   // Import all major components from antd
@@ -178,5 +179,3 @@ declare module "antd" {
   // You can continue adding interfaces for other components like Form, Select, etc.,
   // based on their props in the Ant Design documentation
 }
-
-

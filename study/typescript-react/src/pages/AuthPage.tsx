@@ -31,7 +31,7 @@ import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthData } from "../store/authSlice";
 import { resetAllData } from "../store/resetActions";
-import { ValidationInput, AuthState, ValidationErrors } from "../type/types";
+import { ValidationInput, AuthState, ValidationErrors } from "../types/AuthTypes";
 import { setupTokenRefresh } from "../utils/tokenRefresh";
 import "../styles/AuthPage.css";
 import { FcGoogle } from "react-icons/fc";

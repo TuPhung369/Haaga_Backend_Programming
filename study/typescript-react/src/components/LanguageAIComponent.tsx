@@ -22,13 +22,12 @@ import {
   fetchMessagesSuccess,
   fetchMessagesFailure,
 } from "../store/languageSlice";
-import { RootState } from "../type/types"; // Assuming store exports RootState type
+import { RootState } from "../types"; // Using the new types structure
 
 // --- Utility Imports ---
 import { stripMarkdown } from "../utils/TextUtils";
 
 // --- Child Component Imports ---
-// Removed VoiceRecorder import
 import ServiceStatusNotification from "./ServiceStatusNotification";
 import { ChatControls } from "./ChatControls";
 import { ChatWindow } from "./ChatWindow";
@@ -41,7 +40,7 @@ import {
   LanguageInteraction,
   ChatControlsProps,
   ChatWindowProps,
-} from "../type/languageAI";
+} from "../types/LanguageAITypes";
 
 // --- Component Definition ---
 

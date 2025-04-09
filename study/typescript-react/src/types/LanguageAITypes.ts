@@ -1,6 +1,7 @@
-// src/types/languageAI.ts
+// src/types/LanguageAITypes.ts
+// Types related to the Language AI functionality
 
-import { SelectChangeEvent } from "@mui/material"; // Import needed MUI type
+import { SelectChangeEvent } from "@mui/material";
 
 // --- Enums ---
 
@@ -10,6 +11,23 @@ export enum ProficiencyLevel {
   Advanced = "ADVANCED",
   Fluent = "FLUENT",
   Native = "NATIVE"
+}
+
+export enum LearningStyle {
+  Visual = "visual",
+  Auditory = "auditory",
+  Verbal = "verbal",
+  Physical = "physical",
+  Logical = "logical",
+  Social = "social",
+  Solitary = "solitary"
+}
+
+export enum PracticeFrequency {
+  Daily = "daily",
+  Weekly = "weekly",
+  BiWeekly = "bi-weekly",
+  Monthly = "monthly"
 }
 
 // --- Core Data Interfaces ---
@@ -70,7 +88,6 @@ export interface VoiceOption {
 }
 
 // --- Component Prop Interfaces ---
-// Consolidating prop interfaces here makes them easily reusable
 
 export interface ChatControlsProps {
   language: string;
@@ -114,6 +131,8 @@ export interface ChatMessageProps {
   formatTimestamp: (timestamp: string) => string;
 }
 
+// --- User Language Data Interfaces ---
+
 export interface LanguageSession {
   id: string;
   userId: string;
@@ -122,8 +141,6 @@ export interface LanguageSession {
   updatedAt: string | Date;
 }
 
-
-// User language proficiency levels
 export interface UserLanguageProficiency {
   userId: string;
   language: string;
@@ -133,7 +150,6 @@ export interface UserLanguageProficiency {
   lastAssessed: string | Date;
 }
 
-// User language preferences
 export interface LanguagePreferences {
   userId: string;
   preferredLanguages: string[];
@@ -142,19 +158,18 @@ export interface LanguagePreferences {
   practiceFrequency: PracticeFrequency;
 }
 
-export enum LearningStyle {
-  Visual = "visual",
-  Auditory = "auditory",
-  Verbal = "verbal",
-  Physical = "physical",
-  Logical = "logical",
-  Social = "social",
-  Solitary = "solitary"
+// --- State Interface ---
+
+export interface LanguageState {
+  messages: ChatMessageData[];
+  loading: boolean;
+  error: string | null;
 }
 
-export enum PracticeFrequency {
-  Daily = "daily",
-  Weekly = "weekly",
-  BiWeekly = "bi-weekly",
-  Monthly = "monthly"
-} 
+export interface LanguageMessage {
+  id: string;
+  sessionId: string;
+  userMessage: string;
+  aiResponse: string;
+  createdAt: Date;
+}

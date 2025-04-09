@@ -13,7 +13,7 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 import { ChatMessage } from "./ChatMessage";
 // Import type from parent
-import { ChatWindowProps } from "../type/languageAI";
+import { ChatWindowProps } from "../types/LanguageAITypes"; // From languageAI";
 
 export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
   ({

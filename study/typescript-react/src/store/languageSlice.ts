@@ -1,12 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-// Import both types
-import { ChatMessageData, LanguageInteraction } from "../type/languageAI";
-
-interface LanguageState {
-  messages: ChatMessageData[];
-  loading: boolean;
-  error: string | null;
-}
+// Import types from new structure
+import {
+  ChatMessageData,
+  LanguageInteraction,
+  LanguageState,
+} from "../types/LanguageAITypes";
 
 const initialState: LanguageState = {
   messages: [],
@@ -98,3 +96,4 @@ export const {
 } = languageSlice.actions;
 
 export default languageSlice.reducer;
+

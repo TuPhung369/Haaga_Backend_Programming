@@ -14,7 +14,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import mermaid from "mermaid";
 // Import types from the central types file
-import { ChatMessageProps } from "../type/languageAI"; // ChatMessageData is implicitly used via ChatMessageProps
+import { ChatMessageProps } from "../types/LanguageAITypes"; // ChatMessageData is implicitly used via ChatMessageProps
 
 // --- Mermaid Diagram Components (Internal to ChatMessage) ---
 

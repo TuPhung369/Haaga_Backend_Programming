@@ -3,7 +3,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo
+  useMemo,
 } from "react";
 import {
   Button,
@@ -12,7 +12,7 @@ import {
   Box,
   CircularProgress,
   Typography,
-  Fab
+  Fab,
 } from "@mui/material";
 import "reactflow/dist/style.css";
 import { PlayCircleOutlined } from "@mui/icons-material";
@@ -20,7 +20,7 @@ import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
 import { v4 as uuidv4 } from "uuid";
 import axios, { AxiosError } from "axios";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
 import ReactMarkdown, { Components } from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -34,7 +34,7 @@ import {
   addAIResponse,
   setLoading,
   setHasMore,
-  incrementPage
+  incrementPage,
 } from "../store/assistantAISlice";
 import { ChatMessage } from "../types/assistantAI";
 import mermaid from "mermaid";
@@ -162,19 +162,19 @@ mermaid.initialize({
   securityLevel: "loose",
   flowchart: {
     htmlLabels: true,
-    curve: "basis"
+    curve: "basis",
   },
   sequence: {
     diagramMarginX: 50,
     diagramMarginY: 10,
     actorMargin: 50,
     width: 150,
-    height: 65
-  }
+    height: 65,
+  },
 });
 
 // Update the RootState type by extending it
-declare module "../type/types" {
+declare module "../types/RootStateTypes" {
   interface RootState {
     assistantAI: {
       messages: ChatMessage[];
@@ -196,7 +196,7 @@ interface MermaidDiagramProps {
 const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
   content,
   className,
-  onRenderComplete
+  onRenderComplete,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -259,7 +259,7 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
           flowchart: {
             htmlLabels: true,
             curve: "basis",
-            useMaxWidth: false // Prevent width limitation
+            useMaxWidth: false, // Prevent width limitation
           },
           sequence: {
             diagramMarginX: 50,
@@ -270,10 +270,10 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({
             boxMargin: 10,
             boxTextMargin: 5,
             noteMargin: 10,
-            messageMargin: 35
+            messageMargin: 35,
           },
           fontSize: 16, // Increase font size
-          fontFamily: "Roboto, sans-serif" // Consistent font
+          fontFamily: "Roboto, sans-serif", // Consistent font
         });
 
         // Use the modern render method instead of deprecated init
@@ -450,10 +450,10 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
           type: MarkerType.ArrowClosed,
           width: 20,
           height: 20,
-          color: "#007bff"
+          color: "#007bff",
         },
         style: { stroke: "#007bff", strokeWidth: 2 },
-        animated: false
+        animated: false,
       }));
     }, [parsedData]);
 
@@ -518,7 +518,7 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
       viewMode,
       renderCache,
       handleMermaidRenderComplete,
-      diagramId
+      diagramId,
     ]);
 
     const reactFlowDiagram = useMemo(() => {
@@ -654,7 +654,7 @@ const AssistantAI: React.FC = () => {
             "Your session appears to have expired. Please refresh the page and log in again.",
           sender: "AI",
           sessionId: sessionId || uuidv4(),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         })
       );
     }
@@ -683,8 +683,8 @@ const AssistantAI: React.FC = () => {
           )}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`
-            }
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
@@ -724,8 +724,8 @@ const AssistantAI: React.FC = () => {
                   "Hello! I am your AI assistant. How can I help you today?",
                 sender: "AI",
                 sessionId: newSessionId,
-                timestamp: new Date().toISOString()
-              }
+                timestamp: new Date().toISOString(),
+              },
             ])
           );
           dispatch(setHasMore(false));
@@ -746,8 +746,8 @@ const AssistantAI: React.FC = () => {
                   "Hello! I am your AI assistant. How can I help you today?",
                 sender: "AI",
                 sessionId: newSessionId,
-                timestamp: new Date().toISOString()
-              }
+                timestamp: new Date().toISOString(),
+              },
             ])
           );
         }
@@ -810,8 +810,8 @@ const AssistantAI: React.FC = () => {
             content: "Hello! I am your AI assistant. How can I help you today?",
             sender: "AI",
             sessionId: newSessionId,
-            timestamp: new Date().toISOString()
-          }
+            timestamp: new Date().toISOString(),
+          },
         ])
       );
     }
@@ -871,7 +871,7 @@ const AssistantAI: React.FC = () => {
             "You are not properly authenticated. Please try logging in again.",
           sender: "AI",
           sessionId: sessionId || uuidv4(),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         })
       );
       return;
@@ -892,7 +892,7 @@ const AssistantAI: React.FC = () => {
       content: currentMessage,
       sender: "USER",
       sessionId: currentSessionId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     dispatch(addMessage(userMessage));
@@ -930,12 +930,12 @@ const AssistantAI: React.FC = () => {
           userId: userInfo.id,
           message: currentMessage,
           sessionId: currentSessionId,
-          recaptchaToken
+          recaptchaToken,
         },
         {
           headers: {
-            Authorization: authHeader
-          }
+            Authorization: authHeader,
+          },
         }
       );
 
@@ -956,7 +956,7 @@ const AssistantAI: React.FC = () => {
           content: content,
           sender: "AI",
           sessionId: currentSessionId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
 
         dispatch(addAIResponse(aiResponse));
@@ -994,7 +994,7 @@ const AssistantAI: React.FC = () => {
         content: detailedError,
         sender: "AI",
         sessionId: currentSessionId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
       dispatch(addAIResponse(errorResponse));
     } finally {
@@ -1029,7 +1029,7 @@ const AssistantAI: React.FC = () => {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true
+      hour12: true,
     });
   };
 
@@ -1159,7 +1159,7 @@ const AssistantAI: React.FC = () => {
                                 if (nodesMatch && edgesMatch) {
                                   const flowData = {
                                     nodes: JSON.parse(nodesMatch[2]), // Parse the JSON string
-                                    edges: JSON.parse(edgesMatch[2]) // Parse the JSON string
+                                    edges: JSON.parse(edgesMatch[2]), // Parse the JSON string
                                   };
                                   reactFlowContent = JSON.stringify(flowData);
 
@@ -1299,7 +1299,7 @@ const AssistantAI: React.FC = () => {
                                 {children}
                               </td>
                             );
-                          }
+                          },
                         } as Components
                       }
                     >
@@ -1362,3 +1362,4 @@ const AssistantAI: React.FC = () => {
 };
 
 export default AssistantAI;
+
