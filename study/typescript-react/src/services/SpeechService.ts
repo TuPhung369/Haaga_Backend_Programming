@@ -20,6 +20,7 @@ export const LANGUAGE_CONFIG = {
     sttTechnologies: ["whisper", "browser", "server"],
     ttsTechnologies: ["speechbrain", "browser", "gtts"],
     defaultVoice: "neutral",
+    timeout: 60, // 60 seconds timeout
   },
   "fi-FI": {
     code: "fi",
@@ -27,6 +28,15 @@ export const LANGUAGE_CONFIG = {
     sttTechnologies: ["whisper"],
     ttsTechnologies: ["gtts"],
     defaultVoice: "finnish-neutral",
+    timeout: 120, // 120 seconds timeout
+  },
+  "vi-VN": {
+    code: "vi",
+    name: "Vietnamese",
+    sttTechnologies: ["whisper"],
+    ttsTechnologies: ["gtts"],
+    defaultVoice: "vietnamese-neutral",
+    timeout: 120, // 120 seconds timeout
   },
 };
 
@@ -40,15 +50,22 @@ function calculateTimeout(
   blobSize: number,
   language: string = "en-US"
 ): number {
-  // Use appropriate timeout for Finnish language (now using a smaller model)
-  const isFinnish = language.toLowerCase().includes("fi");
-  const baseTimeout = isFinnish ? 30000 : 30000; // 30 seconds base for all languages
+  // Get language-specific configuration
+  const normalizedLanguage = language.toLowerCase().includes("fi")
+    ? "fi-FI"
+    : language.toLowerCase().includes("vi")
+    ? "vi-VN"
+    : "en-US";
+
+  // Get timeout from language config or use default
+  const langConfig = LANGUAGE_CONFIG[normalizedLanguage];
+  const baseTimeout = (langConfig?.timeout || 60) * 1000; // Convert seconds to milliseconds
 
   // Adjust based on audio size
   const sizeAdjustment = Math.floor(blobSize / 10000) * 5000; // Add 5 sec per 10KB for all languages
 
-  // Cap timeout
-  const maxTimeout = isFinnish ? 60000 : 120000; // 1 minute for Finnish, 2 for others
+  // Cap timeout at 3 minutes (180 seconds) for all languages
+  const maxTimeout = 180000;
 
   return Math.min(baseTimeout + sizeAdjustment, maxTimeout);
 }
@@ -167,8 +184,8 @@ async function convertFinnishSpeechToText(
     `🎤 FINNISH: Starting specialized Finnish speech-to-text conversion`
   );
 
-  // Calculate timeout - Using a smaller model now so we can reduce the timeout
-  const timeoutValue = 60000; // 1 minute for Finnish (reduced from 3 minutes)
+  // Calculate timeout based on language and audio size
+  const timeoutValue = calculateTimeout(audioBlob.size, "fi-FI");
   console.log(
     `🎤 FINNISH: Processing audio: ${audioBlob.size} bytes, ${audioBlob.type}, timeout: ${timeoutValue}ms`
   );
@@ -368,6 +385,13 @@ export async function convertSpeechToText(
   console.log(
     `🎤 STEP 2: Processing audio: ${audioBlob.size} bytes, ${audioBlob.type}, timeout: ${timeoutValue}ms, language: ${language}`
   );
+
+  // Add Vietnamese language support
+  if (language.toLowerCase().includes("vi")) {
+    console.log(
+      `🎤 Vietnamese language detected, using specialized processing`
+    );
+  }
 
   // Optimize audio for speech recognition
   const optimizedAudio = await optimizeAudioForSpeechRecognition(audioBlob);

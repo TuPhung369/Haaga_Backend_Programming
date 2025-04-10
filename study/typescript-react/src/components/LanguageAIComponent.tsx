@@ -526,7 +526,19 @@ const LanguageAIComponent: React.FC = () => {
                 console.log(
                   "No transcript available for Finnish, using placeholder"
                 );
-                userTranscript = "mitä k hi päivä känsä ala kue";
+                // Check if the transcript contains "Äänitiedosto on liian lyhyt" (Audio file is too short)
+                if (
+                  result.transcript &&
+                  result.transcript.includes("Äänitiedosto on liian lyhyt")
+                ) {
+                  console.log(
+                    "Audio file is too short, asking user to speak longer"
+                  );
+                  userTranscript =
+                    "Äänitiedosto on liian lyhyt. Ole hyvä ja puhu pidempään."; // "Audio file is too short. Please speak longer."
+                } else {
+                  userTranscript = "mitä k hi päivä känsä ala kue";
+                }
               }
             } else {
               throw new Error("Server returned empty transcript.");

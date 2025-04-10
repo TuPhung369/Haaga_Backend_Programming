@@ -298,6 +298,7 @@ LANGUAGE_CONFIG = {
         "stt_models": ["whisper", "speechbrain"],
         "tts_models": ["speechbrain", "gtts"],
         "whisper_size": "base",  # base is a good balance for English
+        "timeout": 60,  # 60 seconds timeout for English
     },
     "fi-FI": {
         "code": "fi",
@@ -308,6 +309,14 @@ LANGUAGE_CONFIG = {
         ],  # Prefer wav2vec2-finnish for Finnish
         "tts_models": ["gtts"],  # Using gTTS for Finnish as requested
         "whisper_size": "medium",  # medium is better for Finnish
+        "timeout": 120,  # Increase timeout to 120 seconds for Finnish
+    },
+    "vi-VN": {
+        "code": "vi",
+        "stt_models": ["whisper", "faster-whisper"],  # Use whisper for Vietnamese
+        "tts_models": ["gtts"],  # Using gTTS for Vietnamese
+        "whisper_size": "medium",  # medium is better for Vietnamese
+        "timeout": 120,  # 120 seconds timeout for Vietnamese
     },
 }
 
@@ -1239,6 +1248,16 @@ async def transcribe_speech_finnish(
             # Clean up
             if os.path.exists(output_path):
                 os.unlink(output_path)
+
+            # Check if result indicates audio is too short
+            if result and "error" in result and result["error"] == "audio_too_short":
+                logger.warning(
+                    f"[{request_id}] Audio file is too short for Wav2Vec2 processing"
+                )
+                # Return the error message directly
+                return JSONResponse(
+                    content={"transcript": result["text"]}, headers=headers
+                )
 
             if result and result.get("text", "").strip():
                 # Clean up the transcript by removing special tokens for Finnish

@@ -407,6 +407,45 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const stopRecording = () => {
     if (!isRecording || !mediaRecorderRef.current) return;
 
+    // Check if we're recording Finnish and enforce minimum recording time
+    const isFinnish = language.toLowerCase().includes("fi");
+    const minRecordingTimeForFinnish = 1; // 1 second minimum for Finnish
+
+    if (isFinnish && recordingTime < minRecordingTimeForFinnish) {
+      console.log(
+        `Recording time (${recordingTime}s) is less than minimum required for Finnish (${minRecordingTimeForFinnish}s). Please record longer.`
+      );
+      // Show a message to the user
+      const container = document.getElementById("transcript-container");
+      if (container) {
+        // Clear container first
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+
+        const messageBox = document.createElement("div");
+        messageBox.style.padding = "16px";
+        messageBox.style.margin = "8px";
+        messageBox.style.backgroundColor = "rgba(255, 152, 0, 0.08)";
+        messageBox.style.borderRadius = "4px";
+        messageBox.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+        messageBox.style.border = "1px solid #ffb74d";
+
+        const messageText = document.createElement("div");
+        messageText.style.fontSize = "1.1rem";
+        messageText.style.lineHeight = "1.5";
+        messageText.style.color = "#e65100";
+        messageText.textContent = isFinnish
+          ? "Äänitys on liian lyhyt. Ole hyvä ja puhu pidempään."
+          : "Recording is too short. Please speak longer.";
+
+        messageBox.appendChild(messageText);
+        container.appendChild(messageBox);
+      }
+
+      return; // Don't stop recording yet
+    }
+
     // Set recording flag to false to prevent auto-restart
     isRecordingRef.current = false;
 
@@ -460,7 +499,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
 
     // Provide immediate feedback for Finnish language processing
-    const isFinnish = language.toLowerCase().includes("fi");
     if (isFinnish) {
       setServerTranscript("Preparing to process Finnish audio...");
       // Log the start of Finnish processing for debugging

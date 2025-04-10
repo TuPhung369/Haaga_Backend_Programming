@@ -381,12 +381,13 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
                             logger.warning(
                                 "Parameter size mismatch detected in masked_spec_embed. Recreating config.json with correct parameters."
                             )
-                        elif (
-                            "weight: copying a param with shape torch.Size([35, 1280])"
-                            in str(local_error)
+                        elif "size mismatch for weight" in str(
+                            local_error
+                        ) and "copying a param with shape torch.Size([35, 1024])" in str(
+                            local_error
                         ):
                             logger.warning(
-                                "Vocabulary size mismatch detected. The model has 35 tokens but our configuration has fewer. Recreating config.json and vocab.json with correct parameters."
+                                "Dimension mismatch detected. The model has hidden_size=1024 but our configuration has hidden_size=1280. Recreating config.json with correct parameters."
                             )
 
                         # Recreate the config.json file with the correct parameters
@@ -397,7 +398,7 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
                             config = {
                                 "architectures": ["Wav2Vec2ForCTC"],
                                 "model_type": "wav2vec2",
-                                "hidden_size": 1280,  # This is the correct size for this model
+                                "hidden_size": 1024,  # Changed from 1280 to 1024 to match the model's actual dimensions
                                 "num_hidden_layers": 24,
                                 "num_attention_heads": 16,
                                 "intermediate_size": 5120,
@@ -674,6 +675,18 @@ def transcribe_audio_with_wav2vec2(audio_path: str) -> Dict[str, Any]:
         # Load audio file
         logger.info(f"Loading audio file: {audio_path}")
         speech_array, sampling_rate = sf.read(audio_path)
+
+        # Check if audio is too short (less than 0.5 seconds at 16kHz)
+        min_samples = int(0.5 * 16000)  # 0.5 seconds at 16kHz
+        if len(speech_array) < min_samples:
+            logger.warning(
+                f"Audio file is too short: {len(speech_array)} samples, minimum required: {min_samples}"
+            )
+            return {
+                "text": "Äänitiedosto on liian lyhyt.",
+                "error": "audio_too_short",
+                "success": False,
+            }
 
         # Convert to mono if stereo
         if isinstance(speech_array, np.ndarray) and len(speech_array.shape) > 1:
