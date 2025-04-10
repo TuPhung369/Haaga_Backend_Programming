@@ -1038,6 +1038,11 @@ const LanguageAIComponent: React.FC = () => {
       if (language === "fi-FI") {
         // Finnish welcome messages
         welcomeContent = `Tervetuloa! Olen valmis auttamaan sinua harjoittelemaan suomea ${proficiencyLevel} tasolla. Sano jotain aloittaaksesi.`;
+      } else if (language === "vi-VN") {
+        // Vietnamese welcome messages
+        welcomeContent = `Chào mừng! Tôi sẵn sàng giúp bạn luyện tập ${getLanguageName(
+          language
+        )} ở cấp độ ${proficiencyLevel}. Nói gì đó để bắt đầu.`;
       } else {
         // English (default) welcome messages
         welcomeContent = `Welcome! I'm ready to help you practice ${getLanguageName(

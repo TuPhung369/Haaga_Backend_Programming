@@ -35,6 +35,7 @@ import {
   setLoading,
   setHasMore,
   incrementPage,
+  clearMessages,
 } from "../store/assistantAISlice";
 import { ChatMessage } from "../types/assistantAI";
 import mermaid from "mermaid";
@@ -666,7 +667,16 @@ const AssistantAI: React.FC = () => {
 
   const loadChatHistory = useCallback(
     async (pageToLoad = 0) => {
-      if (!userInfo?.id || loading || (pageToLoad > 0 && !hasMore)) return;
+      // Don't load if user is not logged in, already loading, or no more messages (except for initial load)
+      if (!userInfo?.id || loading || (pageToLoad > 0 && !hasMore)) {
+        console.log("Skipping loadChatHistory:", {
+          noUser: !userInfo?.id,
+          isLoading: loading,
+          noMoreMessages: pageToLoad > 0 && !hasMore,
+          pageToLoad,
+        });
+        return;
+      }
 
       try {
         dispatch(setLoading(true));
@@ -674,6 +684,15 @@ const AssistantAI: React.FC = () => {
         const recaptchaToken = getRecaptchaToken();
 
         console.log(`Loading chat history: page=${pageToLoad}, size=${size}`);
+
+        // Add debug information
+        console.log("Request details:", {
+          userId: userInfo.id,
+          token: token ? "Valid token" : "Missing token",
+          page: pageToLoad,
+          size: size,
+          recaptchaToken: recaptchaToken ? "Valid token" : "Missing token",
+        });
 
         const response = await axios.get(
           `/api/assistant/${
@@ -684,11 +703,13 @@ const AssistantAI: React.FC = () => {
           {
             headers: {
               Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             },
           }
         );
 
-        console.log("API Response:", response.data);
+        console.log("API Response status:", response.status);
+        console.log("API Response data:", response.data);
 
         if (
           response.data &&
@@ -706,12 +727,77 @@ const AssistantAI: React.FC = () => {
           } else {
             // Prepend older messages when loading more
             console.log("Adding older messages:", response.data);
+
+            // Save current scroll position and height before updating
+            const chatContainer = chatContainerRef.current;
+            let scrollPos = 0;
+            let oldScrollHeight = 0;
+
+            if (chatContainer) {
+              scrollPos = chatContainer.scrollTop;
+              oldScrollHeight = chatContainer.scrollHeight;
+              console.log(
+                `Saved scroll position: ${scrollPos}, old height: ${oldScrollHeight}`
+              );
+            }
+
             // We need to concatenate in the correct order: older messages first, then existing messages
+
             const currentMessages = store.getState().assistantAI.messages;
-            dispatch(setMessages([...response.data, ...currentMessages]));
+
+            // Check for duplicates before merging
+            const existingIds = new Set(currentMessages.map((msg) => msg.id));
+            const newMessages = response.data.filter(
+              (msg) => !existingIds.has(msg.id)
+            );
+
+            console.log(`Found ${newMessages.length} new messages to add`);
+
+            if (newMessages.length > 0) {
+              // Dispatch the action to update messages
+              dispatch(setMessages([...newMessages, ...currentMessages]));
+
+              // After state update, restore scroll position with adjustment for new content
+              setTimeout(() => {
+                if (chatContainer) {
+                  const newScrollHeight = chatContainer.scrollHeight;
+                  const scrollDiff = newScrollHeight - oldScrollHeight;
+
+                  console.log(
+                    `Adjusting scroll: new height: ${newScrollHeight}, diff: ${scrollDiff}, new pos: ${
+                      scrollPos + scrollDiff
+                    }`
+                  );
+
+                  // Maintain the same relative scroll position after new content is added
+                  chatContainer.scrollTop = scrollPos + scrollDiff;
+                }
+              }, 100); // Increased timeout to ensure DOM has updated
+            }
           }
 
-          dispatch(setHasMore(response.data.length === size));
+          // Update hasMore flag - if we got fewer messages than requested, there are no more
+          const hasMoreMessages = response.data.length >= size;
+          console.log(
+            `📊 Received ${response.data.length} messages, hasMore set to ${hasMoreMessages}`
+          );
+
+          // Only update hasMore if we actually got fewer messages than requested
+          // This prevents false negatives when the server happens to return exactly 'size' messages
+          if (response.data.length < size) {
+            console.log(
+              "📉 Received fewer messages than requested, no more messages available"
+            );
+            dispatch(setHasMore(false));
+          } else if (pageToLoad === 0) {
+            // For first page, always set hasMore to true if we got a full page
+            console.log(
+              "📈 First page with full results, setting hasMore to true"
+            );
+            dispatch(setHasMore(true));
+          } else {
+            dispatch(setHasMore(hasMoreMessages));
+          }
         } else if (pageToLoad === 0) {
           // If it's the first load and no messages, set default welcome message
           console.log("No messages found, setting welcome message");
@@ -735,6 +821,17 @@ const AssistantAI: React.FC = () => {
         }
       } catch (error) {
         console.error("Error loading chat history:", error);
+
+        // Log more detailed error information
+        if (axios.isAxiosError(error)) {
+          console.error("Axios error details:", {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            message: error.message,
+          });
+        }
+
         if (pageToLoad === 0) {
           // Only set welcome message on first load error
           const newSessionId = uuidv4();
@@ -765,9 +862,18 @@ const AssistantAI: React.FC = () => {
     // Force initial data load on component mount only if the messages array is empty
     const currentState = store.getState().assistantAI;
 
+    console.log("Component mounted, current state:", {
+      hasMessages: currentState.messages && currentState.messages.length > 0,
+      messagesCount: currentState.messages ? currentState.messages.length : 0,
+      hasSessionId: !!sessionId,
+      hasUserInfo: !!userInfo?.id,
+      hasToken: !!token,
+    });
+
     // Ensure we have a session ID even if there are no messages
     if (!sessionId) {
       const newSessionId = uuidv4();
+      console.log(`No session ID found, generating new one: ${newSessionId}`);
       setSessionId(newSessionId);
     }
 
@@ -778,13 +884,24 @@ const AssistantAI: React.FC = () => {
       console.log(
         "Component mounted with empty messages, loading initial chat data"
       );
-      loadChatHistory(0);
+
+      // Reset state before loading
+      dispatch(setHasMore(true));
+      dispatch(clearMessages()); // This will reset page to 0
+
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        loadChatHistory(0);
+      }, 100);
     } else {
       // If we have messages, make sure we have set the session ID from the last message
       if (currentState.messages && currentState.messages.length > 0) {
         const lastMessage =
           currentState.messages[currentState.messages.length - 1];
         if (lastMessage.sessionId) {
+          console.log(
+            `Setting session ID from last message: ${lastMessage.sessionId}`
+          );
           setSessionId(lastMessage.sessionId);
         }
       }
@@ -797,11 +914,27 @@ const AssistantAI: React.FC = () => {
     // Only load chat history if userInfo changes and there are no messages
     const currentMessages = store.getState().assistantAI.messages;
 
+    console.log("User info changed:", {
+      userId: userInfo?.id,
+      hasMessages: currentMessages && currentMessages.length > 0,
+      messagesCount: currentMessages ? currentMessages.length : 0,
+    });
+
     if (userInfo?.id && (!currentMessages || currentMessages.length === 0)) {
       console.log("User changed or no messages in store, loading chat data");
-      loadChatHistory(0);
+
+      // Reset state before loading
+      dispatch(setHasMore(true));
+      dispatch(clearMessages()); // This will reset page to 0
+
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        loadChatHistory(0);
+      }, 100);
     } else if (!userInfo?.id) {
       // Set default welcome message if no user is logged in
+      console.log("No user logged in, setting welcome message");
+      // Added check for isLoadingMoreRef to prevent multiple triggers
       const newSessionId = uuidv4();
       setSessionId(newSessionId);
       dispatch(
@@ -814,6 +947,8 @@ const AssistantAI: React.FC = () => {
           },
         ])
       );
+    } else {
+      console.log("User is logged in and messages exist, no need to reload");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInfo?.id]); // Only depend on userInfo.id changing
@@ -825,6 +960,9 @@ const AssistantAI: React.FC = () => {
     }
   };
 
+  // Track if we're currently loading more messages to prevent multiple triggers
+  const isLoadingMoreRef = useRef(false);
+
   const handleScroll = useCallback(() => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } =
@@ -835,17 +973,101 @@ const AssistantAI: React.FC = () => {
       setShowScrollButton(isScrolledUp);
 
       // Check if user scrolled to top to load more messages
-      if (scrollTop < 100 && !loading && hasMore) {
+      // Added check for isLoadingMoreRef to prevent multiple triggers
+      // Reduced threshold to 50px from top to trigger loading
+      const shouldLoadMore =
+        scrollTop < 50 && !loading && hasMore && !isLoadingMoreRef.current;
+
+      // Log scroll position for debugging
+      if (scrollTop < 100) {
+        console.log("Near top scroll position:", {
+          scrollTop,
+          scrollHeight,
+          clientHeight,
+          loading,
+          hasMore,
+          isLoadingMore: isLoadingMoreRef.current,
+          shouldLoadMore,
+          messagesCount: store.getState().assistantAI.messages.length,
+          currentPage: page,
+        });
+      }
+
+      if (shouldLoadMore) {
         // Use a debounce technique to avoid multiple rapid calls
         if (debounceTimerRef.current) {
           clearTimeout(debounceTimerRef.current);
         }
 
         debounceTimerRef.current = setTimeout(() => {
-          console.log("Scroll reached top, loading more messages");
+          // Set loading flag to prevent multiple triggers
+          isLoadingMoreRef.current = true;
+
+          console.log("🔄 Scroll reached top, loading more messages");
+
+          // Log current state before loading more
+          console.log("Current state before loading more:", {
+            page,
+            hasMore,
+            loading,
+            messagesCount: store.getState().assistantAI.messages.length,
+          });
+
+          // Increment page before loading more
           dispatch(incrementPage());
-          loadChatHistory(page + 1);
-          debounceTimerRef.current = null;
+
+          // Get the updated page value from the store
+          const nextPage = store.getState().assistantAI.page;
+          console.log(`🔢 Incrementing page from ${page} to ${nextPage}`);
+
+          // Add visual indicator that we're loading more messages
+          const loadingIndicator = document.createElement("div");
+          loadingIndicator.className = "loading-more-indicator";
+          loadingIndicator.textContent = "Loading more messages...";
+          loadingIndicator.style.cssText =
+            "text-align: center; padding: 10px; color: #666; font-style: italic;";
+
+          if (chatContainerRef.current && chatContainerRef.current.firstChild) {
+            chatContainerRef.current.insertBefore(
+              loadingIndicator,
+              chatContainerRef.current.firstChild
+            );
+          }
+
+          // Execute loadChatHistory and handle completion
+          const result = loadChatHistory(nextPage);
+
+          // Function to clean up after loading completes
+          const cleanupLoading = () => {
+            // Remove loading indicator if it exists
+            const indicators = document.getElementsByClassName(
+              "loading-more-indicator"
+            );
+            while (indicators.length > 0) {
+              indicators[0].parentNode?.removeChild(indicators[0]);
+            }
+
+            // Reset loading flag
+            isLoadingMoreRef.current = false;
+            debounceTimerRef.current = null;
+
+            console.log("✅ Finished loading more messages, current state:", {
+              messagesCount: store.getState().assistantAI.messages.length,
+              currentPage: store.getState().assistantAI.page,
+              hasMore: store.getState().assistantAI.hasMore,
+            });
+          };
+
+          // If loadChatHistory returns a Promise (it might not), use it
+          if (result instanceof Promise) {
+            result.finally(() => {
+              // Reset loading flag when done
+              setTimeout(cleanupLoading, 500); // Add a small delay before allowing more loads
+            });
+          } else {
+            // If it doesn't return a Promise, use a timeout
+            setTimeout(cleanupLoading, 1000); // Longer delay to ensure loading completes
+          }
         }, 300) as unknown as number; // 300ms debounce
       }
     }
@@ -854,8 +1076,12 @@ const AssistantAI: React.FC = () => {
   useEffect(() => {
     const chatContainer = chatContainerRef.current;
     if (chatContainer) {
+      console.log("Setting up scroll event listener");
       chatContainer.addEventListener("scroll", handleScroll);
-      return () => chatContainer.removeEventListener("scroll", handleScroll);
+      return () => {
+        console.log("Removing scroll event listener");
+        chatContainer.removeEventListener("scroll", handleScroll);
+      };
     }
   }, [handleScroll]);
 

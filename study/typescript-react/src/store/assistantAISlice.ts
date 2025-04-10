@@ -6,7 +6,7 @@ const initialState: AssistantAIState = {
   loading: false,
   hasMore: true,
   page: 0,
-  size: 20,
+  size: 10, // Giảm kích thước mặc định xuống 10 tin nhắn
 };
 
 const assistantAISlice = createSlice({

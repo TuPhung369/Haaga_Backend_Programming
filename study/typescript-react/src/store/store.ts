@@ -13,7 +13,14 @@ import { AuthState } from "../types/AuthTypes";
 import { RootState } from "../types/RootStateTypes";
 import { KanbanState } from "../types/KanbanTypes";
 import { UserState } from "../types/UserTypes";
+import { LanguageState } from "../types/LanguageAITypes";
+import { ChatMessageData } from "../types/LanguageAITypes";
 import { resetAllData } from "./resetActions";
+
+// Define an interface for legacy language state that includes the old messagesByLanguage property
+interface LegacyLanguageState extends LanguageState {
+  messagesByLanguage?: Record<string, ChatMessageData[]>;
+}
 
 // Environment check for development mode
 const isDevelopment = import.meta.env.MODE === "development";
@@ -82,7 +89,8 @@ const loadState = (): Partial<RootState> | undefined => {
       parsedState.language &&
       (typeof parsedState.language.currentMessagesByLanguage === "object" ||
         typeof parsedState.language.historyMessagesByLanguage === "object" ||
-        typeof (parsedState.language as any).messagesByLanguage === "object")
+        typeof (parsedState.language as LegacyLanguageState)
+          .messagesByLanguage === "object")
     ) {
       // Count total messages across all languages
       let totalMessages = 0;
@@ -110,12 +118,9 @@ const loadState = (): Partial<RootState> | undefined => {
       }
 
       // Count legacy messages if available
-      if ((parsedState.language as any).messagesByLanguage) {
+      if ((parsedState.language as LegacyLanguageState).messagesByLanguage) {
         totalMessages += Object.values(
-          (parsedState.language as any).messagesByLanguage as Record<
-            string,
-            unknown[]
-          >
+          (parsedState.language as LegacyLanguageState).messagesByLanguage || {}
         ).reduce(
           (sum, messages) =>
             sum + (Array.isArray(messages) ? messages.length : 0),
@@ -140,14 +145,29 @@ const loadState = (): Partial<RootState> | undefined => {
       }
 
       // Handle migration from old structure if needed
-      if ((parsedState.language as any).messagesByLanguage) {
+      if ((parsedState.language as LegacyLanguageState).messagesByLanguage) {
         // If we have old structure data, migrate it to current messages
+        const legacyMessages =
+          (parsedState.language as LegacyLanguageState).messagesByLanguage ||
+          {};
+
+        // Type assertion to ensure compatibility
+        const typedLegacyMessages: Record<string, ChatMessageData[]> = {};
+
+        // Copy each language's messages with proper typing
+        Object.entries(legacyMessages).forEach(([lang, messages]) => {
+          if (Array.isArray(messages)) {
+            typedLegacyMessages[lang] = messages as ChatMessageData[];
+          }
+        });
+
         parsedState.language.currentMessagesByLanguage = {
           ...parsedState.language.currentMessagesByLanguage,
-          ...(parsedState.language as any).messagesByLanguage,
+          ...typedLegacyMessages,
         };
+
         // Remove old structure
-        delete (parsedState.language as any).messagesByLanguage;
+        delete (parsedState.language as LegacyLanguageState).messagesByLanguage;
       }
 
       // Ensure currentLanguage is set
