@@ -328,6 +328,43 @@ def is_model_downloaded_locally(model_name):
     return False
 
 
+# Function to determine which STT model to use for a given language
+def get_stt_model(language):
+    """
+    Determine which speech-to-text model to use for a given language.
+
+    Args:
+        language: The language code (e.g., "fi-FI", "en-US")
+
+    Returns:
+        The name of the model to use (e.g., "wav2vec2-finnish", "whisper", "faster-whisper")
+    """
+    # Get language configuration
+    lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
+
+    # Get the list of STT models for this language
+    stt_models = lang_config.get("stt_models", ["whisper"])
+
+    # Try each model in order of preference
+    for model_name in stt_models:
+        # Check if the model is available
+        if (
+            model_name == "wav2vec2-finnish"
+            and wav2vec2_available
+            and wav2vec2_model_downloaded
+        ):
+            return model_name
+        elif model_name == "faster-whisper" and faster_whisper_available:
+            return model_name
+        elif model_name == "whisper" and whisper_available:
+            return model_name
+        elif model_name == "speechbrain" and speechbrain_available:
+            return model_name
+
+    # Default to whisper if no preferred model is available
+    return "whisper"
+
+
 # Add a helper function to enable caching of recent transcriptions
 def get_audio_hash(audio_data, language):
     """Create a simple hash of audio data for caching purposes"""
@@ -1046,8 +1083,20 @@ async def transcribe_speech_finnish_json(request: Request):
                     os.unlink(output_path)
 
                 if result and result.get("text", "").strip():
+                    # Clean up the transcript by removing special tokens for Finnish
+                    transcript = result["text"]
+                    # Remove special tokens that might be present
+                    transcript = transcript.replace("</s>", " ").replace("<s>", " ")
+                    transcript = transcript.replace("<pad>", "").replace("<unk>", "")
+                    transcript = transcript.replace("|", " ")  # Remove pipe characters
+                    # Clean up extra spaces
+                    transcript = " ".join(transcript.split())
+                    logger.info(
+                        f"[{request_id}] Cleaned Finnish JSON transcript: {transcript}"
+                    )
+
                     return JSONResponse(
-                        content={"transcript": result["text"]}, headers=headers
+                        content={"transcript": transcript}, headers=headers
                     )
 
                 return JSONResponse(
@@ -1192,9 +1241,43 @@ async def transcribe_speech_finnish(
                 os.unlink(output_path)
 
             if result and result.get("text", "").strip():
-                return JSONResponse(
-                    content={"transcript": result["text"]}, headers=headers
-                )
+                # Clean up the transcript by removing special tokens for Finnish
+                transcript = result["text"]
+
+                # If the transcript is already cleaned in wav2vec2_finnish.py, use it directly
+                if not any(
+                    token in transcript for token in ["</s>", "<s>", "<pad>", "<unk>"]
+                ):
+                    logger.info(
+                        f"[{request_id}] Using pre-cleaned transcript: {transcript}"
+                    )
+                else:
+                    # Remove special tokens that might be present
+                    transcript = transcript.replace("</s>", " ").replace("<s>", " ")
+                    transcript = transcript.replace("<pad>", "").replace("<unk>", "")
+                    transcript = transcript.replace("|", " ")  # Remove pipe characters
+                    # Clean up extra spaces
+                    transcript = " ".join(transcript.split())
+                    logger.info(
+                        f"[{request_id}] Cleaned Wav2Vec2 Finnish transcript: {transcript}"
+                    )
+
+                # Check if the transcript contains only single letters with spaces (likely noise)
+                import re
+
+                if re.match(r"^(\s*[a-zA-Z]\s*)+$", transcript):
+                    logger.warning(
+                        f"[{request_id}] Transcript appears to be noise (single letters): {transcript}"
+                    )
+                    # Fall back to Whisper for noisy transcripts
+                    logger.info(
+                        f"[{request_id}] Falling back to Whisper for noisy transcript"
+                    )
+                else:
+                    # Return the cleaned transcript
+                    return JSONResponse(
+                        content={"transcript": transcript}, headers=headers
+                    )
 
             # Fall back to Whisper if Wav2Vec2 fails
             logger.warning(
@@ -1207,6 +1290,19 @@ async def transcribe_speech_finnish(
         priority = "speed"
         # This is the same approach used by the English endpoint
         result = await _transcribe_speech(file, "fi", optimize, priority, chunk_size)
+
+        # Clean up the transcript by removing special tokens for Finnish
+        if result and "transcript" in result:
+            transcript = result["transcript"]
+            # Remove special tokens that might be present
+            transcript = transcript.replace("</s>", " ").replace("<s>", " ")
+            transcript = transcript.replace("<pad>", "").replace("<unk>", "")
+            transcript = transcript.replace("|", " ")  # Remove pipe characters
+            # Clean up extra spaces
+            transcript = " ".join(transcript.split())
+            result["transcript"] = transcript
+            logger.info(f"[{request_id}] Cleaned Finnish transcript: {transcript}")
+
         logger.info(
             f"[{request_id}] Finnish transcription completed successfully: {result}"
         )
@@ -1320,7 +1416,34 @@ async def _transcribe_speech(
         if os.path.exists(output_path):
             os.unlink(output_path)
         if result and result.get("text", "").strip():
-            return {"transcript": result["text"]}
+            transcript = result["text"]
+
+            # Additional cleanup for Finnish transcriptions
+            if language and language.lower().startswith("fi"):
+                # Remove any remaining special tokens that might have been missed
+                transcript = transcript.replace("</s>", " ").replace("<s>", " ")
+                transcript = transcript.replace("<pad>", "").replace("<unk>", "")
+                transcript = transcript.replace("|", " ")  # Remove pipe characters
+                # Clean up extra spaces
+                transcript = " ".join(transcript.split())
+
+                # Check if the transcript contains only single letters with spaces (likely noise)
+                import re
+
+                if re.match(r"^(\s*[a-zA-Z]\s*)+$", transcript) or re.match(
+                    r"^(\s*[a-zA-Z0-9]\s*)+$", transcript
+                ):
+                    logger.warning(
+                        f"[{request_id}] Transcript appears to be noise (single letters): {transcript}"
+                    )
+                    # Return a message for noisy transcripts
+                    transcript = "En saanut selvää puheesta."
+
+                logger.info(
+                    f"[{request_id}] Final cleaned Finnish transcript: {transcript}"
+                )
+
+            return {"transcript": transcript}
         return {
             "transcript": (
                 "En saanut selvää puheesta."
@@ -2242,6 +2365,37 @@ def transcribe_with_whisper(audio_path, language):
         # Transcribe
         logger.info(f"Transcribing with Whisper {audio_path}")
         result = model.transcribe(audio_path, **options)
+
+        # Clean up the transcript by removing special tokens like </s>
+        if result and "text" in result:
+            # Remove special tokens from the text
+            cleaned_text = result["text"]
+            # Remove </s> tokens which are causing the messy output
+            cleaned_text = cleaned_text.replace("</s>", " ").replace("<s>", " ")
+            # Remove any other special tokens that might be present
+            cleaned_text = cleaned_text.replace("<pad>", "").replace("<unk>", "")
+            # Clean up extra spaces
+            cleaned_text = " ".join(cleaned_text.split())
+
+            # Check if the transcript contains only single letters with spaces (likely noise)
+            import re
+
+            if re.match(r"^(\s*[a-zA-Z]\s*)+$", cleaned_text) or re.match(
+                r"^(\s*[a-zA-Z0-9]\s*)+$", cleaned_text
+            ):
+                logger.warning(
+                    f"Whisper transcript appears to be noise (single letters): {cleaned_text}"
+                )
+                # Return empty result for noisy transcripts
+                if language and language.lower().startswith("fi"):
+                    cleaned_text = "En saanut selvää puheesta."
+                else:
+                    cleaned_text = "Could not understand the speech."
+
+            # Update the result with cleaned text
+            result["text"] = cleaned_text
+            logger.info(f"Cleaned up transcript: {cleaned_text}")
+
         return result
 
     except Exception as e:

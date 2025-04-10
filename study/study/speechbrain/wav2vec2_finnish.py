@@ -65,7 +65,7 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
         return wav2vec2_model, wav2vec2_processor
 
     try:
-        logger.info("Loading aapot/wav2vec2-xlsr-1b-finnish-lm-v2 model and processor")
+        logger.info("Loading aapot/wav2vec2-xlsr-300m-finnish model and processor")
 
         # Create models directory if it doesn't exist
         os.makedirs("models", exist_ok=True)
@@ -76,7 +76,7 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
 
         # Path to local model directory
         local_model_path = os.path.join(
-            cache_dir, "models--aapot--wav2vec2-xlsr-1b-finnish-lm-v2"
+            cache_dir, "models--aapot--wav2vec2-xlsr-300m-finnish"
         )
 
         # Path to the snapshots directory
@@ -557,11 +557,11 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
                     )
 
                     processor = Wav2Vec2Processor.from_pretrained(
-                        "aapot/wav2vec2-xlsr-1b-finnish-lm-v2", cache_dir=cache_dir
+                        "aapot/wav2vec2-xlsr-300m-finnish", cache_dir=cache_dir
                     )
 
                     model = Wav2Vec2ForCTC.from_pretrained(
-                        "aapot/wav2vec2-xlsr-1b-finnish-lm-v2",
+                        "aapot/wav2vec2-xlsr-300m-finnish",
                         cache_dir=cache_dir,
                         use_safetensors=use_safetensors,
                         resume_download=True,
@@ -605,14 +605,14 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
 
         # Load processor and model from HuggingFace with all required files
         processor = Wav2Vec2Processor.from_pretrained(
-            "aapot/wav2vec2-xlsr-1b-finnish-lm-v2", cache_dir=cache_dir
+            "aapot/wav2vec2-xlsr-300m-finnish", cache_dir=cache_dir
         )
 
         # Try to download using safetensors format first
         try:
             logger.info("Attempting to download model in safetensors format")
             model = Wav2Vec2ForCTC.from_pretrained(
-                "aapot/wav2vec2-xlsr-1b-finnish-lm-v2",
+                "aapot/wav2vec2-xlsr-300m-finnish",
                 cache_dir=cache_dir,
                 use_safetensors=True,
                 resume_download=True,  # Enable resuming download
@@ -621,7 +621,7 @@ def load_wav2vec2_model() -> tuple[Any, Any]:
             logger.warning(f"Failed to download safetensors format: {str(e)}")
             logger.info("Falling back to PyTorch format")
             model = Wav2Vec2ForCTC.from_pretrained(
-                "aapot/wav2vec2-xlsr-1b-finnish-lm-v2",
+                "aapot/wav2vec2-xlsr-300m-finnish",
                 cache_dir=cache_dir,
                 use_safetensors=False,
                 resume_download=True,  # Enable resuming download
@@ -724,11 +724,31 @@ def transcribe_audio_with_wav2vec2(audio_path: str) -> Dict[str, Any]:
             # Standard decoding without LM
             transcription = processor.batch_decode(predicted_ids)[0]
 
+        # Clean up the transcription by removing special tokens
+        transcription = (
+            transcription.replace("</s>", " ")
+            .replace("<s>", " ")
+            .replace("<pad>", " ")
+            .replace("<unk>", " ")
+        )
+
+        # Remove multiple spaces and strip
+        import re
+
+        transcription = re.sub(r"\s+", " ", transcription).strip()
+
+        # If the transcription contains only single letters with spaces, it's likely noise
+        if re.match(r"^(\s*[a-zA-Z]\s*)+$", transcription):
+            logger.warning(
+                f"Transcription appears to be noise (single letters): {transcription}"
+            )
+            transcription = ""  # Return empty string for noise
+
         logger.info(f"Transcription completed: {transcription}")
 
         return {
             "text": transcription,
-            "model": "wav2vec2-xlsr-1b-finnish-lm-v2",
+            "model": "wav2vec2-xlsr-300m-finnish",
             "success": True,
         }
 
@@ -1281,6 +1301,7 @@ def check_and_copy_model_from_snapshots(local_model_path):
 
     return False
 
+
 def verify_model_files(local_model_path):
     """
     Verify that all required model files exist and have the correct format.
@@ -1509,7 +1530,7 @@ def test_wav2vec2():
             logger.info(f"Created download completion flag at {download_complete_flag}")
 
         logger.info(
-            "Wav2Vec2 model (aapot/wav2vec2-xlsr-1b-finnish-lm-v2) and processor loaded successfully"
+            "Wav2Vec2 model (aapot/wav2vec2-xlsr-300m-finnish) and processor loaded successfully"
         )
         return True
 
