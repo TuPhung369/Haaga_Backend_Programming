@@ -78,12 +78,35 @@ const loadState = (): Partial<RootState> | undefined => {
     }
 
     // Add check for language state
-    if (parsedState.language && Array.isArray(parsedState.language.messages)) {
+    if (
+      parsedState.language &&
+      typeof parsedState.language.messagesByLanguage === "object"
+    ) {
+      // Count total messages across all languages
+      const totalMessages = Object.values(
+        parsedState.language.messagesByLanguage
+      ).reduce(
+        (sum, messages) =>
+          sum + (Array.isArray(messages) ? messages.length : 0),
+        0
+      );
+
       console.log(
         "Found language state in localStorage with",
-        parsedState.language.messages.length,
-        "messages"
+        totalMessages,
+        "total messages across all languages"
       );
+
+      // Ensure messagesByLanguage is initialized
+      if (!parsedState.language.messagesByLanguage) {
+        parsedState.language.messagesByLanguage = {};
+      }
+
+      // Ensure currentLanguage is set
+      if (!parsedState.language.currentLanguage) {
+        parsedState.language.currentLanguage = "en-US";
+      }
+
       validState.language = parsedState.language;
     } else {
       console.warn(
@@ -176,6 +199,17 @@ const store = configureStore({
 // Subscribe to state changes with typed state
 store.subscribe(() => {
   const state = store.getState() as RootState;
+
+  // Log language state changes
+  if (state.language && state.language.messagesByLanguage) {
+    const languageKeys = Object.keys(state.language.messagesByLanguage);
+    console.log("Store subscription: language state updated", {
+      currentLanguage: state.language.currentLanguage,
+      languageKeys,
+      messagesByLanguage: state.language.messagesByLanguage,
+    });
+  }
+
   if (state.auth.isAuthenticated) {
     saveState(state);
   }

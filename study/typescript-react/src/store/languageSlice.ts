@@ -5,9 +5,11 @@ import {
   LanguageInteraction,
   LanguageState,
 } from "../types/LanguageAITypes";
+import { normalizeLanguageCode } from "../utils/languageUtils";
 
 const initialState: LanguageState = {
-  messages: [],
+  messagesByLanguage: {},
+  currentLanguage: "en-US", // Default language
   loading: false,
   error: null,
 };
@@ -20,10 +22,30 @@ export const languageSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    fetchMessagesSuccess: (state, action: PayloadAction<ChatMessageData[]>) => {
+    fetchMessagesSuccess: (
+      state,
+      action: PayloadAction<{ messages: ChatMessageData[]; language: string }>
+    ) => {
       state.loading = false;
-      // Payload is already ChatMessageData[], assign directly
-      state.messages = action.payload;
+      const { messages, language } = action.payload;
+      const normalizedLanguage = normalizeLanguageCode(language);
+
+      console.log("Redux reducer: fetchMessagesSuccess called with:", {
+        messagesCount: messages.length,
+        language,
+        normalizedLanguage,
+        currentState: { ...state },
+      });
+
+      // Store messages by normalized language code
+      state.messagesByLanguage[normalizedLanguage] = messages;
+      state.currentLanguage = normalizedLanguage;
+
+      console.log("Redux reducer: After update, state is:", {
+        messagesByLanguageKeys: Object.keys(state.messagesByLanguage),
+        messagesForCurrentLang:
+          state.messagesByLanguage[normalizedLanguage]?.length || 0,
+      });
     },
     fetchMessagesFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -55,6 +77,15 @@ export const languageSlice = createSlice({
           ? interaction.createdAt
           : new Date().toISOString(); // Fallback, but ideally createdAt is always valid
 
+      // Get the language from the interaction or use current language
+      const rawLanguage = interaction.language || state.currentLanguage;
+      const language = normalizeLanguageCode(rawLanguage);
+
+      console.log("Adding interaction with language:", {
+        rawLanguage,
+        normalizedLanguage: language,
+      });
+
       // Create User Message object
       const userMessageData: ChatMessageData = {
         id: interaction.id, // Use interaction ID for the user part
@@ -71,28 +102,58 @@ export const languageSlice = createSlice({
         timestamp: timestamp, // Use the same timestamp as the interaction
       };
 
-      // Add both messages to the beginning (or end, depending on desired order)
-      // Unshift adds to beginning (newest first display)
-      state.messages.unshift(aiMessageData);
-      state.messages.unshift(userMessageData);
+      // Initialize the language array if it doesn't exist
+      if (!state.messagesByLanguage[language]) {
+        state.messagesByLanguage[language] = [];
+      }
 
-      // Or push to add to end (oldest first display)
-      // state.messages.push(userMessageData);
-      // state.messages.push(aiMessageData);
+      // Add both messages to the beginning of the language-specific array
+      state.messagesByLanguage[language].unshift(aiMessageData);
+      state.messagesByLanguage[language].unshift(userMessageData);
+
+      // Update current language
+      state.currentLanguage = language;
     },
     clearMessages: (state) => {
-      state.messages = [];
+      state.messagesByLanguage = {};
+    },
+    clearLanguageMessages: (state, action: PayloadAction<string>) => {
+      const rawLanguage = action.payload;
+      const language = normalizeLanguageCode(rawLanguage);
+
+      console.log("Clearing messages for language:", {
+        rawLanguage,
+        normalizedLanguage: language,
+      });
+
+      if (state.messagesByLanguage[language]) {
+        state.messagesByLanguage[language] = [];
+      }
+      // Note: Removed reference to state.messages which doesn't exist in the state type
+    },
+    setCurrentLanguage: (state, action: PayloadAction<string>) => {
+      const rawLanguage = action.payload;
+      const normalizedLanguage = normalizeLanguageCode(rawLanguage);
+
+      console.log("Setting current language:", {
+        rawLanguage,
+        normalizedLanguage,
+      });
+
+      state.currentLanguage = normalizedLanguage;
     },
   },
 });
 
-// Rename the exported action for clarity
+// Export all actions
 export const {
   fetchMessagesStart,
   fetchMessagesSuccess,
   fetchMessagesFailure,
-  addInteractionMessages, // Renamed export
+  addInteractionMessages,
   clearMessages,
+  clearLanguageMessages,
+  setCurrentLanguage,
 } = languageSlice.actions;
 
 export default languageSlice.reducer;

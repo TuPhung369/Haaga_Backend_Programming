@@ -248,6 +248,7 @@ const preprocessMarkdown = (markdown: string): string => {
 export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
   ({ message, username, formatTimestamp }) => {
     const isUser = message.sender === "User";
+    const isHistoryMessage = message.isHistoryMessage;
 
     return (
       <Box
@@ -260,6 +261,21 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
           alignSelf: isUser ? "flex-end" : "flex-start",
           mr: isUser ? 0 : 2,
           ml: isUser ? 2 : 0,
+          position: "relative",
+          // Add a subtle indicator for history messages
+          "&::before": isHistoryMessage
+            ? {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: isUser ? "auto" : "-10px",
+                right: isUser ? "-10px" : "auto",
+                width: "4px",
+                height: "100%",
+                backgroundColor: "rgba(25, 118, 210, 0.3)",
+                borderRadius: "2px",
+              }
+            : {},
         }}
       >
         <Box

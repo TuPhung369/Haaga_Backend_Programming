@@ -10,7 +10,7 @@ export enum ProficiencyLevel {
   Intermediate = "INTERMEDIATE",
   Advanced = "ADVANCED",
   Fluent = "FLUENT",
-  Native = "NATIVE"
+  Native = "NATIVE",
 }
 
 export enum LearningStyle {
@@ -20,14 +20,14 @@ export enum LearningStyle {
   Physical = "physical",
   Logical = "logical",
   Social = "social",
-  Solitary = "solitary"
+  Solitary = "solitary",
 }
 
 export enum PracticeFrequency {
   Daily = "daily",
   Weekly = "weekly",
   BiWeekly = "bi-weekly",
-  Monthly = "monthly"
+  Monthly = "monthly",
 }
 
 // --- Core Data Interfaces ---
@@ -37,6 +37,7 @@ export interface ChatMessageData {
   content: string;
   timestamp: string; // ISO String
   id?: string; // Optional ID from DB for history or unique message key
+  isHistoryMessage?: boolean; // Flag to identify messages from history
 }
 
 export interface LanguageInteraction {
@@ -59,7 +60,8 @@ export interface LanguageFeedback {
   vocabulary: number; // Score from 1-10
   fluency: number; // Score from 1-10
   suggestions: string[];
-  corrections: Array<{ // Explicitly type array elements
+  corrections: Array<{
+    // Explicitly type array elements
     original: string;
     corrected: string;
     explanation: string;
@@ -123,6 +125,7 @@ export interface ChatWindowProps {
   onToggleHistory: () => void;
   fetchPreviousMessages: () => void; // Function to trigger history fetch
   formatTimestamp: (timestamp: string) => string;
+  isActiveConversation?: boolean; // Flag to indicate if there's an active conversation
 }
 
 export interface ChatMessageProps {
@@ -161,7 +164,8 @@ export interface LanguagePreferences {
 // --- State Interface ---
 
 export interface LanguageState {
-  messages: ChatMessageData[];
+  messagesByLanguage: Record<string, ChatMessageData[]>;
+  currentLanguage: string;
   loading: boolean;
   error: string | null;
 }
@@ -173,3 +177,4 @@ export interface LanguageMessage {
   aiResponse: string;
   createdAt: Date;
 }
+

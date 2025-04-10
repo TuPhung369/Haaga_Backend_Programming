@@ -26,6 +26,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
     onToggleHistory,
     fetchPreviousMessages,
     formatTimestamp,
+    isActiveConversation = false, // Default to false if not provided
   }) => {
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const chatContainerRef = useRef<HTMLDivElement | null>(null);
@@ -44,13 +45,100 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
     }, [messages, previousMessages, showHistory, scrollToBottom]);
 
     const handleHistoryToggleClick = () => {
+      // Log before toggle
+      console.log("Before toggle:", {
+        showHistory,
+        previousMessagesLength: previousMessages.length,
+      });
+
+      // Call the toggle function from parent
+      // This will update showPreviousMessages in LanguageAIComponent
+      // and also call fetchPreviousMessages if needed
       onToggleHistory();
-      if (!showHistory && previousMessages.length === 0) {
-        fetchPreviousMessages(); // Fetch when turning on and empty
-      }
+
+      // We don't need to call fetchPreviousMessages here anymore
+      // because it's handled in the parent component's handleToggleHistory function
+
+      // Log after toggle (note: showHistory will still have old value here due to closure)
+      console.log("After toggle (showHistory will update in next render)");
+
+      // Force a re-render by updating the DOM directly
+      // This is a hack, but it works for now
+      setTimeout(() => {
+        const button = document.querySelector(
+          'button[aria-controls="conversation-history"]'
+        );
+        if (button) {
+          // Update the button text directly
+          button.innerHTML = showHistory
+            ? '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path></svg>Show History'
+            : '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path></svg>Hide History';
+        }
+      }, 10);
     };
 
-    const messagesToDisplay = showHistory ? previousMessages : messages;
+    // Determine which messages to display based on showHistory flag and active conversation state
+    // If showHistory is true, show previousMessages (history), otherwise show current messages
+    // When page is first loaded, we don't want to show any messages until user interacts
+    // We can detect this by checking if we're in history mode, if there's an active conversation,
+    // or if there are any messages
+    console.log("[DEBUG] ChatWindow state before deciding what to show:", {
+      showHistory,
+      isActiveConversation,
+      messagesLength: messages.length,
+      previousMessagesLength: previousMessages.length,
+    });
+
+    // Log each condition separately to understand which one is triggering the display
+    console.log("[DEBUG] Message display conditions:", {
+      showHistory,
+      isActiveConversation,
+      messagesLength: messages.length > 0,
+      "showHistory || isActiveConversation || messages.length > 0":
+        showHistory || isActiveConversation || messages.length > 0,
+    });
+
+    // CRITICAL FIX: Only show messages when we're in an active conversation or showing history
+    // This prevents showing messages when the page first loads
+    const shouldShowMessages = showHistory || isActiveConversation;
+    console.log("[DEBUG] shouldShowMessages (FIXED):", shouldShowMessages);
+
+    const messagesToDisplay = shouldShowMessages
+      ? showHistory
+        ? previousMessages
+        : messages
+      : [];
+
+    console.log("[DEBUG] Final messagesToDisplay:", {
+      count: messagesToDisplay.length,
+      source: showHistory ? "previousMessages" : "messages",
+      firstMessage:
+        messagesToDisplay.length > 0
+          ? messagesToDisplay[0].content.substring(0, 30) + "..."
+          : "none",
+    });
+
+    // Log what we're displaying for debugging
+    console.log("ChatWindow rendering with:", {
+      showHistory,
+      isActiveConversation,
+      messagesToDisplayCount: messagesToDisplay.length,
+      messagesCount: messages.length,
+      previousMessagesCount: previousMessages.length,
+      // Check if messages and previousMessages are actually different
+      areMessagesIdentical: messages === previousMessages,
+      // Check if any messages have the isHistoryMessage tag
+      historyTaggedCount: previousMessages.filter((msg) => msg.isHistoryMessage)
+        .length,
+      shouldShowMessages,
+    });
+
+    // Additional debug info to help diagnose issues
+    if (showHistory && previousMessages.length === 0) {
+      console.log(
+        "Warning: History mode is ON but previousMessages array is empty!"
+      );
+    }
 
     return (
       <Paper
@@ -156,23 +244,46 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
             </Button>
           </Box>
 
-          {/* History Loading */}
-          {showHistory && isLoadingHistory && (
+          {/* History Mode Indicator */}
+          {showHistory && (
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                py: 2,
+                py: 1,
+                mb: 2,
+                backgroundColor: "rgba(25, 118, 210, 0.08)",
+                borderRadius: "4px",
               }}
             >
-              <CircularProgress size={20} />
-              <Typography
-                variant="body2"
-                sx={{ ml: 1, color: "text.secondary" }}
-              >
-                Loading history...
-              </Typography>
+              {isLoadingHistory ? (
+                <>
+                  <CircularProgress size={16} />
+                  <Typography
+                    variant="body2"
+                    sx={{ ml: 1, color: "text.secondary" }}
+                  >
+                    Loading history...
+                  </Typography>
+                </>
+              ) : (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: 500,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <span role="img" aria-label="History">
+                    📜
+                  </span>
+                  Viewing conversation history
+                </Typography>
+              )}
             </Box>
           )}
 

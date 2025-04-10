@@ -1054,7 +1054,8 @@ export const getUserLanguageMessages = async (
 export const getLanguageConversations = async (
   userId: string,
   limit: number = 40,
-  token?: string
+  token?: string,
+  language?: string
 ): Promise<LanguageInteraction[]> => {
   try {
     const headers: Record<string, string> = {
@@ -1072,14 +1073,18 @@ export const getLanguageConversations = async (
     }
 
     // Use the new API endpoint to get messages for a user
-    const response = await fetch(
-      `${API_URL}/api/language-ai/messages/user/${userId}?limit=${limit}`,
-      {
-        method: "GET",
-        headers,
-        credentials: "include",
-      }
-    );
+    let url = `${API_URL}/api/language-ai/messages/user/${userId}?limit=${limit}`;
+
+    // If language is specified, get conversations for that language only
+    if (language) {
+      url = `${API_URL}/api/language-ai/users/${userId}/languages/${language}/history?size=${limit}`;
+    }
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers,
+      credentials: "include",
+    });
 
     if (!response.ok) {
       console.error(
@@ -1093,7 +1098,48 @@ export const getLanguageConversations = async (
     const data = await response.json();
 
     // Process messages into properly structured LanguageInteraction objects
-    const conversations: LanguageInteraction[] = data.map(
+    console.log(`Raw API response data:`, JSON.stringify(data, null, 2));
+
+    // Extract content array from paginated response
+    let messagesArray: any[] = [];
+
+    if (Array.isArray(data)) {
+      // If data is already an array, use it directly
+      console.log("Data is an array with", data.length, "items");
+      messagesArray = data;
+    } else if (data && typeof data === "object") {
+      // Check if this is a paginated response with a content field
+      if (data.content && Array.isArray(data.content)) {
+        console.log(
+          `Found paginated response with ${data.content.length} items`
+        );
+        messagesArray = data.content;
+      } else {
+        // Log all keys in the response to help debug
+        console.log("API response keys:", Object.keys(data));
+        console.error("API response has unexpected format:", data);
+        // Try to find any array in the response
+        for (const key in data) {
+          if (Array.isArray(data[key])) {
+            console.log(
+              `Found array in response at key '${key}' with ${data[key].length} items`
+            );
+            messagesArray = data[key];
+            break;
+          }
+        }
+
+        if (messagesArray.length === 0) {
+          console.warn("Could not find any array in response, using mock data");
+          return generateMockLanguageMessages(userId, limit);
+        }
+      }
+    } else {
+      console.error("API response is not an array or object:", data);
+      return generateMockLanguageMessages(userId, limit);
+    }
+
+    const conversations: LanguageInteraction[] = messagesArray.map(
       (message: ApiLanguageMessage) => {
         // Handle date fields safely
         let createdAtDate: Date;
@@ -1121,7 +1167,7 @@ export const getLanguageConversations = async (
         }
 
         // Create a properly typed message object
-        return {
+        const interaction = {
           id:
             message.id ||
             `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -1139,10 +1185,57 @@ export const getLanguageConversations = async (
           createdAt: createdAtDate.toISOString(),
           userId: message.userId || userId,
         };
+
+        console.log(`Processed interaction:`, {
+          id: interaction.id,
+          userMessage: interaction.userMessage.substring(0, 30) + "...",
+          aiResponse: interaction.aiResponse.substring(0, 30) + "...",
+        });
+
+        return interaction;
       }
     );
 
-    return conversations;
+    // Group messages by session and create valid conversation pairs
+    const messagesBySession: { [key: string]: LanguageInteraction[] } = {};
+
+    // First, group all messages by session
+    conversations.forEach((message) => {
+      if (!messagesBySession[message.sessionId]) {
+        messagesBySession[message.sessionId] = [];
+      }
+      messagesBySession[message.sessionId].push(message);
+    });
+
+    // Create valid conversations from the grouped messages
+    let validConversations: LanguageInteraction[] = [];
+
+    // Process each message individually - don't require both userMessage and aiResponse
+    // This allows us to handle single messages (user or AI) correctly
+    validConversations = conversations.filter((convo) => {
+      // For USER_MESSAGE type, we need userMessage
+      if (convo.messageType === "USER_MESSAGE") {
+        return !!convo.userMessage;
+      }
+      // For AI_RESPONSE type, we need aiResponse
+      else if (convo.messageType === "AI_RESPONSE") {
+        return !!convo.aiResponse;
+      }
+      // For other types or if we have both, accept the message
+      return !!convo.userMessage || !!convo.aiResponse;
+    });
+
+    console.log(
+      `Filtered ${validConversations.length} valid conversations out of ${conversations.length} total`
+    );
+
+    if (validConversations.length === 0 && conversations.length > 0) {
+      console.warn(
+        "No valid conversations found after filtering. Raw data may have unexpected format."
+      );
+    }
+
+    return validConversations; // Return filtered valid conversations
   } catch (error) {
     console.error("Error in getLanguageConversations:", error);
 

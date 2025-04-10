@@ -97,12 +97,9 @@ public class LanguageAIServiceImpl implements LanguageAIService {
 
     // Find all messages for this user and language, excluding the metadata message
     // itself
-    // We might need a specific repository method for this later if performance is
-    // an issue
-    Page<LanguageMessage> messages = messageRepository.findByUserIdOrderByCreatedAtAsc(userId, pageable);
-    // it.
-    // For now, returning all messages for the user ordered by time.
-    log.info("Found {} messages for user {}", messages.getTotalElements(), userId);
+    Page<LanguageMessage> messages = messageRepository.findByUserIdAndLanguageOrderByCreatedAtDesc(userId, language, pageable);
+
+    log.info("Found {} messages for user {} with language {}", messages.getTotalElements(), userId, language);
     return messages.map(messageMapper::toDTO);
   }
 
