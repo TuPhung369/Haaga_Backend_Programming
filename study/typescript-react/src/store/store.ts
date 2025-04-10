@@ -80,16 +80,48 @@ const loadState = (): Partial<RootState> | undefined => {
     // Add check for language state
     if (
       parsedState.language &&
-      typeof parsedState.language.messagesByLanguage === "object"
+      (typeof parsedState.language.currentMessagesByLanguage === "object" ||
+        typeof parsedState.language.historyMessagesByLanguage === "object" ||
+        typeof (parsedState.language as any).messagesByLanguage === "object")
     ) {
       // Count total messages across all languages
-      const totalMessages = Object.values(
-        parsedState.language.messagesByLanguage
-      ).reduce(
-        (sum, messages) =>
-          sum + (Array.isArray(messages) ? messages.length : 0),
-        0
-      );
+      let totalMessages = 0;
+
+      // Count current messages if available
+      if (parsedState.language.currentMessagesByLanguage) {
+        totalMessages += Object.values(
+          parsedState.language.currentMessagesByLanguage
+        ).reduce(
+          (sum, messages) =>
+            sum + (Array.isArray(messages) ? messages.length : 0),
+          0
+        );
+      }
+
+      // Count history messages if available
+      if (parsedState.language.historyMessagesByLanguage) {
+        totalMessages += Object.values(
+          parsedState.language.historyMessagesByLanguage
+        ).reduce(
+          (sum, messages) =>
+            sum + (Array.isArray(messages) ? messages.length : 0),
+          0
+        );
+      }
+
+      // Count legacy messages if available
+      if ((parsedState.language as any).messagesByLanguage) {
+        totalMessages += Object.values(
+          (parsedState.language as any).messagesByLanguage as Record<
+            string,
+            unknown[]
+          >
+        ).reduce(
+          (sum, messages) =>
+            sum + (Array.isArray(messages) ? messages.length : 0),
+          0
+        );
+      }
 
       console.log(
         "Found language state in localStorage with",
@@ -97,9 +129,25 @@ const loadState = (): Partial<RootState> | undefined => {
         "total messages across all languages"
       );
 
-      // Ensure messagesByLanguage is initialized
-      if (!parsedState.language.messagesByLanguage) {
-        parsedState.language.messagesByLanguage = {};
+      // Ensure currentMessagesByLanguage is initialized
+      if (!parsedState.language.currentMessagesByLanguage) {
+        parsedState.language.currentMessagesByLanguage = {};
+      }
+
+      // Ensure historyMessagesByLanguage is initialized
+      if (!parsedState.language.historyMessagesByLanguage) {
+        parsedState.language.historyMessagesByLanguage = {};
+      }
+
+      // Handle migration from old structure if needed
+      if ((parsedState.language as any).messagesByLanguage) {
+        // If we have old structure data, migrate it to current messages
+        parsedState.language.currentMessagesByLanguage = {
+          ...parsedState.language.currentMessagesByLanguage,
+          ...(parsedState.language as any).messagesByLanguage,
+        };
+        // Remove old structure
+        delete (parsedState.language as any).messagesByLanguage;
       }
 
       // Ensure currentLanguage is set
@@ -201,12 +249,28 @@ store.subscribe(() => {
   const state = store.getState() as RootState;
 
   // Log language state changes
-  if (state.language && state.language.messagesByLanguage) {
-    const languageKeys = Object.keys(state.language.messagesByLanguage);
+  if (state.language) {
+    const currentLanguageKeys = state.language.currentMessagesByLanguage
+      ? Object.keys(state.language.currentMessagesByLanguage)
+      : [];
+    const historyLanguageKeys = state.language.historyMessagesByLanguage
+      ? Object.keys(state.language.historyMessagesByLanguage)
+      : [];
+
     console.log("Store subscription: language state updated", {
       currentLanguage: state.language.currentLanguage,
-      languageKeys,
-      messagesByLanguage: state.language.messagesByLanguage,
+      currentLanguageKeys,
+      historyLanguageKeys,
+      currentMessagesCount: currentLanguageKeys.reduce((sum, lang) => {
+        return (
+          sum + (state.language.currentMessagesByLanguage[lang]?.length || 0)
+        );
+      }, 0),
+      historyMessagesCount: historyLanguageKeys.reduce((sum, lang) => {
+        return (
+          sum + (state.language.historyMessagesByLanguage[lang]?.length || 0)
+        );
+      }, 0),
     });
   }
 

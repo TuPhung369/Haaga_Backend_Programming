@@ -165,7 +165,10 @@ export interface LanguagePreferences {
 // --- State Interface ---
 
 export interface LanguageState {
-  messagesByLanguage: Record<string, ChatMessageData[]>;
+  // Current session messages by language
+  currentMessagesByLanguage: Record<string, ChatMessageData[]>;
+  // History messages by language
+  historyMessagesByLanguage: Record<string, ChatMessageData[]>;
   currentLanguage: string;
   loading: boolean;
   error: string | null;

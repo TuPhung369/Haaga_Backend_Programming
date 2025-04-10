@@ -262,7 +262,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
           mr: isUser ? 0 : 2,
           ml: isUser ? 2 : 0,
           position: "relative",
-          // Add a subtle indicator for history messages
+          // Add a more visible indicator for history messages
           "&::before": isHistoryMessage
             ? {
                 content: '""',
@@ -272,10 +272,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
                 right: isUser ? "-10px" : "auto",
                 width: "4px",
                 height: "100%",
-                backgroundColor: "rgba(25, 118, 210, 0.3)",
+                backgroundColor: "rgba(25, 118, 210, 0.5)", // More visible blue indicator
                 borderRadius: "2px",
               }
             : {},
+          // Add a light background for history messages
+          bgcolor: isHistoryMessage
+            ? "rgba(240, 240, 240, 0.5)"
+            : "transparent",
+          borderRadius: 2,
+          // Add a subtle border for history messages
+          border: isHistoryMessage ? "1px dashed rgba(0, 0, 0, 0.1)" : "none",
+          p: isHistoryMessage ? 1 : 0,
         }}
       >
         <Box

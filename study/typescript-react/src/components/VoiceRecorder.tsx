@@ -629,9 +629,45 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       const result = await convertSpeechToText(file, "fi-FI");
       console.log(`🎤 VoiceRecorder: Finnish transcription result:`, result);
 
+      // Add additional debug logging for Finnish transcription
+      if (result && result.transcript) {
+        console.log(
+          `🎤 VoiceRecorder: Finnish transcript content: "${result.transcript}"`
+        );
+        // Update the transcript display immediately for debugging
+        setServerTranscript(result.transcript);
+
+        // Make sure we return the transcript for Finnish language
+        const transcript = result.transcript.trim();
+        if (transcript) {
+          console.log(
+            `🎤 VoiceRecorder: Returning Finnish transcript: "${transcript}"`
+          );
+          // Clear loading state after successful response
+          setIsLoading(false);
+          return transcript;
+        } else {
+          console.warn(
+            `🎤 VoiceRecorder: Finnish transcript is empty after trimming, checking raw result`
+          );
+          // If the transcript is empty after trimming, check if there's any content in the raw result
+          if (result.transcript) {
+            console.log(
+              `🎤 VoiceRecorder: Using raw Finnish transcript: "${result.transcript}"`
+            );
+            setIsLoading(false);
+            return result.transcript;
+          }
+        }
+      } else {
+        console.error(
+          `🎤 VoiceRecorder: Empty or invalid Finnish transcript result`
+        );
+      }
+
       // Clear loading state after successful response
       setIsLoading(false);
-      return result.transcript;
+      return result?.transcript || "";
     } catch (error) {
       console.error("🎤 VoiceRecorder: Finnish API request failed:", error);
 

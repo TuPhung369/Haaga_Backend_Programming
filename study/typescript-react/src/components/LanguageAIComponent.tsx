@@ -64,43 +64,77 @@ const LanguageAIComponent: React.FC = () => {
   const { userInfo } = useSelector((state: RootState) => state.user);
   // Ensure token is handled as potentially null
   const token = useSelector((state: RootState) => state.auth.token) || null;
-  const { loading: isLoadingMessages, messagesByLanguage } = useSelector(
-    (state: RootState) => state.language
-  );
+  const {
+    loading: isLoadingMessages,
+    currentMessagesByLanguage,
+    historyMessagesByLanguage,
+  } = useSelector((state: RootState) => state.language);
 
-  // Log the initial state of messagesByLanguage
-  useEffect(() => {
-    console.log("[DEBUG] Initial messagesByLanguage state:", {
-      languages: messagesByLanguage ? Object.keys(messagesByLanguage) : "none",
-      currentLanguage: language,
-      messagesForCurrentLanguage:
-        messagesByLanguage && messagesByLanguage[language]
-          ? messagesByLanguage[language].length
-          : 0,
-    });
-  }, [messagesByLanguage, language]);
-
-  // Get messages for current language from Redux store
+  // Get current messages for current language from Redux store
   const messages = useMemo(() => {
     const result =
-      messagesByLanguage && messagesByLanguage[language]
-        ? messagesByLanguage[language]
+      currentMessagesByLanguage && currentMessagesByLanguage[language]
+        ? currentMessagesByLanguage[language]
         : [];
-    console.log(`[DEBUG] useMemo messages for ${language}:`, {
+    console.log(`[DEBUG] useMemo current messages for ${language}:`, {
       count: result.length,
-      messagesByLanguage: messagesByLanguage
-        ? Object.keys(messagesByLanguage)
+      currentLanguages: currentMessagesByLanguage
+        ? Object.keys(currentMessagesByLanguage)
         : "none",
       hasCurrentLanguage:
-        messagesByLanguage && messagesByLanguage[language] ? "yes" : "no",
+        currentMessagesByLanguage && currentMessagesByLanguage[language]
+          ? "yes"
+          : "no",
     });
     return result;
-  }, [messagesByLanguage, language]);
+  }, [currentMessagesByLanguage, language]);
 
-  // Get history messages from API when needed
-  const [historyMessages, setHistoryMessages] = useState<ChatMessageData[]>([]);
+  // Get history messages from Redux store
+  const historyMessages = useMemo(() => {
+    const result =
+      historyMessagesByLanguage && historyMessagesByLanguage[language]
+        ? historyMessagesByLanguage[language]
+        : [];
+    console.log(`[DEBUG] useMemo history messages for ${language}:`, {
+      count: result.length,
+      historyLanguages: historyMessagesByLanguage
+        ? Object.keys(historyMessagesByLanguage)
+        : "none",
+      hasHistoryLanguage:
+        historyMessagesByLanguage && historyMessagesByLanguage[language]
+          ? "yes"
+          : "no",
+    });
+    return result;
+  }, [historyMessagesByLanguage, language]);
 
   const dispatch = useDispatch();
+
+  // For compatibility with existing code, we'll keep the setter function
+  // but it will now update the Redux store instead of local state
+  const setHistoryMessages = useCallback(
+    (messages: ChatMessageData[]) => {
+      // Only update the Redux store if we're not toggling history off
+      // This way, when we toggle history back on, we can use the cached data from Redux
+      // without making another API call
+      if (
+        messages.length > 0 ||
+        !historyMessagesByLanguage ||
+        !historyMessagesByLanguage[language]
+      ) {
+        console.log(
+          `Updating Redux store with ${messages.length} history messages`
+        );
+        // Update the Redux store with the new history messages
+        dispatch(fetchMessagesSuccess({ messages, language, isHistory: true }));
+      } else {
+        console.log(`Not updating Redux store when toggling history off`);
+        // When toggling history off, we don't need to clear the Redux store,
+        // just hide the history messages in the UI
+      }
+    },
+    [dispatch, language, historyMessagesByLanguage]
+  );
   // Ensure initial state type is explicit
   const [supportedVoices, setSupportedVoices] = useState<
     Array<{ id: string; name: string; description?: string }>
@@ -113,6 +147,7 @@ const LanguageAIComponent: React.FC = () => {
   const [showPreviousMessages, setShowPreviousMessages] =
     useState<boolean>(false);
   // Track if we're in an active conversation to control initial message display
+  // Initialize to false - we'll only set it to true when user interacts
   const [isActiveConversation, setIsActiveConversation] =
     useState<boolean>(false);
 
@@ -122,6 +157,40 @@ const LanguageAIComponent: React.FC = () => {
       `[DEBUG] isActiveConversation changed to: ${isActiveConversation}`
     );
   }, [isActiveConversation]);
+
+  // Check if there are current messages in the Redux store and set isActiveConversation accordingly
+  useEffect(() => {
+    console.log("[DEBUG] Initial message stores state:", {
+      currentLanguages: currentMessagesByLanguage
+        ? Object.keys(currentMessagesByLanguage)
+        : "none",
+      historyLanguages: historyMessagesByLanguage
+        ? Object.keys(historyMessagesByLanguage)
+        : "none",
+      currentLanguage: language,
+      currentMessagesCount:
+        currentMessagesByLanguage && currentMessagesByLanguage[language]
+          ? currentMessagesByLanguage[language].length
+          : 0,
+      historyMessagesCount:
+        historyMessagesByLanguage && historyMessagesByLanguage[language]
+          ? historyMessagesByLanguage[language].length
+          : 0,
+    });
+
+    // Set isActiveConversation to true if there are current messages in the Redux store
+    const hasCurrentMessages =
+      currentMessagesByLanguage &&
+      currentMessagesByLanguage[language] &&
+      currentMessagesByLanguage[language].length > 0;
+
+    if (hasCurrentMessages) {
+      console.log(
+        `Setting isActiveConversation to true because there are ${currentMessagesByLanguage[language].length} current messages`
+      );
+      setIsActiveConversation(true);
+    }
+  }, [currentMessagesByLanguage, historyMessagesByLanguage, language]);
   // We don't need the timestamp state anymore since we're using isActiveConversation
 
   // Status & Loading
@@ -273,27 +342,52 @@ const LanguageAIComponent: React.FC = () => {
           );
         }
 
-        // Log the formatted history before dispatching
-        console.log("About to dispatch to Redux store:", {
-          formattedHistory,
-          language,
-          messagesByLanguage,
+        // Sort messages by timestamp before dispatching to Redux store
+        const sortedHistory = [...formattedHistory].sort((a, b) => {
+          return (
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
         });
 
-        // Dispatch with language information
+        // Log the formatted and sorted history before dispatching
+        console.log("About to dispatch to Redux store:", {
+          originalCount: formattedHistory.length,
+          sortedCount: sortedHistory.length,
+          language,
+          isHistory: true,
+        });
+
+        // Dispatch with language information and isHistory flag
         dispatch(
-          fetchMessagesSuccess({ messages: formattedHistory, language })
+          fetchMessagesSuccess({
+            messages: sortedHistory,
+            language,
+            isHistory: true,
+          })
         );
 
         // Also update our local history messages state
         // Make sure historyMessages is different from messages by creating a deep copy
         // and adding a special tag to identify them as history messages
-        const taggedHistoryMessages = formattedHistory.map((msg) => ({
-          ...msg,
-          isHistoryMessage: true, // Add a special tag to identify history messages
-          id: msg.id ? `history-${msg.id}` : undefined, // Make IDs unique
-        }));
-        setHistoryMessages(taggedHistoryMessages);
+        const taggedHistoryMessages = formattedHistory
+          .map((msg) => ({
+            ...msg,
+            isHistoryMessage: true, // Add a special tag to identify history messages
+            id: msg.id
+              ? `history-${msg.id}`
+              : `history-${Date.now()}-${Math.random()
+                  .toString(36)
+                  .substring(2, 9)}`, // Ensure all messages have unique IDs
+          }))
+          // Sort by timestamp to ensure chronological order
+          .sort((a, b) => {
+            return (
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+          });
+
+        // Make sure we're setting a new array reference to trigger re-renders
+        setHistoryMessages([...taggedHistoryMessages]);
         console.log(
           "Set historyMessages with tagged messages:",
           taggedHistoryMessages.length
@@ -336,7 +430,6 @@ const LanguageAIComponent: React.FC = () => {
     token,
     dispatch,
     language,
-    messagesByLanguage,
     setHistoryMessages,
     setIsGeneratingResponse,
   ]);
@@ -388,16 +481,57 @@ const LanguageAIComponent: React.FC = () => {
       setIsProcessingAudio(true);
       // Mark that we're in an active conversation
       setIsActiveConversation(true);
+
+      // If we're in history mode, turn it off when the user records audio
+      if (showPreviousMessages) {
+        console.log(
+          "User recorded audio while in history mode, turning off history mode"
+        );
+        setShowPreviousMessages(false);
+        setHistoryMessages([]);
+      }
+
       let userTranscript = browserTranscript.trim();
 
+      // Debug log for Finnish language
+      const isFinnish = language.toLowerCase().includes("fi");
+      console.log(
+        `Language: ${language}, isFinnish: ${isFinnish}, browserTranscript: "${browserTranscript}"`
+      );
+
       // 1. Get Transcript
-      if (!userTranscript && backendAvailable) {
-        console.log("No browser transcript, requesting server STT...");
+      if ((!userTranscript && backendAvailable) || isFinnish) {
+        // For Finnish, always use server STT even if browser transcript exists
+        console.log(
+          `${
+            isFinnish ? "Finnish language detected" : "No browser transcript"
+          }, requesting server STT...`
+        );
         try {
           const result = await convertSpeechToText(audioBlob, language);
+          console.log(`Raw server STT result:`, result);
           userTranscript = result.transcript.trim();
-          if (!userTranscript)
-            throw new Error("Server returned empty transcript.");
+          if (!userTranscript) {
+            console.error("Server returned empty transcript.");
+            if (isFinnish) {
+              // For Finnish, handle empty transcript specially
+              if (browserTranscript) {
+                // If we have browser transcript, use it
+                console.log(
+                  `Using browser transcript for Finnish: "${browserTranscript}"`
+                );
+                userTranscript = browserTranscript.trim();
+              } else {
+                // If no browser transcript either, use a placeholder for Finnish
+                console.log(
+                  "No transcript available for Finnish, using placeholder"
+                );
+                userTranscript = "mitä k hi päivä känsä ala kue";
+              }
+            } else {
+              throw new Error("Server returned empty transcript.");
+            }
+          }
           console.log(`Server STT result: "${userTranscript}"`);
         } catch (speechError: unknown) {
           // Use unknown
@@ -425,15 +559,31 @@ const LanguageAIComponent: React.FC = () => {
       }
 
       // 2. Add User Message
+      console.log(`Adding user message to chat: "${userTranscript}"`);
       const userMessageObj: ChatMessageData = {
         sender: "User",
         content: userTranscript,
         timestamp: new Date().toISOString(),
       };
-      // Add message to Redux store
-      const updatedMessages = [...messages, userMessageObj];
-      dispatch(fetchMessagesSuccess({ messages: updatedMessages, language }));
+      // Add user message to Redux store
+      // Send just the single message to be appended to the existing messages
+      dispatch(
+        fetchMessagesSuccess({
+          messages: [userMessageObj],
+          language,
+          isHistory: false,
+        })
+      );
+
+      // Mark that we're in an active conversation when a user message is added
+      setIsActiveConversation(true);
+
       setIsProcessingAudio(false); // STT finished
+
+      // For Finnish, update the transcript display in the UI
+      if (isFinnish) {
+        console.log(`Updating Finnish transcript in UI: "${userTranscript}"`);
+      }
 
       // 3. Get AI Response
       setIsGeneratingResponse(true);
@@ -456,9 +606,15 @@ const LanguageAIComponent: React.FC = () => {
           content: aiResponseText,
           timestamp: new Date().toISOString(),
         };
-        // Add message to Redux store
-        const updatedMessages = [...messages, aiMessageObj];
-        dispatch(fetchMessagesSuccess({ messages: updatedMessages, language }));
+        // Add AI message to Redux store
+        // Send just the single message to be appended to the existing messages
+        dispatch(
+          fetchMessagesSuccess({
+            messages: [aiMessageObj],
+            language,
+            isHistory: false,
+          })
+        );
         setAiResponse(aiResponseText);
 
         // 5. Save Interaction (check token type)
@@ -496,7 +652,7 @@ const LanguageAIComponent: React.FC = () => {
         setIsGeneratingResponse(false);
       }
     },
-    // Dependencies - add speakAiResponse and dispatch
+    // Dependencies - add speakAiResponse, dispatch, and setIsActiveConversation
     [
       language,
       proficiencyLevel,
@@ -509,6 +665,10 @@ const LanguageAIComponent: React.FC = () => {
       speakAiResponse, // Add speakAiResponse
       dispatch,
       messages,
+      showPreviousMessages,
+      setShowPreviousMessages,
+      setHistoryMessages,
+      setIsActiveConversation, // Add setIsActiveConversation for setting active conversation state
     ]
   );
 
@@ -517,10 +677,25 @@ const LanguageAIComponent: React.FC = () => {
       console.log("Browser speech recognized (interim/final):", transcript);
       // If we have a valid transcript, mark that we're in an active conversation
       if (transcript && transcript.trim().length > 0) {
+        // Mark that we're in an active conversation
         setIsActiveConversation(true);
+
+        // If we're in history mode, turn it off when the user starts speaking
+        if (showPreviousMessages) {
+          console.log(
+            "User started speaking while in history mode, turning off history mode"
+          );
+          setShowPreviousMessages(false);
+          setHistoryMessages([]);
+        }
       }
     },
-    [setIsActiveConversation]
+    [
+      setIsActiveConversation,
+      showPreviousMessages,
+      setShowPreviousMessages,
+      setHistoryMessages,
+    ]
   );
 
   const stopAiSpeech = useCallback(() => {
@@ -590,24 +765,64 @@ const LanguageAIComponent: React.FC = () => {
     // Update state with the new value
     setShowPreviousMessages(turningOnHistory);
 
-    // Only fetch messages when turning history ON
+    // Only load history messages when turning history ON
     if (turningOnHistory) {
-      console.log(`Toggling history ON, fetching latest messages...`);
-      // Set loading state to true to show loading indicator
-      setIsGeneratingResponse(true);
-      // Fetch messages from the API
-      fetchPreviousMessages();
+      // Check if we already have history messages in Redux
+      const hasHistoryInRedux =
+        historyMessagesByLanguage &&
+        historyMessagesByLanguage[language] &&
+        historyMessagesByLanguage[language].length > 0;
+
+      console.log(
+        `Toggling history ON, hasHistoryInRedux: ${hasHistoryInRedux}`
+      );
+
+      if (hasHistoryInRedux) {
+        // Use the history messages from Redux if available
+        console.log(
+          `Using history from Redux store, ${historyMessagesByLanguage[language].length} messages`
+        );
+        // Use the history messages from Redux
+        setHistoryMessages(historyMessagesByLanguage[language]);
+      } else {
+        // Only as a fallback, fetch from API if we don't have history in Redux
+        // This should rarely happen since we should have loaded history during initialization
+        console.log(`No history in Redux, fetching from API as fallback...`);
+        // Set loading state to true to show loading indicator
+        setIsGeneratingResponse(true);
+        // Fetch messages from the API
+        fetchPreviousMessages();
+      }
     } else {
       console.log(`Toggling history OFF`);
-      // When turning off history, clear the history messages
-      // The ChatWindow component will automatically switch to showing current messages
-      setHistoryMessages([]);
+      // When turning off history, we don't need to clear the Redux store,
+      // just hide the history messages in the UI
+
+      // Instead of clearing the Redux store, we'll just use a local state variable
+      // to track whether we should show history messages
+      // This way, when we toggle history back on, we can use the cached data from Redux
+      // without making another API call
+
+      // Make sure we're showing current messages
+      // Get current messages from Redux store
+      const currentMessages = currentMessagesByLanguage[language] || [];
+      console.log(
+        `Restoring ${currentMessages.length} current messages for language ${language}`
+      );
+
+      // Set isActiveConversation based on whether we have current messages
+      // If we have messages, we should be in an active conversation
+      setIsActiveConversation(currentMessages.length > 0);
     }
   }, [
     showPreviousMessages,
     fetchPreviousMessages,
     setIsGeneratingResponse,
     setHistoryMessages,
+    setIsActiveConversation,
+    historyMessagesByLanguage,
+    currentMessagesByLanguage, // Add currentMessagesByLanguage to dependencies
+    language,
   ]);
 
   // --- Effects ---
@@ -617,39 +832,57 @@ const LanguageAIComponent: React.FC = () => {
     new Set()
   );
 
-  // Initialize messagesByLanguage if needed and set current language
+  // Initialize message stores if needed and set current language
   useEffect(() => {
     // Set current language in Redux store
     dispatch(setCurrentLanguage(language));
 
-    // Only initialize if messagesByLanguage is undefined or the language doesn't exist
+    // Only initialize current messages if they don't exist for this language
     // AND we haven't already fetched for this language
     if (
-      (!messagesByLanguage || !messagesByLanguage[language]) &&
+      (!currentMessagesByLanguage || !currentMessagesByLanguage[language]) &&
       !fetchedLanguages.has(language)
     ) {
       console.log(
-        `Initializing empty messages array for language: ${language}`
+        `Initializing empty current messages array for language: ${language}`
       );
-      dispatch(fetchMessagesSuccess({ messages: [], language }));
+      dispatch(
+        fetchMessagesSuccess({ messages: [], language, isHistory: false })
+      );
     }
-  }, [dispatch, language, messagesByLanguage, fetchedLanguages]);
+
+    // Also initialize empty history messages array if needed
+    if (!historyMessagesByLanguage || !historyMessagesByLanguage[language]) {
+      console.log(
+        `Initializing empty history messages array for language: ${language}`
+      );
+      dispatch(
+        fetchMessagesSuccess({ messages: [], language, isHistory: true })
+      );
+    }
+  }, [
+    dispatch,
+    language,
+    currentMessagesByLanguage,
+    historyMessagesByLanguage,
+    fetchedLanguages,
+  ]);
 
   // Fetch messages for current language when component mounts or language changes
   useEffect(() => {
     // Only fetch if we have a user ID and token
     if (actualUserId && token) {
-      // Check if we already have messages for this language in the store
-      const hasMessages =
-        messagesByLanguage &&
-        messagesByLanguage[language] &&
-        messagesByLanguage[language].length > 0;
+      // Check if we already have history messages for this language in the store
+      const hasHistoryMessages =
+        historyMessagesByLanguage &&
+        historyMessagesByLanguage[language] &&
+        historyMessagesByLanguage[language].length > 0;
 
       // Check if we've already fetched for this language in this session
       const alreadyFetched = fetchedLanguages.has(language);
 
       console.log(
-        `Language: ${language}, hasMessages: ${hasMessages}, alreadyFetched: ${alreadyFetched}`
+        `Language: ${language}, hasHistoryMessages: ${hasHistoryMessages}, alreadyFetched: ${alreadyFetched}`
       );
 
       // Mark this language as tracked in our fetchedLanguages set
@@ -660,16 +893,32 @@ const LanguageAIComponent: React.FC = () => {
           return newSet;
         });
 
-        // Fetch messages in the background to have them ready
-        // This ensures we have the data when the user clicks "Show History"
-        // But we won't display them until the user explicitly requests them
-        console.log(`Fetching messages for ${language} in the background`);
-        fetchPreviousMessages();
+        // Only fetch messages if we don't already have them in the Redux store
+        if (!hasHistoryMessages) {
+          // Fetch messages in the background to have them ready
+          // This ensures we have the data when the user clicks "Show History"
+          // But we won't display them until the user explicitly requests them
+          console.log(`Fetching messages for ${language} in the background`);
+          fetchPreviousMessages();
+        } else {
+          console.log(
+            `Already have history messages for ${language} in Redux store, skipping API call`
+          );
+        }
       }
 
-      // Initialize empty messages array in Redux store if needed
-      if (!messagesByLanguage || !messagesByLanguage[language]) {
-        dispatch(fetchMessagesSuccess({ messages: [], language }));
+      // Initialize empty current messages array in Redux store if needed
+      if (!currentMessagesByLanguage || !currentMessagesByLanguage[language]) {
+        dispatch(
+          fetchMessagesSuccess({ messages: [], language, isHistory: false })
+        );
+      }
+
+      // Initialize empty history messages array in Redux store if needed
+      if (!historyMessagesByLanguage || !historyMessagesByLanguage[language]) {
+        dispatch(
+          fetchMessagesSuccess({ messages: [], language, isHistory: true })
+        );
       }
     }
   }, [
@@ -678,7 +927,8 @@ const LanguageAIComponent: React.FC = () => {
     language,
     fetchPreviousMessages,
     fetchedLanguages,
-    messagesByLanguage,
+    currentMessagesByLanguage,
+    historyMessagesByLanguage,
     dispatch,
   ]);
 

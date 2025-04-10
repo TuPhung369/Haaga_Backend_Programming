@@ -1,5 +1,5 @@
 // src/components/ChatWindow.tsx
-import React, { useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -12,8 +12,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 import { ChatMessage } from "./ChatMessage";
-// Import type from parent
-import { ChatWindowProps } from "../types/LanguageAITypes"; // From languageAI";
+// Import types from parent
+import { ChatWindowProps, ChatMessageData } from "../types/LanguageAITypes"; // From languageAI";
 
 // Welcome messages in different languages
 const welcomeMessages = {
@@ -40,7 +40,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
     isGeneratingResponse,
     showHistory,
     onToggleHistory,
-    fetchPreviousMessages,
+    // fetchPreviousMessages is not used directly in this component anymore
+    // as it's called by the parent component when toggling history
     formatTimestamp,
     isActiveConversation = false, // Default to false if not provided
     language = "en-US", // Default to English if not provided
@@ -73,71 +74,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
       // and also call fetchPreviousMessages if needed
       onToggleHistory();
 
-      // We don't need to call fetchPreviousMessages here anymore
-      // because it's handled in the parent component's handleToggleHistory function
-
       // Log after toggle (note: showHistory will still have old value here due to closure)
       console.log("After toggle (showHistory will update in next render)");
 
-      // Remove the DOM manipulation hack - let React handle the UI updates
-      // This will preserve the button styling
     };
 
-    // Determine which messages to display based on showHistory flag and active conversation state
-    // If showHistory is true, show previousMessages (history), otherwise show current messages
-    // When page is first loaded, we don't want to show any messages until user interacts
-    // We can detect this by checking if we're in history mode, if there's an active conversation,
-    // or if there are any messages
-    console.log("[DEBUG] ChatWindow state before deciding what to show:", {
-      showHistory,
-      isActiveConversation,
-      messagesLength: messages.length,
-      previousMessagesLength: previousMessages.length,
-    });
 
-    // Log each condition separately to understand which one is triggering the display
-    console.log("[DEBUG] Message display conditions:", {
-      showHistory,
-      isActiveConversation,
-      messagesLength: messages.length > 0,
-      "showHistory || isActiveConversation || messages.length > 0":
-        showHistory || isActiveConversation || messages.length > 0,
-    });
+    const shouldShowCurrentMessages = !showHistory && isActiveConversation;
 
-    // CRITICAL FIX: Only show messages when we're in an active conversation or showing history
-    // This prevents showing messages when the page first loads
-    const shouldShowMessages = showHistory || isActiveConversation;
-    console.log("[DEBUG] shouldShowMessages (FIXED):", shouldShowMessages);
+    // Determine which messages to display based on the current state
+    // If showHistory is true, show ONLY history messages
+    // Otherwise, show ONLY current messages if we're in an active conversation
+    let messagesToDisplay: ChatMessageData[] = [];
 
-    const messagesToDisplay = shouldShowMessages
-      ? showHistory
-        ? previousMessages
-        : messages
-      : [];
-
-    console.log("[DEBUG] Final messagesToDisplay:", {
-      count: messagesToDisplay.length,
-      source: showHistory ? "previousMessages" : "messages",
-      firstMessage:
-        messagesToDisplay.length > 0
-          ? messagesToDisplay[0].content.substring(0, 30) + "..."
-          : "none",
-    });
-
-    // Log what we're displaying for debugging
-    console.log("ChatWindow rendering with:", {
-      showHistory,
-      isActiveConversation,
-      messagesToDisplayCount: messagesToDisplay.length,
-      messagesCount: messages.length,
-      previousMessagesCount: previousMessages.length,
-      // Check if messages and previousMessages are actually different
-      areMessagesIdentical: messages === previousMessages,
-      // Check if any messages have the isHistoryMessage tag
-      historyTaggedCount: previousMessages.filter((msg) => msg.isHistoryMessage)
-        .length,
-      shouldShowMessages,
-    });
+    if (showHistory) {
+      // When in history mode, ONLY show history messages
+      messagesToDisplay = previousMessages;
+    } else if (shouldShowCurrentMessages) {
+      // When not in history mode, show current messages if we're in an active conversation
+      messagesToDisplay = messages;
+    }
 
     // Additional debug info to help diagnose issues
     if (showHistory && previousMessages.length === 0) {
@@ -331,7 +287,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
                   </Box>
                 );
               })
-            ) : showHistory && !isLoadingHistory ? (
+            ) : showHistory &&
+              previousMessages.length === 0 &&
+              !isLoadingHistory ? (
               <Typography
                 variant="body2"
                 color="text.secondary"
