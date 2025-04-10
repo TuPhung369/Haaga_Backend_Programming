@@ -733,14 +733,24 @@ const LanguageAIComponent: React.FC = () => {
           `Language changed while history was showing, hiding history`
         );
         setShowPreviousMessages(false);
-        setHistoryMessages([]);
+        // Don't clear the history messages from Redux store, just hide them in the UI
+        // This way, when the user clicks "Show History" again, we can use the cached data
       }
+
+      // Check if we already have current messages in the Redux store for the new language
+      const hasCurrentMessages =
+        currentMessagesByLanguage &&
+        currentMessagesByLanguage[newLanguage] &&
+        currentMessagesByLanguage[newLanguage].length > 0;
+
+      console.log(
+        `Language changed to ${newLanguage}, hasCurrentMessages=${hasCurrentMessages}`
+      );
 
       // We don't automatically fetch messages when language changes anymore
       // Messages will only be fetched when the user clicks the "Show History" button
-      console.log(`Language changed to ${newLanguage}`);
     },
-    [dispatch, showPreviousMessages, setHistoryMessages]
+    [dispatch, showPreviousMessages, currentMessagesByLanguage]
   );
 
   const handleProficiencyChange = useCallback(
@@ -987,42 +997,79 @@ const LanguageAIComponent: React.FC = () => {
     const languageChanged = prevLangRef.current !== language;
     const levelChanged = prevLevelRef.current !== proficiencyLevel;
 
-    // Start fresh only if language/level changed OR initial load (messages empty)
-    if (languageChanged || levelChanged || messages.length === 0) {
+    // Check if we already have current messages in the Redux store
+    const hasCurrentMessages =
+      currentMessagesByLanguage &&
+      currentMessagesByLanguage[language] &&
+      currentMessagesByLanguage[language].length > 0;
+
+    console.log(
+      `Welcome message check: languageChanged=${languageChanged}, levelChanged=${levelChanged}, hasCurrentMessages=${hasCurrentMessages}`
+    );
+
+    // Handle language/level changes separately if we have current messages
+    if (hasCurrentMessages && (languageChanged || levelChanged)) {
+      console.log(
+        `Language or level changed with existing messages, updating refs only`
+      );
+      // Just update the refs without creating a new message
+      prevLangRef.current = language;
+      prevLevelRef.current = proficiencyLevel;
+      return;
+    }
+
+    // Only create a welcome message if we don't have any messages for this language
+    if (!hasCurrentMessages) {
       // Create welcome message based on selected language
       let welcomeContent = "";
 
       if (language === "fi-FI") {
         // Finnish welcome messages
-        welcomeContent =
-          (languageChanged || levelChanged) && messages.length > 0
-            ? `Okei, nyt harjoitellaan suomea ${proficiencyLevel} tasolla. Jatketaan!`
-            : `Tervetuloa! Olen valmis auttamaan sinua harjoittelemaan suomea ${proficiencyLevel} tasolla. Sano jotain aloittaaksesi.`;
+        welcomeContent = `Tervetuloa! Olen valmis auttamaan sinua harjoittelemaan suomea ${proficiencyLevel} tasolla. Sano jotain aloittaaksesi.`;
       } else {
         // English (default) welcome messages
-        welcomeContent =
-          (languageChanged || levelChanged) && messages.length > 0
-            ? `Okay, now practicing ${getLanguageName(
-                language
-              )} at the ${proficiencyLevel} level. Let's continue!`
-            : `Welcome! I'm ready to help you practice ${getLanguageName(
-                language
-              )} at the ${proficiencyLevel} level. Say something to begin.`;
+        welcomeContent = `Welcome! I'm ready to help you practice ${getLanguageName(
+          language
+        )} at the ${proficiencyLevel} level. Say something to begin.`;
       }
 
-      const welcomeMessage: ChatMessageData = {
-        sender: "AI",
-        content: welcomeContent,
-        timestamp: new Date().toISOString(),
-      };
-      // Set welcome message in Redux store
-      dispatch(fetchMessagesSuccess({ messages: [welcomeMessage], language }));
+      // Log the current messages in the Redux store
+      console.log(
+        `Current messages in Redux store for ${language}:`,
+        currentMessagesByLanguage && currentMessagesByLanguage[language]
+          ? currentMessagesByLanguage[language].map((msg) =>
+              msg.content.substring(0, 30)
+            )
+          : "none"
+      );
+
+      // Only create and dispatch a welcome message if we don't already have messages
+      // or if the language/level changed, but not both
+      if (!hasCurrentMessages) {
+        console.log(
+          `Creating welcome message for ${language} at ${proficiencyLevel} level`
+        );
+        const welcomeMessage: ChatMessageData = {
+          sender: "AI",
+          content: welcomeContent,
+          timestamp: new Date().toISOString(),
+        };
+        // Set welcome message in Redux store
+        dispatch(
+          fetchMessagesSuccess({ messages: [welcomeMessage], language })
+        );
+      }
 
       prevLangRef.current = language;
       prevLevelRef.current = proficiencyLevel;
     }
-    // Added messages.length dependency
-  }, [language, proficiencyLevel, getLanguageName, messages.length, dispatch]);
+  }, [
+    language,
+    proficiencyLevel,
+    getLanguageName,
+    currentMessagesByLanguage,
+    dispatch,
+  ]);
 
   // --- Prepare Props ---
   const chatControlsProps: ChatControlsProps = {
