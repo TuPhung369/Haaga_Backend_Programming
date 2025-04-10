@@ -8,3 +8,38 @@ spring:
       connection-timeout: 30000
       maximum-pool-size: 10
       minimum-idle: 5
+  devtools:
+    livereload:
+      enabled: true
+      port: 35729
+    remote:
+      secret: mysecret
+    restart:
+      # Enhanced restart configuration
+      additional-exclude: false
+      additional-paths:
+        - src/main/java
+        - target/classes
+        - target/generated-sources/annotations
+      include:
+        project: "/study-.*\\.jar"
+        mapstruct: "/mapstruct-.*\\.jar"
+        exception: "/AppException-.*\\.jar"
+        security: "/JwtTokenFilter-.*\\.jar"
+        mapper: "/.*mapper.*\\.jar"
+        model: "/.*model.*\\.jar"
+        entity: "/.*entity.*\\.jar"
+        repository: "/.*repository.*\\.jar"
+        service: "/.*service.*\\.jar"
+        controller: "/.*controller.*\\.jar"
+        configuration: "/.*configuration.*\\.jar"
+        dto: "/.*dto.*\\.jar"
+        generated: "/.*\\$.*\\.class"
+
+# Additional development-specific settings
+logging:
+  level:
+    "[org.springframework.boot.devtools]": DEBUG
+    "[org.springframework.boot.autoconfigure]": DEBUG
+    "[org.springframework.boot.devtools.restart]": DEBUG
+

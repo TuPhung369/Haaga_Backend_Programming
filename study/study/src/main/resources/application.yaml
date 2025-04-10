@@ -23,10 +23,19 @@ spring:
   h2:
     console:
       enabled: true
-  # devtools:
-  #   restart:
-  #     enabled: false
-  #     log-condition-evaluation-delta: false
+  devtools:
+    restart:
+      enabled: true
+      additional-paths:
+        - src/main/java
+        - target/classes
+        - target/generated-sources/annotations
+      exclude: static/**,public/**
+      poll-interval: 2s
+      quiet-period: 1s
+      log-condition-evaluation-delta: true
+    livereload:
+      enabled: true
   # main:
   #   banner-mode: off
   #   log-startup-info: false
@@ -127,4 +136,5 @@ logging:
     "[com.database.study.repository]": DEBUG # Log repository operations
     "[org.hibernate.SQL]": DEBUG # Log SQL statements
     "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE # Log SQL parameters
+
 

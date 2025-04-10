@@ -16,6 +16,7 @@ import base64
 import os
 import tempfile
 import logging
+import warnings
 from gtts import gTTS
 import io
 import uuid
@@ -28,15 +29,56 @@ import threading
 from collections import deque
 import subprocess
 
+# Filter out specific warnings - use more aggressive approach
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+# Completely silence all transformers output
+import logging
+import os
+
+# Set environment variable to disable transformers warnings
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+
+# Silence all loggers
+logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("huggingface").setLevel(logging.ERROR)
+logging.getLogger("datasets").setLevel(logging.ERROR)
+
 # Import Wav2Vec2 module for Finnish
 try:
-    from wav2vec2_finnish import transcribe_audio_with_wav2vec2, test_wav2vec2
+    # Redirect stdout to suppress warnings during import
+    import sys
+    import io
 
-    wav2vec2_available = True
-    print("Wav2Vec2 module for Finnish is available")
+    original_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+
+    try:
+        from wav2vec2_finnish import (
+            transcribe_audio_with_wav2vec2,
+            test_wav2vec2,
+            is_model_downloaded,
+            is_model_in_memory,
+            clean_incomplete_model,
+        )
+
+        wav2vec2_available = True
+        wav2vec2_model_downloaded = is_model_downloaded()
+        wav2vec2_model_in_memory = is_model_in_memory()
+        logger = logging.getLogger(__name__)
+        logger.info(
+            f"Wav2Vec2 module for Finnish is available, model downloaded: {wav2vec2_model_downloaded}, model in memory: {wav2vec2_model_in_memory}"
+        )
+    finally:
+        # Restore stdout
+        sys.stdout = original_stdout
 except ImportError as e:
     wav2vec2_available = False
-    print(f"Wav2Vec2 module for Finnish is not available: {e}")
+    wav2vec2_model_downloaded = False
+    wav2vec2_model_in_memory = False
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Wav2Vec2 module for Finnish is not available: {e}")
 
 # Add faster-whisper import
 try:
@@ -103,14 +145,81 @@ except ImportError:
         "OpenAI Whisper not available. Install with: pip install openai-whisper"
     )
 
+
+# Configure logging with custom filter
+class WarningFilter(logging.Filter):
+    def filter(self, record):
+        # Filter out specific warning messages
+        if record.levelname == "WARNING":
+            msg = record.getMessage()
+            if (
+                "Some weights of the model checkpoint" in msg
+                or "were not used when initializing" in msg
+            ):
+                return False
+        return True
+
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+logger.addFilter(WarningFilter())
+
+# Also filter transformers logger
+transformers_logger = logging.getLogger("transformers")
+transformers_logger.addFilter(WarningFilter())
+
+# Add lifespan context manager for startup/shutdown events
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app):
+    # Startup code - runs before the application starts
+    # Preload Wav2Vec2 model for Finnish if available
+    if wav2vec2_available:
+        try:
+            # Check if model is already downloaded and complete
+            if wav2vec2_model_downloaded:
+                logger.info("Wav2Vec2 Finnish model already downloaded, skipping test")
+            else:
+                # Try to clean incomplete model if needed
+                clean_incomplete_model()
+
+                # Test and load the model only if not already downloaded
+                # Redirect stdout to suppress warnings during model loading
+                import sys
+                import io
+
+                original_stdout = sys.stdout
+                sys.stdout = io.StringIO()
+
+                try:
+                    test_result = test_wav2vec2()
+                    if test_result:
+                        logger.info(
+                            "Wav2Vec2 Finnish model loaded successfully during startup"
+                        )
+                    else:
+                        logger.warning(
+                            "Failed to load Wav2Vec2 Finnish model during startup"
+                        )
+                finally:
+                    # Restore stdout
+                    sys.stdout = original_stdout
+        except Exception as e:
+            logger.error(f"Error loading Wav2Vec2 model during startup: {str(e)}")
+
+    yield  # This is where the application runs
+
+    # Shutdown code - runs when the application is shutting down
+
 
 app = FastAPI(
     title="Speech API",
     description="API for Speech-to-Text and Text-to-Speech with multilingual support",
+    lifespan=lifespan,
 )
 
 # Allow more origins to fix CORS issues
@@ -123,6 +232,7 @@ app.add_middleware(
     expose_headers=["Content-Length"],
     max_age=86400,
 )
+
 
 logger.info(
     "CORS middleware configured with: allow_origins=['http://localhost:3000', 'http://127.0.0.1:3000', '*']"
@@ -200,6 +310,22 @@ LANGUAGE_CONFIG = {
         "whisper_size": "medium",  # medium is better for Finnish
     },
 }
+
+
+# Function to check if model is already downloaded locally
+def is_model_downloaded_locally(model_name):
+    """Check if a model is already downloaded locally"""
+    if model_name == "wav2vec2-finnish":
+        return wav2vec2_model_downloaded
+    elif model_name == "faster-whisper":
+        # Check if faster-whisper model is downloaded
+        model_dir = os.path.join(os.getcwd(), "models", "faster-whisper")
+        return os.path.exists(model_dir)
+    elif model_name == "whisper":
+        # Check if whisper model is downloaded
+        return len(whisper_models) > 0
+
+    return False
 
 
 # Add a helper function to enable caching of recent transcriptions
@@ -704,11 +830,31 @@ async def health_check():
     # Check if SpeechBrain TTS is available
     speechbrain_status = "available" if speechbrain_tts_available else "unavailable"
 
+    # Add Wav2Vec2 Finnish model status
+    wav2vec2_status = {
+        "available": wav2vec2_available,
+        "model_downloaded": wav2vec2_model_downloaded,
+        "model_in_memory": wav2vec2_model_in_memory,
+        "model_path": (
+            os.path.join(
+                os.getcwd(),
+                "models",
+                "wav2vec2-finnish",
+                "models--aapot--wav2vec2-xlsr-1b-finnish-lm-v2",
+            )
+            if wav2vec2_model_downloaded
+            else None
+        ),
+        "model_size": "3.85GB",
+        "cached": wav2vec2_available and wav2vec2_model_downloaded,
+    }
+
     response_content = {
         "status": "ok",
         "whisper_available": whisper_available,
         "whisper_model_loaded": whisper_model is not None,
         "speechbrain_tts": speechbrain_status,
+        "wav2vec2_finnish": wav2vec2_status,
     }
 
     return JSONResponse(content=response_content, headers=headers)
@@ -1028,7 +1174,18 @@ async def transcribe_speech_finnish(
                     os.unlink(temp_file_path)
 
             # Use Wav2Vec2 model
-            result = transcribe_with_wav2vec2_finnish(output_path)
+            # Redirect stdout to suppress warnings during transcription
+            import sys
+            import io
+
+            original_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+
+            try:
+                result = transcribe_audio_with_wav2vec2(output_path)
+            finally:
+                # Restore stdout
+                sys.stdout = original_stdout
 
             # Clean up
             if os.path.exists(output_path):
@@ -1968,6 +2125,7 @@ def get_stt_model(language: str) -> str:
                 model == "wav2vec2-finnish"
                 and wav2vec2_available
                 and language == "fi-FI"
+                and wav2vec2_model_downloaded  # Only use if model is already downloaded
             ):
                 return model
             elif model == "faster-whisper" and faster_whisper_available:
