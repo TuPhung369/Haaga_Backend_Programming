@@ -1,5 +1,5 @@
 // src/components/ChatWindow.tsx
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -15,6 +15,22 @@ import { ChatMessage } from "./ChatMessage";
 // Import type from parent
 import { ChatWindowProps } from "../types/LanguageAITypes"; // From languageAI";
 
+// Welcome messages in different languages
+const welcomeMessages = {
+  "en-US":
+    "You are practicing with Language Practice AI. Start speaking to begin the conversation.",
+  "fi-FI":
+    "Harjoittelet Language Practice AI:n kanssa. Aloita puhuminen aloittaaksesi keskustelun.",
+  "vi-VN":
+    "Bạn đang thực hành với Language Practice AI. Bắt đầu nói để bắt đầu cuộc trò chuyện.",
+  // Add more languages as needed
+};
+
+// Default to English if language not found
+const getWelcomeMessage = (language: string): string => {
+  return welcomeMessages[language] || welcomeMessages["en-US"];
+};
+
 export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
   ({
     messages,
@@ -27,6 +43,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
     fetchPreviousMessages,
     formatTimestamp,
     isActiveConversation = false, // Default to false if not provided
+    language = "en-US", // Default to English if not provided
   }) => {
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const chatContainerRef = useRef<HTMLDivElement | null>(null);
@@ -62,19 +79,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
       // Log after toggle (note: showHistory will still have old value here due to closure)
       console.log("After toggle (showHistory will update in next render)");
 
-      // Force a re-render by updating the DOM directly
-      // This is a hack, but it works for now
-      setTimeout(() => {
-        const button = document.querySelector(
-          'button[aria-controls="conversation-history"]'
-        );
-        if (button) {
-          // Update the button text directly
-          button.innerHTML = showHistory
-            ? '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path></svg>Show History'
-            : '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"></path></svg>Hide History';
-        }
-      }, 10);
+      // Remove the DOM manipulation hack - let React handle the UI updates
+      // This will preserve the button styling
     };
 
     // Determine which messages to display based on showHistory flag and active conversation state
@@ -289,53 +295,76 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
 
           {/* Render Messages */}
           <Stack spacing={3} sx={{ width: "100%" }}>
-            {messagesToDisplay.length > 0
-              ? messagesToDisplay.map((msg, index) => {
-                  const isUser = msg.sender === "User";
-                  const isPreviousUser =
-                    index > 0 && messagesToDisplay[index - 1].sender === "User";
-                  const isNextUser =
-                    index < messagesToDisplay.length - 1 &&
-                    messagesToDisplay[index + 1].sender === "User";
+            {messagesToDisplay.length > 0 ? (
+              messagesToDisplay.map((msg, index) => {
+                const isUser = msg.sender === "User";
+                const isPreviousUser =
+                  index > 0 && messagesToDisplay[index - 1].sender === "User";
+                const isNextUser =
+                  index < messagesToDisplay.length - 1 &&
+                  messagesToDisplay[index + 1].sender === "User";
 
-                  // Add extra spacing between different sender groups
-                  const marginTop =
-                    index > 0 && isUser !== isPreviousUser ? 3 : 0;
-                  const marginBottom =
-                    index < messagesToDisplay.length - 1 &&
-                    isUser !== isNextUser
-                      ? 3
-                      : 0;
+                // Add extra spacing between different sender groups
+                const marginTop =
+                  index > 0 && isUser !== isPreviousUser ? 3 : 0;
+                const marginBottom =
+                  index < messagesToDisplay.length - 1 && isUser !== isNextUser
+                    ? 3
+                    : 0;
 
-                  return (
-                    <Box
-                      key={msg.id || `msg-${index}`}
-                      sx={{
-                        width: "100%",
-                        display: "flex",
-                        justifyContent: isUser ? "flex-end" : "flex-start",
-                        mt: marginTop,
-                        mb: marginBottom,
-                      }}
-                    >
-                      <ChatMessage
-                        message={msg}
-                        username={username}
-                        formatTimestamp={formatTimestamp}
-                      />
-                    </Box>
-                  );
-                })
-              : showHistory &&
-                !isLoadingHistory && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ textAlign: "center", py: 3 }}
+                return (
+                  <Box
+                    key={msg.id || `msg-${index}`}
+                    sx={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: isUser ? "flex-end" : "flex-start",
+                      mt: marginTop,
+                      mb: marginBottom,
+                    }}
                   >
-                    No conversation history found.
+                    <ChatMessage
+                      message={msg}
+                      username={username}
+                      formatTimestamp={formatTimestamp}
+                    />
+                  </Box>
+                );
+              })
+            ) : showHistory && !isLoadingHistory ? (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: "center", py: 3 }}
+              >
+                No conversation history found.
+              </Typography>
+            ) : !showHistory && !isActiveConversation ? (
+              // Welcome message when no conversation is active
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  width: "100%",
+                  mt: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    maxWidth: "80%",
+                    p: 2,
+                    borderRadius: "12px",
+                    bgcolor: "primary.light",
+                    color: "white",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <Typography variant="body1">
+                    {getWelcomeMessage(language)}
                   </Typography>
-                )}
+                </Box>
+              </Box>
+            ) : null}
           </Stack>
 
           {/* AI Thinking Indicator */}

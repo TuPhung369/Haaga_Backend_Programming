@@ -816,6 +816,7 @@ const LanguageAIComponent: React.FC = () => {
       formatTimestamp,
       fetchPreviousMessages, // Pass fetch function if needed by ChatWindow itself
       isActiveConversation, // Pass the active conversation flag
+      language, // Pass the current language for welcome message
     }),
     [
       messages,
@@ -828,6 +829,7 @@ const LanguageAIComponent: React.FC = () => {
       formatTimestamp,
       fetchPreviousMessages,
       isActiveConversation, // Add to dependencies
+      language, // Add language to dependencies
       // lastUpdated removed as it's not needed
     ]
   );

@@ -126,6 +126,7 @@ export interface ChatWindowProps {
   fetchPreviousMessages: () => void; // Function to trigger history fetch
   formatTimestamp: (timestamp: string) => string;
   isActiveConversation?: boolean; // Flag to indicate if there's an active conversation
+  language?: string; // Current language code (e.g., "en-US", "fi-FI")
 }
 
 export interface ChatMessageProps {
