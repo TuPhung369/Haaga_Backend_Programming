@@ -1,3 +1,8 @@
+server:
+  port: 9095
+  servlet:
+    context-path: /identify_service
+
 spring:
   datasource:
     url: ${DB_URL_DEV}
@@ -39,7 +44,14 @@ spring:
 # Additional development-specific settings
 logging:
   level:
+    root: INFO
+    "[org.springframework]": DEBUG
+    "[org.springframework.boot]": DEBUG
     "[org.springframework.boot.devtools]": DEBUG
     "[org.springframework.boot.autoconfigure]": DEBUG
     "[org.springframework.boot.devtools.restart]": DEBUG
+    "[org.springframework.web]": DEBUG
+    "[org.springframework.context]": DEBUG
+    "[org.apache.catalina.core]": DEBUG
+    "[org.apache.tomcat.util.net]": DEBUG
 
