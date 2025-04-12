@@ -45,12 +45,20 @@ public class RoleController {
   }
 
   @DeleteMapping("/{role}")
-  ApiResponse<String> deleteRole(@PathVariable String role) {
-    roleService.deleteRole(role);
-    return ApiResponse.<String>builder()
-        .code(2000) // Success code or you can set a specific code
-        .message("Role successfully deleted")
-        .result("Role Name: " + role) // Include any additional details if needed
-        .build();
+  public ApiResponse<String> deleteRole(@PathVariable String role) {
+    try {
+      roleService.deleteRole(role);
+      return ApiResponse.<String>builder()
+          .code(2000) // Success code
+          .message("Role successfully deleted")
+          .result("Role Name: " + role)
+          .build();
+    } catch (Exception e) {
+      log.error("Error deleting role: {}", role, e);
+      return ApiResponse.<String>builder()
+          .code(4004) // Not found error code
+          .message("Failed to delete role: " + e.getMessage())
+          .build();
+    }
   }
 }

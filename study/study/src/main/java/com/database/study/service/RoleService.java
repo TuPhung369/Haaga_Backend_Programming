@@ -39,7 +39,9 @@ public class RoleService {
         .toList();
   }
 
-  public void deleteRole(String role) {
-    roleRepository.deleteById(Long.valueOf(role));
+  public void deleteRole(String roleName) {
+    var role = roleRepository.findByName(roleName)
+        .orElseThrow(() -> new RuntimeException("Role not found with name: " + roleName));
+    roleRepository.deleteById(role.getId());
   }
 }

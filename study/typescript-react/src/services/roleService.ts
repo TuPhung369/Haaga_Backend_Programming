@@ -34,15 +34,18 @@ export const getAllRoles = async (token: string): Promise<RolesResponse> => {
 };
 
 export const deleteRole = async (
-  roleId: string,
+  roleName: string,
   token: string
 ): Promise<RoleResponse> => {
   try {
-    const response = await apiClient.delete<RoleResponse>(`/roles/${roleId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.delete<RoleResponse>(
+      `/roles/${roleName}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error deleting role:", error);
