@@ -86,9 +86,19 @@ export const updateUser = async (
   recaptchaToken?: string
 ): Promise<UserResponse> => {
   try {
+    // Tạo bản sao của userData để tránh thay đổi dữ liệu gốc
+    const userDataToSend = { ...userData };
+
+    // Nếu password trống, loại bỏ trường password khỏi dữ liệu gửi đi
+    if (userDataToSend.password === "") {
+      // Sử dụng delete để loại bỏ trường password
+      delete userDataToSend.password;
+    }
+
+    // Thêm recaptchaToken vào dữ liệu
     const dataWithRecaptcha = recaptchaToken
-      ? { ...userData, recaptchaToken }
-      : addRecaptchaTokenToData(userData);
+      ? { ...userDataToSend, recaptchaToken }
+      : addRecaptchaTokenToData(userDataToSend);
 
     const response = await apiClient.put<UserResponse>(
       `/users/${userId}`,
@@ -113,9 +123,19 @@ export const updateMyInfo = async (
   recaptchaToken?: string
 ): Promise<UserResponse> => {
   try {
+    // Tạo bản sao của userData để tránh thay đổi dữ liệu gốc
+    const userDataToSend = { ...userData };
+
+    // Nếu password trống, loại bỏ trường password khỏi dữ liệu gửi đi
+    if (userDataToSend.password === "") {
+      // Sử dụng delete để loại bỏ trường password
+      delete userDataToSend.password;
+    }
+
+    // Thêm recaptchaToken vào dữ liệu
     const dataWithRecaptcha = recaptchaToken
-      ? { ...userData, recaptchaToken }
-      : addRecaptchaTokenToData(userData);
+      ? { ...userDataToSend, recaptchaToken }
+      : addRecaptchaTokenToData(userDataToSend);
 
     const response = await apiClient.put<UserResponse>(
       `/users/updateMyInfo/${userId}`,

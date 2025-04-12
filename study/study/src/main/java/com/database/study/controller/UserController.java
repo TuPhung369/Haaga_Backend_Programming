@@ -1,6 +1,7 @@
 package com.database.study.controller;
 
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.request.UserUpdateRequest;
 import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.service.UserService;
@@ -82,7 +83,7 @@ public class UserController {
 
   @PutMapping("/{userId}")
   public ApiResponse<UserResponse> updateUser(@PathVariable UUID userId,
-      @RequestBody @Valid UserCreationRequest request) {
+      @RequestBody @Valid UserUpdateRequest request) {
     UserResponse userResponse = userService.updateUser(userId, request);
     return ApiResponse.<UserResponse>builder()
         .result(userResponse)
@@ -91,7 +92,7 @@ public class UserController {
 
   @PutMapping("/updateMyInfo/{userId}")
   public ApiResponse<UserResponse> updateMyInfo(@PathVariable UUID userId,
-      @RequestBody @Valid UserCreationRequest request) {
+      @RequestBody @Valid UserUpdateRequest request) {
     UserResponse userResponse = userService.updateMyInfo(userId, request);
     return ApiResponse.<UserResponse>builder()
         .result(userResponse)

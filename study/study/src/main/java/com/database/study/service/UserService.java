@@ -25,6 +25,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.request.UserUpdateRequest;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.mapper.UserMapper;
 
@@ -121,7 +122,7 @@ public class UserService {
 
   @PreAuthorize("hasRole('ADMIN') || hasRole('MANAGER')")
   @Transactional
-  public UserResponse updateUser(UUID userId, UserCreationRequest request) {
+  public UserResponse updateUser(UUID userId, UserUpdateRequest request) {
     User existingUser = userRepository.findById(userId)
         .orElseThrow(() -> {
           log.error("User with ID {} not found", userId);
@@ -129,7 +130,11 @@ public class UserService {
         });
 
     userMapper.updateUser(existingUser, request);
-    existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+    
+    // Only update password if a new one is provided
+    if (request.isPasswordBeingUpdated()) {
+      existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+    }
 
     // Update roles
     List<String> roles = request.getRoles();
@@ -164,23 +169,31 @@ public class UserService {
   }
 
   @Transactional
-  public UserResponse updateMyInfo(UUID userId, UserCreationRequest request) {
+  public UserResponse updateMyInfo(UUID userId, UserUpdateRequest request) {
     User existingUser = userRepository.findById(userId)
         .orElseThrow(() -> {
           log.error("User with ID {} not found", userId);
           throw new AppException(ErrorCode.USER_NOT_FOUND);
         });
 
-    // Verify current password
-    if (!passwordEncoder.matches(request.getCurrentPassword(), existingUser.getPassword())) {
-      log.warn("Invalid current password for user: {}", existingUser.getUsername());
-      throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+    // Verify current password only if user is trying to change password
+    if (request.isPasswordBeingUpdated()) {
+      // Current password is required when changing password
+      if (request.getCurrentPassword() == null || request.getCurrentPassword().isEmpty()) {
+        log.warn("Current password is required when changing password for user: {}", existingUser.getUsername());
+        throw new AppException(ErrorCode.CURRENT_PASSWORD_REQUIRED);
+      }
+      
+      if (!passwordEncoder.matches(request.getCurrentPassword(), existingUser.getPassword())) {
+        log.warn("Invalid current password for user: {}", existingUser.getUsername());
+        throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+      }
     }
 
     userMapper.updateUser(existingUser, request);
 
     // Only update password if a new one is provided
-    if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+    if (request.isPasswordBeingUpdated()) {
       existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
     }
 

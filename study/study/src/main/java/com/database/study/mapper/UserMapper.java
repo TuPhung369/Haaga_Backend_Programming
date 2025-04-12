@@ -1,6 +1,7 @@
 package com.database.study.mapper;
 
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.request.UserUpdateRequest;
 import com.database.study.dto.response.PermissionResponse;
 import com.database.study.dto.response.RoleResponse;
 import com.database.study.dto.response.UserResponse;
@@ -107,4 +108,13 @@ public interface UserMapper {
   @Mapping(target = "timeTried", ignore = true) // Preserve existing timeTried value
   @Mapping(target = "totpSecurity", ignore = true) // Preserve existing totpSecurity
   void updateUser(@MappingTarget User user, UserCreationRequest request);
+  
+  // Updates an existing user entity with update request data
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
+  @Mapping(target = "block", ignore = true) // Preserve existing isBlock value
+  @Mapping(target = "timeTried", ignore = true) // Preserve existing timeTried value
+  @Mapping(target = "totpSecurity", ignore = true) // Preserve existing totpSecurity
+  @Mapping(target = "password", ignore = true) // Password is handled separately in service
+  void updateUser(@MappingTarget User user, UserUpdateRequest request);
 }

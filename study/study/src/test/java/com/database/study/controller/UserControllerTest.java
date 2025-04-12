@@ -1,6 +1,7 @@
 package com.database.study.controller;
 
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.request.UserUpdateRequest;
 import com.database.study.dto.response.ApiResponse;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.service.UserService;
@@ -118,7 +119,7 @@ class UserControllerTest {
   @Test
   void testUpdateUser() {
     UUID userId = UUID.randomUUID();
-    UserCreationRequest request = new UserCreationRequest();
+    UserUpdateRequest request = new UserUpdateRequest();
     UserResponse userResponse = new UserResponse();
     when(userService.updateUser(userId, request)).thenReturn(userResponse);
 
@@ -132,7 +133,7 @@ class UserControllerTest {
   @Test
   void testUpdateMyInfo() {
     UUID userId = UUID.randomUUID();
-    UserCreationRequest request = new UserCreationRequest();
+    UserUpdateRequest request = new UserUpdateRequest();
     UserResponse userResponse = new UserResponse();
     when(userService.updateMyInfo(userId, request)).thenReturn(userResponse);
 

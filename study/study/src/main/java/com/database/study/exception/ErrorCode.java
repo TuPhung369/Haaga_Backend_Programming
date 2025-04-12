@@ -11,6 +11,8 @@ import com.database.study.enums.ENUMS;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public enum ErrorCode {
         // 400 - BAD REQUEST
+        CURRENT_PASSWORD_REQUIRED(4000, ENUMS.ErrorMessages.CURRENT_PASSWORD_REQUIRED.getMessage(), HttpStatus.BAD_REQUEST, "400",
+                        ENUMS.Severity.MEDIUM.name()),
         EMAIL_INVALID(4002, ENUMS.ErrorMessages.EMAIL_INVALID.getMessage(), HttpStatus.BAD_REQUEST, "400",
                         ENUMS.Severity.MEDIUM.name()),
         EMAIL_NOT_BLANK(4001, ENUMS.ErrorMessages.EMAIL_NOT_BLANK.getMessage(), HttpStatus.BAD_REQUEST, "400",

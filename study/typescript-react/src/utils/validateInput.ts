@@ -1,5 +1,5 @@
 // src/utils/validateInput.ts
-import { ValidationInput, ValidationErrors } from "../type/types";
+import { ValidationInput, ValidationErrors } from "../types/AuthTypes";
 
 export const validationMessages = {
   USERNAME_LENGTH: "Username must be between 5 and 20 characters.",
@@ -32,19 +32,28 @@ const validateInput = (input: ValidationInput): ValidationErrors => {
 
   // Validate password
   if (input.password !== undefined) {
-    const passwordPattern =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+{};:,<.>])[A-Za-z\d!@#$%^&*()\-_=+{};:,<.>]{8,}$/;
-    if (!input.password || input.password.length < 8) {
-      errors.password = validationMessages.PASSWORD_MIN_LENGTH;
-    } else if (!passwordPattern.test(input.password)) {
-      errors.password = validationMessages.PASSWORD_VALIDATION;
+    // Nếu password không trống, thì mới kiểm tra các điều kiện
+    if (input.password.length > 0) {
+      const passwordPattern =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+{};:,<.>])[A-Za-z\d!@#$%^&*()\-_=+{};:,<.>]{8,}$/;
+      if (input.password.length < 8) {
+        errors.password = validationMessages.PASSWORD_MIN_LENGTH;
+      } else if (!passwordPattern.test(input.password)) {
+        errors.password = validationMessages.PASSWORD_VALIDATION;
+      }
     }
   }
 
   // Validate confirm password
   if (input.confirmPassword !== undefined) {
-    if (!input.confirmPassword || input.confirmPassword !== input.password) {
-      errors.confirmPassword = validationMessages.PASSWORD_MATCH;
+    // Chỉ kiểm tra nếu password hoặc confirmPassword không trống
+    if (
+      (input.password && input.password.length > 0) ||
+      (input.confirmPassword && input.confirmPassword.length > 0)
+    ) {
+      if (input.confirmPassword !== input.password) {
+        errors.confirmPassword = validationMessages.PASSWORD_MATCH;
+      }
     }
   }
 

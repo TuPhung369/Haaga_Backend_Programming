@@ -1,6 +1,7 @@
 package com.database.study.service;
 
 import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.request.UserUpdateRequest;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.entity.Role;
 import com.database.study.entity.User;
@@ -48,6 +49,7 @@ public class UserServiceTest {
 
   private User user;
   private UserCreationRequest userCreationRequest;
+  private UserUpdateRequest userUpdateRequest;
   private UserResponse userResponse;
   private Role role;
 
@@ -67,6 +69,12 @@ public class UserServiceTest {
     userCreationRequest.setPassword("password");
     userCreationRequest.setEmail("testuser@example.com");
     userCreationRequest.setRoles(Collections.singletonList(ENUMS.Role.USER.name()));
+    
+    userUpdateRequest = new UserUpdateRequest();
+    userUpdateRequest.setUsername("testuser");
+    userUpdateRequest.setPassword("password");
+    userUpdateRequest.setEmail("testuser@example.com");
+    userUpdateRequest.setRoles(Collections.singletonList(ENUMS.Role.USER.name()));
 
     userResponse = new UserResponse();
     userResponse.setUsername("testuser");
@@ -184,7 +192,7 @@ public class UserServiceTest {
     when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
     AppException exception = assertThrows(AppException.class, () -> {
-      userService.updateUser(UUID.randomUUID(), userCreationRequest);
+      userService.updateUser(UUID.randomUUID(), userUpdateRequest);
     });
 
     assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
@@ -199,7 +207,7 @@ public class UserServiceTest {
     when(userRepository.save(any(User.class))).thenReturn(user);
     when(userMapper.toUserResponse(any(User.class))).thenReturn(userResponse);
 
-    UserResponse result = userService.updateUser(UUID.randomUUID(), userCreationRequest);
+    UserResponse result = userService.updateUser(UUID.randomUUID(), userUpdateRequest);
 
     assertNotNull(result);
     assertEquals(userResponse.getUsername(), result.getUsername());
@@ -215,7 +223,7 @@ public class UserServiceTest {
     when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
     AppException exception = assertThrows(AppException.class, () -> {
-      userService.updateMyInfo(UUID.randomUUID(), userCreationRequest);
+      userService.updateMyInfo(UUID.randomUUID(), userUpdateRequest);
     });
 
     assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
@@ -230,7 +238,7 @@ public class UserServiceTest {
     when(userRepository.save(any(User.class))).thenReturn(user);
     when(userMapper.toUserResponse(any(User.class))).thenReturn(userResponse);
 
-    UserResponse result = userService.updateMyInfo(UUID.randomUUID(), userCreationRequest);
+    UserResponse result = userService.updateMyInfo(UUID.randomUUID(), userUpdateRequest);
 
     assertNotNull(result);
     assertEquals(userResponse.getUsername(), result.getUsername());

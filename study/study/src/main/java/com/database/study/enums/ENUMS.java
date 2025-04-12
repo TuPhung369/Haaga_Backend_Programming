@@ -48,6 +48,8 @@ public class ENUMS {
         "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"),
     ROLES_NOT_NULL("Roles cannot be null"),
     RECAPTCHA_REQUIRED("reCAPTCHA verification is required."),
+    CURRENT_PASSWORD_REQUIRED("Current password is required when changing password"),
+    CURRENT_PASSWORD_NOT_BLANK("Current password cannot be blank when changing password"),
     USERNAME_LENGTH("Username must be between {min} and {max} characters long"),
 
     // 401 - UNAUTHORIZED

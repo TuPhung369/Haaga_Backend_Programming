@@ -13,7 +13,7 @@ import {
 } from "antd";
 import { SendOutlined, UserOutlined, PlusOutlined } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
-import { AnyAction, ThunkDispatch } from "@reduxjs/toolkit";
+import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
 import { RootState } from "../types";
 import {
   NovuProvider,
@@ -35,7 +35,8 @@ import {
 const { Title, Text } = Typography;
 
 const ChatPage: React.FC = () => {
-  const dispatch = useDispatch<ThunkDispatch<RootState, unknown, AnyAction>>();
+  const dispatch =
+    useDispatch<ThunkDispatch<RootState, unknown, UnknownAction>>();
   const [messageText, setMessageText] = useState("");
   const [isAddContactModalVisible, setIsAddContactModalVisible] =
     useState(false);
@@ -43,8 +44,9 @@ const ChatPage: React.FC = () => {
   const [form] = Form.useForm();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Using _ for unused variables
-  const { token: _ } = useSelector((state: RootState) => state.auth);
+  // Lấy token từ state nhưng không sử dụng trực tiếp ở đây
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { token } = useSelector((state: RootState) => state.auth);
   const { userInfo } = useSelector((state: RootState) => state.user);
   const userId = userInfo?.id || "guest";
   const {
