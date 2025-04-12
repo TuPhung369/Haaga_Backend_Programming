@@ -42,4 +42,4 @@ interface MediaRecorderConstructor {
   isTypeSupported(mimeType: string): boolean;
 }
 
-declare var MediaRecorder: MediaRecorderConstructor;
+declare let MediaRecorder: MediaRecorderConstructor;
