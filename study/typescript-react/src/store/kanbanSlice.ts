@@ -5,8 +5,8 @@ import {
   TaskKanban,
   KanbanState,
   Board,
-  RootState,
-} from "../type/types";
+} from "../types/KanbanTypes";
+import { RootState } from "../types/RootStateTypes";
 import KanbanService from "../services/KanbanService";
 
 // Define initial state

@@ -37,7 +37,7 @@ import {
   TotpDeviceResponse
 } from "../services/totpService";
 import { useSelector } from "react-redux";
-import { RootState } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
 import { handleServiceError } from "../services/baseService";
 import TotpSetupComponent from "./TotpSetupComponent";
 import moment from "moment";
@@ -933,3 +933,4 @@ const TotpDeviceComponent: React.FC<TotpDeviceComponentProps> = ({
 };
 
 export default TotpDeviceComponent;
+

@@ -43,7 +43,9 @@ import {
 } from "../services/authService";
 import validateInput from "../utils/validateInput";
 import { AxiosError } from "axios";
-import { RootState, ExtendApiError, User, Role } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
+import { ExtendApiError } from "../types/ApiTypes";
+import { User, Role } from "../types/UserTypes";
 import VerificationCodeInput from "./VerificationCodeInput";
 import styled from "styled-components";
 import { COLORS } from "../utils/constant";
@@ -1739,3 +1741,5 @@ const MyInfo: React.FC<MyInfoProps> = () => {
 };
 
 export default MyInfo;
+
+

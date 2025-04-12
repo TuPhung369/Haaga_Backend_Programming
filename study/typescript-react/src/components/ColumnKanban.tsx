@@ -3,13 +3,13 @@ import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
-  useSortable
+  useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Task from "./TaskCardKanban";
 import { PlusOutlined } from "@ant-design/icons";
 import { Input } from "antd";
-import { TaskKanban, ColumnKanban } from "../type/types";
+import { TaskKanban, ColumnKanban } from "../types/KanbanTypes";
 import { hexToRgba, invertColorWithContrast } from "../utils/function";
 
 interface ColumnProps {
@@ -34,7 +34,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
   deleteTask,
   editColumn,
   deleteColumn,
-  onEditTask
+  onEditTask,
 }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState(column.title);
@@ -45,13 +45,13 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
     id: column.id,
-    data: { type: "column", columnId: column.id }
+    data: { type: "column", columnId: column.id },
   });
 
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
       id: column.id,
-      data: { type: "column", columnId: column.id }
+      data: { type: "column", columnId: column.id },
     });
 
   // Normalize minWidth and maxWidth to ensure they have units
@@ -65,7 +65,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
     transition,
     minWidth: normalizedMinWidth,
     maxWidth: normalizedMaxWidth,
-    height: "100%"
+    height: "100%",
   };
 
   const handleAddTaskClick = () => {
@@ -116,7 +116,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
                 style={{
                   color: invertColorWithContrast(
                     style?.backgroundColor as string
-                  )
+                  ),
                 }}
               >
                 {column.tasks.length}
@@ -138,7 +138,7 @@ const ColumnKanban: React.FC<ColumnProps> = ({
         ref={setDroppableNodeRef as React.LegacyRef<HTMLDivElement>}
         className="flex-grow space-y-2 p-2 rounded-b-md overflow-y-auto"
         style={{
-          backgroundColor: hexToRgba(style?.backgroundColor as string, 0.6)
+          backgroundColor: hexToRgba(style?.backgroundColor as string, 0.6),
         }}
       >
         <SortableContext
@@ -202,3 +202,4 @@ const ColumnKanban: React.FC<ColumnProps> = ({
 };
 
 export default ColumnKanban;
+

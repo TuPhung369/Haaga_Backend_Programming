@@ -28,7 +28,7 @@ import {
 import { ColumnType } from "antd/es/table";
 import moment from "moment";
 import { useSelector } from "react-redux";
-import { RootState } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
 import {
   fetchTotpResetRequests,
   getTotpResetRequestsPerDay,
@@ -557,3 +557,4 @@ const AdminDashBoardPage: React.FC = () => {
 };
 
 export default AdminDashBoardPage;
+

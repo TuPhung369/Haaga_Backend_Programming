@@ -1,14 +1,14 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { 
-  getContacts, 
-  getMessages, 
-  sendMessage, 
-  markMessagesAsRead, 
+import {
+  getContacts,
+  getMessages,
+  sendMessage,
+  markMessagesAsRead,
   addContactByEmail,
   Message,
   Contact
 } from '../services/chatService';
-import { ChatState } from '../types';
+import { ChatState } from '../types/ChatTypes';
 
 // Initial state
 const initialState: ChatState = {

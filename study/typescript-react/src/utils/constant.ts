@@ -1,4 +1,4 @@
-import { Role, Permission } from "../type/types";
+import { Role, Permission } from "../types/UserTypes";
 // Define color arrays as string[]
 export const COLORS: string[] = [
   "#0088FE",

@@ -3,7 +3,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo
+  useMemo,
 } from "react";
 import {
   Layout,
@@ -15,28 +15,29 @@ import {
   Select,
   InputRef,
   notification,
-  message
+  message,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import {
   Calendar as BigCalendar,
   momentLocalizer,
-  CalendarProps
+  CalendarProps,
 } from "react-big-calendar";
 import moment from "moment";
 import { COLORS } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
 import { setEvents } from "../store/userSlice";
 import withDragAndDrop, {
-  EventInteractionArgs
+  EventInteractionArgs,
 } from "react-big-calendar/lib/addons/dragAndDrop";
-import { CalendarEvent, RootState } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
+import { CalendarEvent } from "../types/CalendarTypes";
 import {
   fetchEventsByUserId,
   createEvent,
   updateEvent,
   updateEventSeries,
-  deleteEvent
+  deleteEvent,
 } from "../services/calendarService";
 
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -64,12 +65,12 @@ const CalendarPage: React.FC = () => {
     end: "",
     description: "",
     color: COLORS[0],
-    repeat: "none" as "none" | "daily" | "weekly" | "monthly" | "yearly"
+    repeat: "none" as "none" | "daily" | "weekly" | "monthly" | "yearly",
   });
   const [displayEvents, setDisplayEvents] = useState<CalendarEvent[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: moment().startOf("month").toDate(),
-    end: moment().endOf("month").toDate()
+    end: moment().endOf("month").toDate(),
   });
 
   const { events = [] } = useSelector((state: RootState) => state.user);
@@ -88,7 +89,7 @@ const CalendarPage: React.FC = () => {
       const formattedEvents = data.result.map((event: CalendarEvent) => ({
         ...event,
         start: moment(event.start).format("YYYY-MM-DDTHH:mm:ss"),
-        end: moment(event.end).format("YYYY-MM-DDTHH:mm:ss")
+        end: moment(event.end).format("YYYY-MM-DDTHH:mm:ss"),
       }));
       dispatch(setEvents(formattedEvents));
     } catch (error) {
@@ -96,7 +97,7 @@ const CalendarPage: React.FC = () => {
       notification.error({
         message: "Failed to Fetch Events",
         description:
-          "An error occurred while loading your events. Please try again later."
+          "An error occurred while loading your events. Please try again later.",
       });
       dispatch(setEvents([]));
     }
@@ -136,7 +137,7 @@ const CalendarPage: React.FC = () => {
       }
       setEventDetails((prev) => ({
         ...prev,
-        end: endMoment.format("YYYY-MM-DDTHH:mm")
+        end: endMoment.format("YYYY-MM-DDTHH:mm"),
       }));
     }
   }, [eventDetails.start, eventDetails.id, eventDetails.end]);
@@ -167,7 +168,7 @@ const CalendarPage: React.FC = () => {
           start: originalStart.toDate(),
           end: originalEnd.toDate(),
           date: originalStart.toDate(),
-          seriesId: event.seriesId || undefined
+          seriesId: event.seriesId || undefined,
         });
       }
       return instances;
@@ -189,7 +190,7 @@ const CalendarPage: React.FC = () => {
           seriesId: event.seriesId,
           start: currentStart.toDate(),
           end: currentEnd.toDate(),
-          date: currentStart.toDate()
+          date: currentStart.toDate(),
         });
       }
 
@@ -313,14 +314,14 @@ const CalendarPage: React.FC = () => {
       setIsModalVisible(false);
       notification.success({
         message: "Event Deleted",
-        description: "The event has been successfully deleted."
+        description: "The event has been successfully deleted.",
       });
     } catch (error) {
       handleServiceError(error);
       notification.error({
         message: "Failed to Fetch Events",
         description:
-          "An error occurred while loading your events. Please try again later."
+          "An error occurred while loading your events. Please try again later.",
       });
     }
   };
@@ -334,7 +335,7 @@ const CalendarPage: React.FC = () => {
     if (endDate < startDate) {
       notification.error({
         message: "Invalid Time Range",
-        description: "End time cannot be earlier than start time."
+        description: "End time cannot be earlier than start time.",
       });
       return;
     }
@@ -366,7 +367,7 @@ const CalendarPage: React.FC = () => {
       userId,
       exceptions: eventDetails.id
         ? events.find((e) => e.id === eventDetails.id)?.exceptions || []
-        : []
+        : [],
     };
 
     // console.log("Sending event with times:", {
@@ -401,7 +402,7 @@ const CalendarPage: React.FC = () => {
               setIsModalVisible(false);
               notification.success({
                 message: "Series Updated",
-                description: "All events in the series have been updated."
+                description: "All events in the series have been updated.",
               });
               setIsSaving(false);
             },
@@ -411,10 +412,10 @@ const CalendarPage: React.FC = () => {
               setIsModalVisible(false);
               notification.success({
                 message: "Event Updated",
-                description: "The event has been successfully updated."
+                description: "The event has been successfully updated.",
               });
               setIsSaving(false);
-            }
+            },
           });
         } else {
           await updateEvent(eventId, newEvent, token);
@@ -422,7 +423,7 @@ const CalendarPage: React.FC = () => {
           setIsModalVisible(false);
           notification.success({
             message: "Event Updated",
-            description: "The event has been successfully updated."
+            description: "The event has been successfully updated.",
           });
         }
       } else {
@@ -431,7 +432,7 @@ const CalendarPage: React.FC = () => {
         setIsModalVisible(false);
         notification.success({
           message: "Event Created",
-          description: "The event has been successfully created."
+          description: "The event has been successfully created.",
         });
       }
     } catch (error) {
@@ -439,7 +440,7 @@ const CalendarPage: React.FC = () => {
       notification.error({
         message: "Failed to Save Event",
         description:
-          "An error occurred while saving the event. Please try again."
+          "An error occurred while saving the event. Please try again.",
       });
     } finally {
       setIsSaving(false);
@@ -451,7 +452,7 @@ const CalendarPage: React.FC = () => {
         end: "",
         description: "",
         color: COLORS[0],
-        repeat: "none"
+        repeat: "none",
       });
     }
   };
@@ -504,7 +505,7 @@ const CalendarPage: React.FC = () => {
             if (!masterEvent) {
               notification.error({
                 message: "Error",
-                description: "Master event not found."
+                description: "Master event not found.",
               });
               return;
             }
@@ -522,15 +523,15 @@ const CalendarPage: React.FC = () => {
               date: newStart,
               repeat: "none",
               color: distinctColor,
-              exceptions: []
+              exceptions: [],
             };
 
             const updatedMasterEvent = {
               ...masterEvent,
               exceptions: [
                 ...(masterEvent.exceptions || []),
-                { originalStart: instanceStart }
-              ]
+                { originalStart: instanceStart },
+              ],
             };
 
             // console.log("Sending new event data:", {
@@ -544,7 +545,7 @@ const CalendarPage: React.FC = () => {
             notification.success({
               message: "Event Updated",
               description:
-                "The event instance has been moved and removed from the series."
+                "The event instance has been moved and removed from the series.",
             });
           },
           onCancel: async () => {
@@ -552,7 +553,7 @@ const CalendarPage: React.FC = () => {
               ...event,
               start: newStart,
               end: newEnd,
-              date: newStart
+              date: newStart,
             };
 
             //console.log("Updating series event:", updatedEvent);
@@ -561,16 +562,16 @@ const CalendarPage: React.FC = () => {
             await fetchAndUpdateEvents();
             notification.success({
               message: "Series Updated",
-              description: "All events in the series have been updated."
+              description: "All events in the series have been updated.",
             });
-          }
+          },
         });
       } else {
         const updatedEvent = {
           ...event,
           start: newStart,
           end: newEnd,
-          date: newStart
+          date: newStart,
         };
 
         //console.log("Updating single event:", updatedEvent);
@@ -579,7 +580,7 @@ const CalendarPage: React.FC = () => {
         await fetchAndUpdateEvents();
         notification.success({
           message: "Event Moved",
-          description: "The event has been successfully moved."
+          description: "The event has been successfully moved.",
         });
       }
     } catch (error) {
@@ -587,7 +588,7 @@ const CalendarPage: React.FC = () => {
       notification.error({
         message: "Failed to Move Event",
         description:
-          "An error occurred while moving the event. Please try again."
+          "An error occurred while moving the event. Please try again.",
       });
     }
   };
@@ -638,15 +639,15 @@ const CalendarPage: React.FC = () => {
               date: newStart,
               repeat: "none",
               color: distinctColor,
-              exceptions: []
+              exceptions: [],
             };
 
             const updatedMasterEvent = {
               ...masterEvent,
               exceptions: [
                 ...(masterEvent.exceptions || []),
-                { originalStart: instanceStart }
-              ]
+                { originalStart: instanceStart },
+              ],
             };
 
             // console.log("Sending resize event data:", {
@@ -659,7 +660,7 @@ const CalendarPage: React.FC = () => {
             await fetchAndUpdateEvents();
             notification.success({
               message: "Event Resized",
-              description: "The event instance has been resized."
+              description: "The event instance has been resized.",
             });
           },
           onCancel: async () => {
@@ -667,7 +668,7 @@ const CalendarPage: React.FC = () => {
               ...event,
               start: newStart,
               end: newEnd,
-              date: newStart
+              date: newStart,
             };
 
             //console.log("Updating series event (resize):", updatedEvent);
@@ -676,16 +677,16 @@ const CalendarPage: React.FC = () => {
             await fetchAndUpdateEvents();
             notification.success({
               message: "Series Resized",
-              description: "All events in the series have been resized."
+              description: "All events in the series have been resized.",
             });
-          }
+          },
         });
       } else {
         const updatedEvent = {
           ...event,
           start: newStart,
           end: newEnd,
-          date: newStart
+          date: newStart,
         };
 
         //console.log("Updating single event (resize):", updatedEvent);
@@ -694,7 +695,7 @@ const CalendarPage: React.FC = () => {
         await fetchAndUpdateEvents();
         notification.success({
           message: "Event Resized",
-          description: "The event has been successfully resized."
+          description: "The event has been successfully resized.",
         });
       }
     } catch (error) {
@@ -702,7 +703,7 @@ const CalendarPage: React.FC = () => {
       notification.error({
         message: "Failed to Resize Event",
         description:
-          "An error occurred while resizing the event. Please try again."
+          "An error occurred while resizing the event. Please try again.",
       });
     }
   };
@@ -716,8 +717,8 @@ const CalendarPage: React.FC = () => {
         backgroundColor,
         borderRadius: "5px",
         color: invertColorWithContrast(backgroundColor),
-        border: "none"
-      }
+        border: "none",
+      },
     };
   };
 
@@ -767,7 +768,7 @@ const CalendarPage: React.FC = () => {
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center"
+            justifyContent: "center",
           }}
         >
           <div
@@ -779,7 +780,7 @@ const CalendarPage: React.FC = () => {
               lineHeight: "1.2",
               whiteSpace: "nowrap",
               overflow: "hidden",
-              textOverflow: "ellipsis"
+              textOverflow: "ellipsis",
             }}
           >
             {event.title}
@@ -812,7 +813,7 @@ const CalendarPage: React.FC = () => {
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "start"
+            justifyContent: "start",
           }}
         >
           <div
@@ -820,7 +821,7 @@ const CalendarPage: React.FC = () => {
               fontWeight: "bold",
               fontSize: "12px",
               lineHeight: "1.2",
-              marginBottom: "2px"
+              marginBottom: "2px",
             }}
           >
             {event.title} {" - "}{" "}
@@ -841,7 +842,7 @@ const CalendarPage: React.FC = () => {
     },
     eventTimeRangeFormat: () => {
       return "";
-    }
+    },
   };
 
   const AgendaEvent = ({ event }: { event: CalendarEvent }) => (
@@ -878,7 +879,7 @@ const CalendarPage: React.FC = () => {
           end: endTime.format("YYYY-MM-DDTHH:mm"),
           description: originalEvent.description || "",
           color: originalEvent.color || COLORS[0],
-          repeat: originalEvent.repeat || "none"
+          repeat: originalEvent.repeat || "none",
         });
       }
     } else {
@@ -890,7 +891,7 @@ const CalendarPage: React.FC = () => {
         end: defaultEnd.format("YYYY-MM-DDTHH:mm"),
         description: "",
         color: getRandomColor(),
-        repeat: "none"
+        repeat: "none",
       });
     }
     setIsModalVisible(true);
@@ -904,7 +905,7 @@ const CalendarPage: React.FC = () => {
             padding: "24px",
             background: COLORS[12],
             minHeight: "85vh",
-            minWidth: 900
+            minWidth: 900,
           }}
         >
           <Button
@@ -925,7 +926,7 @@ const CalendarPage: React.FC = () => {
               backgroundColor: "#f5f5f5",
               padding: "8px",
               marginBottom: "8px",
-              fontWeight: "bold"
+              fontWeight: "bold",
             }}
           >
             <div style={{ flex: "0 0 200px" }}>Date/Time</div>
@@ -949,14 +950,14 @@ const CalendarPage: React.FC = () => {
             components={{
               event: eventContent,
               agenda: {
-                event: AgendaEvent
+                event: AgendaEvent,
               },
               day: {
-                event: dayEvent
+                event: dayEvent,
               },
               week: {
-                event: weekEvent
-              }
+                event: weekEvent,
+              },
             }}
             tooltipAccessor={null}
             onRangeChange={handleRangeChange}
@@ -1019,7 +1020,7 @@ const CalendarPage: React.FC = () => {
                     {eventDetails.id ? "Update" : "Save"}
                   </Button>
                 </div>
-              </div>
+              </div>,
             ]}
           >
             <Form layout="vertical">
@@ -1089,7 +1090,7 @@ const CalendarPage: React.FC = () => {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: invertColorWithContrast(color)
+                          color: invertColorWithContrast(color),
                         }}
                       >
                         {color}
@@ -1107,3 +1108,4 @@ const CalendarPage: React.FC = () => {
 };
 
 export default CalendarPage;
+

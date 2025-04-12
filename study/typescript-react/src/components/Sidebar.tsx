@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Layout, Menu, Button, Avatar } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
-import { RootState } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
 import { useSelector, useDispatch } from "react-redux";
 import {
   HomeOutlined,
@@ -485,4 +485,5 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 };
 
 export default Sidebar;
+
 

@@ -2,7 +2,7 @@ import React, { forwardRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "antd";
-import { TaskKanban } from "../type/types";
+import { TaskKanban } from "../types/KanbanTypes";
 import { PriorityOptions } from "../utils/constant";
 import CustomWifiIcon from "./CustomWifiIcon"; // Import the new component
 

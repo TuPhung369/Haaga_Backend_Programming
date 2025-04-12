@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { RootState } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
 import {
   fetchTotpResetAnalytics,
   TotpResetStats,
@@ -114,4 +114,5 @@ function TotpResetAnalytics() {
 }
 
 export default TotpResetAnalytics;
+
 

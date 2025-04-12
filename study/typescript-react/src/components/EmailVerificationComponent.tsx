@@ -20,7 +20,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { verifyEmail } from "../services/authService";
 import { AxiosError } from "axios";
-import { ApiError } from "../type/types";
+import { ApiError } from "../types/ApiTypes";
 import LoadingState from "../components/LoadingState";
 
 const { Text, Title, Paragraph } = Typography;

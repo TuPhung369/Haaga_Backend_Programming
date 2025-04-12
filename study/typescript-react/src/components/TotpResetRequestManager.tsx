@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
-import { RootState } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
 import { handleServiceError } from "../services/baseService";
 import {
   fetchTotpResetRequests,
@@ -406,4 +406,5 @@ function TotpResetRequestManager() {
 }
 
 export default TotpResetRequestManager;
+
 

@@ -8,7 +8,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { forgotPassword } from "../services/authService";
 import { AxiosError } from "axios";
-import { ApiError } from "../type/types";
+import { ApiError } from "../types/ApiTypes";
 import LoadingState from "../components/LoadingState";
 import "../styles/ForgotPassword.css";
 

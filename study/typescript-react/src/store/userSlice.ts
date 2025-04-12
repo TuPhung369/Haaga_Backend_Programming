@@ -1,12 +1,7 @@
 // src/store/userSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import {
-  CalendarEvent,
-  User,
-  Permission,
-  Role,
-  UserState,
-} from "../type/types";
+import { User, Permission, Role, UserState } from "../types/UserTypes";
+import { CalendarEvent } from "../types/CalendarTypes";
 
 const initialState: UserState = {
   userInfo: null,

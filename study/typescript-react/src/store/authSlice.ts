@@ -1,6 +1,7 @@
 // src/store/authSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AuthState, CustomErrorData } from "../type/types";
+import { AuthState } from "../types/AuthTypes";
+import { CustomErrorData } from "../types/ApiTypes";
 import { clearTokenRefresh, setupTokenRefresh } from "../utils/tokenRefresh";
 import { AppDispatch } from "../store/store";
 import { authenticateUser, logoutUser } from "../services/authService";

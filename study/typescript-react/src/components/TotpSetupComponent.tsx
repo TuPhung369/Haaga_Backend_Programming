@@ -32,7 +32,7 @@ import {
   getTotpStatus,
 } from "../services/totpService";
 import { useSelector } from "react-redux";
-import { RootState } from "../type/types";
+import { RootState } from "../types/RootStateTypes";
 import VerificationCodeInput from "./VerificationCodeInput";
 import { handleServiceError } from "../services/baseService";
 import LoadingState from "./LoadingState";

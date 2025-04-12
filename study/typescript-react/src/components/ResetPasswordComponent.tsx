@@ -18,7 +18,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { resetPasswordWithToken } from "../services/authService";
 import { AxiosError } from "axios";
-import { ApiError } from "../type/types";
+import { ApiError } from "../types/ApiTypes";
 import LoadingState from "../components/LoadingState";
 import "../styles/ResetPassword.css";
 
@@ -136,10 +136,7 @@ const ResetPasswordComponent: React.FC = () => {
   return (
     <div className="reset-password-container">
       {isSubmitting && (
-        <LoadingState
-          tip="Resetting password..."
-          fullscreen={true}
-        />
+        <LoadingState tip="Resetting password..." fullscreen={true} />
       )}
       <div className="reset-password-card">
         {!isSubmitting && (
@@ -299,3 +296,4 @@ const ResetPasswordComponent: React.FC = () => {
 };
 
 export default ResetPasswordComponent;
+

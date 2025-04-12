@@ -3,7 +3,8 @@ import { refreshTokenFromCookie } from "../services/authService";
 import { setAuthData } from "../store/authSlice";
 import { resetAllData } from "../store/resetActions";
 import store from "../store/store";
-import { ApiResponse, RefreshTokenResponse } from "../type/types";
+import { ApiResponse } from "../types/ApiTypes";
+import { RefreshTokenResponse } from "../types/AuthTypes";
 import { notification } from "antd"; // Import notification from Antd
 
 // Define error types to avoid using 'any'
@@ -24,34 +25,46 @@ interface AxiosErrorResponse {
 
 // Helper function to safely check status codes
 const hasStatusCode = (error: unknown, statusCode: number): boolean => {
-  if (!error || typeof error !== 'object') return false;
+  if (!error || typeof error !== "object") return false;
 
   // Direct status check
-  if ('httpStatus' in error && (error as ServiceErrorResponse).httpStatus === statusCode) {
+  if (
+    "httpStatus" in error &&
+    (error as ServiceErrorResponse).httpStatus === statusCode
+  ) {
     return true;
   }
 
   // Check in originalError.response.status
-  if ('originalError' in error && (error as ServiceErrorResponse).originalError) {
+  if (
+    "originalError" in error &&
+    (error as ServiceErrorResponse).originalError
+  ) {
     const originalError = (error as ServiceErrorResponse).originalError;
-    if (originalError && originalError.response && originalError.response.status === statusCode) {
+    if (
+      originalError &&
+      originalError.response &&
+      originalError.response.status === statusCode
+    ) {
       return true;
     }
   }
 
   // Check in message
-  if ('message' in error &&
-    typeof (error as { message: string }).message === 'string' &&
-    (error as { message: string }).message.includes(statusCode.toString())) {
+  if (
+    "message" in error &&
+    typeof (error as { message: string }).message === "string" &&
+    (error as { message: string }).message.includes(statusCode.toString())
+  ) {
     return true;
   }
 
   return false;
-}
+};
 
 // Refresh token 10 minutes before expiration to be safe
 // This gives us a 10-minute safety buffer
-const REFRESH_SAFETY_BUFFER = 10 * 60 * 1000; // 10 minutes in milliseconds 
+const REFRESH_SAFETY_BUFFER = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 // Default refresh interval - refresh every 50 minutes if no expiration info
 const DEFAULT_REFRESH_INTERVAL = 50 * 60 * 1000; // 50 minutes
@@ -78,7 +91,10 @@ let isRefreshingForced = false; // Track if this is a manual refresh
  * @param token Current access token
  * @param expiresInMs Optional token expiration time in milliseconds
  */
-export const setupTokenRefresh = (token: string, expiresInMs?: number): void => {
+export const setupTokenRefresh = (
+  token: string,
+  expiresInMs?: number
+): void => {
   if (!token) {
     console.log("No token provided to setupTokenRefresh");
     return;
@@ -99,7 +115,11 @@ export const setupTokenRefresh = (token: string, expiresInMs?: number): void => 
     // Refresh 10 minutes before expiration or half the token lifetime, whichever is smaller
     const safeBuffer = Math.min(REFRESH_SAFETY_BUFFER, expiresInMs / 2);
     refreshInterval = Math.max(expiresInMs - safeBuffer, 5000); // At least 5 seconds
-    console.log(`Setting up token refresh in ${refreshInterval / (60 * 1000)} minutes (token expires in ${expiresInMs / (60 * 1000)} minutes)`);
+    console.log(
+      `Setting up token refresh in ${
+        refreshInterval / (60 * 1000)
+      } minutes (token expires in ${expiresInMs / (60 * 1000)} minutes)`
+    );
   }
 
   // Schedule refresh
@@ -111,7 +131,9 @@ export const setupTokenRefresh = (token: string, expiresInMs?: number): void => 
  * Can be called manually to force refresh
  * @param force If true, marks this as a manual refresh attempt
  */
-export const refreshToken = async (force: boolean = false): Promise<boolean> => {
+export const refreshToken = async (
+  force: boolean = false
+): Promise<boolean> => {
   // Set force flag
   isRefreshingForced = force;
 
@@ -122,17 +144,24 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
   }
 
   refreshInProgress = true;
-  console.log(`Starting token refresh process... ${force ? '(FORCED)' : ''}`);
+  console.log(`Starting token refresh process... ${force ? "(FORCED)" : ""}`);
 
   try {
     console.log("Calling refreshTokenFromCookie API...");
 
-    const response: ApiResponse<RefreshTokenResponse> = await refreshTokenFromCookie();
-    console.log("API response received:", response ? "Valid response" : "Empty response");
+    const response: ApiResponse<RefreshTokenResponse> =
+      await refreshTokenFromCookie();
+    console.log(
+      "API response received:",
+      response ? "Valid response" : "Empty response"
+    );
 
     // Check if response contains token
     if (response?.result?.token) {
-      console.log("Token refreshed successfully, token length:", response.result.token.length);
+      console.log(
+        "Token refreshed successfully, token length:",
+        response.result.token.length
+      );
       console.log("Expires in:", response.result.expiresIn, "seconds");
 
       // Reset retry counter on success
@@ -151,7 +180,9 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
       console.log("New token stored in Redux state");
 
       // Setup the next refresh
-      const expiresInMs = response.result.expiresIn ? response.result.expiresIn * 1000 : undefined;
+      const expiresInMs = response.result.expiresIn
+        ? response.result.expiresIn * 1000
+        : undefined;
       setupTokenRefresh(response.result.token, expiresInMs);
       console.log("Next token refresh scheduled");
 
@@ -160,7 +191,7 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
         message: "Session Extended",
         description: "Your session has been refreshed successfully.",
         duration: 3,
-        placement: "bottomRight"
+        placement: "bottomRight",
       });
 
       refreshInProgress = false;
@@ -175,23 +206,33 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
     console.error("Error refreshing token:", error);
 
     // Log error details
-    if (error && typeof error === 'object') {
+    if (error && typeof error === "object") {
       console.error("Error type:", error.constructor.name);
 
-      if ('message' in error) {
+      if ("message" in error) {
         console.error("Error message:", (error as { message: string }).message);
       }
 
-      if ('originalError' in error) {
-        console.error("Original error:", (error as ServiceErrorResponse).originalError);
+      if ("originalError" in error) {
+        console.error(
+          "Original error:",
+          (error as ServiceErrorResponse).originalError
+        );
       }
 
-      if ('httpStatus' in error) {
-        console.error("HTTP status:", (error as ServiceErrorResponse).httpStatus);
+      if ("httpStatus" in error) {
+        console.error(
+          "HTTP status:",
+          (error as ServiceErrorResponse).httpStatus
+        );
       }
 
-      if ('response' in error) {
-        console.error("Response data:", (error as { response: { data: unknown, status: number } }).response?.data);
+      if ("response" in error) {
+        console.error(
+          "Response data:",
+          (error as { response: { data: unknown; status: number } }).response
+            ?.data
+        );
 
         // Specific status code checks
         interface ErrorWithResponse {
@@ -206,13 +247,15 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
 
         // 401 Unauthorized - refresh token is expired or invalid
         if (status === 401) {
-          console.error("401 Unauthorized - Refresh token is expired or invalid");
+          console.error(
+            "401 Unauthorized - Refresh token is expired or invalid"
+          );
 
           // This is a "clean" error - the user needs to log in again
           notification.info({
             message: "Session Expired",
             description: "Your login session has expired. Please log in again.",
-            duration: 5
+            duration: 5,
           });
 
           // Go directly to authentication expiry handler
@@ -228,9 +271,10 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
           if (isRefreshingForced) {
             notification.error({
               message: "Server Error",
-              description: "The server encountered an error processing your request. Please try again later.",
+              description:
+                "The server encountered an error processing your request. Please try again later.",
               duration: 5,
-              placement: "bottomRight"
+              placement: "bottomRight",
             });
           }
         }
@@ -245,7 +289,9 @@ export const refreshToken = async (force: boolean = false): Promise<boolean> => 
       console.log("Authentication error detected. Session expired.");
       handleAuthenticationExpired();
     } else if (isServerError) {
-      console.log("Server error during token refresh, will retry with shorter interval");
+      console.log(
+        "Server error during token refresh, will retry with shorter interval"
+      );
       handleRefreshError("Server temporarily unavailable", true);
     } else {
       handleRefreshError("Failed to refresh session");
@@ -266,9 +312,10 @@ const handleAuthenticationExpired = (): void => {
   // Show error notification
   notification.info({
     message: "Session Expired",
-    description: "Your session has expired. Please log in again to continue using the application.",
+    description:
+      "Your session has expired. Please log in again to continue using the application.",
     duration: 0, // Don't auto-dismiss
-    key: "auth-expired-notification"
+    key: "auth-expired-notification",
   });
 
   // Clear all auth data
@@ -277,10 +324,10 @@ const handleAuthenticationExpired = (): void => {
   // Redirect to login page after a short delay
   setTimeout(() => {
     // If we're already on the login page, just refresh it
-    if (window.location.pathname.includes('/login')) {
+    if (window.location.pathname.includes("/login")) {
       window.location.reload();
     } else {
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
   }, 100);
 };
@@ -288,7 +335,10 @@ const handleAuthenticationExpired = (): void => {
 /**
  * Handle refresh error by retrying or showing notification
  */
-const handleRefreshError = (errorMessage: string, isServerError = false): void => {
+const handleRefreshError = (
+  errorMessage: string,
+  isServerError = false
+): void => {
   refreshInProgress = false;
   retryAttempts++;
 
@@ -300,7 +350,7 @@ const handleRefreshError = (errorMessage: string, isServerError = false): void =
       notification.error({
         message: "Session Error",
         description: "Could not refresh your session. Please log in again.",
-        duration: 0
+        duration: 0,
       });
 
       // Force logout
@@ -308,7 +358,9 @@ const handleRefreshError = (errorMessage: string, isServerError = false): void =
       return;
     }
 
-    console.log(`Token refresh failed after ${retryAttempts} attempts. Logging out.`);
+    console.log(
+      `Token refresh failed after ${retryAttempts} attempts. Logging out.`
+    );
 
     // Reset variables
     refreshInProgress = false;
@@ -336,15 +388,21 @@ const handleRefreshError = (errorMessage: string, isServerError = false): void =
   currentRetryInterval = retryTime;
 
   // Schedule retry
-  console.log(`Scheduling token refresh retry (${retryAttempts}/${MAX_RETRY_ATTEMPTS}) in ${retryTime / 1000} seconds`);
+  console.log(
+    `Scheduling token refresh retry (${retryAttempts}/${MAX_RETRY_ATTEMPTS}) in ${
+      retryTime / 1000
+    } seconds`
+  );
   refreshTimer = setTimeout(refreshToken, retryTime);
 
   // Show warning notification
   notification.warning({
     message: "Session Refresh Warning",
-    description: `${errorMessage}. Retrying in ${Math.round(retryTime / 1000)} seconds...`,
+    description: `${errorMessage}. Retrying in ${Math.round(
+      retryTime / 1000
+    )} seconds...`,
     duration: 5,
-    placement: "bottomRight"
+    placement: "bottomRight",
   });
 };
 
@@ -357,3 +415,4 @@ export const clearTokenRefresh = (): void => {
     refreshTimer = null;
   }
 };
+
