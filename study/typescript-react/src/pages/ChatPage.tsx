@@ -20,15 +20,13 @@ import {
   PopoverNotificationCenter,
   NotificationBell,
 } from "@novu/notification-center";
-// Import types from services
-import type { Message, Contact } from "../services/chatService";
 
 import {
   fetchContacts,
   fetchMessages,
   sendMessageThunk,
   // markAsRead, // Commented out as it's not used
-  addContact,
+  addContactThunk as addContact, // Renamed in the combined slice
   setSelectedContact,
 } from "../store/chatSlice";
 
