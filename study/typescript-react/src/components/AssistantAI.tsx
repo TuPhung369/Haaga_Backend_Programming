@@ -37,7 +37,7 @@ import {
   incrementPage,
   clearMessages,
 } from "../store/assistantAISlice";
-import { ChatMessage } from "../types/assistantAI";
+import { ChatMessageAI } from "../types/AssistantAITypes";
 import mermaid from "mermaid";
 import FlowDiagram from "./FlowDiagram";
 import { MarkerType, Edge } from "reactflow";
@@ -178,7 +178,7 @@ mermaid.initialize({
 declare module "../types/RootStateTypes" {
   interface RootState {
     assistantAI: {
-      messages: ChatMessage[];
+      messages: ChatMessageAI[];
       loading: boolean;
       hasMore: boolean;
       page: number;
@@ -1114,7 +1114,7 @@ const AssistantAI: React.FC = () => {
     const currentSessionId = sessionId || uuidv4();
 
     const currentMessage = input.trim(); // Save current input
-    const userMessage: ChatMessage = {
+    const userMessage: ChatMessageAI = {
       content: currentMessage,
       sender: "USER",
       sessionId: currentSessionId,
@@ -1216,7 +1216,7 @@ const AssistantAI: React.FC = () => {
         }
       }
 
-      const errorResponse: ChatMessage = {
+      const errorResponse: ChatMessageAI = {
         content: detailedError,
         sender: "AI",
         sessionId: currentSessionId,

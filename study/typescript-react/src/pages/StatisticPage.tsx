@@ -33,11 +33,8 @@ import { Layout, notification } from "antd";
 import { COLORS } from "../utils/constant";
 import { useSelector, useDispatch } from "react-redux";
 import { setUserInfo, setAllUsers, setRoles } from "../store/userSlice";
-import {
-  QuantityChart,
-  PercentChart,
-  RootState,
-} from "../types/RootStateTypes";
+import { RootState } from "../types/RootStateTypes";
+import { QuantityChart, PercentChart } from "../types/UserTypes";
 import { handleServiceError } from "../services/baseService";
 
 const { Content } = Layout;
@@ -1489,5 +1486,4 @@ const StatisticPage = () => {
 };
 
 export default StatisticPage;
-
 

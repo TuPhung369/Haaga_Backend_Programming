@@ -1,7 +1,7 @@
 // src/types/AssistantAITypes.ts
 // Types related to the AI Assistant functionality
 
-export interface ChatMessage {
+export interface ChatMessageAI {
   id?: number;
   content: string;
   sender: string;
@@ -11,13 +11,14 @@ export interface ChatMessage {
 
 export enum MessageSender {
   USER = "USER",
-  AI = "AI"
+  AI = "AI",
 }
 
 export interface AssistantAIState {
-  messages: ChatMessage[];
+  messages: ChatMessageAI[];
   loading: boolean;
   hasMore: boolean;
   page: number;
   size: number;
 }
+

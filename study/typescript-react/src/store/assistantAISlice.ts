@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { ChatMessage, AssistantAIState } from "../types/AssistantAITypes";
+import { ChatMessageAI, AssistantAIState } from "../types/AssistantAITypes";
 
 const initialState: AssistantAIState = {
   messages: [],
@@ -13,15 +13,15 @@ const assistantAISlice = createSlice({
   name: "assistantAI",
   initialState,
   reducers: {
-    setMessages: (state, action: PayloadAction<ChatMessage[]>) => {
+    setMessages: (state, action: PayloadAction<ChatMessageAI[]>) => {
       console.log("Redux: Setting messages", action.payload);
       state.messages = action.payload;
     },
-    addMessage: (state, action: PayloadAction<ChatMessage>) => {
+    addMessage: (state, action: PayloadAction<ChatMessageAI>) => {
       console.log("Redux: Adding user message", action.payload);
       state.messages.push(action.payload);
     },
-    addAIResponse: (state, action: PayloadAction<ChatMessage>) => {
+    addAIResponse: (state, action: PayloadAction<ChatMessageAI>) => {
       console.log("Redux: Adding AI response", action.payload);
       state.messages.push(action.payload);
     },
@@ -53,3 +53,4 @@ export const {
 } = assistantAISlice.actions;
 
 export default assistantAISlice.reducer;
+

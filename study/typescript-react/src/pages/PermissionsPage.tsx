@@ -26,12 +26,16 @@ import {
 } from "../store/userSlice";
 import type { AxiosError } from "axios";
 import {
+  RootState,
+} from "../types/RootStateTypes";
+import {
   Permission,
   UserResponse,
   PermissionsResponse,
-  RootState,
+} from "../types/UserTypes";
+import {
   ExtendApiError
-} from "../type/types";
+} from "../types/ApiTypes";
 import "../styles/PermissionsPage.css";
 const { Option } = Select;
 
@@ -311,3 +315,5 @@ const PermissionPage = () => {
 };
 
 export default PermissionPage;
+
+

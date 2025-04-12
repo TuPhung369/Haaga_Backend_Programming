@@ -8,7 +8,25 @@ export * from "./ApiTypes";
 export * from "./AuthTypes";
 
 // User Types
-export * from "./UserTypes";
+// Explicitly re-export to resolve naming conflict with AuthTypes
+import * as UserTypes from "./UserTypes";
+export { UserTypes };
+// Export everything except ValidationInput to avoid conflict
+export type {
+  Permission,
+  PermissionResponse,
+  PermissionsResponse,
+  Role,
+  RoleResponse,
+  RolesResponse,
+  User,
+  UserResponse,
+  UsersResponse,
+  UserState,
+  QuantityChart,
+  PercentChart,
+  FilterDropdownProps,
+} from "./UserTypes";
 
 // Calendar Types
 export * from "./CalendarTypes";
@@ -21,6 +39,12 @@ export * from "./AssistantAITypes";
 
 // Language AI Types
 export * from "./LanguageAITypes";
+
+// Message Types
+export * from "./MessageTypes";
+
+// Contact Types
+export * from "./ContactTypes";
 
 // Chat Types
 export * from "./ChatTypes";
