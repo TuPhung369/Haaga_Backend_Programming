@@ -663,7 +663,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         `🎤 VoiceRecorder: Calling convertSpeechToText with ${file.size} bytes and language fi-FI`
       );
       // Import the function from SpeechService
-      const { convertSpeechToText } = await import("../services/SpeechService");
+      const { convertSpeechToText } = await import("../services/speechService");
       const result = await convertSpeechToText(file, "fi-FI");
       console.log(`🎤 VoiceRecorder: Finnish transcription result:`, result);
 

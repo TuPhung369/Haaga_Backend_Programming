@@ -23,7 +23,7 @@ interface SingleBoardResponse {
 }
 
 // API service for Kanban
-const KanbanService = {
+const kanbanService = {
   getUserBoards: async (
     userId: string,
     token: string
@@ -391,5 +391,5 @@ const KanbanService = {
   },
 };
 
-export default KanbanService;
+export default kanbanService;
 

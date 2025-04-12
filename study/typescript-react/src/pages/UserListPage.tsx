@@ -38,7 +38,7 @@ import {
   invalidateUsers,
 } from "../store/userSlice";
 import { AxiosError } from "axios";
-import { RootState } from "../store/RootState";
+import { RootState } from "../store/rootState";
 import { User, Role } from "../types/UserTypes";
 import { ExtendApiError } from "../types/ApiTypes";
 import ReCaptchaV3 from "../components/ReCaptchaV3";

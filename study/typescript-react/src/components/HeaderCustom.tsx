@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 //import { clearUserInfo } from "../store/userSlice";
 import { resetAllData } from "../store/resetActions";
 import { logoutUserWithCookies } from "../services/authService";
-import { RootState } from "../store/RootState";
+import { RootState } from "../store/rootState";
 import { clearTokenRefresh } from "../utils/tokenRefresh";
 
 const { Header } = Layout;
@@ -33,7 +33,7 @@ const HeaderCustom: React.FC = () => {
       navigate("/login");
 
       notification.success({
-        message: "Logged out successfully!"
+        message: "Logged out successfully!",
       });
     } catch (error) {
       console.error("Error during logout:", error);
@@ -44,7 +44,7 @@ const HeaderCustom: React.FC = () => {
 
       notification.info({
         message: "Logged out",
-        description: "You have been logged out of the application."
+        description: "You have been logged out of the application.",
       });
     }
   };
@@ -53,7 +53,7 @@ const HeaderCustom: React.FC = () => {
     <Header
       style={{
         color: "white",
-        padding: "0 16px"
+        padding: "0 16px",
       }}
     >
       <div
@@ -61,7 +61,7 @@ const HeaderCustom: React.FC = () => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          color: "white"
+          color: "white",
         }}
       >
         <div style={{ flex: 1, textAlign: "center" }}>
@@ -76,3 +76,4 @@ const HeaderCustom: React.FC = () => {
 };
 
 export default HeaderCustom;
+

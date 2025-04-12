@@ -7,7 +7,7 @@ import {
   Board,
 } from "../types/KanbanTypes";
 import { RootState } from "../types/RootStateTypes";
-import KanbanService from "../services/KanbanService";
+import kanbanService from "../services/kanbanService";
 
 // Define initial state
 const initialState: KanbanState = {
@@ -72,7 +72,7 @@ export const fetchUserBoards = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const boards = await KanbanService.getUserBoards(userId, token);
+      const boards = await kanbanService.getUserBoards(userId, token);
       return boards;
     } catch {
       return rejectWithValue("Failed to fetch user boards");
@@ -87,7 +87,7 @@ export const fetchBoardById = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const board = await KanbanService.getBoardById(boardId, token);
+      const board = await kanbanService.getBoardById(boardId, token);
       if (!board) return rejectWithValue("Board not found");
       return board;
     } catch {
@@ -103,7 +103,7 @@ export const createUserBoard = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const board = await KanbanService.createBoard(userId, token, title);
+      const board = await kanbanService.createBoard(userId, token, title);
       if (!board) return rejectWithValue("Failed to create board");
       return board;
     } catch {
@@ -123,7 +123,7 @@ export const saveUserBoard = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const board = await KanbanService.updateBoard(boardId, token, data);
+      const board = await kanbanService.updateBoard(boardId, token, data);
       if (!board) return rejectWithValue("Failed to save board");
       return board;
     } catch {
@@ -139,7 +139,7 @@ export const resetBoardToDefaults = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const result = await KanbanService.resetBoard(boardId, token);
+      const result = await kanbanService.resetBoard(boardId, token);
 
       if (!result) {
         return rejectWithValue(
@@ -174,7 +174,7 @@ export const addColumn = createAsyncThunk(
     try {
       const state = getState() as RootState;
       const position = state.kanban.columns.length;
-      const board = await KanbanService.createColumn(
+      const board = await kanbanService.createColumn(
         boardId,
         token,
         title,
@@ -208,7 +208,7 @@ export const editColumn = createAsyncThunk(
         return rejectWithValue("Cannot edit column: missing board ID");
       }
 
-      const board = await KanbanService.updateColumn(
+      const board = await kanbanService.updateColumn(
         columnId,
         token,
         newTitle,
@@ -231,7 +231,7 @@ export const deleteColumn = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const board = await KanbanService.deleteColumn(columnId, token);
+      const board = await kanbanService.deleteColumn(columnId, token);
       if (!board) return rejectWithValue("Failed to delete column");
       return board;
     } catch {
@@ -258,7 +258,7 @@ export const addTask = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const board = await KanbanService.createTask(
+      const board = await kanbanService.createTask(
         columnId,
         token,
         title,
@@ -280,7 +280,7 @@ export const deleteTask = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const board = await KanbanService.deleteTask(taskId, token);
+      const board = await kanbanService.deleteTask(taskId, token);
       if (!board) return rejectWithValue("Failed to delete task");
       return board;
     } catch {
@@ -311,7 +311,7 @@ export const saveTaskEdit = createAsyncThunk(
         col.tasks.some((task) => task.id === taskId)
       );
       const task = column?.tasks.find((t) => t.id === taskId);
-      const board = await KanbanService.updateTask(
+      const board = await kanbanService.updateTask(
         taskId,
         token,
         newTitle,
@@ -360,7 +360,7 @@ export const dragEndTask = createAsyncThunk(
           ? targetTasks.length
           : targetTasks.findIndex((task) => task.id === overId);
 
-      const board = await KanbanService.moveTask({
+      const board = await kanbanService.moveTask({
         taskId: activeId,
         token,
         targetColumnId: targetCol.id,
@@ -397,7 +397,7 @@ export const dragEndColumn = createAsyncThunk(
       if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex)
         return rejectWithValue("Invalid column drag operation");
 
-      const board = await KanbanService.moveColumn({
+      const board = await kanbanService.moveColumn({
         columnId: activeId,
         token,
         newPosition: newIndex,
@@ -418,7 +418,7 @@ export const clearKanbanData = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const board = await KanbanService.clearAllTasks(boardId, token);
+      const board = await kanbanService.clearAllTasks(boardId, token);
       if (!board) return rejectWithValue("Failed to clear tasks");
       return board;
     } catch {

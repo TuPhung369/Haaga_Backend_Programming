@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { API_URL } from "../services/LanguageService";
+import { API_URL } from "../services/languageService";
 import "../styles/ServiceStatusNotification.css";
 
 interface ServiceStatusProps {
@@ -7,7 +7,7 @@ interface ServiceStatusProps {
 }
 
 const ServiceStatusNotification: React.FC<ServiceStatusProps> = ({
-  onStatusChange
+  onStatusChange,
 }) => {
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
   const [isChecking, setIsChecking] = useState<boolean>(true);
@@ -92,7 +92,7 @@ const ServiceStatusNotification: React.FC<ServiceStatusProps> = ({
       const response = await fetch(`${alternativeUrl}/api/speech-to-text`, {
         method: "POST",
         body: formData,
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(5000),
       });
 
       if (response.ok) {
@@ -208,8 +208,8 @@ const ServiceStatusNotification: React.FC<ServiceStatusProps> = ({
       const response = await fetch(`${serviceUrl}/api/speech/health`, {
         method: "GET",
         headers: {
-          Accept: "application/json"
-        }
+          Accept: "application/json",
+        },
       });
 
       if (response.ok) {
@@ -226,7 +226,7 @@ const ServiceStatusNotification: React.FC<ServiceStatusProps> = ({
             // Try direct Python server health check
             const directResponse = await fetch(`${alternativeUrl}/health`, {
               method: "GET",
-              signal: AbortSignal.timeout(2000) // 2 second timeout
+              signal: AbortSignal.timeout(2000), // 2 second timeout
             });
 
             if (directResponse.ok) {
@@ -322,3 +322,4 @@ const ServiceStatusNotification: React.FC<ServiceStatusProps> = ({
 };
 
 export default ServiceStatusNotification;
+

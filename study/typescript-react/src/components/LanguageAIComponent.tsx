@@ -15,12 +15,12 @@ import {
   getSupportedLanguages,
   getSupportedVoices,
   convertSpeechToText,
-} from "../services/SpeechService";
+} from "../services/speechService";
 import {
   saveInteraction,
   getAIResponseFromN8n,
   getLanguageConversations,
-} from "../services/LanguageService";
+} from "../services/languageService";
 
 // --- Redux Imports ---
 import {
