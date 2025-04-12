@@ -1,4 +1,7 @@
 // src/types/ChatTypes.ts
+// Combined types for Chat, Messages, and Contacts
+
+// ===== Chat Types =====
 export interface ChatMessage {
   id: string;
   content: string;
@@ -18,7 +21,7 @@ export interface ChatContact {
   id: string;
   name: string;
   email: string;
-  status: 'online' | 'offline' | 'away';
+  status: "online" | "offline" | "away";
   unreadCount: number;
   lastMessage?: string;
 }
@@ -43,3 +46,34 @@ export interface SendMessagePayload {
 export interface MarkAsReadPayload {
   contactId: string;
 }
+
+// ===== Message Types =====
+export interface Message {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp: string;
+}
+
+export interface MessageState {
+  messages: Message[];
+  loading: boolean;
+  error: string | null;
+}
+
+// ===== Contact Types =====
+export interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  status: "online" | "offline" | "away";
+  lastSeen?: string;
+}
+
+export interface ContactState {
+  contacts: Contact[];
+  selectedContact: Contact | null;
+  loading: boolean;
+  error: string | null;
+}
+

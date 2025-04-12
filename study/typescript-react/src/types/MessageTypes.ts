@@ -1,15 +1,6 @@
-// src/types/MessageTypes.ts
-// Types related to messaging functionality
+// DEPRECATED: This file is no longer used
+// All message types have been moved to ChatTypes.ts
+// Import from './ChatTypes' instead
 
-export interface Message {
-  id: string;
-  content: string;
-  sender: string;
-  timestamp: string;
-}
-
-export interface MessageState {
-  messages: Message[];
-  loading: boolean;
-  error: string | null;
-}
+// Re-export from ChatTypes for backward compatibility
+export { Message, MessageState } from './ChatTypes';

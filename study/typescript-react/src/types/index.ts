@@ -40,11 +40,7 @@ export * from "./AssistantAITypes";
 // Language AI Types
 export * from "./LanguageAITypes";
 
-// Message Types
-export * from "./MessageTypes";
-
-// Contact Types
-export * from "./ContactTypes";
+// Message and Contact Types are now included in ChatTypes.ts
 
 // Chat Types
 export * from "./ChatTypes";

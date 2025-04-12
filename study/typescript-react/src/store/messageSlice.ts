@@ -1,26 +1,14 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-interface Message {
-  id: string;
-  content: string;
-  sender: string;
-  timestamp: string;
-}
-
-interface MessageState {
-  messages: Message[];
-  loading: boolean;
-  error: string | null;
-}
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { Message, MessageState } from "../types/ChatTypes";
 
 const initialState: MessageState = {
   messages: [],
   loading: false,
-  error: null
+  error: null,
 };
 
 const messageSlice = createSlice({
-  name: 'messages',
+  name: "messages",
   initialState,
   reducers: {
     setMessages: (state, action: PayloadAction<Message[]>) => {
@@ -37,9 +25,11 @@ const messageSlice = createSlice({
     },
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
-    }
-  }
+    },
+  },
 });
 
-export const { setMessages, addMessage, clearMessages, setLoading, setError } = messageSlice.actions;
+export const { setMessages, addMessage, clearMessages, setLoading, setError } =
+  messageSlice.actions;
 export default messageSlice.reducer;
+

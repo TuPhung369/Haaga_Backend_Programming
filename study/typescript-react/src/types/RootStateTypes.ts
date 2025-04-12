@@ -6,9 +6,7 @@ import { UserState } from "./UserTypes";
 import { KanbanState } from "./KanbanTypes";
 import { AssistantAIState } from "./AssistantAITypes";
 import { LanguageState } from "./LanguageAITypes";
-import { MessageState } from "./MessageTypes";
-import { ContactState } from "./ContactTypes";
-import { ChatState } from "./ChatTypes";
+import { ChatState, MessageState, ContactState } from "./ChatTypes";
 
 export interface RootState {
   auth: AuthState;

@@ -1,17 +1,6 @@
-// src/types/ContactTypes.ts
-// Types related to contacts management
+// DEPRECATED: This file is no longer used
+// All contact types have been moved to ChatTypes.ts
+// Import from './ChatTypes' instead
 
-export interface Contact {
-  id: string;
-  name: string;
-  email: string;
-  status: "online" | "offline" | "away";
-  lastSeen?: string;
-}
-
-export interface ContactState {
-  contacts: Contact[];
-  selectedContact: Contact | null;
-  loading: boolean;
-  error: string | null;
-}
+// Re-export from ChatTypes for backward compatibility
+export { Contact, ContactState } from './ChatTypes';
