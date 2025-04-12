@@ -74,3 +74,5 @@ spring.log
 **/models/
 study/study/speechbrain/models/
 study/study/speechbrain/models/wav2vec2-finnish/
+./backend-programming
+./codes
