@@ -19,7 +19,8 @@ import {
   BellOutlined,
   LogoutOutlined,
   CopyrightOutlined,
-  KeyOutlined
+  KeyOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 import { SiProbot } from "react-icons/si";
 
@@ -116,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       dispatch(resetAllData());
       navigate("/login");
       notification.success({
-        message: "Logged out successfully!"
+        message: "Logged out successfully!",
       });
     } catch (error) {
       console.error("Error during logout:", error);
@@ -124,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       navigate("/login");
       notification.info({
         message: "Logged out",
-        description: "You have been logged out of the application."
+        description: "You have been logged out of the application.",
       });
     }
   }, [dispatch, navigate]);
@@ -139,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/";
         },
-        path: "/"
+        path: "/",
       },
       {
         key: "2",
@@ -148,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/userList";
         },
-        path: "/userList"
+        path: "/userList",
       },
       {
         key: "3",
@@ -157,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/roles";
         },
-        path: "/roles"
+        path: "/roles",
       },
       {
         key: "4",
@@ -166,7 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/permissions";
         },
-        path: "/permissions"
+        path: "/permissions",
       },
       {
         key: "5",
@@ -177,7 +178,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/statistics";
         },
-        path: "/statistics"
+        path: "/statistics",
       },
       {
         key: "6",
@@ -188,7 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/calendar";
         },
-        path: "/calendar"
+        path: "/calendar",
       },
       {
         key: "7",
@@ -199,7 +200,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/kanban";
         },
-        path: "/kanban"
+        path: "/kanban",
       },
       ...(userInfo?.roles?.some((role) => role.name === "ADMIN")
         ? [
@@ -224,7 +225,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                   onClick: () => {
                     window.location.href = "/adminDashBoard?view=dashboard";
                   },
-                  path: "/adminDashBoard?view=dashboard"
+                  path: "/adminDashBoard?view=dashboard",
                 },
                 {
                   key: "8-2",
@@ -237,10 +238,10 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
                   onClick: () => {
                     window.location.href = "/adminDashBoard?view=totp-requests";
                   },
-                  path: "/adminDashBoard?view=totp-requests"
-                }
-              ]
-            }
+                  path: "/adminDashBoard?view=totp-requests",
+                },
+              ],
+            },
           ]
         : []),
       {
@@ -250,7 +251,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/assistantAI";
         },
-        path: "/assistantAI"
+        path: "/assistantAI",
       },
       {
         key: "10",
@@ -259,8 +260,19 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/languageAI";
         },
-        path: "/languageAI"
-      }
+        path: "/languageAI",
+      },
+      {
+        key: "11",
+        icon: (
+          <MessageOutlined style={{ color: COLORS[11], fontSize: "20px" }} />
+        ),
+        label: "Chat",
+        onClick: () => {
+          window.location.href = "/chat";
+        },
+        path: "/chat",
+      },
     ],
     [userInfo]
   );
@@ -278,14 +290,14 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
               backgroundColor: COLORS[14],
               alignItems: "center",
               justifyContent: "center",
-              display: "flex"
+              display: "flex",
             }}
           />
         ),
         onClick: () => {
           window.location.href = "/profile";
         },
-        path: "/profile"
+        path: "/profile",
       },
       {
         key: "settings",
@@ -296,7 +308,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/setting";
         },
-        path: "/setting"
+        path: "/setting",
       },
       {
         key: "notification",
@@ -305,13 +317,13 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         onClick: () => {
           window.location.href = "/notification";
         },
-        path: "/notification"
+        path: "/notification",
       },
       {
         key: "logout",
         label: "Logout",
         icon: <LogoutOutlined style={{ color: COLORS[1], fontSize: "20px" }} />,
-        onClick: handleLogout
+        onClick: handleLogout,
       },
       {
         key: "copyright",
@@ -324,8 +336,8 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         icon: (
           <CopyrightOutlined style={{ color: COLORS[9], fontSize: "20px" }} />
         ),
-        style: { opacity: 0.7 }
-      }
+        style: { opacity: 0.7 },
+      },
     ],
     [userInfo, collapsed, handleLogout]
   );
@@ -409,7 +421,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         flexDirection: "column",
         height: "100vh",
         overflow: "hidden",
-        paddingBottom: 0
+        paddingBottom: 0,
       }}
     >
       <div className={`sidebar-header${collapsed ? "-collapsed" : ""}`}>
@@ -473,3 +485,4 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 };
 
 export default Sidebar;
+

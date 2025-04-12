@@ -1,6 +1,6 @@
 import apiClient from "./authService";
 import { handleServiceError } from "./baseService";
-import { ColumnKanban, Board } from "../type/types";
+import { ColumnKanban, Board } from "../types/KanbanTypes";
 
 // Define interfaces for board data based on actual backend response
 interface BoardData {

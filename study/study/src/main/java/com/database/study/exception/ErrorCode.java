@@ -61,6 +61,8 @@ public enum ErrorCode {
                         ENUMS.Severity.HIGH.name()),
         TOTP_VERIFICATION_REQUIRED(4017, ENUMS.ErrorMessages.TOTP_VERIFICATION_REQUIRED.getMessage(),
                         HttpStatus.UNAUTHORIZED, "401", ENUMS.Severity.HIGH.name()),
+        UNAUTHORIZED(4018, "Unauthorized access", HttpStatus.UNAUTHORIZED, "401",
+                        ENUMS.Severity.HIGH.name()),
         UNAUTHORIZED_ACCESS(4010, ENUMS.ErrorMessages.UNAUTHORIZED_ACCESS.getMessage(), HttpStatus.UNAUTHORIZED, "401",
                         ENUMS.Severity.HIGH.name()),
 
@@ -81,6 +83,10 @@ public enum ErrorCode {
                         HttpStatus.FORBIDDEN, "403", ENUMS.Severity.MEDIUM.name()),
 
         // 404 - NOT FOUND
+        CONTACT_NOT_FOUND(4049, "Contact not found", HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()),
+        CONTACT_REQUEST_NOT_FOUND(4050, "Contact request not found", HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()),
         EVENT_NOT_FOUND(4043, ENUMS.ErrorMessages.EVENT_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()),
         KANBAN_BOARD_NOT_FOUND(4046, ENUMS.ErrorMessages.KANBAN_BOARD_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND,
@@ -88,6 +94,8 @@ public enum ErrorCode {
         KANBAN_COLUMN_NOT_FOUND(4047, ENUMS.ErrorMessages.KANBAN_COLUMN_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND,
                         "404", ENUMS.Severity.LOW.name()),
         KANBAN_TASK_NOT_FOUND(4048, ENUMS.ErrorMessages.KANBAN_TASK_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
+                        ENUMS.Severity.LOW.name()),
+        MESSAGE_NOT_FOUND(4051, "Message not found", HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()),
         NOT_FOUND(4025, ENUMS.ErrorMessages.NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND, "404",
                         ENUMS.Severity.LOW.name()),
@@ -101,6 +109,8 @@ public enum ErrorCode {
                         ENUMS.Severity.LOW.name()),
 
         // 409 - CONFLICT
+        CONTACT_ALREADY_EXISTS(4095, "Contact already exists", HttpStatus.CONFLICT, "409",
+                        ENUMS.Severity.MEDIUM.name()),
         EMAIL_ALREADY_EXISTS(5001, ENUMS.ErrorMessages.EMAIL_ALREADY_EXISTS.getMessage(), HttpStatus.CONFLICT, "409",
                         ENUMS.Severity.MEDIUM.name()),
         TOTP_ALREADY_ENABLED(4091, ENUMS.ErrorMessages.TOTP_ALREADY_ENABLED.getMessage(), HttpStatus.CONFLICT, "409",

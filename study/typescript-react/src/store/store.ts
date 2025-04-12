@@ -9,6 +9,9 @@ import authReducer from "./authSlice";
 import userReducer from "./userSlice";
 import assistantAIReducer from "./assistantAISlice";
 import languageReducer from "./languageSlice";
+import messageReducer from "./messageSlice";
+import contactReducer from "./contactSlice";
+import chatReducer from "./chatSlice";
 import { AuthState } from "../types/AuthTypes";
 import { RootState } from "../types/RootStateTypes";
 import { KanbanState } from "../types/KanbanTypes";
@@ -199,7 +202,9 @@ const saveState = (state: RootState): void => {
       Array.isArray(state.kanban.columns) &&
       state.user &&
       state.assistantAI &&
-      state.language // Add check for language state
+      state.language && // Add check for language state
+      state.messages &&
+      state.contacts
     ) {
       const serializedState = JSON.stringify(state);
       localStorage.setItem("appState", serializedState);
@@ -232,6 +237,9 @@ const appReducer = combineReducers({
   >,
   assistantAI: assistantAIReducer,
   language: languageReducer, // Add language reducer
+  messages: messageReducer, // Add message reducer
+  contacts: contactReducer, // Add contact reducer
+  chat: chatReducer, // Add chat reducer
 });
 
 // Root reducer with logout handling and proper state typing

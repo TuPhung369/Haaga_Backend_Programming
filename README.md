@@ -860,3 +860,118 @@ Dùng OAuth2 PKCE để bảo vệ quy trình lấy token.
         "joinOperator": ";"
       }
 ```
+Detailed Plan for WhatsApp-like Messaging System with Novu Notifications
+Overview
+I'll create a messaging system that allows users to:
+
+Send direct messages to other users
+Add contacts by email or username
+Receive real-time notifications using Novu
+Detailed Implementation Plan
+1. Backend Components
+1.1. Create Message Entity
+Create a new entity class for messages with fields for sender, receiver, content, timestamp, read status, etc.
+1.2. Create Contact Entity
+Create a new entity to manage user contacts with fields for user, contact user, and relationship status
+1.3. Create Repositories
+Create MessageRepository for database operations
+Create ContactRepository for managing user contacts
+1.4. Create DTOs
+Create MessageRequest/Response DTOs
+Create ContactRequest/Response DTOs
+1.5. Create Services
+Create MessageService for message operations
+Create ContactService for contact management
+Create NotificationService for Novu integration
+1.6. Create Controllers
+Create MessageController with endpoints for sending, receiving, and managing messages
+Create ContactController with endpoints for adding, removing, and listing contacts
+1.7. Configure WebSocket for Real-time Messaging
+Create WebSocketConfig class
+Implement message handlers for real-time communication
+1.8. Integrate Novu for Notifications
+Add Novu dependency to pom.xml
+Configure Novu client
+Implement notification triggers for new messages and contact requests
+2. Frontend Components
+2.1. Create Redux Slices
+Create messageSlice for managing message state
+Create contactSlice for managing contacts state
+2.2. Create API Services
+Create messageService for message API calls
+Create contactService for contact API calls
+2.3. Create UI Components
+Create MessagingPage component
+Create ContactList component
+Create MessageList component
+Create MessageInput component
+Create ContactSearch component
+Create NotificationBadge component
+2.4. Implement WebSocket Client
+Configure WebSocket connection
+Handle real-time message updates
+Implement typing indicators
+2.5. Implement Notification Handling
+Configure Novu client on frontend
+Display notifications for new messages and contact requests
+Step-by-Step Implementation
+Step 1: Add Required Dependencies
+Add the following dependencies to pom.xml:
+Spring WebSocket
+Novu Java SDK
+STOMP WebSocket
+Step 2: Create Backend Entities and Repositories
+Create Message entity
+Create Contact entity
+Create corresponding repositories
+Step 3: Implement Backend Services and Controllers
+Implement MessageService and MessageController
+Implement ContactService and ContactController
+Implement NotificationService for Novu integration
+Step 4: Configure WebSocket for Real-time Communication
+Create WebSocketConfig class
+Implement message handlers
+Step 5: Create Frontend Redux State Management
+Create message and contact slices
+Implement API services for messages and contacts
+Step 6: Develop Frontend UI Components
+Create messaging page and components
+Implement WebSocket client for real-time updates
+Add notification handling
+Step 7: Testing and Refinement
+Test message sending and receiving
+Test contact management
+Test notifications
+Refine UI/UX based on testing
+Files to Create/Modify
+Backend Files:
+src/main/java/com/database/study/entity/Message.java
+src/main/java/com/database/study/entity/Contact.java
+src/main/java/com/database/study/repository/MessageRepository.java
+src/main/java/com/database/study/repository/ContactRepository.java
+src/main/java/com/database/study/dto/request/MessageRequest.java
+src/main/java/com/database/study/dto/response/MessageResponse.java
+src/main/java/com/database/study/dto/request/ContactRequest.java
+src/main/java/com/database/study/dto/response/ContactResponse.java
+src/main/java/com/database/study/service/MessageService.java
+src/main/java/com/database/study/service/ContactService.java
+src/main/java/com/database/study/service/NotificationService.java
+src/main/java/com/database/study/controller/MessageController.java
+src/main/java/com/database/study/controller/ContactController.java
+src/main/java/com/database/study/config/WebSocketConfig.java
+src/main/java/com/database/study/config/NovuConfig.java
+Frontend Files:
+src/store/messageSlice.ts
+src/store/contactSlice.ts
+src/services/messageService.ts
+src/services/contactService.ts
+src/pages/MessagingPage.tsx
+src/components/messaging/ContactList.tsx
+src/components/messaging/MessageList.tsx
+src/components/messaging/MessageInput.tsx
+src/components/messaging/ContactSearch.tsx
+src/components/messaging/NotificationBadge.tsx
+src/types/MessageTypes.ts
+src/types/ContactTypes.ts
+src/utils/websocketClient.ts
+This plan provides a comprehensive approach to implementing a WhatsApp-like messaging system with Novu notifications. Would you like me to start implementing any specific part of this plan, or would you like more details on any particular aspect?

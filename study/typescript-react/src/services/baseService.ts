@@ -1,6 +1,6 @@
 // src/services/baseService.ts
 import { AxiosError } from "axios";
-import { CustomErrorData } from "../type/types";
+import { CustomErrorData } from "../types/ApiTypes";
 import { refreshToken } from "../utils/tokenRefresh";
 import store from "../store/store";
 
@@ -14,7 +14,7 @@ interface ErrorResponseData {
   metadata?: {
     field?: string;
     message?: string;
-    errors?: Array<{ field: string; message: string;[key: string]: unknown }>;
+    errors?: Array<{ field: string; message: string; [key: string]: unknown }>;
     [key: string]: unknown;
   };
   [key: string]: unknown;
@@ -163,7 +163,10 @@ export const handleServiceError = (error: unknown): never => {
         errorType = ErrorType.NOT_FOUND;
       } else if (axiosError.response?.status === 409) {
         errorType = ErrorType.CONFLICT;
-      } else if (axiosError.response?.status && axiosError.response.status >= 500) {
+      } else if (
+        axiosError.response?.status &&
+        axiosError.response.status >= 500
+      ) {
         errorType = ErrorType.SERVER_ERROR;
       }
 

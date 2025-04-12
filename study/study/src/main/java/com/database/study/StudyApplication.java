@@ -29,12 +29,6 @@ public class StudyApplication {
                         .ignoreIfMissing() // Don't fail if .env is missing, allow fallback to defaults
                         .load();
 
-                if (dotenv == null) {
-                    log.error("Failed to load .env file. Check file permissions or path.");
-                    System.err.println("Failed to load .env file.");
-                    return;
-                }
-
                 // Get the active profile (default to "dev" if not set)
                 String activeProfile = System.getProperty("spring.profiles.active", "dev");
 
@@ -92,6 +86,9 @@ public class StudyApplication {
         String jwtKey = dotenv.get("JWT_KEY");
         String recaptchaSecretV3 = dotenv.get("RECAPTCHA_SECRET_V3");
         String recaptchaSecretV2 = dotenv.get("RECAPTCHA_SECRET_V2");
+        String novuApiKey = dotenv.get("NOVU_API_KEY");
+        String novuAppId = dotenv.get("NOVU_APP_ID");
+        String novuBaseUrl = dotenv.get("NOVU_BASE_URL");
 
         // Validate required variables for dev profile
         if (dbUrlDev == null || dbUsernameDev == null || dbPasswordDev == null ||
@@ -140,6 +137,9 @@ public class StudyApplication {
         setSystemProperty("JWT_KEY", jwtKey);
         setSystemProperty("RECAPTCHA_SECRET_V3", recaptchaSecretV3);
         setSystemProperty("RECAPTCHA_SECRET_V2", recaptchaSecretV2);
+        setSystemProperty("NOVU_API_KEY", novuApiKey);
+        setSystemProperty("NOVU_APP_ID", novuAppId);
+        setSystemProperty("NOVU_BASE_URL", novuBaseUrl);
 
         // Optional variables
         setSystemProperty("BASE_URL", dotenv.get("BASE_URL"));

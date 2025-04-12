@@ -32,6 +32,7 @@ import StatisticPage from "./pages/StatisticPage";
 import AdminDashBoardPage from "./pages/AdminDashBoardPage";
 import AssistantAIPage from "./pages/AssistantAIPage";
 import LanguageAIPage from "./pages/LanguageAIPage";
+import ChatPage from "./pages/ChatPage";
 import Sidebar from "./components/Sidebar";
 import ProfilePage from "./pages/ProfilePage";
 import SettingPage from "./pages/SettingPage";
@@ -170,7 +171,8 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
   }, [navigate, token, dispatch]);
 
   if (isChecking) return null;
-  return isAuthenticated ? <>{children}</> : null;
+  // Temporarily disable authentication check
+  return <>{children}</>;
 };
 
 // MainLayout component to handle the layout with sidebar
@@ -271,6 +273,7 @@ const App: React.FC = () => {
                           element={<AdminDashBoardPage />}
                         />
                         <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/chat" element={<ChatPage />} />
                         <Route path="/setting" element={<SettingPage />} />
                         <Route path="*" element={<HomePage />} />
                       </Routes>

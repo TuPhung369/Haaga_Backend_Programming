@@ -69,6 +69,7 @@ spring:
             client-secret: ${OAUTH2_CLIENT_SECRET}
             scope: openid, email, profile
             redirect-uri: "${OAUTH2_REDIRECT_URI}"
+
           github:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
@@ -124,6 +125,12 @@ n8n:
 speech:
   service:
     url: ${SPEECH_SERVICE_URL:http://localhost:8008}
+
+# Novu notification service configuration
+novu:
+  api-key: ${NOVU_API_KEY:6ac19261e2693610c6a548c4d8fc4a19}
+  app-id: ${NOVU_APP_ID:uWb0H0wlJgOP}
+  base-url: ${NOVU_BASE_URL:https://api.novu.co/v1}
 logging:
   level:
     root: INFO # Set default to INFO, DEBUG is very verbose

@@ -1,18 +1,21 @@
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios, {
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from "axios";
 import { handleServiceError } from "./baseService";
 import { TotpAuthenticationRequest } from "./totpService";
 import {
   AuthResponse,
   IntrospectResponse,
-  GenericResponse,
   RefreshTokenResponse,
-  ApiResponse,
   ValidationInput,
   EmailChangeRequest,
   EmailVerificationRequest,
   AuthenticationInitResponse,
   EmailOtpAuthenticationRequest,
-} from "../type/types";
+} from "../types/AuthTypes";
+import { GenericResponse, ApiResponse } from "../types/ApiTypes";
 import store from "../store/store";
 import { refreshToken, setupTokenRefresh } from "../utils/tokenRefresh";
 import { notification } from "antd";
@@ -53,7 +56,9 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     // Prevent infinite loops - only retry once
     if (originalRequest._retry) {
@@ -70,7 +75,9 @@ apiClient.interceptors.response.use(
 
         // Only try refreshing if we're supposed to be authenticated
         if (isAuthenticated) {
-          console.log("Detected 401 error, attempting token refresh for authenticated user");
+          console.log(
+            "Detected 401 error, attempting token refresh for authenticated user"
+          );
 
           // Try to refresh the token
           const refreshResult = await refreshToken();
@@ -81,7 +88,9 @@ apiClient.interceptors.response.use(
             const newToken = store.getState().auth.token;
 
             // Log the retry
-            console.log("Token refreshed successfully, retrying original request with new token");
+            console.log(
+              "Token refreshed successfully, retrying original request with new token"
+            );
 
             // Update the Authorization header and retry
             if (originalRequest.headers) {
@@ -93,7 +102,7 @@ apiClient.interceptors.response.use(
             notification.error({
               message: "Session Expired",
               description: "Your session has expired. Please log in again.",
-              duration: 0 // Don't auto-dismiss
+              duration: 0, // Don't auto-dismiss
             });
 
             // Return the original error
@@ -120,7 +129,7 @@ const mockApiClient = axios.create({
 // Tạo một interceptor cho mockApiClient để thay đổi request URL
 mockApiClient.interceptors.request.use(function (config) {
   if (config.url) {
-    config.url = config.url.replace(/^\//, '/_dev_/');
+    config.url = config.url.replace(/^\//, "/_dev_/");
   }
   return config;
 });
@@ -176,7 +185,7 @@ export const verifyPasswordChange = async (
         currentPassword: request.currentPassword,
         newPassword: request.newPassword,
         verificationCode: request.verificationCode,
-        useTotp: request.useTotp || false
+        useTotp: request.useTotp || false,
       },
       {
         headers: {
@@ -319,7 +328,9 @@ export const introspectToken = async (
 };
 
 // New function to refresh token using cookie
-export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshTokenResponse>> => {
+export const refreshTokenFromCookie = async (): Promise<
+  ApiResponse<RefreshTokenResponse>
+> => {
   try {
     // Import and get a recaptcha token for the refresh request
     const { getRecaptchaToken } = await import("../utils/recaptchaUtils");
@@ -336,9 +347,9 @@ export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshToken
         headers: {
           "Cache-Control": "no-cache",
           "Pragma": "no-cache",
-          "X-Requested-With": "XMLHttpRequest"
+          "X-Requested-With": "XMLHttpRequest",
         },
-        timeout: 10000 // 10 second timeout to avoid hanging
+        timeout: 10000, // 10 second timeout to avoid hanging
       }
     );
 
@@ -352,8 +363,8 @@ export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshToken
     console.error("Token refresh error:", error);
 
     // Log more details about the error
-    if (error && typeof error === 'object') {
-      if ('response' in error) {
+    if (error && typeof error === "object") {
+      if ("response" in error) {
         interface ErrorWithResponse {
           response?: {
             status?: number;
@@ -366,10 +377,14 @@ export const refreshTokenFromCookie = async (): Promise<ApiResponse<RefreshToken
         const data = errorWithResponse.response?.data;
 
         if (status === 401) {
-          console.error("401 Unauthorized during token refresh - refresh token cookie is likely expired or invalid");
+          console.error(
+            "401 Unauthorized during token refresh - refresh token cookie is likely expired or invalid"
+          );
           console.error("Response data:", data);
         } else if (status === 500) {
-          console.error("500 Server error during refresh, might be related to recaptcha validation");
+          console.error(
+            "500 Server error during refresh, might be related to recaptcha validation"
+          );
           console.error("Response data:", data);
         }
       }
@@ -622,7 +637,9 @@ export const initiateAuthentication = async (
   password: string
 ): Promise<AuthenticationInitResponse> => {
   try {
-    const response = await apiClient.post<ApiResponse<AuthenticationInitResponse>>("/auth/initAuthentication", {
+    const response = await apiClient.post<
+      ApiResponse<AuthenticationInitResponse>
+    >("/auth/initAuthentication", {
       username,
       password,
     });

@@ -1,6 +1,6 @@
 import apiClient from "./authService";
 import { handleServiceError } from "./baseService";
-import { Role, RoleResponse, RolesResponse } from "../type/types";
+import { Role, RoleResponse, RolesResponse } from "../types/UserTypes";
 
 export const createRole = async (
   roleData: Omit<Role, "id">, // ID is likely server-generated

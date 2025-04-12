@@ -1,7 +1,7 @@
 // src/services/totpAdminService.ts
 import apiClient from "./authService";
 import { handleServiceError } from "./baseService";
-import { ApiResponse } from "../type/types";
+import { ApiResponse } from "../types/ApiTypes";
 
 // Reset request related interfaces
 export interface TotpResetRequest {

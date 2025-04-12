@@ -1,7 +1,7 @@
 // src/services/totpService.ts
 import apiClient from "./authService";
 import { handleServiceError } from "./baseService";
-import { ApiResponse } from "../type/types";
+import { ApiResponse } from "../types/ApiTypes";
 
 // Response interfaces
 export interface TotpSetupResponse {

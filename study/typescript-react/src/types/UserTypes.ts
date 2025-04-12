@@ -3,6 +3,19 @@
 
 import { CalendarEvent } from "./CalendarTypes";
 
+export interface ValidationInput {
+  username: string;
+  firstname: string;
+  lastname: string;
+  dob: string;
+  email: string;
+  password?: string;
+  confirmPassword?: string;
+  roles?: string[];
+  active?: boolean;
+  block?: boolean;
+}
+
 export interface Permission {
   name: string;
   description: string;
@@ -102,3 +115,4 @@ export interface FilterDropdownProps {
   close: () => void;
   visible: boolean;
 }
+

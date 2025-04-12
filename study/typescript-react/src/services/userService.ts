@@ -1,7 +1,14 @@
 import apiClient from "./authService";
 import { handleServiceError } from "./baseService";
-import { UserResponse, UsersResponse, ValidationInput } from "../type/types";
-import { getRecaptchaToken, addRecaptchaTokenToData } from "../utils/recaptchaUtils";
+import {
+  UserResponse,
+  UsersResponse,
+  ValidationInput,
+} from "../types/UserTypes";
+import {
+  getRecaptchaToken,
+  addRecaptchaTokenToData,
+} from "../utils/recaptchaUtils";
 
 export const createUser = async (
   userData: ValidationInput,
@@ -11,11 +18,15 @@ export const createUser = async (
     // Sử dụng utility để thêm token reCAPTCHA
     const dataWithRecaptcha = addRecaptchaTokenToData(userData);
 
-    const response = await apiClient.post<UserResponse>("/users", dataWithRecaptcha, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.post<UserResponse>(
+      "/users",
+      dataWithRecaptcha,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error creating user:", error);
@@ -129,7 +140,9 @@ export const deleteUser = async (
   try {
     // Thêm token reCAPTCHA vào request delete
     const response = await apiClient.delete<UserResponse>(
-      `/users/${userId}?recaptchaToken=${encodeURIComponent(getRecaptchaToken())}`,
+      `/users/${userId}?recaptchaToken=${encodeURIComponent(
+        getRecaptchaToken()
+      )}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
