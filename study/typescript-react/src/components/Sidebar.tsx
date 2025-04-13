@@ -426,7 +426,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     >
       <div className={`sidebar-header${collapsed ? "-collapsed" : ""}`}>
         <div className={`sidebar-header-title${collapsed ? "-collapsed" : ""}`}>
-          TomBoBap
+          TuPhung1787
         </div>
         <Button
           type="text"
@@ -485,5 +485,4 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 };
 
 export default Sidebar;
-
 

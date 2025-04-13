@@ -36,17 +36,17 @@ import { stripMarkdown } from "../utils/TextUtils";
 
 // --- Child Component Imports ---
 import ServiceStatusNotification from "./ServiceStatusNotification";
-import { ChatControls } from "./ChatControls";
-import { ChatWindow } from "./ChatWindow";
+import { LanguageAIControls } from "./LanguageAIControls";
+import { LanguageAIWindow } from "./LanguageAIWindow";
 
 // --- Type Imports ---
 import {
   ProficiencyLevel,
   ResponseMetadata,
-  ChatMessageData,
+  LanguageAIMessageData,
   LanguageInteraction,
-  ChatControlsProps,
-  ChatWindowProps,
+  LanguageAIControlsProps,
+  LanguageAIWindowProps,
 } from "../types/LanguageAITypes";
 
 // --- Component Definition ---
@@ -113,7 +113,7 @@ const LanguageAIComponent: React.FC = () => {
   // For compatibility with existing code, we'll keep the setter function
   // but it will now update the Redux store instead of local state
   const setHistoryMessages = useCallback(
-    (messages: ChatMessageData[]) => {
+    (messages: LanguageAIMessageData[]) => {
       // Only update the Redux store if we're not toggling history off
       // This way, when we toggle history back on, we can use the cached data from Redux
       // without making another API call
@@ -285,9 +285,9 @@ const LanguageAIComponent: React.FC = () => {
           JSON.stringify(conversations[0], null, 2)
         );
 
-        const formattedHistory: ChatMessageData[] = conversations.flatMap(
-          (convo: LanguageInteraction): ChatMessageData[] => {
-            const messages: ChatMessageData[] = [];
+        const formattedHistory: LanguageAIMessageData[] = conversations.flatMap(
+          (convo: LanguageInteraction): LanguageAIMessageData[] => {
+            const messages: LanguageAIMessageData[] = [];
 
             // Check message type and add appropriate message
             if (convo.messageType === "USER_MESSAGE" && convo.userMessage) {
@@ -572,7 +572,7 @@ const LanguageAIComponent: React.FC = () => {
 
       // 2. Add User Message
       console.log(`Adding user message to chat: "${userTranscript}"`);
-      const userMessageObj: ChatMessageData = {
+      const userMessageObj: LanguageAIMessageData = {
         sender: "User",
         content: userTranscript,
         timestamp: new Date().toISOString(),
@@ -613,7 +613,7 @@ const LanguageAIComponent: React.FC = () => {
         console.log(`Received AI response in ${responseTime}ms`);
 
         // 4. Add AI Message
-        const aiMessageObj: ChatMessageData = {
+        const aiMessageObj: LanguageAIMessageData = {
           sender: "AI",
           content: aiResponseText,
           timestamp: new Date().toISOString(),
@@ -652,7 +652,7 @@ const LanguageAIComponent: React.FC = () => {
         const message =
           aiError instanceof Error ? aiError.message : "Please try again.";
         setError(`Failed to get AI response: ${message}`);
-        const errorMsg: ChatMessageData = {
+        const errorMsg: LanguageAIMessageData = {
           sender: "AI",
           content: `Sorry, I encountered an error. (${message})`,
           timestamp: new Date().toISOString(),
@@ -1066,7 +1066,7 @@ const LanguageAIComponent: React.FC = () => {
         console.log(
           `Creating welcome message for ${language} at ${proficiencyLevel} level`
         );
-        const welcomeMessage: ChatMessageData = {
+        const welcomeMessage: LanguageAIMessageData = {
           sender: "AI",
           content: welcomeContent,
           timestamp: new Date().toISOString(),
@@ -1089,7 +1089,7 @@ const LanguageAIComponent: React.FC = () => {
   ]);
 
   // --- Prepare Props ---
-  const chatControlsProps: ChatControlsProps = {
+  const languageAIControlsProps: LanguageAIControlsProps = {
     language,
     proficiencyLevel,
     selectedVoice,
@@ -1118,7 +1118,7 @@ const LanguageAIComponent: React.FC = () => {
   // This avoids creating a circular dependency
 
   // Use lastUpdated to force re-render when needed
-  const chatWindowProps: ChatWindowProps = useMemo(
+  const languageAIWindowProps: LanguageAIWindowProps = useMemo(
     () => ({
       messages,
       username,
@@ -1167,8 +1167,8 @@ const LanguageAIComponent: React.FC = () => {
           justifyContent: "space-between",
         }}
       >
-        <ChatControls {...chatControlsProps} />
-        <ChatWindow {...chatWindowProps} />
+        <LanguageAIControls {...languageAIControlsProps} />
+        <LanguageAIWindow {...languageAIWindowProps} />
       </Box>
       <audio
         ref={audioRef}

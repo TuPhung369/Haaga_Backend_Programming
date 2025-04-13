@@ -1,4 +1,4 @@
-// src/components/ChatWindow.tsx
+// src/components/LanguageAIWindow.tsx
 import React, { useRef, useEffect, useCallback } from "react";
 import {
   Box,
@@ -11,9 +11,9 @@ import {
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
-import { ChatMessage } from "./ChatMessage";
+import { LanguageAIMessage } from "./LanguageAIMessage";
 // Import types from parent
-import { ChatWindowProps, ChatMessageData } from "../types/LanguageAITypes"; // From languageAI";
+import { LanguageAIWindowProps, LanguageAIMessageData } from "../types/LanguageAITypes"; // From languageAI";
 
 // Welcome messages in different languages
 const welcomeMessages = {
@@ -31,7 +31,7 @@ const getWelcomeMessage = (language: string): string => {
   return welcomeMessages[language] || welcomeMessages["en-US"];
 };
 
-export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
+export const LanguageAIWindow: React.FC<LanguageAIWindowProps> = React.memo(
   ({
     messages,
     username,
@@ -85,7 +85,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
     // Determine which messages to display based on the current state
     // If showHistory is true, show ONLY history messages
     // Otherwise, show ONLY current messages if we're in an active conversation
-    let messagesToDisplay: ChatMessageData[] = [];
+    let messagesToDisplay: LanguageAIMessageData[] = [];
 
     if (showHistory) {
       // When in history mode, ONLY show history messages
@@ -279,7 +279,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
                       mb: marginBottom,
                     }}
                   >
-                    <ChatMessage
+                    <LanguageAIMessage
                       message={msg}
                       username={username}
                       formatTimestamp={formatTimestamp}
@@ -361,3 +361,4 @@ export const ChatWindow: React.FC<ChatWindowProps> = React.memo(
   }
 );
 
+export default LanguageAIWindow;

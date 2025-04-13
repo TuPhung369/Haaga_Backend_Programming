@@ -1,8 +1,140 @@
 // src/services/baseService.ts
-import { AxiosError } from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
+import { notification } from "antd";
+import { AxiosError as OriginalAxiosError } from "axios";
 import { CustomErrorData } from "../types/ApiTypes";
-import { refreshToken } from "../utils/tokenRefresh";
+import { refreshToken, refreshTokenIfNeeded } from "../utils/tokenRefresh";
 import store from "../store/store";
+import { resetAllData } from "../store/resetActions";
+
+// Base URL for API requests - use environment variable if available
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:9095";
+
+// Create axios instance with default configuration
+export const axiosInstance = axios.create({
+  baseURL: API_URL,
+  timeout: 30000, // 30 seconds
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true, // Always send cookies with requests
+});
+
+// Request interceptor for adding auth token
+axiosInstance.interceptors.request.use(
+  async (config: AxiosRequestConfig) => {
+    try {
+      // Check if token needs refreshing before sending request
+      // Skip for auth endpoints to prevent loops
+      if (
+        config.url &&
+        !config.url.includes("/auth/login") &&
+        !config.url.includes("/auth/refresh") &&
+        !config.url.includes("/auth/register")
+      ) {
+        // Check and refresh token if needed before proceeding with request
+        await refreshTokenIfNeeded();
+      }
+
+      // Get the current auth state from Redux
+      const authState = store.getState().auth;
+      const token = authState.token;
+
+      // Add token to request if available
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      return config;
+    } catch (error) {
+      console.error("Error in request interceptor:", error);
+      return config;
+    }
+  },
+  (error: any) => Promise.reject(error)
+);
+
+// Response interceptor for handling common errors
+axiosInstance.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  async (error: AxiosError) => {
+    // Only handle api errors, not network errors
+    if (!error.response) {
+      if (error.message === "Network Error") {
+        notification.error({
+          message: "Network Error",
+          description: "Please check your internet connection.",
+        });
+      }
+      return Promise.reject(error);
+    }
+
+    const { status, data } = error.response;
+
+    // Handle specific HTTP status codes
+    switch (status) {
+      case 401: // Unauthorized
+        // Don't show error for auth endpoints
+        if (
+          error.config?.url &&
+          (error.config.url.includes("/auth/refresh") ||
+            error.config.url.includes("/auth/login"))
+        ) {
+          // Silent fail for auth endpoints
+          return Promise.reject(error);
+        }
+
+        // Try to refresh token and retry request
+        try {
+          const refreshed = await refreshToken(true);
+          
+          if (refreshed) {
+            // Get fresh token from Redux store after refresh
+            const newToken = store.getState().auth.token;
+            
+            // Create new request config with fresh token
+            const newRequestConfig = {
+              ...error.config,
+              headers: {
+                ...error.config?.headers,
+                Authorization: `Bearer ${newToken}`,
+              },
+            };
+            
+            // Retry original request with new token
+            console.log("Retrying request with fresh token");
+            return axiosInstance(newRequestConfig);
+          }
+        } catch (refreshError) {
+          console.error("Failed to refresh token:", refreshError);
+        }
+
+        // If refresh fails, log out user
+        notification.error({
+          message: "Authentication Error",
+          description: "Session expired. Please log in again.",
+          duration: 5,
+        });
+        
+        store.dispatch(resetAllData());
+        
+        // Redirect to login page
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1000);
+        break;
+
+      case 403: // Forbidden
+        notification.error({
+          message: "Access Denied",
+          description: "You don't have permission to access this resource.",
+        });
+        break;
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Define a more specific response data type matching server error format
 interface ErrorResponseData {
@@ -115,7 +247,7 @@ export const handleServiceError = (error: unknown): never => {
     typeof error.response === "object" &&
     "data" in error.response
   ) {
-    const axiosError = error as AxiosError;
+    const axiosError = error as OriginalAxiosError;
     const responseData = axiosError.response?.data as ErrorResponseData;
 
     console.log("Handle API error response:", responseData);

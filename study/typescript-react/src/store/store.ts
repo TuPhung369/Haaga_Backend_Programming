@@ -15,12 +15,12 @@ import { RootState } from "../types/RootStateTypes";
 import { KanbanState } from "../types/KanbanTypes";
 import { UserState } from "../types/UserTypes";
 import { LanguageState } from "../types/LanguageAITypes";
-import { ChatMessageData } from "../types/LanguageAITypes";
+import { LanguageAIMessageData } from "../types/LanguageAITypes";
 import { resetAllData } from "./resetActions";
 
 // Define an interface for legacy language state that includes the old messagesByLanguage property
 interface LegacyLanguageState extends LanguageState {
-  messagesByLanguage?: Record<string, ChatMessageData[]>;
+  messagesByLanguage?: Record<string, LanguageAIMessageData[]>;
 }
 
 // Environment check for development mode
@@ -153,12 +153,12 @@ const loadState = (): Partial<RootState> | undefined => {
           {};
 
         // Type assertion to ensure compatibility
-        const typedLegacyMessages: Record<string, ChatMessageData[]> = {};
+        const typedLegacyMessages: Record<string, LanguageAIMessageData[]> = {};
 
         // Copy each language's messages with proper typing
         Object.entries(legacyMessages).forEach(([lang, messages]) => {
           if (Array.isArray(messages)) {
-            typedLegacyMessages[lang] = messages as ChatMessageData[];
+            typedLegacyMessages[lang] = messages as LanguageAIMessageData[];
           }
         });
 

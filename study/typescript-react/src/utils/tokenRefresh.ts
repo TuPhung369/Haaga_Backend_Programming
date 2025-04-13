@@ -80,6 +80,9 @@ const MAX_RETRY_ATTEMPTS = 3;
 let retryAttempts = 0;
 let currentRetryInterval = INITIAL_RETRY_INTERVAL;
 
+// Add token expiry tracking
+let tokenExpiryTimestamp: number | null = null;
+
 type NodeJSTimeout = ReturnType<typeof setTimeout>;
 
 let refreshTimer: NodeJSTimeout | null = null;
@@ -111,19 +114,39 @@ export const setupTokenRefresh = (
 
   if (!expiresInMs || isNaN(expiresInMs) || expiresInMs <= 0) {
     refreshInterval = DEFAULT_REFRESH_INTERVAL;
+    // Default expiry timestamp if not provided - 60 minutes from now
+    tokenExpiryTimestamp = Date.now() + 60 * 60 * 1000;
   } else {
     // Refresh 10 minutes before expiration or half the token lifetime, whichever is smaller
     const safeBuffer = Math.min(REFRESH_SAFETY_BUFFER, expiresInMs / 2);
     refreshInterval = Math.max(expiresInMs - safeBuffer, 5000); // At least 5 seconds
+    // Store the exact expiry timestamp for on-demand checks
+    tokenExpiryTimestamp = Date.now() + expiresInMs;
+
     console.log(
       `Setting up token refresh in ${
         refreshInterval / (60 * 1000)
-      } minutes (token expires in ${expiresInMs / (60 * 1000)} minutes)`
+      } minutes (token expires in ${
+        expiresInMs / (60 * 1000)
+      } minutes at ${new Date(tokenExpiryTimestamp).toLocaleTimeString()})`
     );
   }
 
   // Schedule refresh
   refreshTimer = setTimeout(refreshToken, refreshInterval);
+
+  // Set localStorage item for tracking across browser tabs
+  try {
+    localStorage.setItem(
+      "tokenExpiryTimestamp",
+      tokenExpiryTimestamp.toString()
+    );
+  } catch (e) {
+    console.warn(
+      "Could not set localStorage item for token expiry tracking",
+      e
+    );
+  }
 };
 
 /**
@@ -301,6 +324,66 @@ export const refreshToken = async (
     refreshInProgress = false;
     return false;
   }
+};
+
+/**
+ * Check if token needs to be refreshed based on current time and expiry
+ * Call this before making API requests
+ * @returns Promise<boolean> True if token was refreshed or is valid, false otherwise
+ */
+export const refreshTokenIfNeeded = async (): Promise<boolean> => {
+  // Already refreshing, wait for completion
+  if (refreshInProgress) {
+    console.log("Token refresh already in progress, skipping check");
+    return true;
+  }
+
+  // Try to get expiry from localStorage (helps with multiple tabs)
+  try {
+    const storedExpiry = localStorage.getItem("tokenExpiryTimestamp");
+    if (storedExpiry) {
+      const expiryFromStorage = parseInt(storedExpiry, 10);
+      if (
+        !isNaN(expiryFromStorage) &&
+        (tokenExpiryTimestamp === null ||
+          expiryFromStorage < tokenExpiryTimestamp)
+      ) {
+        console.log("Using token expiry timestamp from localStorage");
+        tokenExpiryTimestamp = expiryFromStorage;
+      }
+    }
+  } catch (e) {
+    console.warn("Error reading token expiry from localStorage", e);
+  }
+
+  // No expiry data available, token state unknown
+  if (tokenExpiryTimestamp === null) {
+    console.log(
+      "No token expiry information available, using default refresh behavior"
+    );
+    return true;
+  }
+
+  const now = Date.now();
+  const timeUntilExpiry = tokenExpiryTimestamp - now;
+
+  // If token expires in less than safety buffer, refresh now
+  if (timeUntilExpiry < REFRESH_SAFETY_BUFFER) {
+    console.log(
+      `Token expires in ${
+        timeUntilExpiry / 1000
+      } seconds, refreshing now before API call`
+    );
+    // Force immediate refresh
+    return await refreshToken(true);
+  }
+
+  console.log(
+    `Token valid for another ${
+      timeUntilExpiry / 60000
+    } minutes, no refresh needed`
+  );
+  return true;
 };
 
 /**

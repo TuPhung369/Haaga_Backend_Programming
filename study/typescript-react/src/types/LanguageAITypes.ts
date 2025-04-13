@@ -32,7 +32,7 @@ export enum PracticeFrequency {
 
 // --- Core Data Interfaces ---
 
-export interface ChatMessageData {
+export interface LanguageAIMessageData {
   sender: "User" | "AI";
   content: string;
   timestamp: string; // ISO String
@@ -91,7 +91,7 @@ export interface VoiceOption {
 
 // --- Component Prop Interfaces ---
 
-export interface ChatControlsProps {
+export interface LanguageAIControlsProps {
   language: string;
   proficiencyLevel: string; // Uses ProficiencyLevel enum values
   selectedVoice: string;
@@ -115,10 +115,10 @@ export interface ChatControlsProps {
   onToggleDebugInfo: () => void;
 }
 
-export interface ChatWindowProps {
-  messages: ChatMessageData[];
+export interface LanguageAIWindowProps {
+  messages: LanguageAIMessageData[];
   username: string;
-  previousMessages: ChatMessageData[];
+  previousMessages: LanguageAIMessageData[];
   isLoadingHistory: boolean;
   isGeneratingResponse: boolean;
   showHistory: boolean;
@@ -129,8 +129,8 @@ export interface ChatWindowProps {
   language?: string; // Current language code (e.g., "en-US", "fi-FI")
 }
 
-export interface ChatMessageProps {
-  message: ChatMessageData;
+export interface LanguageAIMessageProps {
+  message: LanguageAIMessageData;
   username: string;
   formatTimestamp: (timestamp: string) => string;
 }
@@ -166,9 +166,9 @@ export interface LanguagePreferences {
 
 export interface LanguageState {
   // Current session messages by language
-  currentMessagesByLanguage: Record<string, ChatMessageData[]>;
+  currentMessagesByLanguage: Record<string, LanguageAIMessageData[]>;
   // History messages by language
-  historyMessagesByLanguage: Record<string, ChatMessageData[]>;
+  historyMessagesByLanguage: Record<string, LanguageAIMessageData[]>;
   currentLanguage: string;
   loading: boolean;
   error: string | null;

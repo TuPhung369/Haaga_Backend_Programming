@@ -1,4 +1,4 @@
-// src/components/ChatMessage.tsx
+// src/components/LanguageAIMessage.tsx
 import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
@@ -14,9 +14,9 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import mermaid from "mermaid";
 // Import types from the central types file
-import { ChatMessageProps } from "../types/LanguageAITypes"; // ChatMessageData is implicitly used via ChatMessageProps
+import { LanguageAIMessageProps } from "../types/LanguageAITypes"; // ChatMessageData is implicitly used via LanguageAIMessageProps
 
-// --- Mermaid Diagram Components (Internal to ChatMessage) ---
+// --- Mermaid Diagram Components (Internal to LanguageAIMessage) ---
 
 interface MermaidDiagramProps {
   content: string;
@@ -235,7 +235,7 @@ const DiagramViewer: React.FC<DiagramViewerProps> = React.memo(
   }
 );
 
-// --- ChatMessage Component ---
+// --- LanguageAIMessage Component ---
 
 const preprocessMarkdown = (markdown: string): string => {
   // Basic preprocessing is fine, ReactMarkdown handles most things
@@ -243,9 +243,9 @@ const preprocessMarkdown = (markdown: string): string => {
   return markdown;
 };
 
-// ChatMessageProps is imported from types file
+// LanguageAIMessageProps is imported from types file
 
-export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
+export const LanguageAIMessage: React.FC<LanguageAIMessageProps> = React.memo(
   ({ message, username, formatTimestamp }) => {
     const isUser = message.sender === "User";
     const isHistoryMessage = message.isHistoryMessage;
@@ -480,10 +480,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
             variant="caption"
             sx={{
               display: "block",
-              textAlign: "right",
+              color: "text.secondary",
               mt: 1,
-              opacity: 0.7,
+              textAlign: isUser ? "right" : "left",
               fontSize: "0.7rem",
+              opacity: 0.8,
             }}
           >
             {formatTimestamp(message.timestamp)}
@@ -494,3 +495,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(
   }
 );
 
+// For backward compatibility
+export const ChatMessage = LanguageAIMessage;
+
+export default LanguageAIMessage;

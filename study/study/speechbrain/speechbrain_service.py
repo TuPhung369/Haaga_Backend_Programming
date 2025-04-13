@@ -313,7 +313,10 @@ LANGUAGE_CONFIG = {
     },
     "vi-VN": {
         "code": "vi",
-        "stt_models": ["whisper", "faster-whisper"],  # Use whisper for Vietnamese
+        "stt_models": [
+            "whisper",
+            "faster-whisper",
+        ],  # Prefer faster-whisper for Vietnamese
         "tts_models": ["gtts"],  # Using gTTS for Vietnamese
         "whisper_size": "medium",  # medium is better for Vietnamese
         "timeout": 120,  # 120 seconds timeout for Vietnamese
@@ -335,43 +338,6 @@ def is_model_downloaded_locally(model_name):
         return len(whisper_models) > 0
 
     return False
-
-
-# Function to determine which STT model to use for a given language
-def get_stt_model(language):
-    """
-    Determine which speech-to-text model to use for a given language.
-
-    Args:
-        language: The language code (e.g., "fi-FI", "en-US")
-
-    Returns:
-        The name of the model to use (e.g., "wav2vec2-finnish", "whisper", "faster-whisper")
-    """
-    # Get language configuration
-    lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
-
-    # Get the list of STT models for this language
-    stt_models = lang_config.get("stt_models", ["whisper"])
-
-    # Try each model in order of preference
-    for model_name in stt_models:
-        # Check if the model is available
-        if (
-            model_name == "wav2vec2-finnish"
-            and wav2vec2_available
-            and wav2vec2_model_downloaded
-        ):
-            return model_name
-        elif model_name == "faster-whisper" and faster_whisper_available:
-            return model_name
-        elif model_name == "whisper" and whisper_available:
-            return model_name
-        elif model_name == "speechbrain" and speechbrain_available:
-            return model_name
-
-    # Default to whisper if no preferred model is available
-    return "whisper"
 
 
 # Add a helper function to enable caching of recent transcriptions
@@ -1339,6 +1305,76 @@ async def transcribe_speech_finnish(
         )
 
 
+@app.post("/api/speech-to-text/vi")
+async def transcribe_speech_vietnamese(
+    file: UploadFile = File(...),
+    optimize: str = Form("false"),
+    priority: str = Form("accuracy"),
+    chunk_size: str = Form("0"),
+    language: str = Form("vi-VN"),  # Add language parameter to match client
+):
+    """
+    Transcribe speech from an audio file using Whisper specifically for Vietnamese.
+    """
+    request_id = str(uuid.uuid4())[:8]
+    logger.info(
+        f"[{request_id}] Received request to Vietnamese /api/speech-to-text/vi endpoint"
+    )
+    logger.info(
+        f"[{request_id}] File: {file.filename}, size: {file.size if hasattr(file, 'size') else 'unknown'}"
+    )
+    logger.info(
+        f"[{request_id}] Parameters: optimize={optimize}, priority={priority}, chunk_size={chunk_size}"
+    )
+
+    # Add CORS headers to response
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Credentials": "true",
+    }
+
+    try:
+        # Use the medium model for Vietnamese for better accuracy
+        result = await _transcribe_speech(file, "vi", optimize, priority, chunk_size)
+
+        # Clean up the transcript if needed
+        if result and "transcript" in result:
+            transcript = result["transcript"]
+            # Clean up extra spaces
+            transcript = " ".join(transcript.split())
+            result["transcript"] = transcript
+            logger.info(f"[{request_id}] Vietnamese transcript: {transcript}")
+
+        logger.info(f"[{request_id}] Vietnamese transcription completed successfully")
+        return JSONResponse(content=result, headers=headers)
+    except Exception as e:
+        logger.error(f"[{request_id}] Error in Vietnamese transcription: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "transcript": f"Lỗi trong nhận dạng giọng nói: {str(e)}",
+                "error": str(e),
+                "success": False,
+            },
+            headers=headers,
+        )
+
+
+@app.options("/api/speech-to-text/vi")
+async def options_speech_to_text_vietnamese():
+    # Handle CORS preflight requests
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Accept",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Max-Age": "86400",  # 24 hours
+    }
+    return JSONResponse(content={}, headers=headers)
+
+
 async def _transcribe_speech(
     file: UploadFile, language: str, optimize: str, priority: str, chunk_size: str
 ):
@@ -1824,6 +1860,29 @@ async def websocket_english(websocket: WebSocket):
     await handle_websocket_transcription(websocket, language, chunk_size_limit)
 
 
+@app.websocket("/ws/vietnamese")
+async def websocket_vietnamese(websocket: WebSocket):
+    await websocket.accept()
+    active_connections.add(websocket)
+
+    logger.info("WebSocket connection established for Vietnamese transcription")
+
+    # Get configuration from client
+    config = None
+    try:
+        config = await asyncio.wait_for(websocket.receive_json(), timeout=5.0)
+        logger.info(f"Received client configuration: {config}")
+    except Exception as e:
+        logger.warning(f"No initial config received: {str(e)}")
+        config = {"language": "vi"}
+
+    language = "vi"
+    # Make sure to parse chunk_size_limit as an integer
+    chunk_size_limit = int(config.get("chunkSize", 50000))  # Default 50KB limit
+
+    await handle_websocket_transcription(websocket, language, chunk_size_limit)
+
+
 async def handle_websocket_transcription(
     websocket: WebSocket, language: str, chunk_size_limit: int
 ):
@@ -2258,32 +2317,46 @@ async def handle_websocket_transcription(
 
 # Function to get the appropriate STT model based on language
 def get_stt_model(language: str) -> str:
-    """Get the appropriate STT model for the given language."""
-    if language in LANGUAGE_CONFIG:
-        # Check if the preferred model is available
-        preferred_models = LANGUAGE_CONFIG[language]["stt_models"]
-        for model in preferred_models:
-            if (
-                model == "wav2vec2-finnish"
-                and wav2vec2_available
-                and language == "fi-FI"
-                and wav2vec2_model_downloaded  # Only use if model is already downloaded
-            ):
-                return model
-            elif model == "faster-whisper" and faster_whisper_available:
-                return model
-            elif model == "whisper" and whisper_available:
-                return model
-            elif model == "speechbrain" and speechbrain_available:
-                return model
+    """
+    Determine which speech-to-text model to use for a given language.
 
-        # If no preferred model is available, return the first one that is
-        if faster_whisper_available:
-            return "faster-whisper"
-        elif whisper_available:
-            return "whisper"
+    Args:
+        language (str): The language code (e.g., "fi-FI", "en-US")
 
-    return "whisper"  # Default to whisper
+    Returns:
+        str: The name of the model to use (e.g., "wav2vec2-finnish", "whisper", "faster-whisper")
+    """
+    # Get language configuration
+    lang_config = LANGUAGE_CONFIG.get(language, LANGUAGE_CONFIG["en-US"])
+
+    # Get the list of STT models for this language
+    stt_models = lang_config.get("stt_models", ["whisper"])
+
+    # Try each model in order of preference
+    for model_name in stt_models:
+        # Check if the model is available
+        if (
+            model_name == "wav2vec2-finnish"
+            and wav2vec2_available
+            and wav2vec2_model_downloaded
+            and language == "fi-FI"  # Specific check for Finnish language
+        ):
+            return model_name
+        elif model_name == "faster-whisper" and faster_whisper_available:
+            return model_name
+        elif model_name == "whisper" and whisper_available:
+            return model_name
+        elif model_name == "speechbrain" and speechbrain_available:
+            return model_name
+
+    # Fallback options if no preferred model from the configuration is available
+    if faster_whisper_available:
+        return "faster-whisper"
+    elif whisper_available:
+        return "whisper"
+
+    # Ultimate fallback
+    return "whisper"
 
 
 # Add health check endpoint

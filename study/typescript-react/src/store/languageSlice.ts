@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 // Import types from new structure
 import {
-  ChatMessageData,
+  LanguageAIMessageData,
   LanguageInteraction,
   LanguageState,
 } from "../types/LanguageAITypes";
@@ -33,7 +33,7 @@ export const languageSlice = createSlice({
     fetchMessagesSuccess: (
       state,
       action: PayloadAction<{
-        messages: ChatMessageData[];
+        messages: LanguageAIMessageData[];
         language: string;
         isHistory?: boolean;
       }>
@@ -91,7 +91,7 @@ export const languageSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
-    // FIX: Transform LanguageInteraction into ChatMessageData
+    // FIX: Transform LanguageInteraction into LanguageAIMessageData
     addInteractionMessages: (
       state,
       action: PayloadAction<LanguageInteraction & { isHistory?: boolean }>
@@ -129,7 +129,7 @@ export const languageSlice = createSlice({
       });
 
       // Create User Message object
-      const userMessageData: ChatMessageData = {
+      const userMessageData: LanguageAIMessageData = {
         id: interaction.id, // Use interaction ID for the user part
         sender: "User",
         content: interaction.userMessage,
@@ -138,7 +138,7 @@ export const languageSlice = createSlice({
       };
 
       // Create AI Message object
-      const aiMessageData: ChatMessageData = {
+      const aiMessageData: LanguageAIMessageData = {
         id: `${interaction.id}-ai`, // Create a unique ID for the AI part
         sender: "AI",
         content: interaction.aiResponse,

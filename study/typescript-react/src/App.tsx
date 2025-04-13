@@ -75,7 +75,7 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
   const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { token, isAuthenticated } = useSelector(
+  const { token } = useSelector(
     (state: RootState) => state.auth
   );
 

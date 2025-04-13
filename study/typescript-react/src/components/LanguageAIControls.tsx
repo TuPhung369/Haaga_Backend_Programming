@@ -1,4 +1,4 @@
-// src/components/ChatControls.tsx
+// src/components/LanguageAIControls.tsx
 import React from "react";
 import {
   Box,
@@ -19,11 +19,11 @@ import StopIcon from "@mui/icons-material/Stop";
 import ReplayIcon from "@mui/icons-material/Replay";
 
 // Import VoiceRecorder here
-import VoiceRecorder from "./VoiceRecorder";
+import LanguageAIRecorder from "./LanguageAIRecorder";
 // Import types from the new types structure
-import { ProficiencyLevel, ChatControlsProps } from "../types/LanguageAITypes";
+import { ProficiencyLevel, LanguageAIControlsProps } from "../types/LanguageAITypes";
 
-export const ChatControls: React.FC<ChatControlsProps> = React.memo(
+export const LanguageAIControls: React.FC<LanguageAIControlsProps> = React.memo(
   ({
     language,
     proficiencyLevel,
@@ -366,7 +366,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
               borderColor: "divider",
             }}
           >
-            <VoiceRecorder
+            <LanguageAIRecorder
               onAudioRecorded={onAudioRecorded}
               onSpeechRecognized={onSpeechRecognized}
               language={language}
@@ -504,9 +504,7 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
                 sx={{
                   p: 0.5,
                   color: "text.secondary",
-                  "&:hover": {
-                    bgcolor: "rgba(0, 0, 0, 0.08)",
-                  },
+                  "&:hover": { bgcolor: "rgba(0, 0, 0, 0.08)" },
                 }}
               >
                 {showDebugInfo ? (
@@ -516,66 +514,27 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
                 )}
               </IconButton>
             </Box>
-            <Collapse in={showDebugInfo} id="debug-info-collapse">
-              <Paper
+
+            <Collapse in={showDebugInfo}>
+              <Box
                 sx={{
-                  p: 1,
-                  mt: 0.5,
-                  bgcolor: "#f8f9fa",
-                  borderRadius: 1,
+                  mt: 1,
+                  p: 1.5,
+                  bgcolor: "rgba(0, 0, 0, 0.02)",
+                  borderRadius: 1.5,
                   border: "1px solid",
                   borderColor: "divider",
-                  fontSize: "0.7rem",
+                  fontSize: "0.75rem",
+                  fontFamily: "monospace",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  color: "text.secondary",
+                  maxHeight: "200px",
+                  overflowY: "auto",
                 }}
-                elevation={0}
               >
-                <Box
-                  sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
-                >
-                  <Box
-                    sx={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      fontSize="inherit"
-                    >
-                      Source
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontFamily: "monospace",
-                        color: "primary.main",
-                        fontSize: "inherit",
-                      }}
-                    >
-                      {responseMetadata.responseSource ?? "N/A"}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      fontSize="inherit"
-                    >
-                      Time
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontFamily: "monospace",
-                        color: "success.main",
-                        fontSize: "inherit",
-                      }}
-                    >
-                      {responseMetadata.responseTime ?? "N/A"}ms
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
+                {JSON.stringify(responseMetadata, null, 2)}
+              </Box>
             </Collapse>
           </Box>
         )}
@@ -584,3 +543,4 @@ export const ChatControls: React.FC<ChatControlsProps> = React.memo(
   }
 );
 
+export default LanguageAIControls;
