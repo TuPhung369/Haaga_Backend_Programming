@@ -24,6 +24,7 @@ export interface ChatContact {
   status: "online" | "offline" | "away";
   unreadCount: number;
   lastMessage?: string;
+  group?: string; // Group categorization (Friend, College, Family, etc.)
 }
 
 export interface ChatState {

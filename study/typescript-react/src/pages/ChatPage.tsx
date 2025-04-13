@@ -10,8 +10,15 @@ import {
   notification,
   Modal,
   Form,
+  Dropdown,
+  Tag,
 } from "antd";
-import { SendOutlined, UserOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  SendOutlined,
+  UserOutlined,
+  PlusOutlined,
+  TagOutlined,
+} from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
 import { RootState } from "../types";
@@ -28,6 +35,7 @@ import {
   // markAsRead, // Commented out as it's not used
   addContactThunk as addContact, // Renamed in the combined slice
   setSelectedContact,
+  updateContactGroupThunk,
 } from "../store/chatSlice";
 
 const { Title, Text } = Typography;
@@ -58,7 +66,15 @@ const ChatPage: React.FC = () => {
   const NOVU_APP_ID = import.meta.env.VITE_NOVU_APP_ID || "your-novu-app-id";
 
   useEffect(() => {
-    dispatch(fetchContacts());
+    dispatch(fetchContacts())
+      .unwrap()
+      .catch((error) => {
+        notification.error({
+          message: "Connection Error",
+          description:
+            "Failed to connect to the chat server. Please try again later.",
+        });
+      });
   }, [dispatch]);
 
   useEffect(() => {
@@ -226,7 +242,9 @@ const ChatPage: React.FC = () => {
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
             border: "none",
           }}
-          bodyStyle={{ padding: 0, height: "100%" }}
+          styles={{
+            body: { padding: 0, height: "100%" },
+          }}
         >
           <div
             style={{
@@ -297,6 +315,104 @@ const ChatPage: React.FC = () => {
                         : "1px solid transparent",
                   }}
                   className="contact-list-item"
+                  actions={[
+                    <Dropdown
+                      key="group-dropdown"
+                      menu={{
+                        items: [
+                          {
+                            key: "friend",
+                            label: "Friend",
+                            onClick: (e) => {
+                              e.domEvent.stopPropagation();
+                              dispatch(
+                                updateContactGroupThunk({
+                                  contactId: contact.id,
+                                  group: "Friend",
+                                })
+                              );
+                            },
+                          },
+                          {
+                            key: "family",
+                            label: "Family",
+                            onClick: (e) => {
+                              e.domEvent.stopPropagation();
+                              dispatch(
+                                updateContactGroupThunk({
+                                  contactId: contact.id,
+                                  group: "Family",
+                                })
+                              );
+                            },
+                          },
+                          {
+                            key: "college",
+                            label: "College",
+                            onClick: (e) => {
+                              e.domEvent.stopPropagation();
+                              dispatch(
+                                updateContactGroupThunk({
+                                  contactId: contact.id,
+                                  group: "College",
+                                })
+                              );
+                            },
+                          },
+                          {
+                            key: "work",
+                            label: "Work",
+                            onClick: (e) => {
+                              e.domEvent.stopPropagation();
+                              dispatch(
+                                updateContactGroupThunk({
+                                  contactId: contact.id,
+                                  group: "Work",
+                                })
+                              );
+                            },
+                          },
+                          {
+                            key: "other",
+                            label: "Other",
+                            onClick: (e) => {
+                              e.domEvent.stopPropagation();
+                              dispatch(
+                                updateContactGroupThunk({
+                                  contactId: contact.id,
+                                  group: "Other",
+                                })
+                              );
+                            },
+                          },
+                          {
+                            key: "none",
+                            label: "None",
+                            onClick: (e) => {
+                              e.domEvent.stopPropagation();
+                              dispatch(
+                                updateContactGroupThunk({
+                                  contactId: contact.id,
+                                  group: "",
+                                })
+                              );
+                            },
+                          },
+                        ],
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      placement="bottomRight"
+                      trigger={["click"]}
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<TagOutlined />}
+                        style={{ color: "#8c8c8c" }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </Dropdown>,
+                  ]}
                 >
                   <List.Item.Meta
                     avatar={
@@ -312,34 +428,37 @@ const ChatPage: React.FC = () => {
                         }}
                       />
                     }
-                    title={contact.name}
+                    title={
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        <span>{contact.name}</span>
+                        {contact.group && (
+                          <Tag
+                            color="blue"
+                            style={{
+                              fontSize: "10px",
+                              marginLeft: "4px",
+                              padding: "0 4px",
+                              height: "20px",
+                              lineHeight: "20px",
+                            }}
+                          >
+                            {contact.group}
+                          </Tag>
+                        )}
+                      </div>
+                    }
                     description={
                       <Text ellipsis style={{ maxWidth: 200 }}>
                         {contact.lastMessage || "No messages yet"}
                       </Text>
                     }
                   />
-                  {contact.unreadCount > 0 && (
-                    <div
-                      style={{
-                        background:
-                          "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
-                        color: "white",
-                        borderRadius: "50%",
-                        minWidth: 22,
-                        height: 22,
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                        padding: "0 4px",
-                      }}
-                    >
-                      {contact.unreadCount}
-                    </div>
-                  )}
                 </List.Item>
               )}
             />
@@ -630,7 +749,9 @@ const ChatPage: React.FC = () => {
             borderRadius: "6px",
           },
         }}
-        bodyStyle={{ padding: "20px 24px" }}
+        styles={{
+          body: { padding: "20px 24px" },
+        }}
         style={{ top: 20 }}
       >
         <Form form={form} layout="vertical">

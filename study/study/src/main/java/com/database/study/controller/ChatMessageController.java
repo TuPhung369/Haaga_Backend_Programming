@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.database.study.dto.request.MessageRequest;
-import com.database.study.dto.response.MessageResponse;
-import com.database.study.service.MessageService;
+import com.database.study.dto.request.ChatMessageRequest;
+import com.database.study.dto.response.ChatMessageResponse;
+import com.database.study.service.ChatMessageService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,23 +30,23 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/messages")
 @RequiredArgsConstructor
 @Slf4j
-public class MessageController {
+public class ChatMessageController {
     
-    private final MessageService messageService;
+    private final ChatMessageService messageService;
     
     @PostMapping
-    public ResponseEntity<MessageResponse> sendMessage(@Valid @RequestBody MessageRequest request) {
+    public ResponseEntity<ChatMessageResponse> sendMessage(@Valid @RequestBody ChatMessageRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userId = auth.getName();
         
         log.info("Sending message from user {} to {}", userId, request.getReceiverId());
-        MessageResponse response = messageService.sendMessage(userId, request);
+        ChatMessageResponse response = messageService.sendMessage(userId, request);
         
         return ResponseEntity.ok(response);
     }
     
     @GetMapping("/conversation/{otherUserId}")
-    public ResponseEntity<Page<MessageResponse>> getMessagesBetweenUsers(
+    public ResponseEntity<Page<ChatMessageResponse>> getMessagesBetweenUsers(
             @PathVariable String otherUserId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -57,13 +57,13 @@ public class MessageController {
         log.info("Getting messages between users {} and {}", userId, otherUserId);
         
         Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
-        Page<MessageResponse> messages = messageService.getMessagesBetweenUsers(userId, otherUserId, pageable);
+        Page<ChatMessageResponse> messages = messageService.getMessagesBetweenUsers(userId, otherUserId, pageable);
         
         return ResponseEntity.ok(messages);
     }
     
     @GetMapping("/conversation/id/{conversationId}")
-    public ResponseEntity<Page<MessageResponse>> getMessagesByConversationId(
+    public ResponseEntity<Page<ChatMessageResponse>> getMessagesByConversationId(
             @PathVariable String conversationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -71,7 +71,7 @@ public class MessageController {
         log.info("Getting messages for conversation {}", conversationId);
         
         Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
-        Page<MessageResponse> messages = messageService.getMessagesByConversationId(conversationId, pageable);
+        Page<ChatMessageResponse> messages = messageService.getMessagesByConversationId(conversationId, pageable);
         
         return ResponseEntity.ok(messages);
     }
@@ -88,12 +88,12 @@ public class MessageController {
     }
     
     @GetMapping("/latest")
-    public ResponseEntity<List<MessageResponse>> getLatestMessagesForUser() {
+    public ResponseEntity<List<ChatMessageResponse>> getLatestMessagesForUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userId = auth.getName();
         
         log.info("Getting latest messages for user {}", userId);
-        List<MessageResponse> latestMessages = messageService.getLatestMessagesForUser(userId);
+        List<ChatMessageResponse> latestMessages = messageService.getLatestMessagesForUser(userId);
         
         return ResponseEntity.ok(latestMessages);
     }

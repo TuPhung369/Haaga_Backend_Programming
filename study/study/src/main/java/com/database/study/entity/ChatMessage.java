@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "messages")
-public class Message {
+public class ChatMessage {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

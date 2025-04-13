@@ -5,6 +5,7 @@ import {
   sendMessage,
   markMessagesAsRead,
   addContactByEmail,
+  updateContactGroup,
   Message,
   Contact,
 } from "../services/chatService";
@@ -137,6 +138,28 @@ export const addContactThunk = createAsyncThunk(
           serviceError instanceof Error
             ? serviceError.message
             : "Failed to add contact"
+        );
+      }
+    }
+  }
+);
+
+export const updateContactGroupThunk = createAsyncThunk(
+  "chat/updateContactGroup",
+  async (
+    { contactId, group }: { contactId: string; group: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await updateContactGroup(contactId, group);
+    } catch (error: unknown) {
+      try {
+        handleServiceError(error);
+      } catch (serviceError: unknown) {
+        return rejectWithValue(
+          serviceError instanceof Error
+            ? serviceError.message
+            : "Failed to update contact group"
         );
       }
     }
@@ -284,6 +307,39 @@ const chatSlice = createSlice({
         }
       })
       .addCase(addContactThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Update contact group
+      .addCase(updateContactGroupThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateContactGroupThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          const updatedContact = convertServiceContactToChatContact(
+            action.payload
+          );
+          // Make sure to include the group property from the response
+          updatedContact.group = action.payload.group;
+
+          // Update the contact in the contacts array
+          state.contacts = state.contacts.map((contact) =>
+            contact.id === updatedContact.id ? updatedContact : contact
+          );
+
+          // If this is the selected contact, update that too
+          if (
+            state.selectedContact &&
+            state.selectedContact.id === updatedContact.id
+          ) {
+            state.selectedContact = updatedContact;
+          }
+        }
+      })
+      .addCase(updateContactGroupThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

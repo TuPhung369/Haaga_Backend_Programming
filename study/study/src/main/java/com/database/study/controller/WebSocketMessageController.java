@@ -6,9 +6,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
-import com.database.study.dto.request.MessageRequest;
-import com.database.study.dto.response.MessageResponse;
-import com.database.study.service.MessageService;
+import com.database.study.dto.request.ChatMessageRequest;
+import com.database.study.dto.response.ChatMessageResponse;
+import com.database.study.service.ChatMessageService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,19 +19,19 @@ import lombok.extern.slf4j.Slf4j;
 public class WebSocketMessageController {
     
     private final SimpMessagingTemplate messagingTemplate;
-    private final MessageService messageService;
+    private final ChatMessageService messageService;
     
     @MessageMapping("/chat.sendMessage")
-    public void sendMessage(@Payload MessageRequest messageRequest, Authentication authentication) {
+    public void sendMessage(@Payload ChatMessageRequest ChatMessageRequest, Authentication authentication) {
         String senderId = authentication.getName();
-        log.info("Received message via WebSocket from user {} to {}", senderId, messageRequest.getReceiverId());
+        log.info("Received message via WebSocket from user {} to {}", senderId, ChatMessageRequest.getReceiverId());
         
         // Process and save the message
-        MessageResponse response = messageService.sendMessage(senderId, messageRequest);
+        ChatMessageResponse response = messageService.sendMessage(senderId, ChatMessageRequest);
         
         // Send to the specific user
         messagingTemplate.convertAndSendToUser(
-            messageRequest.getReceiverId(),
+            ChatMessageRequest.getReceiverId(),
             "/queue/messages",
             response
         );

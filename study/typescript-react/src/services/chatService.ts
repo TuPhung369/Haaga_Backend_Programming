@@ -47,6 +47,7 @@ export interface Contact {
   status: "online" | "offline" | "away";
   unreadCount: number;
   lastMessage?: string;
+  group?: string;
 }
 
 // Get all contacts
@@ -118,6 +119,22 @@ export const getUnreadMessageCount = async (): Promise<number> => {
     return response.data.count;
   } catch (error) {
     console.error("Error fetching unread message count:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Update contact group
+export const updateContactGroup = async (
+  contactId: string,
+  group: string
+): Promise<Contact> => {
+  try {
+    const response = await apiClient.post(`/chat/contacts/${contactId}/group`, {
+      group,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating contact group:", error);
     throw handleServiceError(error);
   }
 };

@@ -1,17 +1,19 @@
 package com.database.study;
 
-import io.github.cdimascio.dotenv.Dotenv;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import io.github.cdimascio.dotenv.Dotenv;
+import lombok.extern.slf4j.Slf4j;
 
 @EnableScheduling
 @Slf4j
+@EnableJpaRepositories(basePackages = { "com.database.study.repository" })
 @SpringBootApplication(scanBasePackages = { "com.database.study" })
 public class StudyApplication {
 

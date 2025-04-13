@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "contacts", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"user_id", "contact_id"})
 })
-public class Contact {
+public class ChatContact {
     
     public enum ContactStatus {
         PENDING,
@@ -60,4 +60,7 @@ public class Contact {
     
     @Column
     private String displayName; // Custom name for the contact
+    
+    @Column
+    private String contactGroup; // Group categorization (Friend, College, Family, etc.)
 }
