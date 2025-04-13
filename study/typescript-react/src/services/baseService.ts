@@ -1,5 +1,10 @@
 // src/services/baseService.ts
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
+import axios, {
+  AxiosResponse,
+  AxiosError,
+  InternalAxiosRequestConfig,
+  AxiosRequestHeaders,
+} from "axios";
 import { notification } from "antd";
 import { AxiosError as OriginalAxiosError } from "axios";
 import { CustomErrorData } from "../types/ApiTypes";
@@ -22,7 +27,7 @@ export const axiosInstance = axios.create({
 
 // Request interceptor for adding auth token
 axiosInstance.interceptors.request.use(
-  async (config: AxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     try {
       // Check if token needs refreshing before sending request
       // Skip for auth endpoints to prevent loops
@@ -51,7 +56,7 @@ axiosInstance.interceptors.request.use(
       return config;
     }
   },
-  (error: any) => Promise.reject(error)
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor for handling common errors
@@ -69,7 +74,7 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const { status, data } = error.response;
+    const { status } = error.response;
 
     // Handle specific HTTP status codes
     switch (status) {
@@ -87,20 +92,20 @@ axiosInstance.interceptors.response.use(
         // Try to refresh token and retry request
         try {
           const refreshed = await refreshToken(true);
-          
-          if (refreshed) {
+
+          if (refreshed && error.config) {
             // Get fresh token from Redux store after refresh
             const newToken = store.getState().auth.token;
-            
+
             // Create new request config with fresh token
             const newRequestConfig = {
               ...error.config,
               headers: {
-                ...error.config?.headers,
+                ...(error.config.headers || {}),
                 Authorization: `Bearer ${newToken}`,
-              },
+              } as AxiosRequestHeaders,
             };
-            
+
             // Retry original request with new token
             console.log("Retrying request with fresh token");
             return axiosInstance(newRequestConfig);
@@ -115,9 +120,9 @@ axiosInstance.interceptors.response.use(
           description: "Session expired. Please log in again.",
           duration: 5,
         });
-        
+
         store.dispatch(resetAllData());
-        
+
         // Redirect to login page
         setTimeout(() => {
           window.location.href = "/login";
@@ -366,3 +371,4 @@ export const handleServiceError = (error: unknown): never => {
     });
   }
 };
+
