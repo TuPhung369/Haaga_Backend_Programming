@@ -40,15 +40,14 @@ public class StudyApplication {
                 }
 
                 // Load and set environment variables based on the active profile
-                if ("dev".equals(activeProfile)) {
-                    configureDevProfile(dotenv);
-                } else if ("google".equals(activeProfile)) {
-                    configureGoogleProfile(dotenv);
-                } else if ("aws".equals(activeProfile)) {
-                    configureAwsProfile(dotenv);
-                } else {
-                    log.error("Unsupported profile: {}. Supported profiles are 'dev', 'google', 'aws'.", activeProfile);
-                    return;
+                switch (activeProfile) {
+                    case "dev" -> configureDevProfile(dotenv);
+                    case "google" -> configureGoogleProfile(dotenv);
+                    case "aws" -> configureAwsProfile(dotenv);
+                    default -> {
+                        log.error("Unsupported profile: {}. Supported profiles are 'dev', 'google', 'aws'.", activeProfile);
+                        return;
+                    }
                 }
 
                 // Start the Spring Boot application
