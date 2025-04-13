@@ -30,7 +30,7 @@ import com.database.study.repository.ChatContactRepository;
 import com.database.study.repository.UserRepository;
 
 @RestController
-@RequestMapping("/chat")
+@RequestMapping("/api/chat")
 public class ChatContactController {
 
     @Autowired
@@ -50,11 +50,18 @@ public class ChatContactController {
 
     @GetMapping("/contacts")
     public ResponseEntity<List<ChatContactResponse>> getContacts() {
+        // Log the authentication context
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("Authentication in getContacts: " + (auth != null ? auth.getName() : "null"));
+
         // Get current user
         User currentUser = getCurrentUser();
         if (currentUser == null) {
+            System.out.println("Current user is null in getContacts");
             return ResponseEntity.badRequest().build();
         }
+
+        System.out.println("Current user found: " + currentUser.getEmail() + ", ID: " + currentUser.getId());
 
         // Get contacts from database
         List<ChatContact> userContacts = contactRepository.findByUser(currentUser);
@@ -288,7 +295,25 @@ public class ChatContactController {
         if (auth == null || !auth.isAuthenticated()) {
             return null;
         }
-        return userRepository.findByEmail(auth.getName()).orElse(null);
+
+        // Try to find user by email first
+        Optional<User> userByEmail = userRepository.findByEmail(auth.getName());
+        if (userByEmail.isPresent()) {
+            return userByEmail.get();
+        }
+
+        // If not found by email, try by username
+        Optional<User> userByUsername = userRepository.findByUsername(auth.getName());
+        if (userByUsername.isPresent()) {
+            return userByUsername.get();
+        }
+
+        // Log the authentication details for debugging
+        System.out.println("Authentication name: " + auth.getName());
+        System.out.println("Authentication principal: " + auth.getPrincipal());
+        System.out.println("Authentication authorities: " + auth.getAuthorities());
+
+        return null;
     }
 
     /**

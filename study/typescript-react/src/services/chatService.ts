@@ -53,7 +53,7 @@ export interface Contact {
 // Get all contacts
 export const getContacts = async (): Promise<Contact[]> => {
   try {
-    const response = await apiClient.get(`/chat/contacts`);
+    const response = await apiClient.get(`/api/chat/contacts`);
     return response.data;
   } catch (error) {
     console.error("Error fetching contacts:", error);
@@ -64,7 +64,7 @@ export const getContacts = async (): Promise<Contact[]> => {
 // Get messages with a specific contact
 export const getMessages = async (contactId: string): Promise<Message[]> => {
   try {
-    const response = await apiClient.get(`/chat/messages/${contactId}`);
+    const response = await apiClient.get(`/api/chat/messages/${contactId}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching messages:", error);
@@ -78,7 +78,7 @@ export const sendMessage = async (
   receiverId: string
 ): Promise<Message> => {
   try {
-    const response = await apiClient.post(`/chat/messages`, {
+    const response = await apiClient.post(`/api/chat/messages`, {
       content,
       receiverId,
     });
@@ -92,7 +92,7 @@ export const sendMessage = async (
 // Mark messages as read
 export const markMessagesAsRead = async (contactId: string): Promise<void> => {
   try {
-    await apiClient.post(`/chat/messages/read/${contactId}`, {});
+    await apiClient.post(`/api/chat/messages/read/${contactId}`, {});
   } catch (error) {
     console.error("Error marking messages as read:", error);
     throw handleServiceError(error);
@@ -102,7 +102,7 @@ export const markMessagesAsRead = async (contactId: string): Promise<void> => {
 // Add a contact by email
 export const addContactByEmail = async (email: string): Promise<Contact> => {
   try {
-    const response = await apiClient.post(`/chat/contacts`, {
+    const response = await apiClient.post(`/api/chat/contacts`, {
       email,
     });
     return response.data;
@@ -115,7 +115,7 @@ export const addContactByEmail = async (email: string): Promise<Contact> => {
 // Get unread message count
 export const getUnreadMessageCount = async (): Promise<number> => {
   try {
-    const response = await apiClient.get(`/chat/messages/unread/count`);
+    const response = await apiClient.get(`/api/chat/messages/unread/count`);
     return response.data.count;
   } catch (error) {
     console.error("Error fetching unread message count:", error);
@@ -129,9 +129,12 @@ export const updateContactGroup = async (
   group: string
 ): Promise<Contact> => {
   try {
-    const response = await apiClient.post(`/chat/contacts/${contactId}/group`, {
-      group,
-    });
+    const response = await apiClient.post(
+      `/api/chat/contacts/${contactId}/group`,
+      {
+        group,
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error updating contact group:", error);

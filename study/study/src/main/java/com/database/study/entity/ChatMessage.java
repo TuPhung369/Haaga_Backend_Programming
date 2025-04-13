@@ -21,31 +21,31 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "messages")
+@Table(name = "chat_message")
 public class ChatMessage {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    
+
     @ManyToOne
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
-    
+
     @ManyToOne
     @JoinColumn(name = "receiver_id", nullable = false)
     private User receiver;
-    
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
-    
+
     @Column(nullable = false)
     private LocalDateTime timestamp;
-    
+
     @Column(nullable = false)
     @Builder.Default
     private boolean read = false;
-    
+
     @Column(name = "conversation_id")
     private String conversationId; // To group messages between two users
 }

@@ -24,43 +24,43 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "contacts", uniqueConstraints = {
+@Table(name = "chat_contact", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"user_id", "contact_id"})
 })
 public class ChatContact {
-    
+
     public enum ContactStatus {
         PENDING,
         ACCEPTED,
         BLOCKED
     }
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
+
     @ManyToOne
     @JoinColumn(name = "contact_id", nullable = false)
     private User contact;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private ContactStatus status = ContactStatus.PENDING;
-    
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
-    
+
     @Column
     private LocalDateTime updatedAt;
-    
+
     @Column
     private String displayName; // Custom name for the contact
-    
+
     @Column
     private String contactGroup; // Group categorization (Friend, College, Family, etc.)
 }
