@@ -121,10 +121,14 @@ export const sendMessageThunk = createAsyncThunk(
 
 export const markAsRead = createAsyncThunk(
   "chat/markAsRead",
-  async (contactId: string, { rejectWithValue }) => {
+  async (contactId: string, { rejectWithValue, getState }) => {
     try {
       await markMessagesAsRead(contactId);
-      return contactId;
+      // Get the current user ID from the state here, not in the reducer
+      const state = getState() as { user: { userInfo: { id: string } } };
+      const currentUserId = state.user.userInfo?.id;
+      // Return both contactId and currentUserId
+      return { contactId, currentUserId };
     } catch (error: unknown) {
       try {
         handleServiceError(error);
@@ -351,42 +355,141 @@ const chatSlice = createSlice({
         } else {
           console.log("[Redux] Message is new, adding to store");
           state.messages.push(action.payload);
+          // Sort messages by timestamp to ensure correct order
+          state.messages.sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
         }
         console.log("[Redux] New message count:", state.messages.length);
       }
     },
     updateMessagesReadStatus: (
       state,
-      action: PayloadAction<{ contactId: string }>
+      action: PayloadAction<{ contactId: string; currentUserId?: string }>
     ) => {
       console.log(
         "[Redux] Updating read status for messages from contact:",
         action.payload.contactId
       );
 
-      // Update all messages from this contact to be marked as read
-      state.messages = state.messages.map((message) => {
-        // If the message is from the specified contact, mark it as read
-        if (message.sender.id === action.payload.contactId && !message.read) {
-          console.log("[Redux] Marking message as read:", message.id);
+      // Use the currentUserId from the action payload
+      const currentUserId = action.payload.currentUserId;
+      console.log("[Redux] Current user ID from payload:", currentUserId);
+
+      // Check if we need to update anything at all
+      const hasUnreadReceivedMessages = state.messages.some(
+        (msg) =>
+          msg.sender.id === action.payload.contactId &&
+          msg.receiver.id === currentUserId &&
+          !msg.read
+      );
+
+      const hasUnreadSentMessages =
+        currentUserId &&
+        state.messages.some(
+          (msg) =>
+            msg.sender.id === currentUserId &&
+            msg.receiver.id === action.payload.contactId &&
+            !msg.read
+        );
+
+      // If there are no unread messages in either direction, skip the update
+      if (!hasUnreadReceivedMessages && !hasUnreadSentMessages) {
+        console.log(
+          "[Redux] No unread messages found, skipping read status update"
+        );
+        return;
+      }
+
+      // There are two scenarios:
+      // 1. We are marking messages as read that we received (when we view them)
+      // 2. We are receiving a notification that our sent messages were read by the recipient
+
+      // First, handle case 1: Mark messages we received as read
+      let updatedCount = 0;
+      let updatedMessages = state.messages.map((message) => {
+        // If the message is from the specified contact and sent to current user, mark it as read
+        if (
+          message.sender.id === action.payload.contactId &&
+          message.receiver.id === currentUserId &&
+          !message.read
+        ) {
+          console.log("[Redux] Marking received message as read:", message.id);
+          updatedCount++;
           return { ...message, read: true };
         }
         return message;
       });
+      console.log(`[Redux] Marked ${updatedCount} received messages as read`);
 
-      // Also update the unread count for this contact in the contacts list
-      const contactIndex = state.contacts.findIndex(
-        (contact) => contact.id === action.payload.contactId
-      );
-      if (contactIndex !== -1) {
+      // Then, handle case 2: Mark messages we sent as read when notified by the recipient
+      let sentUpdatedCount = 0;
+      if (currentUserId) {
+        updatedMessages = updatedMessages.map((message) => {
+          // If this is a message we sent to the contact who just read our messages
+          if (
+            message.sender.id === currentUserId &&
+            message.receiver.id === action.payload.contactId &&
+            !message.read
+          ) {
+            console.log(
+              "[Redux] *** MARKING SENT MESSAGE AS READ (recipient read it) ***:",
+              message.id
+            );
+            sentUpdatedCount++;
+            return { ...message, read: true };
+          }
+          return message;
+        });
         console.log(
-          "[Redux] Updating unread count for contact:",
-          action.payload.contactId
+          `[Redux] *** MARKED ${sentUpdatedCount} SENT MESSAGES AS READ ***`
         );
-        state.contacts[contactIndex] = {
-          ...state.contacts[contactIndex],
-          unreadCount: 0,
-        };
+      }
+
+      // Only update state if we actually changed something
+      if (updatedCount > 0 || sentUpdatedCount > 0) {
+        // Update the messages array
+        state.messages = updatedMessages;
+
+        // Also update the unread count for this contact in the contacts list
+        const contactIndex = state.contacts.findIndex(
+          (contact) => contact.id === action.payload.contactId
+        );
+        if (contactIndex !== -1) {
+          console.log(
+            "[Redux] Updating unread count for contact:",
+            action.payload.contactId
+          );
+          state.contacts[contactIndex] = {
+            ...state.contacts[contactIndex],
+            unreadCount: 0,
+          };
+        }
+
+        // Create completely new references for both arrays
+        // This ensures React detects the changes and re-renders
+        state.messages = [...state.messages]; // Simple array reference change is enough
+        state.contacts = [...state.contacts]; // Simple array reference change is enough
+
+        // Log the read status of messages for debugging
+        if (currentUserId) {
+          const sentMessages = state.messages.filter(
+            (msg) =>
+              msg.sender.id === currentUserId &&
+              msg.receiver.id === action.payload.contactId
+          );
+          console.log(
+            `[Redux] Read status of ${sentMessages.length} messages sent to ${action.payload.contactId}:`,
+            sentMessages.map((msg) => ({ id: msg.id, read: msg.read }))
+          );
+        }
+
+        console.log(
+          "[Redux] Created new references for messages and contacts arrays to ensure UI updates"
+        );
+      } else {
+        console.log("[Redux] No messages were updated, skipping state update");
       }
     },
     clearMessages: (state) => {
@@ -443,11 +546,15 @@ const chatSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.loading = false;
-        // Convert service messages to chat messages
+        // Convert service messages to chat messages and sort by timestamp
         state.messages = action.payload
-          ? action.payload.map((message) =>
-              convertServiceMessageToChatMessage(message)
-            )
+          ? action.payload
+              .map((message) => convertServiceMessageToChatMessage(message))
+              .sort(
+                (a, b) =>
+                  new Date(a.timestamp).getTime() -
+                  new Date(b.timestamp).getTime()
+              )
           : [];
       })
       .addCase(fetchMessages.rejected, (state, action) => {
@@ -475,10 +582,72 @@ const chatSlice = createSlice({
 
       // Mark as read
       .addCase(markAsRead.fulfilled, (state, action) => {
-        const contactId = action.payload;
-        state.contacts = state.contacts.map((contact) =>
-          contact.id === contactId ? { ...contact, unreadCount: 0 } : contact
-        );
+        // Check if payload exists and has the expected properties
+        if (
+          action.payload &&
+          "contactId" in action.payload &&
+          "currentUserId" in action.payload
+        ) {
+          const { contactId, currentUserId } = action.payload;
+          console.log("[Redux] markAsRead.fulfilled for contact:", contactId);
+          console.log("[Redux] Current user ID from payload:", currentUserId);
+
+          // Check if there are any unread messages that need to be updated
+          const hasUnreadMessages = state.messages.some(
+            (msg) =>
+              msg.sender.id === contactId &&
+              msg.receiver.id === currentUserId &&
+              !msg.read
+          );
+
+          if (!hasUnreadMessages) {
+            console.log("[Redux] No unread messages found, skipping update");
+            return;
+          }
+
+          // Update the unread count for this contact
+          const updatedContacts = state.contacts.map((contact) =>
+            contact.id === contactId ? { ...contact, unreadCount: 0 } : contact
+          );
+
+          // Mark messages from this contact as read
+          let updatedCount = 0;
+          const updatedMessages = state.messages.map((message) => {
+            // If the message is from the specified contact and sent to current user, mark it as read
+            if (
+              message.sender.id === contactId &&
+              message.receiver.id === currentUserId &&
+              !message.read
+            ) {
+              console.log(
+                "[Redux] Marking message as read from contact:",
+                message.id
+              );
+              updatedCount++;
+              return { ...message, read: true };
+            }
+            return message;
+          });
+          console.log(
+            `[Redux] Marked ${updatedCount} messages as read from contact:`,
+            contactId
+          );
+
+          // Only update state if we actually changed something
+          if (updatedCount > 0) {
+            // Update the state with the new arrays
+            state.messages = updatedMessages;
+            state.contacts = updatedContacts;
+
+            // Create completely new references for both arrays
+            // This ensures React detects the changes and re-renders
+            state.messages = [...state.messages]; // Simple array reference change is enough
+            state.contacts = [...state.contacts]; // Simple array reference change is enough
+            console.log(
+              "[Redux] Created new references for messages and contacts arrays to ensure UI updates"
+            );
+          }
+        }
       })
 
       // Add contact

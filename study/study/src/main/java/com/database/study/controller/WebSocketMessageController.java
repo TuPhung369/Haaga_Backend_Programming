@@ -1,5 +1,9 @@
 package com.database.study.controller;
 
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -8,6 +12,12 @@ import org.springframework.stereotype.Controller;
 
 import com.database.study.dto.request.ChatMessageRequest;
 import com.database.study.dto.response.ChatMessageResponse;
+import com.database.study.entity.ChatMessage;
+import com.database.study.entity.User;
+import com.database.study.exception.AppException;
+import com.database.study.exception.ErrorCode;
+import com.database.study.repository.ChatMessageRepository;
+import com.database.study.repository.UserRepository;
 import com.database.study.service.ChatMessageService;
 
 import lombok.RequiredArgsConstructor;
@@ -20,6 +30,8 @@ public class WebSocketMessageController {
     
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatMessageService messageService;
+    private final UserRepository userRepository;
+    private final ChatMessageRepository messageRepository;
     
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessageRequest ChatMessageRequest, Authentication authentication) {
@@ -34,19 +46,27 @@ public class WebSocketMessageController {
             ChatMessageResponse response = messageService.sendMessage(username, ChatMessageRequest);
             log.info("Message processed and saved with ID: {}", response.getId());
             
-            // Send to the specific user
-            log.info("Sending message to receiver: {}", ChatMessageRequest.getReceiverId());
+            // Find the receiver user to get their ID
+            User receiver = userRepository.findById(UUID.fromString(ChatMessageRequest.getReceiverId()))
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            
+            // Send to the specific user using their ID
+            log.info("Sending message to receiver ID: {}", receiver.getId());
             messagingTemplate.convertAndSendToUser(
-                ChatMessageRequest.getReceiverId(),
+                receiver.getId().toString(),
                 "/queue/messages",
                 response
             );
             log.info("Message sent to receiver successfully");
             
-            // Also send back to sender for confirmation
-            log.info("Sending confirmation back to sender: {}", username);
+            // Find the sender user to get their ID
+            User sender = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            
+            // Also send back to sender for confirmation using their ID
+            log.info("Sending confirmation back to sender ID: {}", sender.getId());
             messagingTemplate.convertAndSendToUser(
-                username,
+                sender.getId().toString(),
                 "/queue/messages",
                 response
             );
@@ -62,48 +82,131 @@ public class WebSocketMessageController {
         String username = authentication.getName();
         log.debug("User {} is typing to user {}", username, notification.getReceiverId());
         
-        // Add sender information
-        notification.setSenderId(username);
-        
-        // Send typing notification to the recipient
-        messagingTemplate.convertAndSendToUser(
-            notification.getReceiverId(),
-            "/queue/typing",
-            notification
-        );
+        try {
+            // Find the sender by username
+            User sender = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            
+            // Find the receiver by UUID
+            User receiver = userRepository.findById(UUID.fromString(notification.getReceiverId()))
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            
+            // Add sender information
+            notification.setSenderId(sender.getId().toString());
+            
+            // Send typing notification to the recipient using their ID
+            messagingTemplate.convertAndSendToUser(
+                receiver.getId().toString(),
+                "/queue/typing",
+                notification
+            );
+            log.debug("Typing notification sent to receiver ID: {}", receiver.getId());
+        } catch (Exception e) {
+            log.error("Error sending typing notification", e);
+        }
     }
     
     @MessageMapping("/chat.markAsRead")
-    public void markMessagesAsRead(@Payload ReadStatusRequest request, Authentication authentication) {
+    public ReadStatusResponse markMessagesAsRead(@Payload ReadStatusRequest request, Authentication authentication) {
         String username = authentication.getName();
         log.info("Marking messages as read via WebSocket for user {} from contact {}", username, request.getContactId());
+        log.info("Raw request payload: {}", request);
         
         try {
+            // Find the user by username
+            User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            log.info("Found user: {}", user.getId());
+            
+            // Find the contact user by ID
+            User contact = userRepository.findById(UUID.fromString(request.getContactId()))
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            log.info("Found contact: {}", contact.getId());
+            
+            // Generate the conversation ID
+            String conversationId = user.getId().compareTo(contact.getId()) < 0 
+                ? user.getId() + "_" + contact.getId() 
+                : contact.getId() + "_" + user.getId();
+            log.info("Using conversation ID: {}", conversationId);
+            
             // Call the service to mark messages as read
-            messageService.markMessagesAsRead(username, request.getContactId());
+            log.info("Calling messageService.markMessagesAsRead for user {} and conversation {}", username, conversationId);
+            messageService.markMessagesAsRead(username, conversationId);
             log.info("Messages marked as read successfully");
             
-            // Send confirmation back to the sender
-            messagingTemplate.convertAndSendToUser(
-                username,
-                "/queue/read-receipts",
-                new ReadStatusResponse(request.getContactId(), true)
-            );
+            // Verify that messages were marked as read
+            Page<ChatMessage> messages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
+            int unreadCount = 0;
+            for (ChatMessage message : messages) {
+                if (message.getReceiver().equals(user) && !message.isRead()) {
+                    unreadCount++;
+                    log.warn("Message {} is still unread after marking as read", message.getId());
+                }
+            }
+            log.info("After marking as read, there are {} unread messages for user {} in conversation {}", 
+                    unreadCount, username, conversationId);
             
-            // Notify the other user that their messages have been read
+            // Send confirmation back to the sender using their ID
+            ReadStatusResponse senderResponse = new ReadStatusResponse(request.getContactId(), true, request.getMessageId());
+            log.info("Sending read receipt confirmation to sender ID: {}, response: {}", user.getId(), senderResponse);
             messagingTemplate.convertAndSendToUser(
-                request.getContactId(),
+                user.getId().toString(),
                 "/queue/read-receipts",
-                new ReadStatusResponse(username, true)
+                senderResponse
             );
+            log.info("Sent read receipt confirmation to sender ID: {}", user.getId());
+            
+            // Also send to the special acknowledgement queue
+            log.info("Sending read receipt acknowledgement to sender ID: {}, response: {}", user.getId(), senderResponse);
+            messagingTemplate.convertAndSendToUser(
+                user.getId().toString(),
+                "/queue/read-receipts-ack",
+                senderResponse
+            );
+            log.info("Sent read receipt acknowledgement to sender ID: {}", user.getId());
+            
+            // Notify the other user that their messages have been read using their ID
+            ReadStatusResponse receiverResponse = new ReadStatusResponse(user.getId().toString(), true, request.getMessageId());
+            log.info("Sending read receipt notification to receiver ID: {}, response: {}", contact.getId(), receiverResponse);
+            messagingTemplate.convertAndSendToUser(
+                contact.getId().toString(),
+                "/queue/read-receipts",
+                receiverResponse
+            );
+            log.info("Sent read receipt notification to receiver ID: {}", contact.getId());
+            
+            // Return a response to the client to acknowledge receipt
+            return senderResponse;
         } catch (Exception e) {
             log.error("Error marking messages as read via WebSocket", e);
-            // Send error response back to the client
-            messagingTemplate.convertAndSendToUser(
-                username,
-                "/queue/read-receipts",
-                new ReadStatusResponse(request.getContactId(), false)
-            );
+            // Send error response back to the client using their ID
+            try {
+                User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                ReadStatusResponse errorResponse = new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
+                log.info("Sending error response to user ID: {}, response: {}", user.getId(), errorResponse);
+                messagingTemplate.convertAndSendToUser(
+                    user.getId().toString(),
+                    "/queue/read-receipts",
+                    errorResponse
+                );
+                log.info("Sent error response to user ID: {}", user.getId());
+                
+                // Also send to the special acknowledgement queue
+                log.info("Sending error acknowledgement to user ID: {}, response: {}", user.getId(), errorResponse);
+                messagingTemplate.convertAndSendToUser(
+                    user.getId().toString(),
+                    "/queue/read-receipts-ack",
+                    errorResponse
+                );
+                log.info("Sent error acknowledgement to user ID: {}", user.getId());
+                
+                // Return the error response
+                return errorResponse;
+            } catch (Exception ex) {
+                log.error("Error sending error response", ex);
+                return new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
+            }
         }
     }
     
@@ -126,14 +229,17 @@ public class WebSocketMessageController {
             notification.setSenderName(senderName);
             notification.setTimestamp(System.currentTimeMillis());
             
-            // Send to the recipient
+            // Find the receiver user to get their ID (receiverId is already a UUID string)
+            // No need to convert it, just use it directly
+            
+            // Send to the recipient using their ID
             messagingTemplate.convertAndSendToUser(
                 receiverId,
                 "/queue/contact-requests",
                 notification
             );
             
-            log.info("Contact request notification sent successfully to {}", receiverId);
+            log.info("Contact request notification sent successfully to ID: {}", receiverId);
         } catch (Exception e) {
             log.error("Error sending contact request notification", e);
         }
@@ -159,14 +265,17 @@ public class WebSocketMessageController {
             notification.setAccepted(accepted);
             notification.setTimestamp(System.currentTimeMillis());
             
-            // Send to the original requester
+            // Find the requester user to get their ID (requesterId is already a UUID string)
+            // No need to convert it, just use it directly
+            
+            // Send to the original requester using their ID
             messagingTemplate.convertAndSendToUser(
                 requesterId,
                 "/queue/contact-responses",
                 notification
             );
             
-            log.info("Contact response notification sent successfully to {}", requesterId);
+            log.info("Contact response notification sent successfully to ID: {}", requesterId);
         } catch (Exception e) {
             log.error("Error sending contact response notification", e);
         }
@@ -206,6 +315,7 @@ public class WebSocketMessageController {
     // Inner class for read status requests
     public static class ReadStatusRequest {
         private String contactId;
+        private String messageId;
         
         public ReadStatusRequest() {
             // Default constructor for JSON deserialization
@@ -215,6 +325,11 @@ public class WebSocketMessageController {
             this.contactId = contactId;
         }
         
+        public ReadStatusRequest(String contactId, String messageId) {
+            this.contactId = contactId;
+            this.messageId = messageId;
+        }
+        
         public String getContactId() {
             return contactId;
         }
@@ -222,12 +337,29 @@ public class WebSocketMessageController {
         public void setContactId(String contactId) {
             this.contactId = contactId;
         }
+        
+        public String getMessageId() {
+            return messageId;
+        }
+        
+        public void setMessageId(String messageId) {
+            this.messageId = messageId;
+        }
+        
+        @Override
+        public String toString() {
+            return "ReadStatusRequest{" +
+                    "contactId='" + contactId + '\'' +
+                    ", messageId='" + messageId + '\'' +
+                    '}';
+        }
     }
     
     // Inner class for read status responses
     public static class ReadStatusResponse {
         private String contactId;
         private boolean success;
+        private String messageId;
         
         public ReadStatusResponse() {
             // Default constructor for JSON serialization
@@ -236,6 +368,12 @@ public class WebSocketMessageController {
         public ReadStatusResponse(String contactId, boolean success) {
             this.contactId = contactId;
             this.success = success;
+        }
+        
+        public ReadStatusResponse(String contactId, boolean success, String messageId) {
+            this.contactId = contactId;
+            this.success = success;
+            this.messageId = messageId;
         }
         
         public String getContactId() {
@@ -252,6 +390,23 @@ public class WebSocketMessageController {
         
         public void setSuccess(boolean success) {
             this.success = success;
+        }
+        
+        public String getMessageId() {
+            return messageId;
+        }
+        
+        public void setMessageId(String messageId) {
+            this.messageId = messageId;
+        }
+        
+        @Override
+        public String toString() {
+            return "ReadStatusResponse{" +
+                    "contactId='" + contactId + '\'' +
+                    ", success=" + success +
+                    ", messageId='" + messageId + '\'' +
+                    '}';
         }
     }
     

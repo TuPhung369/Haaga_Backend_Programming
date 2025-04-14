@@ -16,6 +16,7 @@ export interface ChatMessage {
   timestamp: string;
   read: boolean;
   persistent?: boolean;
+  _updateKey?: number; // Added for forcing re-renders
 }
 
 export interface ChatContact {
@@ -27,6 +28,7 @@ export interface ChatContact {
   lastMessage?: string;
   group?: string; // Group categorization (Friend, College, Family, etc.)
   contactStatus?: "PENDING" | "ACCEPTED" | "BLOCKED" | "REJECTED";
+  _updateKey?: number; // Added for forcing re-renders
 }
 
 export interface ChatState {

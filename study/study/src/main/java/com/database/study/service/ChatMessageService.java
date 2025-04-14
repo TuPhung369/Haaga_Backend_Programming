@@ -3,6 +3,9 @@ package com.database.study.service;
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -34,6 +37,9 @@ public class ChatMessageService {
     private final UserRepository userRepository;
     private final ChatMessageMapper messageMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional
     public ChatMessageResponse sendMessage(String username, ChatMessageRequest request) {
@@ -127,15 +133,106 @@ public class ChatMessageService {
         // Find the user by username
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        log.info("Marking messages as read for user {} (ID: {}) in conversation {}", 
+                username, user.getId(), conversationId);
 
-        Page<ChatMessage> messages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
-
-        messages.forEach(message -> {
-            if (message.getReceiver().equals(user) && !message.isRead()) {
-                message.setRead(true);
-                messageRepository.save(message);
+        // First try with a direct SQL update for better performance
+        try {
+            log.info("Executing direct SQL update to mark messages as read");
+            
+            // Use a native SQL query to update all messages at once
+            int updatedCount = messageRepository.markMessagesAsReadInConversation(conversationId, user.getId());
+            
+            log.info("Direct SQL update affected {} rows", updatedCount);
+            
+            // If no rows were affected, try the entity-based approach
+            if (updatedCount == 0) {
+                log.info("No rows affected by direct SQL update, trying entity-based approach");
+                updateMessagesEntityBased(user, conversationId);
+            } else {
+                // Force a flush to ensure changes are committed
+                messageRepository.flush();
+                log.info("Flushed changes to database");
             }
-        });
+        } catch (Exception e) {
+            log.error("Error with direct SQL update", e);
+            log.info("Falling back to entity-based approach");
+            updateMessagesEntityBased(user, conversationId);
+        }
+        
+        // Final verification
+        verifyMessagesRead(user, conversationId);
+    }
+    
+    private void updateMessagesEntityBased(User user, String conversationId) {
+        log.info("Using entity-based approach to mark messages as read");
+        
+        Page<ChatMessage> messages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
+        log.info("Found {} messages in conversation {}", messages.getTotalElements(), conversationId);
+        
+        int count = 0;
+        for (ChatMessage message : messages) {
+            if (message.getReceiver().equals(user) && !message.isRead()) {
+                try {
+                    log.info("Marking message {} as read (entity method)", message.getId());
+                    message.setRead(true);
+                    messageRepository.save(message);
+                    count++;
+                    
+                    // Force a flush after each save to ensure it's committed
+                    messageRepository.flush();
+                    
+                    log.info("Marked message {} as read via entity update", message.getId());
+                } catch (Exception ex) {
+                    log.error("Error marking message {} as read with entity approach", message.getId(), ex);
+                    
+                    // Try with direct update as last resort
+                    try {
+                        log.info("Trying direct update for message {}", message.getId());
+                        messageRepository.markMessageAsRead(message.getId());
+                        messageRepository.flush();
+                        log.info("Direct update successful for message {}", message.getId());
+                    } catch (Exception directEx) {
+                        log.error("Direct update also failed for message {}", message.getId(), directEx);
+                    }
+                }
+            }
+        }
+        
+        log.info("Entity-based approach marked {} messages as read", count);
+    }
+    
+    private void verifyMessagesRead(User user, String conversationId) {
+        log.info("Verifying messages were marked as read");
+        
+        // Clear persistence context to ensure we get fresh data
+        entityManager.clear();
+        
+        Page<ChatMessage> verifyMessages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
+        int stillUnreadCount = 0;
+        
+        for (ChatMessage message : verifyMessages) {
+            if (message.getReceiver().equals(user) && !message.isRead()) {
+                stillUnreadCount++;
+                log.warn("Message {} is still unread after all update attempts", message.getId());
+                
+                // One final attempt with direct SQL
+                try {
+                    log.info("Final attempt to mark message {} as read", message.getId());
+                    messageRepository.markMessageAsRead(message.getId());
+                    messageRepository.flush();
+                } catch (Exception ex) {
+                    log.error("Final attempt failed for message {}", message.getId(), ex);
+                }
+            }
+        }
+        
+        if (stillUnreadCount > 0) {
+            log.warn("{} messages are still unread after all update attempts", stillUnreadCount);
+        } else {
+            log.info("All messages successfully marked as read");
+        }
     }
 
     @Transactional(readOnly = true)

@@ -27,5 +27,6 @@ public class ChatMessageRequest {
      * Whether this message should be stored permanently in the database
      * Default is true
      */
+    @Builder.Default
     private Boolean persistent = true;
 }
