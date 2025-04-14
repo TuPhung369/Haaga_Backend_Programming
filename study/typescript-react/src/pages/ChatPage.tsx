@@ -27,6 +27,8 @@ import {
   SearchOutlined,
   TeamOutlined,
   FilterOutlined,
+  UserAddOutlined,
+  UsergroupAddOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
@@ -37,7 +39,8 @@ import {
   PopoverNotificationCenter,
   NotificationBell,
 } from "@novu/notification-center";
-// import store from "../store/store"; // Không sử dụng
+import store from "../store/store"; // Import for direct access to Redux store
+import { updateUserStatus as updateUserStatusInRedux } from "../store/userSlice"; // Import the action
 
 import {
   fetchContacts,
@@ -61,12 +64,96 @@ import {
   sendTypingNotification,
   sendStatusUpdateViaWebSocket,
 } from "../services/websocketService";
+import { USER_STATUS_COLORS } from "../utils/constant";
 
 const { Title, Text } = Typography;
 
+// Styles for action buttons
+const actionButtonStyles = {
+  addContact: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+    height: "32px",
+    width: "32px",
+    padding: "0",
+    borderColor: "rgba(24, 144, 255, 1)", // Giảm độ đậm của border
+    color: "#1890ff",
+    transition: "all 0.3s ease",
+  },
+  addGroup: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+    height: "32px",
+    width: "32px",
+    padding: "0",
+    borderColor: "rgba(24, 144, 255, 1)", // Giảm độ đậm của border
+    color: "#1890ff",
+    transition: "all 0.3s ease",
+  },
+  filter: (isActive: boolean) => ({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+    height: "32px",
+    width: "32px",
+    padding: "0",
+    borderColor: isActive ? undefined : "rgba(24, 144, 255, 1)", // Giảm độ đậm của border
+    color: isActive ? undefined : "#1890ff",
+    background: isActive ? "rgba(24, 144, 255, 1)" : undefined, // Giảm độ đậm của background
+    transition: "all 0.3s ease",
+  }),
+};
+
+// Add CSS classes for hover effects
+const addCssStyles = () => {
+  if (!document.getElementById("chat-page-styles")) {
+    const styleEl = document.createElement("style");
+    styleEl.id = "chat-page-styles";
+    styleEl.innerHTML = `
+      .action-button.ant-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      }
+      .action-button.ant-btn-primary:hover {
+        background-color: #40a9ff;
+      }
+      .action-button.ant-btn:not(.ant-btn-primary):hover {
+        opacity: 0.85;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+};
+
 const ChatPage: React.FC = () => {
+  // Add CSS styles when component mounts
+  useEffect(() => {
+    addCssStyles();
+    return () => {
+      const styleEl = document.getElementById("chat-page-styles");
+      if (styleEl) styleEl.remove();
+    };
+  }, []);
   const dispatch =
     useDispatch<ThunkDispatch<RootState, unknown, UnknownAction>>();
+
+  // Get user info from Redux store first
+  const { userInfo } = useSelector((state: RootState) => state.user);
+  const { token } = useSelector((state: RootState) => state.auth);
+  const userId = userInfo?.id || "guest";
+  const {
+    messages,
+    contacts,
+    pendingRequests,
+    selectedContact,
+    loading: loadingContacts,
+  } = useSelector((state: RootState) => state.chat);
+
   const [messageText, setMessageText] = useState("");
   const [isAddContactModalVisible, setIsAddContactModalVisible] =
     useState(false);
@@ -77,10 +164,12 @@ const ChatPage: React.FC = () => {
   // Add state for contact search
   const [searchText, setSearchText] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  // Add state for user status
+  // Add state for user status - initialize from Redux store if available
   const [userStatus, setUserStatus] = useState<
     "online" | "away" | "busy" | "offline"
-  >("online");
+  >(
+    (userInfo?.userStatus as "online" | "away" | "busy" | "offline") || "online"
+  );
 
   // Log when readStatusVersion changes
   useEffect(() => {
@@ -89,21 +178,17 @@ const ChatPage: React.FC = () => {
       readStatusVersion
     );
   }, [readStatusVersion]);
+
+  // Update local state when userInfo.userStatus changes in Redux
+  useEffect(() => {
+    if (userInfo?.userStatus) {
+      setUserStatus(
+        userInfo.userStatus as "online" | "away" | "busy" | "offline"
+      );
+    }
+  }, [userInfo?.userStatus]);
   const [form] = Form.useForm();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Lấy token từ state nhưng không sử dụng trực tiếp ở đây
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { token } = useSelector((state: RootState) => state.auth);
-  const { userInfo } = useSelector((state: RootState) => state.user);
-  const userId = userInfo?.id || "guest";
-  const {
-    messages,
-    contacts,
-    pendingRequests,
-    selectedContact,
-    loading: loadingContacts,
-  } = useSelector((state: RootState) => state.chat);
 
   // Novu application ID
   const NOVU_APP_ID = import.meta.env.VITE_NOVU_APP_ID || "your-novu-app-id";
@@ -518,7 +603,10 @@ const ChatPage: React.FC = () => {
     // Update local state
     setUserStatus(status);
 
-    // Send status update via WebSocket
+    // Update Redux store
+    dispatch(updateUserStatusInRedux(status));
+
+    // Send status update via WebSocket for real-time updates
     const sent = sendStatusUpdateViaWebSocket(status);
 
     if (!sent) {
@@ -529,13 +617,66 @@ const ChatPage: React.FC = () => {
           "Could not update your status in real-time. Other users may not see your current status.",
         duration: 3,
       });
-    } else {
-      console.log("[Chat] Status update sent successfully");
-      notification.success({
-        message: "Status Updated",
-        description: `Your status is now set to ${status}.`,
-        duration: 2,
-      });
+    }
+
+    // Update status in database for persistence
+    try {
+      // Import the updateUserStatus function from userService
+      import("../services/userService").then(
+        ({ updateUserStatus: updateUserStatusInDB }) => {
+          // Get token from Redux store
+          const token = store.getState().auth.token;
+
+          if (token) {
+            // Update in database
+            updateUserStatusInDB(status, token)
+              .then(() => {
+                console.log("[Chat] Status updated in database successfully");
+                notification.success({
+                  message: "Status Updated",
+                  description: `Your status is now set to ${status}.`,
+                  duration: 2,
+                });
+              })
+              .catch((error) => {
+                console.error(
+                  "[Chat] Error updating status in database:",
+                  error
+                );
+                // Still show success notification if WebSocket update was successful
+                if (sent) {
+                  notification.success({
+                    message: "Status Updated",
+                    description: `Your status is now set to ${status} (real-time only).`,
+                    duration: 2,
+                  });
+                }
+              });
+          } else {
+            console.warn(
+              "[Chat] No token available, cannot update status in database"
+            );
+            // Still show success notification if WebSocket update was successful
+            if (sent) {
+              notification.success({
+                message: "Status Updated",
+                description: `Your status is now set to ${status} (real-time only).`,
+                duration: 2,
+              });
+            }
+          }
+        }
+      );
+    } catch (error) {
+      console.error("[Chat] Error importing updateUserStatus function:", error);
+      // Still show success notification if WebSocket update was successful
+      if (sent) {
+        notification.success({
+          message: "Status Updated",
+          description: `Your status is now set to ${status} (real-time only).`,
+          duration: 2,
+        });
+      }
     }
   };
 
@@ -823,33 +964,18 @@ const ChatPage: React.FC = () => {
               />
 
               <Button
-                type="primary"
-                icon={<PlusOutlined />}
+                icon={<UserAddOutlined style={{ fontSize: "14px" }} />}
                 onClick={showAddContactModal}
-                style={{
-                  backgroundColor: "#1890ff",
-                  boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "8px",
-                  height: "32px",
-                  padding: "0 8px",
-                }}
+                style={actionButtonStyles.addContact}
                 title="Add New Contact"
+                className="action-button"
               />
 
               <Button
-                icon={<TeamOutlined />}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "8px",
-                  height: "32px",
-                  padding: "0 8px",
-                }}
+                icon={<UsergroupAddOutlined style={{ fontSize: "14px" }} />}
+                style={actionButtonStyles.addGroup}
                 title="Create New Group"
+                className="action-button"
               />
 
               <Dropdown
@@ -1032,19 +1158,13 @@ const ChatPage: React.FC = () => {
                     <FilterOutlined
                       style={{
                         color: activeFilter !== "all" ? "#1890ff" : undefined,
+                        fontSize: "14px",
                       }}
                     />
                   }
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: "8px",
-                    height: "32px",
-                    padding: "0 8px",
-                    borderColor: activeFilter !== "all" ? "#1890ff" : undefined,
-                  }}
+                  style={actionButtonStyles.filter(activeFilter !== "all")}
                   title="Filter Contacts"
+                  className="action-button"
                 />
               </Dropdown>
             </div>
@@ -1095,7 +1215,16 @@ const ChatPage: React.FC = () => {
                         <div style={{ position: "relative" }}>
                           <Avatar
                             icon={<UserOutlined />}
-                            style={{ backgroundColor: "#ff4d4f" }}
+                            style={{
+                              backgroundColor:
+                                request.status === "online"
+                                  ? USER_STATUS_COLORS.ONLINE
+                                  : request.status === "away"
+                                  ? USER_STATUS_COLORS.AWAY
+                                  : request.status === "busy"
+                                  ? USER_STATUS_COLORS.BUSY
+                                  : USER_STATUS_COLORS.OFFLINE_AVATAR,
+                            }}
                           />
                           <div
                             style={{
@@ -1106,7 +1235,14 @@ const ChatPage: React.FC = () => {
                               height: "10px",
                               borderRadius: "50%",
                               border: "1px solid white",
-                              background: "#8c8c8c", // Grey for Offline/Unknown
+                              background:
+                                request.status === "online"
+                                  ? USER_STATUS_COLORS.ONLINE
+                                  : request.status === "away"
+                                  ? USER_STATUS_COLORS.AWAY
+                                  : request.status === "busy"
+                                  ? USER_STATUS_COLORS.BUSY
+                                  : USER_STATUS_COLORS.OFFLINE,
                             }}
                           />
                         </div>
@@ -1214,7 +1350,16 @@ const ChatPage: React.FC = () => {
                           <div style={{ position: "relative" }}>
                             <Avatar
                               icon={<UserOutlined />}
-                              style={{ backgroundColor: "#1890ff" }}
+                              style={{
+                                backgroundColor:
+                                  contact.status === "online"
+                                    ? USER_STATUS_COLORS.ONLINE
+                                    : contact.status === "away"
+                                    ? USER_STATUS_COLORS.AWAY
+                                    : contact.status === "busy"
+                                    ? USER_STATUS_COLORS.BUSY
+                                    : USER_STATUS_COLORS.OFFLINE_AVATAR,
+                              }}
                             />
                             <div
                               style={{
@@ -1227,12 +1372,12 @@ const ChatPage: React.FC = () => {
                                 border: "1px solid white",
                                 background:
                                   contact.status === "online"
-                                    ? "#52c41a" // Green for Online
+                                    ? USER_STATUS_COLORS.ONLINE
                                     : contact.status === "away"
-                                    ? "#faad14" // Yellow for Away
+                                    ? USER_STATUS_COLORS.AWAY
                                     : contact.status === "busy"
-                                    ? "#f5222d" // Red for Busy
-                                    : "#8c8c8c", // Grey for Offline
+                                    ? USER_STATUS_COLORS.BUSY
+                                    : USER_STATUS_COLORS.OFFLINE,
                               }}
                             />
                           </div>
@@ -1517,12 +1662,14 @@ const ChatPage: React.FC = () => {
             background: "#fff",
             overflow: "hidden", // Prevent overflow from the card
           }}
-          bodyStyle={{
-            padding: 0,
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-            overflow: "hidden",
+          styles={{
+            body: {
+              padding: 0,
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+              overflow: "hidden",
+            },
           }}
         >
           {selectedContact ? (
@@ -1549,10 +1696,12 @@ const ChatPage: React.FC = () => {
                     style={{
                       backgroundColor:
                         selectedContact.status === "online"
-                          ? "#52c41a"
+                          ? USER_STATUS_COLORS.ONLINE
                           : selectedContact.status === "away"
-                          ? "#faad14"
-                          : "#d9d9d9",
+                          ? USER_STATUS_COLORS.AWAY
+                          : selectedContact.status === "busy"
+                          ? USER_STATUS_COLORS.BUSY
+                          : USER_STATUS_COLORS.OFFLINE_AVATAR,
                     }}
                   />
                   <div>
@@ -1630,10 +1779,12 @@ const ChatPage: React.FC = () => {
                           borderRadius: "50%",
                           background:
                             selectedContact.status === "online"
-                              ? "#52c41a"
+                              ? USER_STATUS_COLORS.ONLINE
                               : selectedContact.status === "away"
-                              ? "#faad14"
-                              : "#8c8c8c",
+                              ? USER_STATUS_COLORS.AWAY
+                              : selectedContact.status === "busy"
+                              ? USER_STATUS_COLORS.BUSY
+                              : USER_STATUS_COLORS.OFFLINE,
                         }}
                       />
                       {selectedContact.status.charAt(0).toUpperCase() +
@@ -1997,4 +2148,5 @@ const ChatPage: React.FC = () => {
 };
 
 export default ChatPage;
+
 

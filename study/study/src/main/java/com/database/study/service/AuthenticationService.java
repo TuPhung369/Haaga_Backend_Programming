@@ -89,6 +89,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.database.study.interfaces.AuthenticationUtilities;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import java.util.Collections;
 
 @Slf4j
@@ -121,6 +125,7 @@ public class AuthenticationService implements AuthenticationUtilities {
   @Value("${security.max-failed-attempts:3}")
   private int maxFailedAttempts;
 
+  @Override
   @Transactional
   public AuthenticationResponse authenticate(AuthenticationRequest request, boolean rememberMe,
       HttpServletRequest httpRequest) {
@@ -145,7 +150,7 @@ public class AuthenticationService implements AuthenticationUtilities {
       securityMonitoringService.resetFailedAttempts(request.getUsername(), user.getEmail(), httpRequest);
 
       // Generate tokens and continue with authentication
-      return completeAuthentication(user, rememberMe);
+      return completeAuthentication(user);
 
     } catch (AppException e) {
       if (e.getErrorCode() == ErrorCode.USER_NOT_EXISTS) {
@@ -248,6 +253,7 @@ public class AuthenticationService implements AuthenticationUtilities {
         .build();
   }
 
+  @Override
   @Transactional(noRollbackFor = AppException.class)
   public AuthenticationResponse authenticateWithTotp(TotpAuthenticationRequest request,
       HttpServletRequest httpRequest) {
@@ -853,11 +859,24 @@ public class AuthenticationService implements AuthenticationUtilities {
     } catch (ParseException e) {
       log.error("Error parsing JWT token: {}", e.getMessage(), e);
       return null;
-    } catch (Exception e) {
+    } catch (JOSEException e) {
       // Still clear cookie even if error occurs
       cookieService.deleteRefreshTokenCookie(httpResponse);
-
-      log.error("Error during logout: {}", e.getMessage());
+      log.error("JWT processing error during logout: {}", e.getMessage(), e);
+      return ApiResponse.<Void>builder()
+          .message("Logged out successfully")
+          .build();
+    } catch (IllegalArgumentException e) {
+      // Still clear cookie even if error occurs
+      cookieService.deleteRefreshTokenCookie(httpResponse);
+      log.error("Invalid argument during logout: {}", e.getMessage(), e);
+      return ApiResponse.<Void>builder()
+          .message("Logged out successfully")
+          .build();
+    } catch (RuntimeException e) {
+      // Still clear cookie even if error occurs
+      cookieService.deleteRefreshTokenCookie(httpResponse);
+      log.error("Runtime error during logout: {}", e.getMessage(), e);
       return ApiResponse.<Void>builder()
           .message("Logged out successfully")
           .build();
@@ -1867,6 +1886,7 @@ public class AuthenticationService implements AuthenticationUtilities {
     return totpService.isTotpEnabled(username);
   }
 
+  @Override
   @Transactional(noRollbackFor = AppException.class)
   public AuthenticationResponse authenticateWithEmailOtp(EmailOtpAuthenticationRequest request,
       HttpServletRequest httpRequest) {
@@ -1937,18 +1957,14 @@ public class AuthenticationService implements AuthenticationUtilities {
       }
     }
 
-    // We only get here if OTP matched, so matchedToken is guaranteed to be non-null
-    assert matchedToken != null : "matchedToken should not be null here";
-
-    // Mark OTP as used
-    if (matchedToken != null) {
-      matchedToken.setUsed(true); // Use matchedToken safely here
-    } else {
-      // Handle the case where matchedToken is null
-      // For example, you can log an error or throw an exception
-      throw new IllegalStateException("matchedToken is null");
+    // Check if matchedToken is null before using it
+    if (matchedToken == null) {
+      log.error("Unexpected null matchedToken after successful OTP validation");
+      throw new IllegalStateException("Token validation succeeded but token object is null");
     }
 
+    // Mark OTP as used
+    matchedToken.setUsed(true);
     passwordResetTokenRepository.save(matchedToken);
 
     // Reset failed attempts counter on successful authentication
@@ -1992,6 +2008,7 @@ public class AuthenticationService implements AuthenticationUtilities {
         .build();
   }
 
+  @Override
   @Transactional
   public AuthenticationInitResponse initiateAuthentication(AuthenticationRequest request,
       HttpServletRequest httpRequest) {
@@ -2050,7 +2067,8 @@ public class AuthenticationService implements AuthenticationUtilities {
     }
   }
 
-  private AuthenticationResponse completeAuthentication(User user, boolean rememberMe) {
+  private AuthenticationResponse completeAuthentication(User user) {
+    // The rememberMe parameter was removed as it's not used in this method
 
     // Clean up expired tokens
     // activeTokenRepository.deleteAllByExpiryTimeBefore(new Date());
@@ -2341,17 +2359,14 @@ public class AuthenticationService implements AuthenticationUtilities {
       }
     }
 
-    // We only get here if OTP matched, so matchedToken is guaranteed to be non-null
-    assert matchedToken != null : "matchedToken should not be null here";
+    // Check if matchedToken is null before using it
+    if (matchedToken == null) {
+      log.error("Unexpected null matchedToken after successful OTP validation");
+      throw new IllegalStateException("Token validation succeeded but token object is null");
+    }
 
     // Mark OTP as used
-    if (matchedToken != null) {
-      matchedToken.setUsed(true); // Use matchedToken safely here
-    } else {
-      // Handle the case where matchedToken is null
-      // For example, you can log an error or throw an exception
-      throw new IllegalStateException("matchedToken is null");
-    }
+    matchedToken.setUsed(true);
     passwordResetTokenRepository.save(matchedToken);
 
     // Reset failed attempts counter on successful authentication
@@ -2573,7 +2588,16 @@ public class AuthenticationService implements AuthenticationUtilities {
       }
 
       return userInfo;
-    } catch (Exception ex) {
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      log.error("HTTP error validating GitHub token: {}", e.getResponseBodyAsString(), e);
+      throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "GitHub API error: " + e.getStatusCode());
+    } catch (ResourceAccessException e) {
+      log.error("Network error validating GitHub token: {}", e.getMessage(), e);
+      throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Network error connecting to GitHub: " + e.getMessage());
+    } catch (RestClientException e) {
+      log.error("REST client error validating GitHub token: {}", e.getMessage(), e);
+      throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Error communicating with GitHub: " + e.getMessage());
+    } catch (RuntimeException ex) {
       log.error("Error validating GitHub token", ex);
       throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Failed to validate GitHub token: " + ex.getMessage());
     }
@@ -2625,7 +2649,16 @@ public class AuthenticationService implements AuthenticationUtilities {
       }
 
       return userInfo != null ? userInfo : Collections.emptyMap();
-    } catch (Exception ex) {
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      log.error("HTTP error validating Facebook token: {}", e.getResponseBodyAsString(), e);
+      throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Facebook API error: " + e.getStatusCode());
+    } catch (ResourceAccessException e) {
+      log.error("Network error validating Facebook token: {}", e.getMessage(), e);
+      throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Network error connecting to Facebook: " + e.getMessage());
+    } catch (RestClientException e) {
+      log.error("REST client error validating Facebook token: {}", e.getMessage(), e);
+      throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Error communicating with Facebook: " + e.getMessage());
+    } catch (RuntimeException ex) {
       log.error("Error validating Facebook token", ex);
       throw new AppException(ErrorCode.EXTERNAL_API_ERROR, "Failed to validate Facebook token: " + ex.getMessage());
     }

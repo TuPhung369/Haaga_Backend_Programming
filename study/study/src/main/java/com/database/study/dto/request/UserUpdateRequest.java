@@ -53,6 +53,13 @@ public class UserUpdateRequest {
   List<String> roles;
 
   Boolean active;
+  
+  // New fields
+  String avatar;
+  String position;
+  String department;
+  String education;
+  String userStatus;
 
   String recaptchaToken;
 

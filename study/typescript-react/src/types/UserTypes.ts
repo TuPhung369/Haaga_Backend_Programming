@@ -14,6 +14,12 @@ export interface ValidationInput {
   roles?: string[];
   active?: boolean;
   block?: boolean;
+  // New fields
+  avatar?: string;
+  position?: string;
+  department?: string;
+  education?: string;
+  userStatus?: "online" | "away" | "busy" | "offline";
 }
 
 export interface Permission {
@@ -64,6 +70,12 @@ export interface User {
   active?: boolean;
   block?: boolean;
   timeTried?: number;
+  // New fields
+  avatar?: string;
+  position?: string;
+  department?: string;
+  education?: string;
+  userStatus?: "online" | "away" | "busy" | "offline";
   totpSecurity?: {
     enabled: boolean;
     deviceName?: string;

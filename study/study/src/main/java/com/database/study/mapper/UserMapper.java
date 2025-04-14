@@ -69,6 +69,10 @@ public interface UserMapper {
         .build();
   }
 
+  /**
+   * Convert UserCreationRequest to User entity
+   * Note: This method does not set roles or totpSecurity, which should be handled separately
+   */
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   @Mapping(target = "id", ignore = true) // ID is typically auto-generated
   @Mapping(target = "email", source = "email") // Map email explicitly
@@ -76,12 +80,22 @@ public interface UserMapper {
   @Mapping(target = "block", constant = "false") // Default value for isBlock
   @Mapping(target = "timeTried", constant = "0") // Default value for timeTried
   @Mapping(target = "totpSecurity", ignore = true) // Ignore totpSecurity, set manually if needed
+  @Mapping(target = "avatar", ignore = true) // Ignore new fields, set them manually if needed
+  @Mapping(target = "position", ignore = true)
+  @Mapping(target = "department", ignore = true)
+  @Mapping(target = "education", ignore = true)
+  @Mapping(target = "userStatus", ignore = true)
   User toUser(UserCreationRequest request);
 
   @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRolesToRoleResponse")
   @Mapping(target = "id", source = "id")
   @Mapping(target = "active", source = "active")
   @Mapping(target = "totpSecurity", source = "totpSecurity", qualifiedByName = "mapTotpSecurityToInfo")
+  @Mapping(target = "avatar", source = "avatar")
+  @Mapping(target = "position", source = "position")
+  @Mapping(target = "department", source = "department")
+  @Mapping(target = "education", source = "education")
+  @Mapping(target = "userStatus", source = "userStatus")
   UserResponse toUserResponse(User user);
 
   // New Method: Convert UserResponse back to User
@@ -91,6 +105,11 @@ public interface UserMapper {
   @Mapping(target = "block", constant = "false") // Default value for isBlock
   @Mapping(target = "timeTried", constant = "0") // Default value for timeTried
   @Mapping(target = "totpSecurity", source = "totpSecurity", qualifiedByName = "mapTotpSecurityInfoToEntity")
+  @Mapping(target = "avatar", source = "avatar")
+  @Mapping(target = "position", source = "position")
+  @Mapping(target = "department", source = "department")
+  @Mapping(target = "education", source = "education")
+  @Mapping(target = "userStatus", source = "userStatus")
   User toUser(UserResponse response);
 
   // Convert roles to string set for mapping if needed
@@ -100,21 +119,83 @@ public interface UserMapper {
         .map(Role::getName)
         .collect(Collectors.toSet());
   }
+  
+  // Helper method to set profile fields from request to user
+  @Named("setProfileFields")
+  default void setProfileFields(User user, UserCreationRequest request) {
+    if (request.getAvatar() != null) {
+      user.setAvatar(request.getAvatar());
+    }
+    if (request.getPosition() != null) {
+      user.setPosition(request.getPosition());
+    }
+    if (request.getDepartment() != null) {
+      user.setDepartment(request.getDepartment());
+    }
+    if (request.getEducation() != null) {
+      user.setEducation(request.getEducation());
+    }
+    if (request.getUserStatus() != null) {
+      user.setUserStatus(request.getUserStatus());
+    } else {
+      user.setUserStatus("online"); // Default value
+    }
+  }
+  
+  // Helper method to set profile fields from update request to user
+  @Named("setProfileFieldsFromUpdate")
+  default void setProfileFieldsFromUpdate(User user, UserUpdateRequest request) {
+    if (request.getAvatar() != null) {
+      user.setAvatar(request.getAvatar());
+    }
+    if (request.getPosition() != null) {
+      user.setPosition(request.getPosition());
+    }
+    if (request.getDepartment() != null) {
+      user.setDepartment(request.getDepartment());
+    }
+    if (request.getEducation() != null) {
+      user.setEducation(request.getEducation());
+    }
+    if (request.getUserStatus() != null) {
+      user.setUserStatus(request.getUserStatus());
+    } else {
+      // Don't change existing status if not provided
+    }
+  }
 
-  // Updates an existing user entity with request data, ignoring the 'id' field
+  /**
+   * Updates an existing user entity with request data, ignoring the 'id' field
+   * Note: This method does not update roles or totpSecurity, which should be handled separately
+   * Profile fields (avatar, position, etc.) should be updated using the setProfileFields helper method
+   */
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   @Mapping(target = "block", ignore = true) // Preserve existing isBlock value
   @Mapping(target = "timeTried", ignore = true) // Preserve existing timeTried value
   @Mapping(target = "totpSecurity", ignore = true) // Preserve existing totpSecurity
+  @Mapping(target = "avatar", ignore = true) // Ignore new fields, set them manually if needed
+  @Mapping(target = "position", ignore = true)
+  @Mapping(target = "department", ignore = true)
+  @Mapping(target = "education", ignore = true)
+  @Mapping(target = "userStatus", ignore = true)
   void updateUser(@MappingTarget User user, UserCreationRequest request);
   
-  // Updates an existing user entity with update request data
+  /**
+   * Updates an existing user entity with update request data
+   * Note: This method does not update roles, totpSecurity, or password, which should be handled separately
+   * Profile fields (avatar, position, etc.) should be updated using the setProfileFieldsFromUpdate helper method
+   */
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   @Mapping(target = "block", ignore = true) // Preserve existing isBlock value
   @Mapping(target = "timeTried", ignore = true) // Preserve existing timeTried value
   @Mapping(target = "totpSecurity", ignore = true) // Preserve existing totpSecurity
   @Mapping(target = "password", ignore = true) // Password is handled separately in service
+  @Mapping(target = "avatar", ignore = true) // Ignore new fields, set them manually if needed
+  @Mapping(target = "position", ignore = true)
+  @Mapping(target = "department", ignore = true)
+  @Mapping(target = "education", ignore = true)
+  @Mapping(target = "userStatus", ignore = true)
   void updateUser(@MappingTarget User user, UserUpdateRequest request);
 }

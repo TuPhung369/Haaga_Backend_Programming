@@ -49,6 +49,13 @@ public class UserCreationRequest {
   List<String> roles;
 
   Boolean active;
+  
+  // New fields
+  String avatar;
+  String position;
+  String department;
+  String education;
+  String userStatus;
 
   @NotBlank(message = "RECAPTCHA_REQUIRED")
   String recaptchaToken;

@@ -23,7 +23,7 @@ export interface ChatContact {
   id: string;
   name: string;
   email: string;
-  status: "online" | "offline" | "away";
+  status: "online" | "offline" | "away" | "busy";
   unreadCount: number;
   lastMessage?: string;
   group?: string; // Group categorization (Friend, College, Family, etc.)
@@ -73,7 +73,7 @@ export interface Contact {
   id: string;
   name: string;
   email: string;
-  status: "online" | "offline" | "away";
+  status: "online" | "offline" | "away" | "busy";
   lastSeen?: string;
 }
 

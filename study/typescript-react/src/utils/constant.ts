@@ -110,3 +110,12 @@ export const PriorityOptions = [
   { value: "Low", label: "Low", textColor: "text-black" },
 ];
 
+// User status colors
+export const USER_STATUS_COLORS = {
+  ONLINE: "#52c41a", // Green for Online
+  AWAY: "#faad14", // Yellow for Away
+  BUSY: "#f5222d", // Red for Busy
+  OFFLINE: "#8c8c8c", // Grey for Offline status indicator
+  OFFLINE_AVATAR: "#d9d9d9", // Light grey for Offline avatar
+};
+

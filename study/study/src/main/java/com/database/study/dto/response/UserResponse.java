@@ -23,6 +23,13 @@ public class UserResponse {
 
   Set<RoleResponse> roles;
   boolean active;
+  
+  // New fields
+  String avatar;
+  String position;
+  String department;
+  String education;
+  String userStatus;
 
   TotpSecurityInfo totpSecurity;
   

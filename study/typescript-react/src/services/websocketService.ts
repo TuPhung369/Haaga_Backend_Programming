@@ -256,6 +256,44 @@ export const connectWebSocket = (userId: string): boolean => {
               typingSubscription ? "Success" : "Failed"
             );
 
+            // Subscribe to user status updates
+            console.log(
+              `[WebSocket] Subscribing to user status updates at: /topic/user-status`
+            );
+            const statusSubscription = stompClient.subscribe(
+              `/topic/user-status`,
+              (message: IMessage) => {
+                console.log("[WebSocket] Raw status update received:", message);
+                try {
+                  const statusUpdate = JSON.parse(message.body);
+                  console.log("[WebSocket] Status update parsed:", statusUpdate);
+                  
+                  // Update the Redux store with the new status
+                  if (statusUpdate.userId && statusUpdate.status) {
+                    // Import the necessary actions to update contact status
+                    import("../store/chatSlice").then(({ updateContactStatus }) => {
+                      // Only update if we have the updateContactStatus action
+                      if (updateContactStatus) {
+                        store.dispatch(updateContactStatus({
+                          contactId: statusUpdate.userId,
+                          status: statusUpdate.status
+                        }));
+                        console.log("[WebSocket] Contact status updated in Redux store");
+                      } else {
+                        console.warn("[WebSocket] updateContactStatus action not found");
+                      }
+                    });
+                  }
+                } catch (error) {
+                  console.error("[WebSocket] Error processing status update:", error);
+                }
+              }
+            );
+            console.log(
+              "[WebSocket] Status subscription created:",
+              statusSubscription ? "Success" : "Failed"
+            );
+
             // Subscribe to read receipts
             console.log(
               `[WebSocket] Subscribing to read receipts at: /user/${capturedUserId}/queue/read-receipts`

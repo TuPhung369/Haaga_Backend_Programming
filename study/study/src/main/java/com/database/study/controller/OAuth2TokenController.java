@@ -129,7 +129,6 @@ public class OAuth2TokenController {
     log.info("STEP 2: Received authorization code from Google: {}", code);
 
     // Step 2.1: Prepare Token Exchange Request
-    RestTemplate restTemplate = new RestTemplate();
     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
     params.add("code", code);
     params.add("client_id", clientId);
@@ -359,17 +358,40 @@ public class OAuth2TokenController {
             URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
 
-      } catch (Exception e) {
-        log.error("GitHub OAuth: Error during token exchange", e);
+      } catch (HttpClientErrorException | HttpServerErrorException e) {
+        log.error("GitHub OAuth: HTTP error during token exchange: {}", e.getResponseBodyAsString(), e);
         String redirectUrl = String.format("%s?error=%s",
             clientGitRedirectUri,
-            URLEncoder.encode("GitHub token exchange error: " + e.getMessage(),
-                StandardCharsets.UTF_8));
+            URLEncoder.encode("GitHub API error: " + e.getStatusCode(), StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+      } catch (AppException e) {
+        log.error("GitHub OAuth: Application error during authentication", e);
+        String redirectUrl = String.format("%s?error=%s",
+            clientGitRedirectUri,
+            URLEncoder.encode("Authentication error: " + e.getMessage(), StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+      } catch (RuntimeException e) {
+        log.error("GitHub OAuth: Unexpected runtime error during token exchange", e);
+        String redirectUrl = String.format("%s?error=%s",
+            clientGitRedirectUri,
+            URLEncoder.encode("GitHub token exchange error: " + e.getMessage(), StandardCharsets.UTF_8));
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       }
 
-    } catch (Exception e) {
-      log.error("GitHub OAuth: Error during authentication", e);
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      log.error("GitHub OAuth: HTTP error during authentication: {}", e.getResponseBodyAsString(), e);
+      String redirectUrl = String.format("%s?error=%s",
+          clientGitRedirectUri,
+          URLEncoder.encode("GitHub API error: " + e.getStatusCode(), StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    } catch (AppException e) {
+      log.error("GitHub OAuth: Application error during authentication", e);
+      String redirectUrl = String.format("%s?error=%s",
+          clientGitRedirectUri,
+          URLEncoder.encode("Authentication error: " + e.getMessage(), StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    } catch (RuntimeException e) {
+      log.error("GitHub OAuth: Unexpected runtime error during authentication", e);
       String redirectUrl = String.format("%s?error=%s",
           clientGitRedirectUri,
           URLEncoder.encode("GitHub authentication failed: " + e.getMessage(), StandardCharsets.UTF_8));
@@ -573,16 +595,40 @@ public class OAuth2TokenController {
             clientFbRedirectUri,
             URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8));
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
-      } catch (Exception e) {
-        log.error("Facebook OAuth: Error getting user info", e);
+      } catch (HttpClientErrorException | HttpServerErrorException e) {
+        log.error("Facebook OAuth: HTTP error getting user info: {}", e.getResponseBodyAsString(), e);
+        String redirectUrl = String.format("%s?error=%s",
+            clientFbRedirectUri,
+            URLEncoder.encode("Facebook API error: " + e.getStatusCode(), StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+      } catch (AppException e) {
+        log.error("Facebook OAuth: Application error getting user info", e);
+        String redirectUrl = String.format("%s?error=%s",
+            clientFbRedirectUri,
+            URLEncoder.encode("Authentication error: " + e.getMessage(), StandardCharsets.UTF_8));
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+      } catch (RuntimeException e) {
+        log.error("Facebook OAuth: Unexpected runtime error getting user info", e);
         String redirectUrl = String.format("%s?error=%s",
             clientFbRedirectUri,
             URLEncoder.encode("Facebook user info error: " + e.getMessage(), StandardCharsets.UTF_8));
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
       }
 
-    } catch (Exception e) {
-      log.error("Facebook OAuth: Error during authentication", e);
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      log.error("Facebook OAuth: HTTP error during authentication: {}", e.getResponseBodyAsString(), e);
+      String redirectUrl = String.format("%s?error=%s",
+          clientFbRedirectUri,
+          URLEncoder.encode("Facebook API error: " + e.getStatusCode(), StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    } catch (AppException e) {
+      log.error("Facebook OAuth: Application error during authentication", e);
+      String redirectUrl = String.format("%s?error=%s",
+          clientFbRedirectUri,
+          URLEncoder.encode("Authentication error: " + e.getMessage(), StandardCharsets.UTF_8));
+      return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    } catch (RuntimeException e) {
+      log.error("Facebook OAuth: Unexpected runtime error during authentication", e);
       String redirectUrl = String.format("%s?error=%s",
           clientFbRedirectUri,
           URLEncoder.encode("Facebook authentication failed: " + e.getMessage(), StandardCharsets.UTF_8));

@@ -265,6 +265,28 @@ public class UserService {
     deleteUser(user.getId());
   }
 
+  /**
+   * Update user status (online, away, busy, offline)
+   * @param userId User ID
+   * @param status New status
+   * @return Updated user information
+   */
+  @Transactional
+  public UserResponse updateUserStatus(UUID userId, String status) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> {
+          log.error("User with ID {} not found", userId);
+          throw new AppException(ErrorCode.USER_NOT_FOUND);
+        });
+    
+    // Update user status
+    user.setUserStatus(status);
+    User updatedUser = userRepository.save(user);
+    
+    log.info("Updated status for user {} to {}", user.getUsername(), status);
+    return userMapper.toUserResponse(updatedUser);
+  }
+
   private void enrichUserResponseWithTotpInfo(UserResponse userResponse) {
     boolean totpEnabled = totpService.isTotpEnabled(userResponse.getUsername());
 

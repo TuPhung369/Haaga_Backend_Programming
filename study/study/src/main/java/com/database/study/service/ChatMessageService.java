@@ -8,6 +8,7 @@ import jakarta.persistence.PersistenceContext;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,9 +65,10 @@ public class ChatMessageService {
             ChatMessage message = messageMapper.toEntity(request, sender, receiver);
             
             // Set the persistent flag based on the request
-            boolean isPersistent = request.getPersistent() != null ? request.getPersistent() : true;
+            Boolean persistentValue = request.getPersistent();
+            boolean isPersistent = persistentValue != null ? persistentValue : true;
             message.setPersistent(isPersistent);
-            log.info("Message persistence set to: {}, raw value from request: {}", isPersistent, request.getPersistent());
+            log.info("Message persistence set to: {}, raw value from request: {}", isPersistent, persistentValue);
     
             // If conversationId is not provided, generate one
             if (message.getConversationId() == null) {
@@ -101,9 +103,21 @@ public class ChatMessageService {
             log.info("Message sent to receiver via WebSocket");
     
             return response;
+        } catch (AppException e) {
+            log.error("Application error in ChatMessageService.sendMessage: {}", e.getMessage(), e);
+            throw e; // Re-throw application exceptions
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid argument in ChatMessageService.sendMessage: {}", e.getMessage(), e);
+            throw e; // Re-throw validation errors
+        } catch (MessagingException e) {
+            log.error("Messaging error in ChatMessageService.sendMessage: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to deliver message via WebSocket", e);
+        } catch (RuntimeException e) {
+            log.error("Runtime error in ChatMessageService.sendMessage: {}", e.getMessage(), e);
+            throw e; // Re-throw runtime exceptions
         } catch (Exception e) {
-            log.error("Error in ChatMessageService.sendMessage", e);
-            throw e; // Re-throw to let the caller handle it
+            log.error("Unexpected error in ChatMessageService.sendMessage", e);
+            throw new RuntimeException("An unexpected error occurred while sending the message", e);
         }
     }
 

@@ -3,7 +3,9 @@ package com.database.study.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.InvalidKeyException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.WeakKeyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -42,9 +44,12 @@ public class JwtTokenProvider {
         try {
             key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
             log.info("JWT key successfully initialized");
-        } catch (Exception e) {
-            log.error("Failed to initialize JWT key", e);
-            throw new IllegalStateException("Failed to initialize JWT key", e);
+        } catch (WeakKeyException e) {
+            log.error("JWT key is too weak", e);
+            throw new IllegalStateException("JWT key is too weak - it must be at least 256 bits (32 bytes)", e);
+        } catch (InvalidKeyException e) {
+            log.error("Invalid JWT key", e);
+            throw new IllegalStateException("Invalid JWT key", e);
         }
     }
 

@@ -272,8 +272,37 @@ const chatSlice = createSlice({
         (contact) => contact.id !== action.payload
       );
     },
-    setSelectedContact: (state, action: PayloadAction<Contact | null>) => {
+    setSelectedContact: (state, action: PayloadAction<ChatContact | null>) => {
       state.selectedContact = action.payload;
+    },
+    updateContactStatus: (
+      state,
+      action: PayloadAction<{
+        contactId: string;
+        status: "online" | "away" | "busy" | "offline";
+      }>
+    ) => {
+      const { contactId, status } = action.payload;
+      console.log(
+        "[Redux] Updating status for contact:",
+        contactId,
+        "to",
+        status
+      );
+
+      // Update the contact in the contacts array
+      state.contacts = state.contacts.map((contact) => {
+        if (contact.id === contactId) {
+          console.log("[Redux] Found contact to update status:", contact.name);
+          return { ...contact, status };
+        }
+        return contact;
+      });
+
+      // If this is the selected contact, update that too
+      if (state.selectedContact && state.selectedContact.id === contactId) {
+        state.selectedContact = { ...state.selectedContact, status };
+      }
     },
 
     // Message-related reducers (from messageSlice.ts)
@@ -785,6 +814,7 @@ export const {
   updateContact,
   removeContact,
   setSelectedContact,
+  updateContactStatus,
 
   // Message actions
   setMessages,

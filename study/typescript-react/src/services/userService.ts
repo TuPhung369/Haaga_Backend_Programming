@@ -176,3 +176,51 @@ export const deleteUser = async (
   }
 };
 
+/**
+ * Update user status in the database
+ * @param status The new status (online, away, busy, offline)
+ * @param token Authentication token
+ * @returns Updated user information
+ */
+export const updateUserStatus = async (
+  status: "online" | "away" | "busy" | "offline",
+  token: string
+): Promise<UserResponse> => {
+  try {
+    // Get the user ID from Redux store instead of localStorage
+    const store = await import("../store/store").then(
+      (module) => module.default
+    );
+    const userId = store.getState().user.userInfo?.id;
+
+    if (!userId) {
+      throw new Error("User ID not found in Redux store");
+    }
+
+    // Create the request body
+    const userData = {
+      status: status,
+      recaptchaToken: getRecaptchaToken(),
+    };
+
+    // Send the request to update user status
+    const response = await apiClient.put<UserResponse>(
+      `/users/status/${userId}`,
+      userData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // No longer storing in localStorage as requested
+    // Instead, we'll update the Redux store in the component that calls this function
+
+    return response.data;
+  } catch (error) {
+    console.error("Error updating user status:", error);
+    throw handleServiceError(error);
+  }
+};
+

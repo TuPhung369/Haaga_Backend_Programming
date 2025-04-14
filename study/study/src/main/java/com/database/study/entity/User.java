@@ -37,6 +37,23 @@ public class User {
   @Column(nullable = false)
   @Builder.Default
   int timeTried = 0;
+  
+  // New fields
+  @Column(nullable = true)
+  String avatar;
+  
+  @Column(nullable = true)
+  String position;
+  
+  @Column(nullable = true)
+  String department;
+  
+  @Column(nullable = true)
+  String education;
+  
+  @Column(nullable = true)
+  @Builder.Default
+  String userStatus = "online"; // online, away, busy, offline
 
   @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))

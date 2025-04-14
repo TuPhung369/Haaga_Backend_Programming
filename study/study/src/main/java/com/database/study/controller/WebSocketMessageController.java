@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -71,9 +72,21 @@ public class WebSocketMessageController {
                 response
             );
             log.info("Confirmation sent to sender successfully");
-        } catch (Exception e) {
-            log.error("Error processing WebSocket message", e);
+        } catch (AppException e) {
+            log.error("Application error processing WebSocket message: {}", e.getMessage(), e);
             // You might want to send an error response back to the client
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid UUID format in WebSocket message: {}", e.getMessage(), e);
+            // Handle invalid UUID format
+        } catch (MessagingException e) {
+            log.error("Messaging error processing WebSocket message: {}", e.getMessage(), e);
+            // Handle messaging errors
+        } catch (RuntimeException e) {
+            log.error("Runtime error processing WebSocket message: {}", e.getMessage(), e);
+            // Handle runtime errors
+        } catch (Exception e) {
+            log.error("Unexpected error processing WebSocket message", e);
+            // Handle other unexpected errors
         }
     }
     
@@ -101,8 +114,16 @@ public class WebSocketMessageController {
                 notification
             );
             log.debug("Typing notification sent to receiver ID: {}", receiver.getId());
+        } catch (AppException e) {
+            log.error("Application error sending typing notification: {}", e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid UUID format in typing notification: {}", e.getMessage(), e);
+        } catch (MessagingException e) {
+            log.error("Messaging error sending typing notification: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            log.error("Runtime error sending typing notification: {}", e.getMessage(), e);
         } catch (Exception e) {
-            log.error("Error sending typing notification", e);
+            log.error("Unexpected error sending typing notification", e);
         }
     }
     
@@ -177,36 +198,68 @@ public class WebSocketMessageController {
             
             // Return a response to the client to acknowledge receipt
             return senderResponse;
+        } catch (AppException e) {
+            log.error("Application error marking messages as read: {}", e.getMessage(), e);
+            return sendErrorResponse(username, request, "Application error");
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid UUID format in read status request: {}", e.getMessage(), e);
+            return sendErrorResponse(username, request, "Invalid format");
+        } catch (MessagingException e) {
+            log.error("Messaging error marking messages as read: {}", e.getMessage(), e);
+            return sendErrorResponse(username, request, "Messaging error");
+        } catch (RuntimeException e) {
+            log.error("Runtime error marking messages as read: {}", e.getMessage(), e);
+            return sendErrorResponse(username, request, "Runtime error");
         } catch (Exception e) {
-            log.error("Error marking messages as read via WebSocket", e);
-            // Send error response back to the client using their ID
-            try {
-                User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-                ReadStatusResponse errorResponse = new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
-                log.info("Sending error response to user ID: {}, response: {}", user.getId(), errorResponse);
-                messagingTemplate.convertAndSendToUser(
-                    user.getId().toString(),
-                    "/queue/read-receipts",
-                    errorResponse
-                );
-                log.info("Sent error response to user ID: {}", user.getId());
-                
-                // Also send to the special acknowledgement queue
-                log.info("Sending error acknowledgement to user ID: {}, response: {}", user.getId(), errorResponse);
-                messagingTemplate.convertAndSendToUser(
-                    user.getId().toString(),
-                    "/queue/read-receipts-ack",
-                    errorResponse
-                );
-                log.info("Sent error acknowledgement to user ID: {}", user.getId());
-                
-                // Return the error response
-                return errorResponse;
-            } catch (Exception ex) {
-                log.error("Error sending error response", ex);
-                return new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
-            }
+            log.error("Unexpected error marking messages as read via WebSocket", e);
+            return sendErrorResponse(username, request, "Unexpected error");
+        }
+    }
+    
+    /**
+     * Helper method to send error response back to the client
+     * 
+     * @param username The username of the user
+     * @param request The original request
+     * @param errorMessage The error message to log
+     * @return The error response
+     */
+    private ReadStatusResponse sendErrorResponse(String username, ReadStatusRequest request, String errorMessage) {
+        try {
+            User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            ReadStatusResponse errorResponse = new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
+            log.info("Sending error response to user ID: {}, error: {}, response: {}", user.getId(), errorMessage, errorResponse);
+            messagingTemplate.convertAndSendToUser(
+                user.getId().toString(),
+                "/queue/read-receipts",
+                errorResponse
+            );
+            log.info("Sent error response to user ID: {}", user.getId());
+            
+            // Also send to the special acknowledgement queue
+            log.info("Sending error acknowledgement to user ID: {}, response: {}", user.getId(), errorResponse);
+            messagingTemplate.convertAndSendToUser(
+                user.getId().toString(),
+                "/queue/read-receipts-ack",
+                errorResponse
+            );
+            log.info("Sent error acknowledgement to user ID: {}", user.getId());
+            
+            // Return the error response
+            return errorResponse;
+        } catch (AppException ex) {
+            log.error("Error finding user while sending error response: {}", ex.getMessage(), ex);
+            return new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
+        } catch (MessagingException ex) {
+            log.error("Messaging error while sending error response: {}", ex.getMessage(), ex);
+            return new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
+        } catch (RuntimeException ex) {
+            log.error("Runtime error while sending error response: {}", ex.getMessage(), ex);
+            return new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
+        } catch (Exception ex) {
+            log.error("Unexpected error sending error response", ex);
+            return new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
         }
     }
     
@@ -240,8 +293,14 @@ public class WebSocketMessageController {
             );
             
             log.info("Contact request notification sent successfully to ID: {}", receiverId);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid format in contact request notification: {}", e.getMessage(), e);
+        } catch (org.springframework.messaging.MessagingException e) {
+            log.error("Messaging error sending contact request notification: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            log.error("Runtime error sending contact request notification: {}", e.getMessage(), e);
         } catch (Exception e) {
-            log.error("Error sending contact request notification", e);
+            log.error("Unexpected error sending contact request notification", e);
         }
     }
     
@@ -276,8 +335,14 @@ public class WebSocketMessageController {
             );
             
             log.info("Contact response notification sent successfully to ID: {}", requesterId);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid format in contact response notification: {}", e.getMessage(), e);
+        } catch (org.springframework.messaging.MessagingException e) {
+            log.error("Messaging error sending contact response notification: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            log.error("Runtime error sending contact response notification: {}", e.getMessage(), e);
         } catch (Exception e) {
-            log.error("Error sending contact response notification", e);
+            log.error("Unexpected error sending contact response notification", e);
         }
     }
     

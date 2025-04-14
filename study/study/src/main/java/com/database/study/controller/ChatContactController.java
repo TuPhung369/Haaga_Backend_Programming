@@ -82,9 +82,8 @@ public class ChatContactController {
                     contact.getDisplayName() : getUserDisplayName(contactUser));
                 response.setEmail(contactUser.getEmail());
                 
-                // Always set status to online for now
-                // In a real application, this would be determined by user's last activity or presence
-                response.setStatus("online");
+                // Set status from user's actual status
+                response.setStatus(contactUser.getUserStatus() != null ? contactUser.getUserStatus() : "online");
                 
                 response.setGroup(contact.getContactGroup()); // Set the contact group
                 response.setContactStatus(contact.getStatus().toString()); // Add contact status
@@ -155,7 +154,7 @@ public class ChatContactController {
             response.setName(contact.getDisplayName() != null ?
                 contact.getDisplayName() : getUserDisplayName(contactUser));
             response.setEmail(contactUser.getEmail());
-            response.setStatus("offline");
+            response.setStatus(contactUser.getUserStatus() != null ? contactUser.getUserStatus() : "offline");
             response.setUnreadCount(0);
 
             return ResponseEntity.ok(response);
@@ -185,7 +184,7 @@ public class ChatContactController {
         response.setId(contactUser.getId().toString());
         response.setName("New Contact (" + email + ")");
         response.setEmail(contactUser.getEmail());
-        response.setStatus("offline");
+        response.setStatus("pending");
         response.setUnreadCount(0);
 
         return ResponseEntity.ok(response);
@@ -301,7 +300,7 @@ public class ChatContactController {
             response.setName(contact.getDisplayName() != null ?
                 contact.getDisplayName() : getUserDisplayName(contactUser));
             response.setEmail(contactUser.getEmail());
-            response.setStatus("online");  // Could be determined by activity
+            response.setStatus(contactUser.getUserStatus() != null ? contactUser.getUserStatus() : "online");
             response.setGroup(contact.getContactGroup());
 
             // Set unread count and last message if available
@@ -349,7 +348,7 @@ public class ChatContactController {
                 response.setId(requestUser.getId().toString());
                 response.setName(getUserDisplayName(requestUser));
                 response.setEmail(requestUser.getEmail());
-                response.setStatus("online"); // Could be determined by activity
+                response.setStatus(requestUser.getUserStatus() != null ? requestUser.getUserStatus() : "online");
                 response.setContactStatus(contact.getStatus().toString());
                 response.setUnreadCount(0);
                 return response;

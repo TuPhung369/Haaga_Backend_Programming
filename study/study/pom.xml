@@ -292,6 +292,7 @@
                         <arg>-Amapstruct.suppressGeneratorTimestamp=true</arg>
                         <arg>-Amapstruct.defaultComponentModel=spring</arg>
                         <arg>-Amapstruct.verbose=true</arg>
+                        <arg>-Amapstruct.unmappedTargetPolicy=IGNORE</arg>
                         <arg>-parameters</arg>
                     </compilerArgs>
                 </configuration>

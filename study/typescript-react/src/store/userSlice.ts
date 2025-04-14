@@ -80,6 +80,11 @@ const userSlice = createSlice({
     clearUserInfo: (state) => {
       state.userInfo = null;
     },
+    updateUserStatus: (state, action: PayloadAction<"online" | "away" | "busy" | "offline">) => {
+      if (state.userInfo) {
+        state.userInfo.userStatus = action.payload;
+      }
+    },
   },
 });
 
@@ -98,6 +103,7 @@ export const {
   invalidateEvents,
   clearUserData,
   clearUserInfo,
+  updateUserStatus,
 } = userSlice.actions;
 
 export default userSlice.reducer;

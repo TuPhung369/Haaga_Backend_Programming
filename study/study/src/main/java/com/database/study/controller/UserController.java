@@ -8,7 +8,9 @@ import com.database.study.service.UserService;
 
 import org.springframework.security.core.Authentication;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 
@@ -106,6 +108,27 @@ public class UserController {
         .code(2000) // Success code or you can set a specific code
         .message("User successfully deleted")
         .result("User ID: " + userId) // Include any additional details if needed
+        .build();
+  }
+  
+  @PutMapping("/status/{userId}")
+  public ApiResponse<UserResponse> updateUserStatus(
+      @PathVariable UUID userId,
+      @RequestBody Map<String, String> statusData) {
+    
+    String status = statusData.get("status");
+    if (status == null || status.isEmpty()) {
+      throw new IllegalArgumentException("Status cannot be empty");
+    }
+    
+    // Validate status
+    if (!Arrays.asList("online", "away", "busy", "offline").contains(status)) {
+      throw new IllegalArgumentException("Invalid status. Must be one of: online, away, busy, offline");
+    }
+    
+    UserResponse userResponse = userService.updateUserStatus(userId, status);
+    return ApiResponse.<UserResponse>builder()
+        .result(userResponse)
         .build();
   }
 }

@@ -23,6 +23,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -353,30 +357,33 @@ public class LanguageMessageServiceImpl implements LanguageMessageService {
       log.warn("AI service returned invalid response, using mock response");
       return generateMockResponse(userMessage, proficiencyLevel);
 
-    } catch (Exception e) {
-      log.error("Error calling AI service: {}", e.getMessage());
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      log.error("HTTP error calling AI service: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
+      return generateMockResponse(userMessage, proficiencyLevel);
+    } catch (ResourceAccessException e) {
+      log.error("Network error calling AI service: {}", e.getMessage());
+      return generateMockResponse(userMessage, proficiencyLevel);
+    } catch (RestClientException e) {
+      log.error("REST client error calling AI service: {}", e.getMessage());
+      return generateMockResponse(userMessage, proficiencyLevel);
+    } catch (RuntimeException e) {
+      log.error("Unexpected error calling AI service: {}", e.getMessage());
       return generateMockResponse(userMessage, proficiencyLevel);
     }
   }
 
   private String generateMockResponse(String userMessage, ProficiencyLevel proficiencyLevel) {
-    switch (proficiencyLevel) {
-      case BEGINNER:
-        return "That's a good try! A simpler way to say that would be: "
-            + simplifyMessage(userMessage);
-      case INTERMEDIATE:
-        return "Well said! You could improve your vocabulary by saying: "
-            + improveVocabulary(userMessage);
-      case ADVANCED:
-        return "Very good! To sound more natural, try: "
-            + makeMoreNatural(userMessage);
-      case PROFICIENT:
-      case NATIVE:
-        return "Excellent! For absolute perfection, consider this nuance: "
-            + addNuance(userMessage);
-      default:
-        return "I understand what you're saying. Keep practicing!";
-    }
+    return switch (proficiencyLevel) {
+      case BEGINNER -> "That's a good try! A simpler way to say that would be: "
+          + simplifyMessage(userMessage);
+      case INTERMEDIATE -> "Well said! You could improve your vocabulary by saying: "
+          + improveVocabulary(userMessage);
+      case ADVANCED -> "Very good! To sound more natural, try: "
+          + makeMoreNatural(userMessage);
+      case PROFICIENT, NATIVE -> "Excellent! For absolute perfection, consider this nuance: "
+          + addNuance(userMessage);
+      default -> "I understand what you're saying. Keep practicing!";
+    };
   }
 
   private String simplifyMessage(String message) {
