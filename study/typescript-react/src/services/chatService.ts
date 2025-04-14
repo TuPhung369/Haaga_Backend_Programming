@@ -3,7 +3,9 @@ import { handleServiceError } from "./baseService";
 import store from "../store/store";
 import { InternalAxiosRequestConfig } from "axios";
 
-const API_BASE_URI = import.meta.env.VITE_API_BASE_URI;
+// Use the same API_URL as in baseService.ts
+const API_BASE_URI =
+  import.meta.env.VITE_API_BASE_URI || "http://localhost:9095/identify_service";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URI,
@@ -48,12 +50,13 @@ export interface Contact {
   unreadCount: number;
   lastMessage?: string;
   group?: string;
+  contactStatus?: "PENDING" | "ACCEPTED" | "BLOCKED" | "REJECTED";
 }
 
 // Get all contacts
 export const getContacts = async (): Promise<Contact[]> => {
   try {
-    const response = await apiClient.get(`/api/chat/contacts`);
+    const response = await apiClient.get(`/chat/contacts`);
     return response.data;
   } catch (error) {
     console.error("Error fetching contacts:", error);
@@ -64,7 +67,8 @@ export const getContacts = async (): Promise<Contact[]> => {
 // Get messages with a specific contact
 export const getMessages = async (contactId: string): Promise<Message[]> => {
   try {
-    const response = await apiClient.get(`/api/chat/messages/${contactId}`);
+    // Use the correct endpoint path that matches the backend controller
+    const response = await apiClient.get(`/chat/messages/${contactId}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching messages:", error);
@@ -78,7 +82,7 @@ export const sendMessage = async (
   receiverId: string
 ): Promise<Message> => {
   try {
-    const response = await apiClient.post(`/api/chat/messages`, {
+    const response = await apiClient.post(`/chat/messages`, {
       content,
       receiverId,
     });
@@ -92,7 +96,7 @@ export const sendMessage = async (
 // Mark messages as read
 export const markMessagesAsRead = async (contactId: string): Promise<void> => {
   try {
-    await apiClient.post(`/api/chat/messages/read/${contactId}`, {});
+    await apiClient.post(`/chat/messages/read/${contactId}`, {});
   } catch (error) {
     console.error("Error marking messages as read:", error);
     throw handleServiceError(error);
@@ -102,7 +106,7 @@ export const markMessagesAsRead = async (contactId: string): Promise<void> => {
 // Add a contact by email
 export const addContactByEmail = async (email: string): Promise<Contact> => {
   try {
-    const response = await apiClient.post(`/api/chat/contacts`, {
+    const response = await apiClient.post(`/chat/contacts`, {
       email,
     });
     return response.data;
@@ -115,7 +119,7 @@ export const addContactByEmail = async (email: string): Promise<Contact> => {
 // Get unread message count
 export const getUnreadMessageCount = async (): Promise<number> => {
   try {
-    const response = await apiClient.get(`/api/chat/messages/unread/count`);
+    const response = await apiClient.get(`/chat/messages/unread/count`);
     return response.data.count;
   } catch (error) {
     console.error("Error fetching unread message count:", error);
@@ -129,15 +133,42 @@ export const updateContactGroup = async (
   group: string
 ): Promise<Contact> => {
   try {
+    const response = await apiClient.post(`/chat/contacts/${contactId}/group`, {
+      group,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating contact group:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Get pending contact requests
+export const getPendingContactRequests = async (): Promise<Contact[]> => {
+  try {
+    const response = await apiClient.get(`/chat/contacts/pending`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching pending contact requests:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Respond to a contact request (accept or reject)
+export const respondToContactRequest = async (
+  contactId: string,
+  action: "accept" | "reject"
+): Promise<Contact> => {
+  try {
     const response = await apiClient.post(
-      `/api/chat/contacts/${contactId}/group`,
+      `/chat/contacts/${contactId}/respond`,
       {
-        group,
+        action,
       }
     );
     return response.data;
   } catch (error) {
-    console.error("Error updating contact group:", error);
+    console.error("Error responding to contact request:", error);
     throw handleServiceError(error);
   }
 };

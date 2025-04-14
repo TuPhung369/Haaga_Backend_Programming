@@ -30,7 +30,7 @@ import com.database.study.repository.ChatContactRepository;
 import com.database.study.repository.UserRepository;
 
 @RestController
-@RequestMapping("/api/chat")
+@RequestMapping("/chat")
 public class ChatContactController {
 
     @Autowired
@@ -77,6 +77,7 @@ public class ChatContactController {
                 response.setEmail(contactUser.getEmail());
                 response.setStatus("online"); // Could be determined by user's last activity
                 response.setGroup(contact.getContactGroup()); // Set the contact group
+                response.setContactStatus(contact.getStatus().toString()); // Add contact status
 
                 // Set unread count and last message if available
                 String contactId = contactUser.getId().toString();
@@ -93,65 +94,23 @@ public class ChatContactController {
         return ResponseEntity.ok(contactResponses);
     }
 
-    @GetMapping("/messages/{contactId}")
-    public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable String contactId) {
-        List<ChatMessageResponse> contactMessages = messages.getOrDefault(contactId, new ArrayList<>());
-        return ResponseEntity.ok(contactMessages);
-    }
+    // This endpoint is now handled by ChatMessageController
+    // @GetMapping("/messages/{contactId}")
+    // public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable String contactId) {
+    //     // Implementation moved to ChatMessageController
+    // }
 
-    @PostMapping("/messages")
-    public ResponseEntity<ChatMessageResponse> sendMessage(@RequestBody ChatMessageRequest request) {
-        String content = request.getContent();
-        String receiverId = request.getReceiverId();
+    // This endpoint is now handled by ChatMessageController
+    // @PostMapping("/messages")
+    // public ResponseEntity<ChatMessageResponse> sendMessage(@RequestBody ChatMessageRequest request) {
+    //     // Implementation moved to ChatMessageController
+    // }
 
-        if (content == null || receiverId == null) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        User currentUser = getCurrentUser();
-        if (currentUser == null) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        // Get the receiver user
-        Optional<User> receiverUserOpt = userRepository.findById(UUID.fromString(receiverId));
-        if (receiverUserOpt.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-        User receiverUser = receiverUserOpt.get();
-
-        // Create a new message
-        ChatMessageResponse message = new ChatMessageResponse();
-        message.setId(UUID.randomUUID().toString());
-        message.setContent(content);
-        message.setSender(new UserInfo(currentUser.getId().toString(), getUserDisplayName(currentUser)));
-        message.setReceiver(new UserInfo(receiverId, getUserDisplayName(receiverUser)));
-        message.setTimestamp(LocalDateTime.now().toString());
-        message.setRead(false);
-
-        // Add to messages list
-        List<ChatMessageResponse> contactMessages = messages.computeIfAbsent(receiverId, k -> new ArrayList<>());
-        contactMessages.add(message);
-
-        // Increment unread count for receiver
-        unreadCounts.put(receiverId, unreadCounts.getOrDefault(receiverId, 0) + 1);
-
-        return ResponseEntity.ok(message);
-    }
-
-    @PostMapping("/messages/read/{contactId}")
-    public ResponseEntity<Void> markMessagesAsRead(@PathVariable String contactId) {
-        // Mark all messages as read
-        List<ChatMessageResponse> contactMessages = messages.getOrDefault(contactId, new ArrayList<>());
-        for (ChatMessageResponse message : contactMessages) {
-            message.setRead(true);
-        }
-
-        // Reset unread count
-        unreadCounts.put(contactId, 0);
-
-        return ResponseEntity.ok().build();
-    }
+    // This endpoint is now handled by ChatMessageController
+    // @PostMapping("/messages/read/{contactId}")
+    // public ResponseEntity<Void> markMessagesAsRead(@PathVariable String contactId) {
+    //     // Implementation moved to ChatMessageController
+    // }
 
     @PostMapping("/contacts")
     public ResponseEntity<ChatContactResponse> addContact(@RequestBody Map<String, String> payload) {
@@ -278,12 +237,124 @@ public class ChatContactController {
         }
     }
 
-    @GetMapping("/messages/unread/count")
-    public ResponseEntity<Map<String, Integer>> getUnreadMessageCount() {
-        int totalCount = unreadCounts.values().stream().mapToInt(Integer::intValue).sum();
-        Map<String, Integer> response = new HashMap<>();
-        response.put("count", totalCount);
-        return ResponseEntity.ok(response);
+    // This endpoint is now handled by ChatMessageController
+    // @GetMapping("/messages/unread/count")
+    // public ResponseEntity<Map<String, Integer>> getUnreadMessageCount() {
+    //     // Implementation moved to ChatMessageController
+    // }
+
+    /**
+     * Get pending contact requests for the current user
+     * @return List of pending contact requests
+     */
+    @GetMapping("/contacts/pending")
+    public ResponseEntity<List<ChatContactResponse>> getPendingContactRequests() {
+        // Get current user
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Find contacts where current user is the contact and status is PENDING
+        List<ChatContact> pendingRequests = contactRepository.findByContactAndStatus(
+            currentUser, ChatContact.ContactStatus.PENDING);
+
+        // Convert to response objects
+        List<ChatContactResponse> responseList = pendingRequests.stream()
+            .map(contact -> {
+                User requestUser = contact.getUser(); // The user who sent the request
+                ChatContactResponse response = new ChatContactResponse();
+                response.setId(requestUser.getId().toString());
+                response.setName(getUserDisplayName(requestUser));
+                response.setEmail(requestUser.getEmail());
+                response.setStatus("online"); // Could be determined by activity
+                response.setContactStatus(contact.getStatus().toString());
+                response.setUnreadCount(0);
+                return response;
+            })
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responseList);
+    }
+
+    /**
+     * Accept or reject a contact request
+     * @param contactId ID of the user who sent the request
+     * @param payload Contains action ("accept" or "reject")
+     * @return Updated contact information
+     */
+    @PostMapping("/contacts/{contactId}/respond")
+    public ResponseEntity<ChatContactResponse> respondToContactRequest(
+            @PathVariable String contactId,
+            @RequestBody Map<String, String> payload) {
+
+        String action = payload.get("action");
+        if (action == null || (!action.equals("accept") && !action.equals("reject"))) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Get current user
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Find the user who sent the request
+        try {
+            UUID requestUserId = UUID.fromString(contactId);
+            Optional<User> requestUserOpt = userRepository.findById(requestUserId);
+
+            if (requestUserOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            User requestUser = requestUserOpt.get();
+
+            // Find the pending contact request
+            Optional<ChatContact> pendingRequestOpt = contactRepository.findByUserAndContact(requestUser, currentUser);
+
+            if (pendingRequestOpt.isEmpty() ||
+                pendingRequestOpt.get().getStatus() != ChatContact.ContactStatus.PENDING) {
+                return ResponseEntity.notFound().build();
+            }
+
+            ChatContact pendingRequest = pendingRequestOpt.get();
+
+            if (action.equals("accept")) {
+                // Accept the request
+                pendingRequest.setStatus(ChatContact.ContactStatus.ACCEPTED);
+                pendingRequest.setUpdatedAt(LocalDateTime.now());
+                contactRepository.save(pendingRequest);
+
+                // Create a reciprocal contact relationship
+                if (!contactRepository.existsByUserAndContact(currentUser, requestUser)) {
+                    ChatContact reciprocalContact = ChatContact.builder()
+                        .user(currentUser)
+                        .contact(requestUser)
+                        .status(ChatContact.ContactStatus.ACCEPTED)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                    contactRepository.save(reciprocalContact);
+                }
+            } else {
+                // Reject the request - delete it
+                contactRepository.delete(pendingRequest);
+            }
+
+            // Create response
+            ChatContactResponse response = new ChatContactResponse();
+            response.setId(requestUser.getId().toString());
+            response.setName(getUserDisplayName(requestUser));
+            response.setEmail(requestUser.getEmail());
+            response.setStatus("online");
+            response.setContactStatus(action.equals("accept") ?
+                ChatContact.ContactStatus.ACCEPTED.toString() : "REJECTED");
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     /**

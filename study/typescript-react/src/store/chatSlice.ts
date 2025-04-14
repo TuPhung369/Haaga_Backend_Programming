@@ -6,6 +6,8 @@ import {
   markMessagesAsRead,
   addContactByEmail,
   updateContactGroup,
+  getPendingContactRequests,
+  respondToContactRequest,
   Message,
   Contact,
 } from "../services/chatService";
@@ -32,6 +34,8 @@ const convertServiceContactToChatContact = (contact: Contact): ChatContact => {
     status: contact.status,
     unreadCount: contact.unreadCount,
     lastMessage: contact.lastMessage,
+    group: contact.group,
+    contactStatus: contact.contactStatus,
   };
 };
 
@@ -39,6 +43,7 @@ const convertServiceContactToChatContact = (contact: Contact): ChatContact => {
 const initialState: ChatState = {
   messages: [],
   contacts: [],
+  pendingRequests: [],
   selectedContact: null,
   loading: false,
   error: null,
@@ -166,6 +171,47 @@ export const updateContactGroupThunk = createAsyncThunk(
   }
 );
 
+export const fetchPendingRequests = createAsyncThunk(
+  "chat/fetchPendingRequests",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await getPendingContactRequests();
+    } catch (error: unknown) {
+      try {
+        handleServiceError(error);
+      } catch (serviceError: unknown) {
+        return rejectWithValue(
+          serviceError instanceof Error
+            ? serviceError.message
+            : "Failed to fetch pending requests"
+        );
+      }
+    }
+  }
+);
+
+export const respondToRequest = createAsyncThunk(
+  "chat/respondToRequest",
+  async (
+    { contactId, action }: { contactId: string; action: "accept" | "reject" },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await respondToContactRequest(contactId, action);
+    } catch (error: unknown) {
+      try {
+        handleServiceError(error);
+      } catch (serviceError: unknown) {
+        return rejectWithValue(
+          serviceError instanceof Error
+            ? serviceError.message
+            : `Failed to ${action} contact request`
+        );
+      }
+    }
+  }
+);
+
 // Slice
 const chatSlice = createSlice({
   name: "chat",
@@ -197,12 +243,48 @@ const chatSlice = createSlice({
 
     // Message-related reducers (from messageSlice.ts)
     setMessages: (state, action: PayloadAction<Message[]>) => {
+      console.log("[Redux] Setting all messages:", action.payload.length);
       state.messages = action.payload;
     },
     addMessage: (state, action: PayloadAction<Message>) => {
-      state.messages.push(action.payload);
+      console.log("[Redux] Adding new message to store:", action.payload);
+
+      // Improved duplicate detection - check by ID or by content + timestamp (within 2 seconds)
+      const isDuplicate = state.messages.some(msg => {
+        // Check if exact same ID
+        if (msg.id === action.payload.id) {
+          return true;
+        }
+        
+        // Check if same content, same sender/receiver, and timestamp within 2 seconds
+        if (msg.content === action.payload.content &&
+            msg.sender.id === action.payload.sender.id &&
+            msg.receiver.id === action.payload.receiver.id) {
+          
+          const msgTime = new Date(msg.timestamp).getTime();
+          const newMsgTime = new Date(action.payload.timestamp).getTime();
+          const timeDiff = Math.abs(msgTime - newMsgTime);
+          
+          // If messages are within 2 seconds of each other, consider them duplicates
+          if (timeDiff < 2000) {
+            console.log("[Redux] Found similar message within 2 seconds, treating as duplicate");
+            return true;
+          }
+        }
+        
+        return false;
+      });
+
+      if (isDuplicate) {
+        console.log("[Redux] Message appears to be a duplicate, not adding");
+      } else {
+        console.log("[Redux] Message is new, adding to store");
+        state.messages.push(action.payload);
+        console.log("[Redux] New message count:", state.messages.length);
+      }
     },
     clearMessages: (state) => {
+      console.log("[Redux] Clearing all messages");
       state.messages = [];
     },
 
@@ -340,6 +422,50 @@ const chatSlice = createSlice({
         }
       })
       .addCase(updateContactGroupThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Fetch pending requests
+      .addCase(fetchPendingRequests.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPendingRequests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.pendingRequests = action.payload
+          ? action.payload.map((contact) =>
+              convertServiceContactToChatContact(contact)
+            )
+          : [];
+      })
+      .addCase(fetchPendingRequests.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Respond to contact request
+      .addCase(respondToRequest.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(respondToRequest.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          // Remove from pending requests
+          state.pendingRequests = state.pendingRequests.filter(
+            (request) => request.id !== action.payload?.id
+          );
+
+          // If accepted, add to contacts
+          if (action.payload.contactStatus === "ACCEPTED") {
+            state.contacts.push(
+              convertServiceContactToChatContact(action.payload)
+            );
+          }
+        }
+      })
+      .addCase(respondToRequest.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

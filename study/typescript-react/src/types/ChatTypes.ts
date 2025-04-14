@@ -25,11 +25,13 @@ export interface ChatContact {
   unreadCount: number;
   lastMessage?: string;
   group?: string; // Group categorization (Friend, College, Family, etc.)
+  contactStatus?: "PENDING" | "ACCEPTED" | "BLOCKED" | "REJECTED";
 }
 
 export interface ChatState {
   messages: ChatMessage[];
   contacts: ChatContact[];
+  pendingRequests: ChatContact[];
   selectedContact: ChatContact | null;
   loading: boolean;
   error: string | null;

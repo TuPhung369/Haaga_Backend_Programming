@@ -57,7 +57,8 @@ public class SecurityConfig {
       "/test",
       "/api/speech/**",
       "/api/language-ai/**",
-      "/_dev_/**"
+      "/_dev_/**",
+      "/ws-messaging/**"  // Thêm endpoint WebSocket
   };
 
   private final String[] COOKIES_ENDPOINTS = {
@@ -146,7 +147,12 @@ public class SecurityConfig {
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
     configuration.setAllowCredentials(true);
     configuration.addAllowedHeader("*");
-    configuration.setExposedHeaders(List.of("Authorization")); // Expose Authorization header
+    configuration.setExposedHeaders(List.of("Authorization", "X-Auth-Token")); // Expose headers
+    
+    // Add WebSocket specific headers
+    configuration.addAllowedHeader("Sec-WebSocket-Extensions");
+    configuration.addAllowedHeader("Sec-WebSocket-Key");
+    configuration.addAllowedHeader("Sec-WebSocket-Version");
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);

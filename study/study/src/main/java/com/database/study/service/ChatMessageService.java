@@ -36,43 +36,66 @@ public class ChatMessageService {
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
-    public ChatMessageResponse sendMessage(String senderId, ChatMessageRequest request) {
-        User sender = userRepository.findById(UUID.fromString(senderId))
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
-        User receiver = userRepository.findById(UUID.fromString(request.getReceiverId()))
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
-        // Create and save the message
-        ChatMessage message = messageMapper.toEntity(request, sender, receiver);
-
-        // If conversationId is not provided, generate one
-        if (message.getConversationId() == null) {
-            message.setConversationId(
-                messageMapper.generateConversationId(sender.getId(), receiver.getId())
+    public ChatMessageResponse sendMessage(String username, ChatMessageRequest request) {
+        log.info("ChatMessageService.sendMessage called for user: {} to receiver: {}", username, request.getReceiverId());
+        log.info("Message content: {}", request.getContent());
+        
+        try {
+            // Find the sender by username
+            log.info("Finding sender by username: {}", username);
+            User sender = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            log.info("Sender found: {}", sender.getId());
+    
+            // Find the receiver by UUID
+            log.info("Finding receiver by UUID: {}", request.getReceiverId());
+            User receiver = userRepository.findById(UUID.fromString(request.getReceiverId()))
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            log.info("Receiver found: {}", receiver.getId());
+    
+            // Create and save the message
+            log.info("Creating message entity");
+            ChatMessage message = messageMapper.toEntity(request, sender, receiver);
+    
+            // If conversationId is not provided, generate one
+            if (message.getConversationId() == null) {
+                log.info("Generating conversation ID");
+                String conversationId = messageMapper.generateConversationId(sender.getId(), receiver.getId());
+                message.setConversationId(conversationId);
+                log.info("Conversation ID generated: {}", conversationId);
+            }
+    
+            log.info("Saving message to database");
+            message = messageRepository.save(message);
+            log.info("Message saved with ID: {}", message.getId());
+    
+            log.info("Creating response DTO");
+            ChatMessageResponse response = messageMapper.toResponse(message);
+            log.info("Response created with ID: {}", response.getId());
+    
+            // Send the message to the receiver via WebSocket
+            log.info("Sending message to receiver via WebSocket: {}", receiver.getId());
+            messagingTemplate.convertAndSendToUser(
+                receiver.getId().toString(),
+                "/queue/messages",
+                response
             );
+            log.info("Message sent to receiver via WebSocket");
+    
+            return response;
+        } catch (Exception e) {
+            log.error("Error in ChatMessageService.sendMessage", e);
+            throw e; // Re-throw to let the caller handle it
         }
-
-        message = messageRepository.save(message);
-        log.info("Message sent from {} to {}: {}", sender.getUsername(), receiver.getUsername(), message.getId());
-
-        ChatMessageResponse response = messageMapper.toResponse(message);
-
-        // Send the message to the receiver via WebSocket
-        messagingTemplate.convertAndSendToUser(
-            receiver.getId().toString(),
-            "/queue/messages",
-            response
-        );
-
-        return response;
     }
 
     @Transactional(readOnly = true)
-    public Page<ChatMessageResponse> getMessagesBetweenUsers(String userId, String otherUserId, Pageable pageable) {
-        User user = userRepository.findById(UUID.fromString(userId))
+    public Page<ChatMessageResponse> getMessagesBetweenUsers(String username, String otherUserId, Pageable pageable) {
+        // Find the current user by username
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        // Find the other user by UUID
         User otherUser = userRepository.findById(UUID.fromString(otherUserId))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -88,8 +111,9 @@ public class ChatMessageService {
     }
 
     @Transactional
-    public void markMessagesAsRead(String userId, String conversationId) {
-        User user = userRepository.findById(UUID.fromString(userId))
+    public void markMessagesAsRead(String username, String conversationId) {
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         Page<ChatMessage> messages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
@@ -103,8 +127,9 @@ public class ChatMessageService {
     }
 
     @Transactional(readOnly = true)
-    public List<ChatMessageResponse> getLatestMessagesForUser(String userId) {
-        User user = userRepository.findById(UUID.fromString(userId))
+    public List<ChatMessageResponse> getLatestMessagesForUser(String username) {
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         List<ChatMessage> latestMessages = messageRepository.findLatestMessagesForUser(user);
@@ -112,18 +137,21 @@ public class ChatMessageService {
     }
 
     @Transactional(readOnly = true)
-    public int getUnreadMessageCount(String userId) {
-        User user = userRepository.findById(UUID.fromString(userId))
+    public int getUnreadMessageCount(String username) {
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         return (int) messageRepository.countByReceiverAndReadFalse(user);
     }
 
     @Transactional(readOnly = true)
-    public int getUnreadMessageCountFromUser(String userId, String senderId) {
-        User user = userRepository.findById(UUID.fromString(userId))
+    public int getUnreadMessageCountFromUser(String username, String senderId) {
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        // Find the sender by UUID
         User sender = userRepository.findById(UUID.fromString(senderId))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 

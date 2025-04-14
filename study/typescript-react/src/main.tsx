@@ -10,6 +10,11 @@ import "antd/dist/reset.css";
 import "./index.css";
 import App from "./App";
 
+// Polyfill for global variable needed by STOMP.js
+if (typeof window !== 'undefined') {
+  (window as any).global = window;
+}
+
 const rootElement = document.getElementById("root");
 
 // This function can be called after the store is available

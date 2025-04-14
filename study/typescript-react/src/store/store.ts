@@ -271,32 +271,6 @@ const store = configureStore({
 store.subscribe(() => {
   const state = store.getState() as RootState;
 
-  // Log language state changes
-  if (state.language) {
-    const currentLanguageKeys = state.language.currentMessagesByLanguage
-      ? Object.keys(state.language.currentMessagesByLanguage)
-      : [];
-    const historyLanguageKeys = state.language.historyMessagesByLanguage
-      ? Object.keys(state.language.historyMessagesByLanguage)
-      : [];
-
-    console.log("Store subscription: language state updated", {
-      currentLanguage: state.language.currentLanguage,
-      currentLanguageKeys,
-      historyLanguageKeys,
-      currentMessagesCount: currentLanguageKeys.reduce((sum, lang) => {
-        return (
-          sum + (state.language.currentMessagesByLanguage[lang]?.length || 0)
-        );
-      }, 0),
-      historyMessagesCount: historyLanguageKeys.reduce((sum, lang) => {
-        return (
-          sum + (state.language.historyMessagesByLanguage[lang]?.length || 0)
-        );
-      }, 0),
-    });
-  }
-
   if (state.auth.isAuthenticated) {
     saveState(state);
   }

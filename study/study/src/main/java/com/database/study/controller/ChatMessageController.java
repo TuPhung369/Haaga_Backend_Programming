@@ -1,6 +1,8 @@
 package com.database.study.controller;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,22 +29,47 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/api/chat/message-service")
+@RequestMapping("/chat")
 @RequiredArgsConstructor
 @Slf4j
 public class ChatMessageController {
 
     private final ChatMessageService messageService;
 
-    @PostMapping("/send")
+    @PostMapping("/message-service/send")
     public ResponseEntity<ChatMessageResponse> sendMessage(@Valid @RequestBody ChatMessageRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userId = auth.getName();
+        String username = auth.getName();
 
-        log.info("Sending message from user {} to {}", userId, request.getReceiverId());
-        ChatMessageResponse response = messageService.sendMessage(userId, request);
+        log.info("Sending message from user {} to {}", username, request.getReceiverId());
+        ChatMessageResponse response = messageService.sendMessage(username, request);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/messages")
+    public ResponseEntity<ChatMessageResponse> sendMessageAlternative(@Valid @RequestBody ChatMessageRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        log.info("Sending message from user {} to {}", username, request.getReceiverId());
+        ChatMessageResponse response = messageService.sendMessage(username, request);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/messages/{contactId}")
+    public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable String contactId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        log.info("Getting messages between user {} and contact {}", username, contactId);
+
+        // Use the existing service method but convert Page to List
+        Page<ChatMessageResponse> messagesPage = messageService.getMessagesBetweenUsers(
+            username, contactId, Pageable.unpaged());
+
+        return ResponseEntity.ok(messagesPage.getContent());
     }
 
     @GetMapping("/conversation/{otherUserId}")
@@ -52,12 +79,12 @@ public class ChatMessageController {
             @RequestParam(defaultValue = "20") int size) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userId = auth.getName();
+        String username = auth.getName();
 
-        log.info("Getting messages between users {} and {}", userId, otherUserId);
+        log.info("Getting messages between user {} and contact {}", username, otherUserId);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
-        Page<ChatMessageResponse> messages = messageService.getMessagesBetweenUsers(userId, otherUserId, pageable);
+        Page<ChatMessageResponse> messages = messageService.getMessagesBetweenUsers(username, otherUserId, pageable);
 
         return ResponseEntity.ok(messages);
     }
@@ -79,10 +106,21 @@ public class ChatMessageController {
     @PutMapping("/read/{conversationId}")
     public ResponseEntity<Void> markMessagesAsRead(@PathVariable String conversationId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userId = auth.getName();
+        String username = auth.getName();
 
-        log.info("Marking messages as read for user {} in conversation {}", userId, conversationId);
-        messageService.markMessagesAsRead(userId, conversationId);
+        log.info("Marking messages as read for user {} in conversation {}", username, conversationId);
+        messageService.markMessagesAsRead(username, conversationId);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/messages/read/{contactId}")
+    public ResponseEntity<Void> markMessagesAsReadAlternative(@PathVariable String contactId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        log.info("Marking messages as read for user {} from contact {}", username, contactId);
+        messageService.markMessagesAsRead(username, contactId);
 
         return ResponseEntity.ok().build();
     }
@@ -90,10 +128,10 @@ public class ChatMessageController {
     @GetMapping("/latest")
     public ResponseEntity<List<ChatMessageResponse>> getLatestMessagesForUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userId = auth.getName();
+        String username = auth.getName();
 
-        log.info("Getting latest messages for user {}", userId);
-        List<ChatMessageResponse> latestMessages = messageService.getLatestMessagesForUser(userId);
+        log.info("Getting latest messages for user {}", username);
+        List<ChatMessageResponse> latestMessages = messageService.getLatestMessagesForUser(username);
 
         return ResponseEntity.ok(latestMessages);
     }
@@ -101,21 +139,34 @@ public class ChatMessageController {
     @GetMapping("/unread/count")
     public ResponseEntity<Integer> getUnreadMessageCount() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userId = auth.getName();
+        String username = auth.getName();
 
-        log.info("Getting unread message count for user {}", userId);
-        int unreadCount = messageService.getUnreadMessageCount(userId);
+        log.info("Getting unread message count for user {}", username);
+        int unreadCount = messageService.getUnreadMessageCount(username);
 
         return ResponseEntity.ok(unreadCount);
+    }
+
+    @GetMapping("/messages/unread/count")
+    public ResponseEntity<Map<String, Integer>> getUnreadMessageCountAlternative() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        log.info("Getting unread message count for user {}", username);
+        int unreadCount = messageService.getUnreadMessageCount(username);
+
+        Map<String, Integer> response = new HashMap<>();
+        response.put("count", unreadCount);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/unread/count/{senderId}")
     public ResponseEntity<Integer> getUnreadMessageCountFromUser(@PathVariable String senderId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userId = auth.getName();
+        String username = auth.getName();
 
-        log.info("Getting unread message count from user {} for user {}", senderId, userId);
-        int unreadCount = messageService.getUnreadMessageCountFromUser(userId, senderId);
+        log.info("Getting unread message count from user {} for user {}", senderId, username);
+        int unreadCount = messageService.getUnreadMessageCountFromUser(username, senderId);
 
         return ResponseEntity.ok(unreadCount);
     }

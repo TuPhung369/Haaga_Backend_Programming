@@ -36,7 +36,17 @@ import {
   addContactThunk as addContact, // Renamed in the combined slice
   setSelectedContact,
   updateContactGroupThunk,
+  fetchPendingRequests,
+  respondToRequest,
+  addMessage, // Import the addMessage action
 } from "../store/chatSlice";
+
+import {
+  connectWebSocket,
+  disconnectWebSocket,
+  sendMessageViaWebSocket,
+  sendTypingNotification,
+} from "../services/websocketService";
 
 const { Title, Text } = Typography;
 
@@ -58,6 +68,7 @@ const ChatPage: React.FC = () => {
   const {
     messages,
     contacts,
+    pendingRequests,
     selectedContact,
     loading: loadingContacts,
   } = useSelector((state: RootState) => state.chat);
@@ -66,6 +77,7 @@ const ChatPage: React.FC = () => {
   const NOVU_APP_ID = import.meta.env.VITE_NOVU_APP_ID || "your-novu-app-id";
 
   useEffect(() => {
+    // Fetch contacts
     dispatch(fetchContacts())
       .unwrap()
       .catch((error) => {
@@ -75,7 +87,41 @@ const ChatPage: React.FC = () => {
             "Failed to connect to the chat server. Please try again later.",
         });
       });
-  }, [dispatch]);
+
+    // Fetch pending contact requests
+    dispatch(fetchPendingRequests())
+      .unwrap()
+      .catch((error) => {
+        notification.error({
+          message: "Error",
+          description: "Failed to fetch pending contact requests.",
+        });
+      });
+
+    // Connect to WebSocket if userId is available
+    if (userId && userId !== "guest") {
+      try {
+        const connected = connectWebSocket(userId);
+        if (!connected) {
+          console.warn("WebSocket connection failed, falling back to HTTP");
+          // Optional: Show notification to user
+          notification.info({
+            message: "Chat Information",
+            description:
+              "Using standard connection mode. Real-time updates may be delayed.",
+            duration: 5,
+          });
+        }
+      } catch (error) {
+        console.error("Error connecting to WebSocket:", error);
+      }
+    }
+
+    // Cleanup WebSocket connection when component unmounts
+    return () => {
+      disconnectWebSocket();
+    };
+  }, [dispatch, userId]);
 
   useEffect(() => {
     if (selectedContact) {
@@ -90,20 +136,76 @@ const ChatPage: React.FC = () => {
   // These functions are now handled by Redux actions
 
   const sendMessage = async () => {
-    if (!messageText.trim() || !selectedContact) return;
+    console.log("[Chat] Send message function called");
+
+    if (!messageText.trim()) {
+      console.log("[Chat] Message text is empty, not sending");
+      return;
+    }
+
+    if (!selectedContact) {
+      console.log("[Chat] No contact selected, cannot send message");
+      return;
+    }
+
+    console.log("[Chat] Preparing to send message:", {
+      text: messageText,
+      to: selectedContact.name,
+      contactId: selectedContact.id,
+    });
+
+    // Create a temporary message to display immediately
+    const tempMessage: any = {
+      id: `temp-${Date.now()}`,
+      content: messageText,
+      sender: {
+        id: userInfo?.id || "unknown",
+        name: userInfo?.username || "Me",
+      },
+      receiver: {
+        id: selectedContact.id,
+        name: selectedContact.name,
+      },
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+
+    // Add the temporary message to the Redux store
+    console.log("[Chat] Adding temporary message to store:", tempMessage);
+    dispatch(addMessage(tempMessage as any));
 
     try {
-      await dispatch(
-        sendMessageThunk({
-          content: messageText,
-          receiverId: selectedContact.id,
-        })
+      // Try to send via WebSocket first
+      console.log("[Chat] Attempting to send via WebSocket");
+      const sentViaWebSocket = sendMessageViaWebSocket(
+        messageText,
+        selectedContact.id
+      );
+      console.log(
+        "[Chat] WebSocket send result:",
+        sentViaWebSocket ? "Success" : "Failed"
       );
 
+      // If WebSocket fails or is not connected, fall back to HTTP
+      if (!sentViaWebSocket) {
+        console.log("[Chat] WebSocket send failed, falling back to HTTP");
+        console.log("[Chat] Dispatching sendMessageThunk");
+
+        const result = await dispatch(
+          sendMessageThunk({
+            content: messageText,
+            receiverId: selectedContact.id,
+          })
+        ).unwrap();
+
+        console.log("[Chat] HTTP send result:", result);
+      }
+
       // Clear the input field
+      console.log("[Chat] Clearing message input field");
       setMessageText("");
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("[Chat] Error sending message:", error);
       notification.error({
         message: "Error",
         description: "Failed to send message. Please try again.",
@@ -116,7 +218,11 @@ const ChatPage: React.FC = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    console.log("[Chat] Key pressed:", e.key);
+
     if (e.key === "Enter") {
+      console.log("[Chat] Enter key detected, triggering sendMessage");
+      e.preventDefault(); // Prevent default form submission behavior
       sendMessage();
     }
   };
@@ -176,13 +282,36 @@ const ChatPage: React.FC = () => {
 
       notification.success({
         message: "Success",
-        description: "Contact added successfully!",
+        description: "Contact request sent successfully! Waiting for approval.",
       });
     } catch (error) {
       console.error("Error adding contact:", error);
       notification.error({
         message: "Error",
         description: "Failed to add contact. Please try again.",
+      });
+    }
+  };
+
+  // Function to handle responding to a contact request
+  const handleRespondToRequest = async (
+    contactId: string,
+    action: "accept" | "reject"
+  ) => {
+    try {
+      await dispatch(respondToRequest({ contactId, action }));
+
+      notification.success({
+        message: "Success",
+        description: `Contact request ${
+          action === "accept" ? "accepted" : "rejected"
+        } successfully!`,
+      });
+    } catch (error) {
+      console.error(`Error ${action}ing contact request:`, error);
+      notification.error({
+        message: "Error",
+        description: `Failed to ${action} contact request. Please try again.`,
       });
     }
   };
@@ -283,6 +412,63 @@ const ChatPage: React.FC = () => {
             />
           </div>
 
+          {/* Pending Contact Requests Section */}
+          {pendingRequests && pendingRequests.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <Title level={5} style={{ marginBottom: 8, color: "#ff4d4f" }}>
+                Pending Requests
+              </Title>
+              <List
+                dataSource={pendingRequests}
+                renderItem={(request) => (
+                  <List.Item
+                    style={{
+                      padding: "8px 12px",
+                      backgroundColor: "rgba(255, 77, 79, 0.05)",
+                      borderRadius: "8px",
+                      margin: "4px 0",
+                      border: "1px solid rgba(255, 77, 79, 0.2)",
+                    }}
+                    actions={[
+                      <Button
+                        key="accept"
+                        type="primary"
+                        size="small"
+                        onClick={() =>
+                          handleRespondToRequest(request.id, "accept")
+                        }
+                      >
+                        Accept
+                      </Button>,
+                      <Button
+                        key="reject"
+                        danger
+                        size="small"
+                        onClick={() =>
+                          handleRespondToRequest(request.id, "reject")
+                        }
+                      >
+                        Reject
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar
+                          icon={<UserOutlined />}
+                          style={{ backgroundColor: "#ff4d4f" }}
+                        />
+                      }
+                      title={request.name}
+                      description={request.email}
+                    />
+                  </List.Item>
+                )}
+              />
+            </div>
+          )}
+
+          {/* Contacts List */}
           {loadingContacts ? (
             <div
               style={{
@@ -670,7 +856,16 @@ const ChatPage: React.FC = () => {
                 <Input
                   placeholder="Type a message..."
                   value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
+                  onChange={(e) => {
+                    setMessageText(e.target.value);
+                    // Send typing notification when user starts typing
+                    if (selectedContact) {
+                      sendTypingNotification(
+                        selectedContact.id,
+                        e.target.value.length > 0
+                      );
+                    }
+                  }}
                   onKeyPress={handleKeyPress}
                   style={{
                     flex: 1,

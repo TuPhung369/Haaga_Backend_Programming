@@ -23,34 +23,46 @@ public class WebSocketMessageController {
     
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessageRequest ChatMessageRequest, Authentication authentication) {
-        String senderId = authentication.getName();
-        log.info("Received message via WebSocket from user {} to {}", senderId, ChatMessageRequest.getReceiverId());
+        String username = authentication.getName();
+        log.info("Received message via WebSocket from user {} to {}", username, ChatMessageRequest.getReceiverId());
+        log.info("Message content: {}", ChatMessageRequest.getContent());
         
-        // Process and save the message
-        ChatMessageResponse response = messageService.sendMessage(senderId, ChatMessageRequest);
-        
-        // Send to the specific user
-        messagingTemplate.convertAndSendToUser(
-            ChatMessageRequest.getReceiverId(),
-            "/queue/messages",
-            response
-        );
-        
-        // Also send back to sender for confirmation
-        messagingTemplate.convertAndSendToUser(
-            senderId,
-            "/queue/messages",
-            response
-        );
+        try {
+            // Process and save the message
+            log.info("Processing message with messageService.sendMessage");
+            ChatMessageResponse response = messageService.sendMessage(username, ChatMessageRequest);
+            log.info("Message processed and saved with ID: {}", response.getId());
+            
+            // Send to the specific user
+            log.info("Sending message to receiver: {}", ChatMessageRequest.getReceiverId());
+            messagingTemplate.convertAndSendToUser(
+                ChatMessageRequest.getReceiverId(),
+                "/queue/messages",
+                response
+            );
+            log.info("Message sent to receiver successfully");
+            
+            // Also send back to sender for confirmation
+            log.info("Sending confirmation back to sender: {}", username);
+            messagingTemplate.convertAndSendToUser(
+                username,
+                "/queue/messages",
+                response
+            );
+            log.info("Confirmation sent to sender successfully");
+        } catch (Exception e) {
+            log.error("Error processing WebSocket message", e);
+            // You might want to send an error response back to the client
+        }
     }
     
     @MessageMapping("/chat.typing")
     public void notifyTyping(@Payload TypingNotification notification, Authentication authentication) {
-        String senderId = authentication.getName();
-        log.debug("User {} is typing to user {}", senderId, notification.getReceiverId());
+        String username = authentication.getName();
+        log.debug("User {} is typing to user {}", username, notification.getReceiverId());
         
         // Add sender information
-        notification.setSenderId(senderId);
+        notification.setSenderId(username);
         
         // Send typing notification to the recipient
         messagingTemplate.convertAndSendToUser(

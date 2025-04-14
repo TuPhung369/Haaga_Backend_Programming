@@ -42,7 +42,7 @@ public class ChatMessage {
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
-    @Column(nullable = false)
+    @Column(name = "`read`", nullable = false)
     @Builder.Default
     private boolean read = false;
 
