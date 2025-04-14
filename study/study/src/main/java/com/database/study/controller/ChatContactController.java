@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.database.study.dto.request.ChatMessageRequest;
 import com.database.study.dto.response.ChatContactResponse;
 import com.database.study.dto.response.ChatMessageResponse;
@@ -31,6 +33,7 @@ import com.database.study.repository.UserRepository;
 
 @RestController
 @RequestMapping("/chat")
+@Slf4j
 public class ChatContactController {
 
     @Autowired
@@ -38,6 +41,9 @@ public class ChatContactController {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private WebSocketMessageController webSocketMessageController;
 
     // In-memory storage for messages - we'll keep these in memory for now
     private final Map<String, List<ChatMessageResponse>> messages = new HashMap<>();
@@ -75,7 +81,11 @@ public class ChatContactController {
                 response.setName(contact.getDisplayName() != null ?
                     contact.getDisplayName() : getUserDisplayName(contactUser));
                 response.setEmail(contactUser.getEmail());
-                response.setStatus("online"); // Could be determined by user's last activity
+                
+                // Always set status to online for now
+                // In a real application, this would be determined by user's last activity or presence
+                response.setStatus("online");
+                
                 response.setGroup(contact.getContactGroup()); // Set the contact group
                 response.setContactStatus(contact.getStatus().toString()); // Add contact status
 
@@ -161,6 +171,14 @@ public class ChatContactController {
 
         // Save to database
         contactRepository.save(newContact);
+        
+        // Send WebSocket notification to the contact user
+        log.info("Sending contact request notification to user: {}", contactUser.getId());
+        webSocketMessageController.sendContactRequestNotification(
+            currentUser.getId().toString(),
+            contactUser.getId().toString(),
+            getUserDisplayName(currentUser)
+        );
 
         // Create response DTO
         ChatContactResponse response = new ChatContactResponse();
@@ -336,9 +354,27 @@ public class ChatContactController {
                         .build();
                     contactRepository.save(reciprocalContact);
                 }
+                
+                // Send WebSocket notification to the requester that their request was accepted
+                log.info("Sending contact response notification to user: {}", requestUser.getId());
+                webSocketMessageController.sendContactResponseNotification(
+                    requestUser.getId().toString(),
+                    currentUser.getId().toString(),
+                    getUserDisplayName(currentUser),
+                    true
+                );
             } else {
                 // Reject the request - delete it
                 contactRepository.delete(pendingRequest);
+                
+                // Send WebSocket notification to the requester that their request was rejected
+                log.info("Sending contact rejection notification to user: {}", requestUser.getId());
+                webSocketMessageController.sendContactResponseNotification(
+                    requestUser.getId().toString(),
+                    currentUser.getId().toString(),
+                    getUserDisplayName(currentUser),
+                    false
+                );
             }
 
             // Create response
@@ -346,7 +382,7 @@ public class ChatContactController {
             response.setId(requestUser.getId().toString());
             response.setName(getUserDisplayName(requestUser));
             response.setEmail(requestUser.getEmail());
-            response.setStatus("online");
+            response.setStatus("online"); // Set status to online for the accepted contact
             response.setContactStatus(action.equals("accept") ?
                 ChatContact.ContactStatus.ACCEPTED.toString() : "REJECTED");
 

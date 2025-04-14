@@ -91,6 +91,16 @@ const ChatPage: React.FC = () => {
     // Fetch pending contact requests
     dispatch(fetchPendingRequests())
       .unwrap()
+      .then((pendingRequests) => {
+        // Show notification if there are pending requests
+        if (pendingRequests && pendingRequests.length > 0) {
+          notification.info({
+            message: "Contact Requests",
+            description: `You have ${pendingRequests.length} pending contact request(s)`,
+            duration: 5,
+          });
+        }
+      })
       .catch((error) => {
         notification.error({
           message: "Error",

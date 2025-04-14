@@ -212,6 +212,115 @@ export const connectWebSocket = (userId: string) => {
           "[WebSocket] Read receipt subscription created:",
           readReceiptSubscription ? "Success" : "Failed"
         );
+        
+        // Subscribe to contact requests
+        console.log(
+          `[WebSocket] Subscribing to contact requests at: /user/${userId}/queue/contact-requests`
+        );
+        const contactRequestSubscription = stompClient?.subscribe(
+          `/user/${userId}/queue/contact-requests`,
+          (message: IMessage) => {
+            console.log("[WebSocket] Raw contact request received:", message);
+            try {
+              const contactRequest = JSON.parse(message.body);
+              console.log("[WebSocket] Contact request parsed:", contactRequest);
+              
+              // Dispatch an action to update the UI and show a notification
+              // We'll import the action from chatSlice
+              import("../store/chatSlice").then(({ fetchPendingRequests }) => {
+                store.dispatch(fetchPendingRequests());
+                
+                // Show a browser notification if supported
+                if ("Notification" in window) {
+                  if (Notification.permission === "granted") {
+                    new Notification("New Contact Request", {
+                      body: `${contactRequest.senderName} wants to connect with you`,
+                      icon: "/favicon.ico"
+                    });
+                  } else if (Notification.permission !== "denied") {
+                    Notification.requestPermission().then(permission => {
+                      if (permission === "granted") {
+                        new Notification("New Contact Request", {
+                          body: `${contactRequest.senderName} wants to connect with you`,
+                          icon: "/favicon.ico"
+                        });
+                      }
+                    });
+                  }
+                }
+              });
+            } catch (error) {
+              console.error(
+                "[WebSocket] Error processing contact request:",
+                error
+              );
+            }
+          }
+        );
+        console.log(
+          "[WebSocket] Contact request subscription created:",
+          contactRequestSubscription ? "Success" : "Failed"
+        );
+        
+        // Subscribe to contact request responses
+        console.log(
+          `[WebSocket] Subscribing to contact responses at: /user/${userId}/queue/contact-responses`
+        );
+        const contactResponseSubscription = stompClient?.subscribe(
+          `/user/${userId}/queue/contact-responses`,
+          (message: IMessage) => {
+            console.log("[WebSocket] Raw contact response received:", message);
+            try {
+              const contactResponse = JSON.parse(message.body);
+              console.log("[WebSocket] Contact response parsed:", contactResponse);
+              
+              // Dispatch an action to update the UI and show a notification
+              // We'll import the action from chatSlice
+              import("../store/chatSlice").then(({ fetchContacts }) => {
+                // Refresh the contacts list to get the updated status
+                store.dispatch(fetchContacts());
+                
+                // Show a browser notification if supported
+                if ("Notification" in window) {
+                  if (Notification.permission === "granted") {
+                    new Notification(
+                      contactResponse.accepted ? "Contact Request Accepted" : "Contact Request Rejected", 
+                      {
+                        body: contactResponse.accepted 
+                          ? `${contactResponse.responderName} accepted your contact request` 
+                          : `${contactResponse.responderName} rejected your contact request`,
+                        icon: "/favicon.ico"
+                      }
+                    );
+                  } else if (Notification.permission !== "denied") {
+                    Notification.requestPermission().then(permission => {
+                      if (permission === "granted") {
+                        new Notification(
+                          contactResponse.accepted ? "Contact Request Accepted" : "Contact Request Rejected", 
+                          {
+                            body: contactResponse.accepted 
+                              ? `${contactResponse.responderName} accepted your contact request` 
+                              : `${contactResponse.responderName} rejected your contact request`,
+                            icon: "/favicon.ico"
+                          }
+                        );
+                      }
+                    });
+                  }
+                }
+              });
+            } catch (error) {
+              console.error(
+                "[WebSocket] Error processing contact response:",
+                error
+              );
+            }
+          }
+        );
+        console.log(
+          "[WebSocket] Contact response subscription created:",
+          contactResponseSubscription ? "Success" : "Failed"
+        );
       } catch (error) {
         console.error("[WebSocket] Error setting up subscriptions:", error);
       }

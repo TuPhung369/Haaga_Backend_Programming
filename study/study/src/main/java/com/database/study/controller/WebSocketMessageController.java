@@ -106,6 +106,71 @@ public class WebSocketMessageController {
         }
     }
     
+    /**
+     * Send a contact request notification via WebSocket
+     * This method is not mapped to a client message, but is called from the ChatContactController
+     * when a new contact request is created
+     * 
+     * @param senderId The ID of the user sending the contact request
+     * @param receiverId The ID of the user receiving the contact request
+     * @param senderName The name of the user sending the contact request
+     */
+    public void sendContactRequestNotification(String senderId, String receiverId, String senderName) {
+        log.info("Sending contact request notification from {} to {}", senderId, receiverId);
+        
+        try {
+            // Create a notification object
+            ContactRequestNotification notification = new ContactRequestNotification();
+            notification.setSenderId(senderId);
+            notification.setSenderName(senderName);
+            notification.setTimestamp(System.currentTimeMillis());
+            
+            // Send to the recipient
+            messagingTemplate.convertAndSendToUser(
+                receiverId,
+                "/queue/contact-requests",
+                notification
+            );
+            
+            log.info("Contact request notification sent successfully to {}", receiverId);
+        } catch (Exception e) {
+            log.error("Error sending contact request notification", e);
+        }
+    }
+    
+    /**
+     * Send a contact request response notification via WebSocket
+     * This method is called from the ChatContactController when a contact request is accepted or rejected
+     * 
+     * @param requesterId The ID of the user who sent the original request
+     * @param responderId The ID of the user who responded to the request
+     * @param responderName The name of the user who responded to the request
+     * @param accepted Whether the request was accepted or rejected
+     */
+    public void sendContactResponseNotification(String requesterId, String responderId, String responderName, boolean accepted) {
+        log.info("Sending contact response notification from {} to {}, accepted: {}", responderId, requesterId, accepted);
+        
+        try {
+            // Create a notification object
+            ContactResponseNotification notification = new ContactResponseNotification();
+            notification.setResponderId(responderId);
+            notification.setResponderName(responderName);
+            notification.setAccepted(accepted);
+            notification.setTimestamp(System.currentTimeMillis());
+            
+            // Send to the original requester
+            messagingTemplate.convertAndSendToUser(
+                requesterId,
+                "/queue/contact-responses",
+                notification
+            );
+            
+            log.info("Contact response notification sent successfully to {}", requesterId);
+        } catch (Exception e) {
+            log.error("Error sending contact response notification", e);
+        }
+    }
+    
     // Inner class for typing notifications
     public static class TypingNotification {
         private String senderId;
@@ -186,6 +251,85 @@ public class WebSocketMessageController {
         
         public void setSuccess(boolean success) {
             this.success = success;
+        }
+    }
+    
+    // Inner class for contact request notifications
+    public static class ContactRequestNotification {
+        private String senderId;
+        private String senderName;
+        private long timestamp;
+        
+        public ContactRequestNotification() {
+            // Default constructor for JSON serialization
+        }
+        
+        public String getSenderId() {
+            return senderId;
+        }
+        
+        public void setSenderId(String senderId) {
+            this.senderId = senderId;
+        }
+        
+        public String getSenderName() {
+            return senderName;
+        }
+        
+        public void setSenderName(String senderName) {
+            this.senderName = senderName;
+        }
+        
+        public long getTimestamp() {
+            return timestamp;
+        }
+        
+        public void setTimestamp(long timestamp) {
+            this.timestamp = timestamp;
+        }
+    }
+    
+    // Inner class for contact response notifications
+    public static class ContactResponseNotification {
+        private String responderId;
+        private String responderName;
+        private boolean accepted;
+        private long timestamp;
+        
+        public ContactResponseNotification() {
+            // Default constructor for JSON serialization
+        }
+        
+        public String getResponderId() {
+            return responderId;
+        }
+        
+        public void setResponderId(String responderId) {
+            this.responderId = responderId;
+        }
+        
+        public String getResponderName() {
+            return responderName;
+        }
+        
+        public void setResponderName(String responderName) {
+            this.responderName = responderName;
+        }
+        
+        public boolean isAccepted() {
+            return accepted;
+        }
+        
+        public void setAccepted(boolean accepted) {
+            this.accepted = accepted;
+        }
+        
+        public long getTimestamp() {
+            return timestamp;
+        }
+        
+        public void setTimestamp(long timestamp) {
+            this.timestamp = timestamp;
         }
     }
 }
