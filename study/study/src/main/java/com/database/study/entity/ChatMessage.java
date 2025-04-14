@@ -48,4 +48,8 @@ public class ChatMessage {
 
     @Column(name = "conversation_id")
     private String conversationId; // To group messages between two users
+    
+    @Column(name = "persistent", nullable = false)
+    @Builder.Default
+    private boolean persistent = true; // Whether this message should be stored permanently
 }

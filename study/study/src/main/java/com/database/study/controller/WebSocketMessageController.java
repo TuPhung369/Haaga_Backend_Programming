@@ -26,6 +26,7 @@ public class WebSocketMessageController {
         String username = authentication.getName();
         log.info("Received message via WebSocket from user {} to {}", username, ChatMessageRequest.getReceiverId());
         log.info("Message content: {}", ChatMessageRequest.getContent());
+        log.info("Message persistence: {}", ChatMessageRequest.getPersistent());
         
         try {
             // Process and save the message

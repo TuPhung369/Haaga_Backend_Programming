@@ -40,6 +40,7 @@ export interface Message {
   };
   timestamp: string;
   read: boolean;
+  persistent?: boolean;
 }
 
 export interface Contact {
@@ -79,12 +80,14 @@ export const getMessages = async (contactId: string): Promise<Message[]> => {
 // Send a message
 export const sendMessage = async (
   content: string,
-  receiverId: string
+  receiverId: string,
+  persistent: boolean = true
 ): Promise<Message> => {
   try {
     const response = await apiClient.post(`/chat/messages`, {
       content,
       receiverId,
+      persistent,
     });
     return response.data;
   } catch (error) {

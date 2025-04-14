@@ -85,6 +85,25 @@ export const connectWebSocket = (userId: string) => {
               const receivedMessage = JSON.parse(message.body) as Message;
               console.log("[WebSocket] Parsed message:", receivedMessage);
 
+              // Check if this is a message from the current user (a confirmation)
+              const currentUserId = store.getState().user.userInfo?.id;
+              const isFromCurrentUser = receivedMessage.sender.id === currentUserId;
+              
+              console.log("[WebSocket] Message from current user?", isFromCurrentUser);
+              console.log("[WebSocket] Current user ID:", currentUserId);
+              console.log("[WebSocket] Message sender ID:", receivedMessage.sender.id);
+              
+              // Check if we already have a temporary message for this in the store
+              const messages = store.getState().chat.messages;
+              const hasTempMessage = messages.some(msg => 
+                msg.id.toString().startsWith('temp-') && 
+                msg.content === receivedMessage.content &&
+                msg.sender.id === receivedMessage.sender.id &&
+                msg.receiver.id === receivedMessage.receiver.id
+              );
+              
+              console.log("[WebSocket] Has matching temp message?", hasTempMessage);
+              
               // Dispatch the message to Redux store
               console.log("[WebSocket] Dispatching message to Redux store");
               store.dispatch(addMessage(receivedMessage));
@@ -366,6 +385,25 @@ export const connectWebSocket = (userId: string) => {
     const originalDebug = stompClient.debug;
     stompClient.debug = (msg) => {
       console.log("[WebSocket] STOMP Frame:", msg);
+      
+      // Check for RECEIPT frames to handle message confirmations
+      if (typeof msg === 'string' && msg.includes('RECEIPT')) {
+        console.log("[WebSocket] Receipt frame detected:", msg);
+        // Extract receipt-id if present
+        const match = msg.match(/receipt-id:([^\n]+)/);
+        if (match && match[1]) {
+          const receiptId = match[1].trim();
+          console.log("[WebSocket] Message receipt confirmed with ID:", receiptId);
+          
+          // Clear the fallback timeout for this receipt ID
+          if ((window as any).receiptTimeouts && (window as any).receiptTimeouts[receiptId]) {
+            console.log("[WebSocket] Clearing fallback timeout for receipt:", receiptId);
+            clearTimeout((window as any).receiptTimeouts[receiptId]);
+            delete (window as any).receiptTimeouts[receiptId];
+          }
+        }
+      }
+      
       if (originalDebug) {
         originalDebug(msg);
       }
@@ -430,11 +468,13 @@ export const disconnectWebSocket = () => {
 
 export const sendMessageViaWebSocket = (
   content: string,
-  receiverId: string
+  receiverId: string,
+  persistent: boolean = true
 ) => {
   console.log("[WebSocket] Attempting to send message:", {
     content,
     receiverId,
+    persistent,
   });
 
   if (stompClient && stompClient.connected) {
@@ -444,17 +484,52 @@ export const sendMessageViaWebSocket = (
       const messageBody = JSON.stringify({
         content,
         receiverId,
+        persistent,
       });
 
       console.log("[WebSocket] Message body prepared:", messageBody);
 
+      // Generate a unique receipt ID for this message
+      const receiptId = `msg-${Date.now()}`;
+      
       // Add a receipt header to get confirmation of delivery
       const headers: StompHeaders = {
-        "receipt": `msg-${Date.now()}`,
+        "receipt": receiptId,
       };
 
       console.log("[WebSocket] Publishing message with headers:", headers);
 
+      // Set up a fallback in case we don't receive a receipt
+      const fallbackTimeout = setTimeout(() => {
+        console.warn(`[WebSocket] No receipt received for message ${receiptId} after 5 seconds`);
+        console.warn("[WebSocket] Falling back to HTTP method");
+        
+        // Import the sendMessage function from chatService and dispatch the sendMessageThunk
+        import("./chatService").then(({ sendMessage }) => {
+          console.log("[WebSocket] Sending message via HTTP fallback");
+          sendMessage(content, receiverId, persistent)
+            .then(response => {
+              console.log("[WebSocket] HTTP fallback successful:", response);
+              
+              // Import and dispatch the addMessage action to update the UI
+              import("../store/chatSlice").then(({ addMessage }) => {
+                import("../store/store").then(({ default: store }) => {
+                  store.dispatch(addMessage(response));
+                });
+              });
+            })
+            .catch(error => {
+              console.error("[WebSocket] HTTP fallback failed:", error);
+            });
+        });
+      }, 5000);
+      
+      // Store the fallback timeout in a map keyed by receipt ID
+      // This would be defined at the module level
+      (window as any).receiptTimeouts = (window as any).receiptTimeouts || {};
+      (window as any).receiptTimeouts[receiptId] = fallbackTimeout;
+      
+      // Publish the message
       stompClient.publish({
         destination: "/app/chat.sendMessage",
         body: messageBody,
@@ -462,27 +537,6 @@ export const sendMessageViaWebSocket = (
       });
 
       console.log("[WebSocket] Message published successfully");
-
-      // We still need to publish to the general topic for testing
-      // but we'll rely on our improved duplicate detection in chatSlice.ts
-      console.log("[WebSocket] Also publishing to general topic for testing");
-      stompClient.publish({
-        destination: "/topic/messages",
-        body: JSON.stringify({
-          id: `client-${Date.now()}`,
-          content: content,
-          sender: {
-            id: store.getState().user.userInfo?.id || "unknown",
-            name: store.getState().user.userInfo?.username || "Me",
-          },
-          receiver: {
-            id: receiverId,
-            name: "Recipient",
-          },
-          timestamp: new Date().toISOString(),
-          read: false,
-        }),
-      });
 
       return true;
     } catch (error) {

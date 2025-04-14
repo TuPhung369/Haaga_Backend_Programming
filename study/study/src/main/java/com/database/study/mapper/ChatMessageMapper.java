@@ -49,6 +49,7 @@ public class ChatMessageMapper {
                         receiverName))
                 .timestamp(message.getTimestamp().toString())
                 .read(message.isRead())
+                .persistent(message.isPersistent())
                 .build();
     }
 

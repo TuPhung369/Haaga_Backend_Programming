@@ -44,6 +44,11 @@ public class ChatMessageResponse {
     private boolean read;
     
     /**
+     * Whether this message is stored permanently in the database
+     */
+    private boolean persistent;
+    
+    /**
      * Inner class for user information
      */
     @Data

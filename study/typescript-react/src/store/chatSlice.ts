@@ -92,11 +92,19 @@ export const fetchMessages = createAsyncThunk(
 export const sendMessageThunk = createAsyncThunk(
   "chat/sendMessage",
   async (
-    { content, receiverId }: { content: string; receiverId: string },
+    {
+      content,
+      receiverId,
+      persistent = true,
+    }: {
+      content: string;
+      receiverId: string;
+      persistent?: boolean;
+    },
     { rejectWithValue }
   ) => {
     try {
-      return await sendMessage(content, receiverId);
+      return await sendMessage(content, receiverId, persistent);
     } catch (error: unknown) {
       try {
         handleServiceError(error);
@@ -272,14 +280,32 @@ const chatSlice = createSlice({
     addMessage: (state, action: PayloadAction<Message>) => {
       console.log("[Redux] Adding new message to store:", action.payload);
 
-      // Improved duplicate detection - check by ID or by content + timestamp (within 2 seconds)
+      // Enhanced duplicate detection with more logging
       const isDuplicate = state.messages.some((msg) => {
-        // Check if exact same ID
-        if (msg.id === action.payload.id) {
+        // Check if exact same ID (except for temp IDs which should be replaced)
+        if (
+          msg.id === action.payload.id &&
+          !msg.id.toString().startsWith("temp-") &&
+          !action.payload.id.toString().startsWith("temp-")
+        ) {
+          console.log("[Redux] Exact ID match found:", msg.id);
           return true;
         }
 
-        // Check if same content, same sender/receiver, and timestamp within 2 seconds
+        // Check if this is a server response replacing a temp message
+        if (
+          msg.id.toString().startsWith("temp-") &&
+          msg.content === action.payload.content &&
+          msg.sender.id === action.payload.sender.id &&
+          msg.receiver.id === action.payload.receiver.id
+        ) {
+          console.log("[Redux] Found matching temp message, will replace it");
+          // Instead of skipping, we'll replace the temp message with the server response
+          // This is handled below
+          return false;
+        }
+
+        // Check if same content, same sender/receiver, and timestamp within 5 seconds
         if (
           msg.content === action.payload.content &&
           msg.sender.id === action.payload.sender.id &&
@@ -289,10 +315,12 @@ const chatSlice = createSlice({
           const newMsgTime = new Date(action.payload.timestamp).getTime();
           const timeDiff = Math.abs(msgTime - newMsgTime);
 
-          // If messages are within 2 seconds of each other, consider them duplicates
-          if (timeDiff < 2000) {
+          // If messages are within 5 seconds of each other, consider them duplicates
+          if (timeDiff < 5000) {
             console.log(
-              "[Redux] Found similar message within 2 seconds, treating as duplicate"
+              "[Redux] Found similar message within 5 seconds, treating as duplicate. Time diff:",
+              timeDiff,
+              "ms"
             );
             return true;
           }
@@ -304,8 +332,26 @@ const chatSlice = createSlice({
       if (isDuplicate) {
         console.log("[Redux] Message appears to be a duplicate, not adding");
       } else {
-        console.log("[Redux] Message is new, adding to store");
-        state.messages.push(action.payload);
+        // Check if this is a server response that should replace a temp message
+        const tempIndex = state.messages.findIndex(
+          (msg) =>
+            msg.id.toString().startsWith("temp-") &&
+            msg.content === action.payload.content &&
+            msg.sender.id === action.payload.sender.id &&
+            msg.receiver.id === action.payload.receiver.id
+        );
+
+        if (tempIndex !== -1) {
+          console.log(
+            "[Redux] Replacing temp message at index",
+            tempIndex,
+            "with server response"
+          );
+          state.messages[tempIndex] = action.payload;
+        } else {
+          console.log("[Redux] Message is new, adding to store");
+          state.messages.push(action.payload);
+        }
         console.log("[Redux] New message count:", state.messages.length);
       }
     },
@@ -485,7 +531,7 @@ const chatSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      
+
       // Update contact display name
       .addCase(updateContactDisplayNameThunk.pending, (state) => {
         state.loading = true;

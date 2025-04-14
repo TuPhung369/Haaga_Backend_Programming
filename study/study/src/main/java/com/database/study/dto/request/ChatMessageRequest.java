@@ -22,4 +22,10 @@ public class ChatMessageRequest {
      * The ID of the message recipient
      */
     private String receiverId;
+    
+    /**
+     * Whether this message should be stored permanently in the database
+     * Default is true
+     */
+    private Boolean persistent = true;
 }

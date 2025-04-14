@@ -15,6 +15,7 @@ export interface ChatMessage {
   };
   timestamp: string;
   read: boolean;
+  persistent?: boolean;
 }
 
 export interface ChatContact {
@@ -44,6 +45,7 @@ export interface AddContactPayload {
 export interface SendMessagePayload {
   content: string;
   receiverId: string;
+  persistent?: boolean;
 }
 
 export interface MarkAsReadPayload {

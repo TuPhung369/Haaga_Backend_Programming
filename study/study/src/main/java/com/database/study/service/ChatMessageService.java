@@ -53,9 +53,14 @@ public class ChatMessageService {
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             log.info("Receiver found: {}", receiver.getId());
     
-            // Create and save the message
+            // Create the message entity
             log.info("Creating message entity");
             ChatMessage message = messageMapper.toEntity(request, sender, receiver);
+            
+            // Set the persistent flag based on the request
+            boolean isPersistent = request.getPersistent() != null ? request.getPersistent() : true;
+            message.setPersistent(isPersistent);
+            log.info("Message persistence set to: {}, raw value from request: {}", isPersistent, request.getPersistent());
     
             // If conversationId is not provided, generate one
             if (message.getConversationId() == null) {
@@ -65,9 +70,16 @@ public class ChatMessageService {
                 log.info("Conversation ID generated: {}", conversationId);
             }
     
-            log.info("Saving message to database");
-            message = messageRepository.save(message);
-            log.info("Message saved with ID: {}", message.getId());
+            // Only save to database if the message is persistent
+            if (isPersistent) {
+                log.info("Saving message to database (persistent=true)");
+                message = messageRepository.save(message);
+                log.info("Message saved with ID: {}", message.getId());
+            } else {
+                log.info("Skipping database save for non-persistent message (persistent=false)");
+                // Generate a temporary ID for non-persistent messages
+                message.setId(UUID.randomUUID());
+            }
     
             log.info("Creating response DTO");
             ChatMessageResponse response = messageMapper.toResponse(message);

@@ -12,6 +12,7 @@ import {
   Form,
   Dropdown,
   Tag,
+  Switch,
 } from "antd";
 import {
   SendOutlined,
@@ -19,16 +20,11 @@ import {
   PlusOutlined,
   TagOutlined,
   EditOutlined,
-  TeamOutlined,
-  HomeOutlined,
-  LaptopOutlined,
-  EllipsisOutlined,
-  CloseOutlined,
-  MoreOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
 import { RootState } from "../types";
+import { ChatMessage } from "../types/ChatTypes";
 import {
   NovuProvider,
   PopoverNotificationCenter,
@@ -65,6 +61,8 @@ const ChatPage: React.FC = () => {
   const [isAddContactModalVisible, setIsAddContactModalVisible] =
     useState(false);
   const [newContactEmail, setNewContactEmail] = useState("");
+  const [persistMessages, setPersistMessages] = useState(true);
+  console.log("[Chat] Initial persistence setting:", persistMessages);
   const [form] = Form.useForm();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +86,7 @@ const ChatPage: React.FC = () => {
     // Fetch contacts
     dispatch(fetchContacts())
       .unwrap()
-      .catch((error) => {
+      .catch(() => {
         notification.error({
           message: "Connection Error",
           description:
@@ -109,7 +107,7 @@ const ChatPage: React.FC = () => {
           });
         }
       })
-      .catch((error) => {
+      .catch(() => {
         notification.error({
           message: "Error",
           description: "Failed to fetch pending contact requests.",
@@ -148,24 +146,36 @@ const ChatPage: React.FC = () => {
         .unwrap()
         .then(() => {
           // After messages are fetched, mark them as read
-          console.log("[Chat] Marking messages as read for contact:", selectedContact.id);
-          
+          console.log(
+            "[Chat] Marking messages as read for contact:",
+            selectedContact.id
+          );
+
           // Try to mark messages as read via WebSocket first
-          import("../services/websocketService").then(({ markMessagesAsReadViaWebSocket }) => {
-            const sentViaWebSocket = markMessagesAsReadViaWebSocket(selectedContact.id);
-            
-            // If WebSocket fails, fall back to HTTP
-            if (!sentViaWebSocket) {
-              console.log("[Chat] WebSocket marking failed, falling back to HTTP");
-              dispatch(markAsRead(selectedContact.id))
-                .unwrap()
-                .catch(error => {
-                  console.error("[Chat] Error marking messages as read:", error);
-                });
+          import("../services/websocketService").then(
+            ({ markMessagesAsReadViaWebSocket }) => {
+              const sentViaWebSocket = markMessagesAsReadViaWebSocket(
+                selectedContact.id
+              );
+
+              // If WebSocket fails, fall back to HTTP
+              if (!sentViaWebSocket) {
+                console.log(
+                  "[Chat] WebSocket marking failed, falling back to HTTP"
+                );
+                dispatch(markAsRead(selectedContact.id))
+                  .unwrap()
+                  .catch((error) => {
+                    console.error(
+                      "[Chat] Error marking messages as read:",
+                      error
+                    );
+                  });
+              }
             }
-          });
+          );
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("[Chat] Error fetching messages:", error);
         });
     }
@@ -194,11 +204,15 @@ const ChatPage: React.FC = () => {
       text: messageText,
       to: selectedContact.name,
       contactId: selectedContact.id,
+      persistent: persistMessages,
     });
 
     // Create a temporary message to display immediately
-    const tempMessage: any = {
-      id: `temp-${Date.now()}`,
+    const tempId = `temp-${Date.now()}`;
+    console.log("[Chat] Creating temporary message with ID:", tempId);
+    
+    const tempMessage: ChatMessage = {
+      id: tempId,
       content: messageText,
       sender: {
         id: userInfo?.id || "unknown",
@@ -210,18 +224,21 @@ const ChatPage: React.FC = () => {
       },
       timestamp: new Date().toISOString(),
       read: false,
+      persistent: persistMessages,
     };
 
     // Add the temporary message to the Redux store
     console.log("[Chat] Adding temporary message to store:", tempMessage);
-    dispatch(addMessage(tempMessage as any));
+    dispatch(addMessage(tempMessage));
 
     try {
       // Try to send via WebSocket first
       console.log("[Chat] Attempting to send via WebSocket");
+      console.log("[Chat] Message persistence setting:", persistMessages);
       const sentViaWebSocket = sendMessageViaWebSocket(
         messageText,
-        selectedContact.id
+        selectedContact.id,
+        persistMessages
       );
       console.log(
         "[Chat] WebSocket send result:",
@@ -237,6 +254,7 @@ const ChatPage: React.FC = () => {
           sendMessageThunk({
             content: messageText,
             receiverId: selectedContact.id,
+            persistent: persistMessages,
           })
         ).unwrap();
 
@@ -556,14 +574,16 @@ const ChatPage: React.FC = () => {
                         Modal.confirm({
                           title: "Edit Display Name",
                           content: (
-                            <Input 
+                            <Input
                               placeholder="Enter new display name"
                               defaultValue={contact.name}
                               id="display-name-input"
                             />
                           ),
                           onOk: () => {
-                            const input = document.getElementById("display-name-input") as HTMLInputElement;
+                            const input = document.getElementById(
+                              "display-name-input"
+                            ) as HTMLInputElement;
                             const newName = input?.value;
                             if (newName && newName.trim()) {
                               dispatch(
@@ -574,7 +594,8 @@ const ChatPage: React.FC = () => {
                               );
                               notification.success({
                                 message: "Success",
-                                description: "Contact name updated successfully!",
+                                description:
+                                  "Contact name updated successfully!",
                               });
                             }
                           },
@@ -697,30 +718,55 @@ const ChatPage: React.FC = () => {
                       <div
                         style={{
                           display: "flex",
+                          justifyContent: "space-between",
                           alignItems: "center",
-                          gap: "6px",
                         }}
                       >
                         <span>{contact.name}</span>
+                        {contact.unreadCount > 0 && (
+                          <Tag color="#1890ff">{contact.unreadCount}</Tag>
+                        )}
+                      </div>
+                    }
+                    description={
+                      <Text
+                        type="secondary"
+                        style={{
+                          fontSize: "12px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background:
+                              contact.status === "online"
+                                ? "#52c41a"
+                                : contact.status === "away"
+                                ? "#faad14"
+                                : "#8c8c8c",
+                          }}
+                        />
+                        {contact.status.charAt(0).toUpperCase() +
+                          contact.status.slice(1)}
                         {contact.group && (
                           <Tag
                             color="blue"
                             style={{
-                              fontSize: "10px",
                               marginLeft: "4px",
+                              fontSize: "10px",
+                              lineHeight: "14px",
                               padding: "0 4px",
-                              height: "20px",
-                              lineHeight: "20px",
                             }}
                           >
                             {contact.group}
                           </Tag>
                         )}
-                      </div>
-                    }
-                    description={
-                      <Text ellipsis style={{ maxWidth: 200 }}>
-                        {contact.lastMessage || "No messages yet"}
                       </Text>
                     }
                   />
@@ -774,25 +820,19 @@ const ChatPage: React.FC = () => {
                     level={4}
                     style={{
                       margin: 0,
-                      color: "#1890ff",
+                      fontSize: "16px",
                       fontWeight: 600,
-                      fontSize: "18px",
                     }}
                   >
                     {selectedContact.name}
                   </Title>
                   <Text
+                    type="secondary"
                     style={{
-                      color:
-                        selectedContact.status === "online"
-                          ? "#52c41a"
-                          : selectedContact.status === "away"
-                          ? "#faad14"
-                          : "#8c8c8c",
-                      fontWeight: 500,
+                      fontSize: "12px",
                       display: "flex",
                       alignItems: "center",
-                      gap: "5px",
+                      gap: "4px",
                     }}
                   >
                     <span
@@ -892,14 +932,37 @@ const ChatPage: React.FC = () => {
                           letterSpacing: "0.3px",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "flex-end",
-                          gap: "4px",
+                          justifyContent: "space-between",
                         }}
                       >
-                        {new Date(message.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        <span
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          {message.persistent === false && (
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                color:
+                                  message.sender.id === userId
+                                    ? "#fff"
+                                    : "#ff4d4f",
+                                opacity: 0.8,
+                              }}
+                              title="This message is not saved to database"
+                            >
+                              ⚡
+                            </span>
+                          )}
+                          {new Date(message.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+
                         {message.sender.id === userId && (
                           <span
                             style={{
@@ -926,6 +989,7 @@ const ChatPage: React.FC = () => {
                   padding: "16px",
                   borderTop: "1px solid #f0f0f0",
                   display: "flex",
+                  flexDirection: "column",
                   gap: 12,
                   background:
                     "linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%)",
@@ -933,48 +997,83 @@ const ChatPage: React.FC = () => {
                   borderBottomRightRadius: "12px",
                 }}
               >
-                <Input
-                  placeholder="Type a message..."
-                  value={messageText}
-                  onChange={(e) => {
-                    setMessageText(e.target.value);
-                    // Send typing notification when user starts typing
-                    if (selectedContact) {
-                      sendTypingNotification(
-                        selectedContact.id,
-                        e.target.value.length > 0
-                      );
-                    }
-                  }}
-                  onKeyPress={handleKeyPress}
+                <div
                   style={{
-                    flex: 1,
-                    borderRadius: "20px",
-                    padding: "8px 16px",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                    border: "1px solid #e8e8e8",
-                  }}
-                />
-                <Button
-                  type="primary"
-                  icon={<SendOutlined />}
-                  onClick={sendMessage}
-                  disabled={!messageText.trim()}
-                  style={{
-                    borderRadius: "20px",
                     display: "flex",
                     alignItems: "center",
-                    background: messageText.trim()
-                      ? "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)"
-                      : undefined,
-                    boxShadow: messageText.trim()
-                      ? "0 2px 5px rgba(0, 0, 0, 0.15)"
-                      : undefined,
-                    transition: "all 0.3s ease",
+                    justifyContent: "flex-end",
+                    marginBottom: "8px",
                   }}
                 >
-                  Send
-                </Button>
+                  <Text
+                    style={{
+                      marginRight: "8px",
+                      fontSize: "14px",
+                      color: persistMessages ? "#52c41a" : "#ff4d4f",
+                    }}
+                  >
+                    {persistMessages
+                      ? "Messages will be saved"
+                      : "Messages will not be saved"}
+                  </Text>
+                  <Switch
+                    checked={persistMessages}
+                    onChange={(checked) => {
+                      console.log(
+                        "[Chat] Persistence setting changed to:",
+                        checked
+                      );
+                      setPersistMessages(checked);
+                    }}
+                    checkedChildren="Save"
+                    unCheckedChildren="Don't save"
+                    size="small"
+                  />
+                </div>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <Input
+                    placeholder="Type a message..."
+                    value={messageText}
+                    onChange={(e) => {
+                      setMessageText(e.target.value);
+                      // Send typing notification when user starts typing
+                      if (selectedContact) {
+                        sendTypingNotification(
+                          selectedContact.id,
+                          e.target.value.length > 0
+                        );
+                      }
+                    }}
+                    onKeyPress={handleKeyPress}
+                    style={{
+                      flex: 1,
+                      borderRadius: "20px",
+                      padding: "8px 16px",
+                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                      border: "1px solid #e8e8e8",
+                    }}
+                  />
+                  <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={sendMessage}
+                    disabled={!messageText.trim()}
+                    style={{
+                      borderRadius: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      background: messageText.trim()
+                        ? "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)"
+                        : undefined,
+                      boxShadow: messageText.trim()
+                        ? "0 2px 5px rgba(0, 0, 0, 0.15)"
+                        : undefined,
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    Send
+                  </Button>
+                </div>
               </div>
             </>
           ) : (
@@ -1016,53 +1115,39 @@ const ChatPage: React.FC = () => {
         okButtonProps={{
           style: {
             background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
-            borderRadius: "6px",
+            border: "none",
+            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
           },
         }}
-        cancelButtonProps={{
-          style: {
-            borderRadius: "6px",
-          },
-        }}
-        styles={{
-          body: { padding: "20px 24px" },
-        }}
-        style={{ top: 20 }}
       >
         <Form form={form} layout="vertical">
           <Form.Item
             name="email"
-            label={
-              <span style={{ fontSize: "15px", fontWeight: 500 }}>
-                Email Address
-              </span>
-            }
+            label="Email Address"
             rules={[
               {
                 required: true,
-                message: "Please enter the contact's email address",
+                message: "Please enter an email address",
               },
-              { type: "email", message: "Please enter a valid email address" },
+              {
+                type: "email",
+                message: "Please enter a valid email address",
+              },
             ]}
           >
             <Input
-              prefix={<UserOutlined style={{ color: "#bfbfbf" }} />}
               placeholder="Enter email address"
               value={newContactEmail}
               onChange={(e) => setNewContactEmail(e.target.value)}
               style={{
                 borderRadius: "6px",
                 padding: "8px 12px",
-                height: "40px",
               }}
             />
           </Form.Item>
           <div
             style={{
-              marginTop: "10px",
-              padding: "10px",
-              background: "#f9f9f9",
-              borderRadius: "6px",
+              marginTop: "16px",
               fontSize: "13px",
               color: "#8c8c8c",
             }}
