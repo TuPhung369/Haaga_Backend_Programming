@@ -191,6 +191,70 @@ public class ChatContactController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/contacts/{contactId}/displayname")
+    public ResponseEntity<ChatContactResponse> updateContactDisplayName(
+            @PathVariable String contactId,
+            @RequestBody Map<String, String> payload) {
+
+        String displayName = payload.get("displayName");
+        if (displayName == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Get current user
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Find contact by ID
+        try {
+            UUID contactUserId = UUID.fromString(contactId);
+            Optional<User> contactUserOpt = userRepository.findById(contactUserId);
+
+            if (contactUserOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            User contactUser = contactUserOpt.get();
+
+            // Find the contact relationship
+            Optional<ChatContact> contactOpt = contactRepository.findByUserAndContact(currentUser, contactUser);
+
+            if (contactOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Update display name
+            ChatContact contact = contactOpt.get();
+            contact.setDisplayName(displayName);
+            contact.setUpdatedAt(LocalDateTime.now());
+            contactRepository.save(contact);
+
+            // Create response
+            ChatContactResponse response = new ChatContactResponse();
+            response.setId(contactUser.getId().toString());
+            response.setName(displayName);
+            response.setEmail(contactUser.getEmail());
+            response.setStatus("online");
+            response.setGroup(contact.getContactGroup());
+            response.setContactStatus(contact.getStatus().toString());
+
+            // Set unread count and last message if available
+            String cId = contactUser.getId().toString();
+            response.setUnreadCount(unreadCounts.getOrDefault(cId, 0));
+            List<ChatMessageResponse> contactMessages = messages.getOrDefault(cId, new ArrayList<>());
+            if (!contactMessages.isEmpty()) {
+                response.setLastMessage(contactMessages.get(contactMessages.size() - 1).getContent());
+            }
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/contacts/{contactId}/group")
     public ResponseEntity<ChatContactResponse> updateContactGroup(
             @PathVariable String contactId,

@@ -18,6 +18,13 @@ import {
   UserOutlined,
   PlusOutlined,
   TagOutlined,
+  EditOutlined,
+  TeamOutlined,
+  HomeOutlined,
+  LaptopOutlined,
+  EllipsisOutlined,
+  CloseOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
@@ -36,6 +43,7 @@ import {
   addContactThunk as addContact, // Renamed in the combined slice
   setSelectedContact,
   updateContactGroupThunk,
+  updateContactDisplayNameThunk,
   fetchPendingRequests,
   respondToRequest,
   addMessage, // Import the addMessage action
@@ -536,6 +544,43 @@ const ChatPage: React.FC = () => {
                   }}
                   className="contact-list-item"
                   actions={[
+                    <Button
+                      key="edit-name"
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      style={{ color: "#8c8c8c" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Show a modal to edit the display name
+                        Modal.confirm({
+                          title: "Edit Display Name",
+                          content: (
+                            <Input 
+                              placeholder="Enter new display name"
+                              defaultValue={contact.name}
+                              id="display-name-input"
+                            />
+                          ),
+                          onOk: () => {
+                            const input = document.getElementById("display-name-input") as HTMLInputElement;
+                            const newName = input?.value;
+                            if (newName && newName.trim()) {
+                              dispatch(
+                                updateContactDisplayNameThunk({
+                                  contactId: contact.id,
+                                  displayName: newName.trim(),
+                                })
+                              );
+                              notification.success({
+                                message: "Success",
+                                description: "Contact name updated successfully!",
+                              });
+                            }
+                          },
+                        });
+                      }}
+                    />,
                     <Dropdown
                       key="group-dropdown"
                       menu={{

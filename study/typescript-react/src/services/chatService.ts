@@ -143,6 +143,25 @@ export const updateContactGroup = async (
   }
 };
 
+// Update contact display name
+export const updateContactDisplayName = async (
+  contactId: string,
+  displayName: string
+): Promise<Contact> => {
+  try {
+    const response = await apiClient.post(
+      `/chat/contacts/${contactId}/displayname`,
+      {
+        displayName,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating contact display name:", error);
+    throw handleServiceError(error);
+  }
+};
+
 // Get pending contact requests
 export const getPendingContactRequests = async (): Promise<Contact[]> => {
   try {
