@@ -72,6 +72,40 @@ public class WebSocketMessageController {
         );
     }
     
+    @MessageMapping("/chat.markAsRead")
+    public void markMessagesAsRead(@Payload ReadStatusRequest request, Authentication authentication) {
+        String username = authentication.getName();
+        log.info("Marking messages as read via WebSocket for user {} from contact {}", username, request.getContactId());
+        
+        try {
+            // Call the service to mark messages as read
+            messageService.markMessagesAsRead(username, request.getContactId());
+            log.info("Messages marked as read successfully");
+            
+            // Send confirmation back to the sender
+            messagingTemplate.convertAndSendToUser(
+                username,
+                "/queue/read-receipts",
+                new ReadStatusResponse(request.getContactId(), true)
+            );
+            
+            // Notify the other user that their messages have been read
+            messagingTemplate.convertAndSendToUser(
+                request.getContactId(),
+                "/queue/read-receipts",
+                new ReadStatusResponse(username, true)
+            );
+        } catch (Exception e) {
+            log.error("Error marking messages as read via WebSocket", e);
+            // Send error response back to the client
+            messagingTemplate.convertAndSendToUser(
+                username,
+                "/queue/read-receipts",
+                new ReadStatusResponse(request.getContactId(), false)
+            );
+        }
+    }
+    
     // Inner class for typing notifications
     public static class TypingNotification {
         private String senderId;
@@ -100,6 +134,58 @@ public class WebSocketMessageController {
         
         public void setTyping(boolean typing) {
             this.typing = typing;
+        }
+    }
+    
+    // Inner class for read status requests
+    public static class ReadStatusRequest {
+        private String contactId;
+        
+        public ReadStatusRequest() {
+            // Default constructor for JSON deserialization
+        }
+        
+        public ReadStatusRequest(String contactId) {
+            this.contactId = contactId;
+        }
+        
+        public String getContactId() {
+            return contactId;
+        }
+        
+        public void setContactId(String contactId) {
+            this.contactId = contactId;
+        }
+    }
+    
+    // Inner class for read status responses
+    public static class ReadStatusResponse {
+        private String contactId;
+        private boolean success;
+        
+        public ReadStatusResponse() {
+            // Default constructor for JSON serialization
+        }
+        
+        public ReadStatusResponse(String contactId, boolean success) {
+            this.contactId = contactId;
+            this.success = success;
+        }
+        
+        public String getContactId() {
+            return contactId;
+        }
+        
+        public void setContactId(String contactId) {
+            this.contactId = contactId;
+        }
+        
+        public boolean isSuccess() {
+            return success;
+        }
+        
+        public void setSuccess(boolean success) {
+            this.success = success;
         }
     }
 }

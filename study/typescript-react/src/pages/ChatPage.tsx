@@ -32,7 +32,7 @@ import {
   fetchContacts,
   fetchMessages,
   sendMessageThunk,
-  // markAsRead, // Commented out as it's not used
+  markAsRead, // Uncommented to use for marking messages as read
   addContactThunk as addContact, // Renamed in the combined slice
   setSelectedContact,
   updateContactGroupThunk,
@@ -125,7 +125,31 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     if (selectedContact) {
-      dispatch(fetchMessages(selectedContact.id));
+      // Fetch messages for the selected contact
+      dispatch(fetchMessages(selectedContact.id))
+        .unwrap()
+        .then(() => {
+          // After messages are fetched, mark them as read
+          console.log("[Chat] Marking messages as read for contact:", selectedContact.id);
+          
+          // Try to mark messages as read via WebSocket first
+          import("../services/websocketService").then(({ markMessagesAsReadViaWebSocket }) => {
+            const sentViaWebSocket = markMessagesAsReadViaWebSocket(selectedContact.id);
+            
+            // If WebSocket fails, fall back to HTTP
+            if (!sentViaWebSocket) {
+              console.log("[Chat] WebSocket marking failed, falling back to HTTP");
+              dispatch(markAsRead(selectedContact.id))
+                .unwrap()
+                .catch(error => {
+                  console.error("[Chat] Error marking messages as read:", error);
+                });
+            }
+          });
+        })
+        .catch(error => {
+          console.error("[Chat] Error fetching messages:", error);
+        });
     }
   }, [selectedContact, dispatch]);
 
@@ -830,8 +854,9 @@ const ChatPage: React.FC = () => {
                                   ? "#fff"
                                   : "#52c41a",
                             }}
+                            title={message.read ? "Read" : "Sent"}
                           >
-                            ✓
+                            {message.read ? "✓✓" : "✓"}
                           </span>
                         )}
                       </div>

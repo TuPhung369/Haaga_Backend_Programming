@@ -1,7 +1,7 @@
 import { Client, IMessage, StompHeaders } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import store from "../store/store";
-import { addMessage } from "../store/chatSlice";
+import { addMessage, updateMessagesReadStatus } from "../store/chatSlice";
 import { Message } from "./chatService";
 
 // Use the same API_URL as in baseService.ts
@@ -69,105 +69,153 @@ export const connectWebSocket = (userId: string) => {
   stompClient.onConnect = () => {
     console.log("[WebSocket] Connection established successfully");
 
-    try {
-      // Subscribe to personal messages
-      console.log(
-        `[WebSocket] Subscribing to messages at: /user/${userId}/queue/messages`
-      );
-      const messageSubscription = stompClient?.subscribe(
-        `/user/${userId}/queue/messages`,
-        (message: IMessage) => {
-          console.log("[WebSocket] Raw message received:", message);
-          try {
-            console.log("[WebSocket] Parsing message body:", message.body);
-            const receivedMessage = JSON.parse(message.body) as Message;
-            console.log("[WebSocket] Parsed message:", receivedMessage);
+    // Add a small delay to ensure the connection is fully established
+    setTimeout(() => {
+      try {
+        // Subscribe to personal messages
+        console.log(
+          `[WebSocket] Subscribing to messages at: /user/${userId}/queue/messages`
+        );
+        const messageSubscription = stompClient?.subscribe(
+          `/user/${userId}/queue/messages`,
+          (message: IMessage) => {
+            console.log("[WebSocket] Raw message received:", message);
+            try {
+              console.log("[WebSocket] Parsing message body:", message.body);
+              const receivedMessage = JSON.parse(message.body) as Message;
+              console.log("[WebSocket] Parsed message:", receivedMessage);
 
-            // Dispatch the message to Redux store
-            console.log("[WebSocket] Dispatching message to Redux store");
-            store.dispatch(addMessage(receivedMessage));
-            console.log("[WebSocket] Message dispatched successfully");
-          } catch (error) {
-            console.error(
-              "[WebSocket] Error processing WebSocket message:",
-              error
-            );
-            console.error("[WebSocket] Problem message body:", message.body);
+              // Dispatch the message to Redux store
+              console.log("[WebSocket] Dispatching message to Redux store");
+              store.dispatch(addMessage(receivedMessage));
+              console.log("[WebSocket] Message dispatched successfully");
+            } catch (error) {
+              console.error(
+                "[WebSocket] Error processing WebSocket message:",
+                error
+              );
+              console.error("[WebSocket] Problem message body:", message.body);
+            }
           }
-        }
-      );
-      console.log(
-        "[WebSocket] Message subscription created:",
-        messageSubscription ? "Success" : "Failed"
-      );
+        );
+        console.log(
+          "[WebSocket] Message subscription created:",
+          messageSubscription ? "Success" : "Failed"
+        );
 
-      // Also subscribe to the general topic for messages
-      console.log(`[WebSocket] Subscribing to general topic: /topic/messages`);
-      const generalMessageSubscription = stompClient?.subscribe(
-        `/topic/messages`,
-        (message: IMessage) => {
-          console.log("[WebSocket] Raw general message received:", message);
-          try {
-            console.log(
-              "[WebSocket] Parsing general message body:",
-              message.body
-            );
-            const receivedMessage = JSON.parse(message.body) as Message;
-            console.log("[WebSocket] Parsed general message:", receivedMessage);
+        // Also subscribe to the general topic for messages
+        console.log(
+          `[WebSocket] Subscribing to general topic: /topic/messages`
+        );
+        const generalMessageSubscription = stompClient?.subscribe(
+          `/topic/messages`,
+          (message: IMessage) => {
+            console.log("[WebSocket] Raw general message received:", message);
+            try {
+              console.log(
+                "[WebSocket] Parsing general message body:",
+                message.body
+              );
+              const receivedMessage = JSON.parse(message.body) as Message;
+              console.log(
+                "[WebSocket] Parsed general message:",
+                receivedMessage
+              );
 
-            // Dispatch the message to Redux store
-            console.log(
-              "[WebSocket] Dispatching general message to Redux store"
-            );
-            store.dispatch(addMessage(receivedMessage));
-            console.log("[WebSocket] General message dispatched successfully");
-          } catch (error) {
-            console.error(
-              "[WebSocket] Error processing general WebSocket message:",
-              error
-            );
-            console.error(
-              "[WebSocket] Problem general message body:",
-              message.body
-            );
+              // Dispatch the message to Redux store
+              console.log(
+                "[WebSocket] Dispatching general message to Redux store"
+              );
+              store.dispatch(addMessage(receivedMessage));
+              console.log(
+                "[WebSocket] General message dispatched successfully"
+              );
+            } catch (error) {
+              console.error(
+                "[WebSocket] Error processing general WebSocket message:",
+                error
+              );
+              console.error(
+                "[WebSocket] Problem general message body:",
+                message.body
+              );
+            }
           }
-        }
-      );
-      console.log(
-        "[WebSocket] General message subscription created:",
-        generalMessageSubscription ? "Success" : "Failed"
-      );
+        );
+        console.log(
+          "[WebSocket] General message subscription created:",
+          generalMessageSubscription ? "Success" : "Failed"
+        );
 
-      // Subscribe to typing notifications
-      console.log(
-        `[WebSocket] Subscribing to typing notifications at: /user/${userId}/queue/typing`
-      );
-      const typingSubscription = stompClient?.subscribe(
-        `/user/${userId}/queue/typing`,
-        (message: IMessage) => {
-          console.log("[WebSocket] Raw typing notification received:", message);
-          try {
-            const typingNotification = JSON.parse(message.body);
+        // Subscribe to typing notifications
+        console.log(
+          `[WebSocket] Subscribing to typing notifications at: /user/${userId}/queue/typing`
+        );
+        const typingSubscription = stompClient?.subscribe(
+          `/user/${userId}/queue/typing`,
+          (message: IMessage) => {
             console.log(
-              "[WebSocket] Typing notification parsed:",
-              typingNotification
+              "[WebSocket] Raw typing notification received:",
+              message
             );
-            // Handle typing notification (could dispatch to Redux if needed)
-          } catch (error) {
-            console.error(
-              "[WebSocket] Error processing typing notification:",
-              error
-            );
+            try {
+              const typingNotification = JSON.parse(message.body);
+              console.log(
+                "[WebSocket] Typing notification parsed:",
+                typingNotification
+              );
+              // Handle typing notification (could dispatch to Redux if needed)
+            } catch (error) {
+              console.error(
+                "[WebSocket] Error processing typing notification:",
+                error
+              );
+            }
           }
-        }
-      );
-      console.log(
-        "[WebSocket] Typing subscription created:",
-        typingSubscription ? "Success" : "Failed"
-      );
-    } catch (error) {
-      console.error("[WebSocket] Error setting up subscriptions:", error);
-    }
+        );
+        console.log(
+          "[WebSocket] Typing subscription created:",
+          typingSubscription ? "Success" : "Failed"
+        );
+
+        // Subscribe to read receipts
+        console.log(
+          `[WebSocket] Subscribing to read receipts at: /user/${userId}/queue/read-receipts`
+        );
+        const readReceiptSubscription = stompClient?.subscribe(
+          `/user/${userId}/queue/read-receipts`,
+          (message: IMessage) => {
+            console.log("[WebSocket] Raw read receipt received:", message);
+            try {
+              const readReceipt = JSON.parse(message.body);
+              console.log("[WebSocket] Read receipt parsed:", readReceipt);
+
+              // Update the UI to show messages as read by dispatching an action to Redux
+              console.log(
+                "[WebSocket] Messages marked as read for contact:",
+                readReceipt.contactId
+              );
+
+              // Dispatch the action to update the UI
+              store.dispatch(
+                updateMessagesReadStatus({ contactId: readReceipt.contactId })
+              );
+            } catch (error) {
+              console.error(
+                "[WebSocket] Error processing read receipt:",
+                error
+              );
+            }
+          }
+        );
+        console.log(
+          "[WebSocket] Read receipt subscription created:",
+          readReceiptSubscription ? "Success" : "Failed"
+        );
+      } catch (error) {
+        console.error("[WebSocket] Error setting up subscriptions:", error);
+      }
+    }, 100); // 100ms delay should be enough
   };
 
   stompClient.onStompError = (frame) => {
@@ -358,6 +406,41 @@ export const sendTypingNotification = (
         typing: isTyping,
       }),
     });
+  }
+};
+
+// Mark messages as read via WebSocket
+export const markMessagesAsReadViaWebSocket = (contactId: string) => {
+  console.log("[WebSocket] Marking messages as read for contact:", contactId);
+
+  if (stompClient && stompClient.connected) {
+    console.log("[WebSocket] Client is connected, sending read status update");
+
+    try {
+      // Add a receipt header to get confirmation of delivery
+      const headers: StompHeaders = {
+        "receipt": `read-${Date.now()}`,
+      };
+
+      console.log("[WebSocket] Publishing read status with headers:", headers);
+
+      stompClient.publish({
+        destination: "/app/chat.markAsRead",
+        body: JSON.stringify({
+          contactId,
+        }),
+        headers: headers,
+      });
+
+      console.log("[WebSocket] Read status published successfully");
+      return true;
+    } catch (error) {
+      console.error("[WebSocket] Error publishing read status:", error);
+      return false;
+    }
+  } else {
+    console.warn("[WebSocket] Client not connected, cannot send read status");
+    return false;
   }
 };
 

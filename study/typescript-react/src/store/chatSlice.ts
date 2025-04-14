@@ -250,28 +250,31 @@ const chatSlice = createSlice({
       console.log("[Redux] Adding new message to store:", action.payload);
 
       // Improved duplicate detection - check by ID or by content + timestamp (within 2 seconds)
-      const isDuplicate = state.messages.some(msg => {
+      const isDuplicate = state.messages.some((msg) => {
         // Check if exact same ID
         if (msg.id === action.payload.id) {
           return true;
         }
-        
+
         // Check if same content, same sender/receiver, and timestamp within 2 seconds
-        if (msg.content === action.payload.content &&
-            msg.sender.id === action.payload.sender.id &&
-            msg.receiver.id === action.payload.receiver.id) {
-          
+        if (
+          msg.content === action.payload.content &&
+          msg.sender.id === action.payload.sender.id &&
+          msg.receiver.id === action.payload.receiver.id
+        ) {
           const msgTime = new Date(msg.timestamp).getTime();
           const newMsgTime = new Date(action.payload.timestamp).getTime();
           const timeDiff = Math.abs(msgTime - newMsgTime);
-          
+
           // If messages are within 2 seconds of each other, consider them duplicates
           if (timeDiff < 2000) {
-            console.log("[Redux] Found similar message within 2 seconds, treating as duplicate");
+            console.log(
+              "[Redux] Found similar message within 2 seconds, treating as duplicate"
+            );
             return true;
           }
         }
-        
+
         return false;
       });
 
@@ -281,6 +284,40 @@ const chatSlice = createSlice({
         console.log("[Redux] Message is new, adding to store");
         state.messages.push(action.payload);
         console.log("[Redux] New message count:", state.messages.length);
+      }
+    },
+    updateMessagesReadStatus: (
+      state,
+      action: PayloadAction<{ contactId: string }>
+    ) => {
+      console.log(
+        "[Redux] Updating read status for messages from contact:",
+        action.payload.contactId
+      );
+
+      // Update all messages from this contact to be marked as read
+      state.messages = state.messages.map((message) => {
+        // If the message is from the specified contact, mark it as read
+        if (message.sender.id === action.payload.contactId && !message.read) {
+          console.log("[Redux] Marking message as read:", message.id);
+          return { ...message, read: true };
+        }
+        return message;
+      });
+
+      // Also update the unread count for this contact in the contacts list
+      const contactIndex = state.contacts.findIndex(
+        (contact) => contact.id === action.payload.contactId
+      );
+      if (contactIndex !== -1) {
+        console.log(
+          "[Redux] Updating unread count for contact:",
+          action.payload.contactId
+        );
+        state.contacts[contactIndex] = {
+          ...state.contacts[contactIndex],
+          unreadCount: 0,
+        };
       }
     },
     clearMessages: (state) => {
@@ -483,6 +520,7 @@ export const {
   // Message actions
   setMessages,
   addMessage,
+  updateMessagesReadStatus,
   clearMessages,
 
   // Common actions
