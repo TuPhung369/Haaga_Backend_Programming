@@ -270,7 +270,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
           >
             {message.content.length > CHARACTER_LIMIT && !isExpanded ? (
               <>
-                {message.content.substring(0, CHARACTER_LIMIT)}
+                <div style={{ whiteSpace: "pre-wrap" }}>
+                  {message.content.substring(0, CHARACTER_LIMIT)}
+                </div>
                 <span style={{ opacity: 0.5 }}>...</span>
                 <div style={{ marginTop: "8px" }}>
                   <Button
@@ -299,7 +301,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 </div>
               </>
             ) : (
-              message.content
+              <div style={{ whiteSpace: "pre-wrap" }}>{message.content}</div>
             )}
           </div>
 
@@ -952,14 +954,16 @@ const ChatPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     console.log("[Chat] Key pressed:", e.key);
 
-    if (e.key === "Enter") {
+    // Only send message on Enter without Shift key
+    if (e.key === "Enter" && !e.shiftKey) {
       console.log("[Chat] Enter key detected, triggering sendMessage");
       e.preventDefault(); // Prevent default form submission behavior
       sendMessage();
     }
+    // Allow Shift+Enter for new lines (default behavior)
   };
 
   // Define a type for notification message
@@ -2408,53 +2412,74 @@ const ChatPage: React.FC = () => {
                 }}
               >
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <Input.TextArea
-                    placeholder="Type a message..."
-                    value={messageText}
-                    autoSize={{
-                      minRows: 2,
-                      maxRows: 6,
-                    }} /* Set minimum height to 2 rows (double the default) */
-                    onChange={(e) => {
-                      setMessageText(e.target.value);
-                      // Send typing notification when user starts typing
-                      if (selectedContact) {
-                        sendTypingNotification(selectedContact.id);
-                      }
-                    }}
-                    onFocus={() => {
-                      // Update read status when input is focused
-                      if (selectedContact) {
-                        console.log(
-                          "[Chat] Message input focused, updating read status"
-                        );
-                        // Only update the UI based on current Redux store data
-                        dispatch(
-                          updateMessagesReadStatus({
-                            contactId: selectedContact.id,
-                            currentUserId: userInfo?.id,
-                          })
-                        );
+                  <div style={{ position: "relative", flex: 1 }}>
+                    <Input.TextArea
+                      placeholder="Type a message... (Shift+Enter for new line)"
+                      value={messageText}
+                      autoSize={{
+                        minRows: 2,
+                        maxRows: 6,
+                      }}
+                      onChange={(e) => {
+                        setMessageText(e.target.value);
+                        // Send typing notification when user starts typing
+                        if (selectedContact) {
+                          sendTypingNotification(selectedContact.id);
+                        }
+                      }}
+                      onFocus={() => {
+                        // Update read status when input is focused
+                        if (selectedContact) {
+                          console.log(
+                            "[Chat] Message input focused, updating read status"
+                          );
+                          // Only update the UI based on current Redux store data
+                          dispatch(
+                            updateMessagesReadStatus({
+                              contactId: selectedContact.id,
+                              currentUserId: userInfo?.id,
+                            })
+                          );
 
-                        // Mark messages as read via WebSocket
-                        import("../services/websocketService").then(
-                          ({ markMessagesAsReadViaWebSocket }) => {
-                            markMessagesAsReadViaWebSocket(selectedContact.id);
-                          }
-                        );
-                      }
-                    }}
-                    onKeyPress={handleKeyPress}
-                    style={{
-                      flex: 1,
-                      borderRadius: "20px",
-                      padding: "8px 16px",
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                      border: "1px solid #e8e8e8",
-                      height: "80px", // Doubled height from 40px to 80px
-                      resize: "none", // Prevent manual resizing
-                    }}
-                  />
+                          // Mark messages as read via WebSocket
+                          import("../services/websocketService").then(
+                            ({ markMessagesAsReadViaWebSocket }) => {
+                              markMessagesAsReadViaWebSocket(
+                                selectedContact.id
+                              );
+                            }
+                          );
+                        }
+                      }}
+                      onKeyPress={handleKeyPress}
+                      style={{
+                        flex: 1,
+                        borderRadius: "20px",
+                        padding: "8px 16px",
+                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                        border: "1px solid #e8e8e8",
+                        height: "auto",
+                        minHeight: "80px",
+                        resize: "none",
+                        whiteSpace: "pre-wrap", // Preserve line breaks
+                        fontFamily: "'Segoe UI', Arial, sans-serif", // Better font for readability
+                        lineHeight: "1.5", // Improved line spacing
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "8px",
+                        right: "16px",
+                        fontSize: "11px",
+                        color: "rgba(0, 0, 0, 0.45)",
+                        pointerEvents: "none",
+                        display: messageText.length > 0 ? "none" : "block",
+                      }}
+                    >
+                      Shift+Enter for new line
+                    </div>
+                  </div>
                   <Button
                     type="primary"
                     icon={<SendOutlined />}
