@@ -313,6 +313,9 @@ const chatSlice = createSlice({
     addMessage: (state, action: PayloadAction<Message>) => {
       console.log("[Redux] Adding new message to store:", action.payload);
 
+      // Log persistence status for debugging
+      console.log("[Redux] Message persistence:", action.payload.persistent);
+
       // Enhanced duplicate detection with more logging
       const isDuplicate = state.messages.some((msg) => {
         // Check if exact same ID (except for temp IDs which should be replaced)
@@ -336,6 +339,21 @@ const chatSlice = createSlice({
           // Instead of skipping, we'll replace the temp message with the server response
           // This is handled below
           return false;
+        }
+
+        // Special handling for non-persistent messages
+        // If we have a non-persistent message with the same content, sender, and receiver,
+        // consider it a duplicate regardless of timestamp
+        if (
+          (msg.persistent === false || action.payload.persistent === false) &&
+          msg.content === action.payload.content &&
+          msg.sender.id === action.payload.sender.id &&
+          msg.receiver.id === action.payload.receiver.id
+        ) {
+          console.log(
+            "[Redux] Found matching non-persistent message, treating as duplicate"
+          );
+          return true;
         }
 
         // Check if same content, same sender/receiver, and timestamp within 5 seconds
