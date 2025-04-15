@@ -10,9 +10,18 @@ const API_BASE_URI =
 const apiClient = axios.create({
   baseURL: API_BASE_URI,
   headers: {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json; charset=utf-8", // Thêm charset=utf-8 để đảm bảo xử lý Unicode đúng cách
   },
   withCredentials: true,
+  transformRequest: [
+    (data) => {
+      // Đảm bảo dữ liệu được mã hóa đúng cách trước khi gửi
+      if (data && typeof data === "object") {
+        return JSON.stringify(data);
+      }
+      return data;
+    },
+  ],
 });
 
 // Add request interceptor to add authorization header
@@ -84,8 +93,9 @@ export const sendMessage = async (
   persistent: boolean = true
 ): Promise<Message> => {
   try {
+    // Ensure content is properly encoded for Unicode characters like emojis
     const response = await apiClient.post(`/chat/messages`, {
-      content,
+      content: content, // Pass content directly without additional encoding
       receiverId,
       persistent,
     });

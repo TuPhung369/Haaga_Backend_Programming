@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "build-deploy": "tsc -b && vite build",
+    "dev": "node copy-tinymce.cjs && vite",
+    "build": "node copy-tinymce.cjs && tsc --noEmit && vite build",
+    "build-deploy": "node copy-tinymce.cjs && tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "copy-tinymce": "node copy-tinymce.cjs"
   },
   "dependencies": {
     "@ant-design/charts": "^2.2.6",
@@ -33,6 +34,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
+    "@tinymce/tinymce-react": "^6.1.0",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.8.1",
     "antd": "^5.24.1",
@@ -67,6 +69,7 @@
     "sockjs-client": "^1.6.1",
     "stream-browserify": "^3.0.0",
     "styled-components": "^6.1.15",
+    "tinymce": "^7.8.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
@@ -84,6 +87,7 @@
     "eslint": "^9.21.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "fs-extra": "^11.3.0",
     "globals": "^16.0.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.1",

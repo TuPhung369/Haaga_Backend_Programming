@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import TinyMCEEditor from "../components/TinyMCEEditor";
 import {
   Card,
   Input,
@@ -223,16 +224,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
       {/* Message content */}
       {isEditing ? (
         <div style={{ width: "100%" }}>
-          <Input.TextArea
+          {/* Import TinyMCEEditor at the top of the file */}
+          <TinyMCEEditor
             value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-            autoSize={{ minRows: 1, maxRows: 5 }}
-            style={{
-              marginBottom: "8px",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
-              color: "#000",
-            }}
-            autoFocus
+            onChange={(content) => setEditedContent(content)}
+            height={150}
+            placeholder="Edit your message..."
+            outputFormat="html"
+            onEnterPress={handleSaveEdit}
           />
           <div
             style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}
@@ -270,9 +269,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
           >
             {message.content.length > CHARACTER_LIMIT && !isExpanded ? (
               <>
-                <div style={{ whiteSpace: "pre-wrap" }}>
-                  {message.content.substring(0, CHARACTER_LIMIT)}
-                </div>
+                <div
+                  style={{ whiteSpace: "pre-wrap" }}
+                  dangerouslySetInnerHTML={{
+                    __html: message.content.substring(0, CHARACTER_LIMIT),
+                  }}
+                ></div>
                 <span style={{ opacity: 0.5 }}>...</span>
                 <div style={{ marginTop: "8px" }}>
                   <Button
@@ -301,7 +303,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 </div>
               </>
             ) : (
-              <div style={{ whiteSpace: "pre-wrap" }}>{message.content}</div>
+              <div
+                style={{ whiteSpace: "pre-wrap" }}
+                dangerouslySetInnerHTML={{ __html: message.content }}
+              ></div>
             )}
           </div>
 
@@ -545,7 +550,6 @@ const ChatPage: React.FC = () => {
 
   // Get user info from Redux store first
   const { userInfo } = useSelector((state: RootState) => state.user);
-  const { token: _token } = useSelector((state: RootState) => state.auth);
   const userId = userInfo?.id || "guest";
   const {
     messages,
@@ -864,10 +868,18 @@ const ChatPage: React.FC = () => {
 
   // These functions are now handled by Redux actions
 
-  const sendMessage = async () => {
+  // Wrapper function for sendMessage to use with TinyMCE
+  const handleSendMessage = (content?: string) => {
+    sendMessage(content);
+  };
+
+  const sendMessage = async (content?: string) => {
     console.log("[Chat] Send message function called");
 
-    if (!messageText.trim()) {
+    // Sử dụng nội dung được truyền vào nếu có, nếu không thì sử dụng messageText
+    const textToSend = content || messageText;
+
+    if (!textToSend.trim()) {
       console.log("[Chat] Message text is empty, not sending");
       return;
     }
@@ -878,7 +890,7 @@ const ChatPage: React.FC = () => {
     }
 
     console.log("[Chat] Preparing to send message:", {
-      text: messageText,
+      text: textToSend,
       to: selectedContact.name,
       contactId: selectedContact.id,
       persistent: persistMessages,
@@ -890,7 +902,7 @@ const ChatPage: React.FC = () => {
 
     const tempMessage: ChatMessage = {
       id: tempId,
-      content: messageText,
+      content: textToSend,
       sender: {
         id: userInfo?.id || "unknown",
         name: userInfo?.username || "Me",
@@ -913,7 +925,7 @@ const ChatPage: React.FC = () => {
       console.log("[Chat] Attempting to send via WebSocket");
       console.log("[Chat] Message persistence setting:", persistMessages);
       const sentViaWebSocket = sendMessageViaWebSocket(
-        messageText,
+        textToSend,
         selectedContact.id,
         persistMessages
       );
@@ -929,7 +941,7 @@ const ChatPage: React.FC = () => {
 
         const result = await dispatch(
           sendMessageThunk({
-            content: messageText,
+            content: textToSend,
             receiverId: selectedContact.id,
             persistent: persistMessages,
           })
@@ -954,17 +966,29 @@ const ChatPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    console.log("[Chat] Key pressed:", e.key);
+  // Effect to update read status when selected contact changes
+  useEffect(() => {
+    if (selectedContact && userInfo) {
+      console.log("[Chat] Updating read status for selected contact");
 
-    // Only send message on Enter without Shift key
-    if (e.key === "Enter" && !e.shiftKey) {
-      console.log("[Chat] Enter key detected, triggering sendMessage");
-      e.preventDefault(); // Prevent default form submission behavior
-      sendMessage();
+      // Update read status in Redux
+      dispatch(
+        updateMessagesReadStatus({
+          contactId: selectedContact.id,
+          currentUserId: userInfo.id,
+        })
+      );
+
+      // Mark messages as read via WebSocket
+      import("../services/websocketService").then(
+        ({ markMessagesAsReadViaWebSocket }) => {
+          markMessagesAsReadViaWebSocket(selectedContact.id);
+        }
+      );
     }
-    // Allow Shift+Enter for new lines (default behavior)
-  };
+  }, [selectedContact, userInfo, dispatch]);
+
+  // We no longer need handleKeyPress as we're using TinyMCEEditor's onEnterPress
 
   // Define a type for notification message
   interface NotificationMessage {
@@ -2334,7 +2358,7 @@ const ChatPage: React.FC = () => {
 
                       // Render messages with date dividers
                       const result: JSX.Element[] = [];
-                      Object.keys(messagesByDate).forEach((dateKey, index) => {
+                      Object.keys(messagesByDate).forEach((dateKey) => {
                         // Add date divider
                         result.push(
                           <div
@@ -2411,33 +2435,61 @@ const ChatPage: React.FC = () => {
                   zIndex: 10, // Ensure input stays on top
                 }}
               >
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <div style={{ position: "relative", flex: 1 }}>
-                    <Input.TextArea
+                {/* Khu vực nhập liệu với thanh công cụ ở trên và nút gửi ở bên phải */}
+                <div style={{ position: "relative" }}>
+                  {/* Nút gửi tin nhắn ở góc trên bên phải */}
+                  <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={sendMessage}
+                    disabled={!messageText.trim()}
+                    style={{
+                      position: "absolute",
+                      top: "5px",
+                      right: "5px",
+                      zIndex: 100,
+                      borderRadius: "50%",
+                      width: "40px",
+                      height: "40px",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      background: messageText.trim()
+                        ? "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)"
+                        : undefined,
+                      boxShadow: messageText.trim()
+                        ? "0 2px 6px rgba(24, 144, 255, 0.5)"
+                        : undefined,
+                    }}
+                  />
+
+                  {/* TinyMCE Editor */}
+                  <div style={{ position: "relative" }}>
+                    <TinyMCEEditor
                       placeholder="Type a message... (Shift+Enter for new line)"
                       value={messageText}
-                      autoSize={{
-                        minRows: 2,
-                        maxRows: 6,
-                      }}
-                      onChange={(e) => {
-                        setMessageText(e.target.value);
+                      height={120}
+                      outputFormat="html"
+                      onChange={(content) => {
+                        setMessageText(content);
                         // Send typing notification when user starts typing
                         if (selectedContact) {
                           sendTypingNotification(selectedContact.id);
                         }
                       }}
+                      onEnterPress={handleSendMessage}
                       onFocus={() => {
                         // Update read status when input is focused
-                        if (selectedContact) {
+                        if (selectedContact && userInfo) {
                           console.log(
                             "[Chat] Message input focused, updating read status"
                           );
-                          // Only update the UI based on current Redux store data
+
+                          // Update read status in Redux
                           dispatch(
                             updateMessagesReadStatus({
                               contactId: selectedContact.id,
-                              currentUserId: userInfo?.id,
+                              currentUserId: userInfo.id,
                             })
                           );
 
@@ -2451,59 +2503,56 @@ const ChatPage: React.FC = () => {
                           );
                         }
                       }}
-                      onKeyPress={handleKeyPress}
-                      style={{
-                        flex: 1,
-                        borderRadius: "20px",
-                        padding: "8px 16px",
-                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                        border: "1px solid #e8e8e8",
-                        height: "auto",
-                        minHeight: "80px",
-                        resize: "none",
-                        whiteSpace: "pre-wrap", // Preserve line breaks
-                        fontFamily: "'Segoe UI', Arial, sans-serif", // Better font for readability
-                        lineHeight: "1.5", // Improved line spacing
-                      }}
                     />
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: "8px",
-                        right: "16px",
-                        fontSize: "11px",
-                        color: "rgba(0, 0, 0, 0.45)",
-                        pointerEvents: "none",
-                        display: messageText.length > 0 ? "none" : "block",
-                      }}
-                    >
-                      Shift+Enter for new line
-                    </div>
+                    {/* We'll use a separate useEffect to handle focus behavior */}
                   </div>
-                  <Button
-                    type="primary"
-                    icon={<SendOutlined />}
-                    onClick={sendMessage}
-                    disabled={!messageText.trim()}
+
+                  {/* Hướng dẫn Shift+Enter */}
+                  <div
                     style={{
-                      borderRadius: "20px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: messageText.trim()
-                        ? "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)"
-                        : undefined,
-                      boxShadow: messageText.trim()
-                        ? "0 2px 5px rgba(0, 0, 0, 0.15)"
-                        : undefined,
-                      transition: "all 0.3s ease",
-                      height: "40px", // Standard height for the button
-                      width: "80px", // Fixed width
+                      position: "absolute",
+                      bottom: "8px",
+                      right: "16px",
+                      fontSize: "11px",
+                      color: "rgba(0, 0, 0, 0.45)",
+                      pointerEvents: "none",
+                      display: messageText.length > 0 ? "none" : "block",
                     }}
                   >
-                    Send
-                  </Button>
+                    Shift+Enter for new line | Ctrl+Enter to send
+                  </div>
                 </div>
+
+                {/* Xóa nút gửi tin nhắn cũ */}
+                {/* <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={handleSendMessage}
+                    style={{
+                      borderRadius: "50%",
+                      width: "48px",
+                      height: "48px",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "8px",
+                    right: "16px",
+                    fontSize: "11px",
+                    color: "rgba(0, 0, 0, 0.45)",
+                    pointerEvents: "none",
+                    display: messageText.length > 0 ? "none" : "block",
+                  }}
+                >
+                  Shift+Enter for new line
+                </div>
+                {/* Nút gửi tin nhắn thứ hai đã được xóa và thay thế bằng nút ở trên */}
               </div>
             </>
           ) : (

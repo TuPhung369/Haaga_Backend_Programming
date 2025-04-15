@@ -497,9 +497,9 @@ export const sendMessageViaWebSocket = (
       Math.random() * 1000
     )}`;
 
-    // Create message payload
+    // Create message payload with proper Unicode encoding
     const messageBody = JSON.stringify({
-      content,
+      content: content, // Ensure content is passed as is, without additional encoding
       receiverId,
       messageId,
       persistent,
