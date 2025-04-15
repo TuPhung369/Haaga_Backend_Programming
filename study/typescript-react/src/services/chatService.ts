@@ -96,6 +96,32 @@ export const sendMessage = async (
   }
 };
 
+// Edit a message
+export const editMessage = async (
+  messageId: string,
+  content: string
+): Promise<Message> => {
+  try {
+    const response = await apiClient.put(`/chat/messages/${messageId}`, {
+      content,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error editing message:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Delete a message
+export const deleteMessage = async (messageId: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/chat/messages/${messageId}`);
+  } catch (error) {
+    console.error("Error deleting message:", error);
+    throw handleServiceError(error);
+  }
+};
+
 // Mark messages as read
 export const markMessagesAsRead = async (contactId: string): Promise<void> => {
   try {

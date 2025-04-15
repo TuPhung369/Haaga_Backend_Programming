@@ -9,6 +9,8 @@ import {
   updateContactDisplayName,
   getPendingContactRequests,
   respondToContactRequest,
+  editMessage,
+  deleteMessage,
   Message,
   Contact,
 } from "../services/chatService";
@@ -241,6 +243,48 @@ export const respondToRequest = createAsyncThunk(
           serviceError instanceof Error
             ? serviceError.message
             : `Failed to ${action} contact request`
+        );
+      }
+    }
+  }
+);
+
+export const editMessageThunk = createAsyncThunk(
+  "chat/editMessage",
+  async (
+    { messageId, content }: { messageId: string; content: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await editMessage(messageId, content);
+    } catch (error: unknown) {
+      try {
+        handleServiceError(error);
+      } catch (serviceError: unknown) {
+        return rejectWithValue(
+          serviceError instanceof Error
+            ? serviceError.message
+            : "Failed to edit message"
+        );
+      }
+    }
+  }
+);
+
+export const deleteMessageThunk = createAsyncThunk(
+  "chat/deleteMessage",
+  async (messageId: string, { rejectWithValue }) => {
+    try {
+      await deleteMessage(messageId);
+      return messageId; // Return the ID to remove it from the state
+    } catch (error: unknown) {
+      try {
+        handleServiceError(error);
+      } catch (serviceError: unknown) {
+        return rejectWithValue(
+          serviceError instanceof Error
+            ? serviceError.message
+            : "Failed to delete message"
         );
       }
     }
@@ -819,6 +863,51 @@ const chatSlice = createSlice({
         }
       })
       .addCase(respondToRequest.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Edit message
+      .addCase(editMessageThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editMessageThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (
+          action.payload &&
+          typeof action.payload === "object" &&
+          "id" in action.payload
+        ) {
+          // Find and update the message in the state
+          const editedMessage = action.payload as Message;
+          state.messages = state.messages.map((message) =>
+            message.id === editedMessage.id
+              ? convertServiceMessageToChatMessage(editedMessage)
+              : message
+          );
+        }
+      })
+      .addCase(editMessageThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Delete message
+      .addCase(deleteMessageThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteMessageThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          // Remove the message from the state
+          state.messages = state.messages.filter(
+            (message) => message.id !== action.payload
+          );
+        }
+      })
+      .addCase(deleteMessageThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

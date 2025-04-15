@@ -25,15 +25,292 @@ import {
   StarOutlined,
   CloseCircleOutlined,
   SearchOutlined,
-  TeamOutlined,
   FilterOutlined,
   UserAddOutlined,
   UsergroupAddOutlined,
+  EllipsisOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
 import { RootState } from "../types";
 import { ChatMessage } from "../types/ChatTypes";
+
+// Message Item Component
+interface MessageItemProps {
+  message: ChatMessage;
+  userId: string;
+  dispatch: ThunkDispatch<RootState, unknown, UnknownAction>;
+}
+
+const MessageItem: React.FC<MessageItemProps> = ({
+  message,
+  userId,
+  dispatch,
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(message.content);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedContent(message.content);
+  };
+
+  const handleSaveEdit = () => {
+    if (editedContent.trim() !== "" && editedContent !== message.content) {
+      dispatch(
+        editMessageThunk({
+          messageId: message.id,
+          content: editedContent,
+        })
+      );
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedContent(message.content);
+  };
+
+  // Cleanup effect to clear any pending timeouts when component unmounts
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleDelete = () => {
+    Modal.confirm({
+      title: "Delete Message",
+      content: "Are you sure you want to delete this message?",
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk: () => {
+        dispatch(deleteMessageThunk(message.id));
+      },
+    });
+  };
+
+  const isUserMessage = message.sender.id === userId;
+
+  return (
+    <div
+      style={{
+        alignSelf: isUserMessage ? "flex-end" : "flex-start",
+        backgroundColor: isUserMessage
+          ? "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)"
+          : "linear-gradient(135deg, #f5f5f5 0%, #e9e9e9 100%)",
+        background: isUserMessage
+          ? "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)"
+          : "linear-gradient(135deg, #f5f5f5 0%, #e9e9e9 100%)",
+        color: isUserMessage ? "white" : "rgba(0, 0, 0, 0.85)",
+        padding: "10px 14px",
+        borderRadius: isUserMessage
+          ? "18px 18px 4px 18px"
+          : "18px 18px 18px 4px",
+        maxWidth: "80%",
+        width: "fit-content",
+        marginBottom: 12,
+        marginLeft: isUserMessage ? "auto" : 0,
+        marginRight: isUserMessage ? 0 : "auto",
+        wordBreak: "break-word",
+        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
+        position: "relative",
+      }}
+      onMouseEnter={() => {
+        // Clear any existing timeout
+        if (hoverTimeoutRef.current) {
+          clearTimeout(hoverTimeoutRef.current);
+          hoverTimeoutRef.current = null;
+        }
+        setIsHovered(true);
+      }}
+      onMouseLeave={() => {
+        // Set a timeout to delay hiding the menu
+        hoverTimeoutRef.current = setTimeout(() => {
+          setIsHovered(false);
+        }, 800); // 800ms delay before hiding
+      }}
+    >
+      {/* Message options menu */}
+      {isHovered && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "0", // Align with bottom border
+            right: isUserMessage ? "auto" : "-30px", // Right for other users' messages
+            left: isUserMessage ? "-30px" : "auto", // Left for user's messages
+            zIndex: 10,
+            // Removed transform property to prevent Y-axis jumping
+          }}
+          onMouseEnter={() => {
+            // Clear any existing timeout when mouse enters the menu
+            if (hoverTimeoutRef.current) {
+              clearTimeout(hoverTimeoutRef.current);
+              hoverTimeoutRef.current = null;
+            }
+          }}
+          onMouseLeave={() => {
+            // Set a timeout when mouse leaves the menu
+            hoverTimeoutRef.current = setTimeout(() => {
+              setIsHovered(false);
+            }, 500); // Slightly shorter delay for menu
+          }}
+        >
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "edit",
+                  icon: <EditOutlined />,
+                  label: "Edit",
+                  onClick: (e) => {
+                    e.domEvent.stopPropagation();
+                    handleEdit();
+                  },
+                  disabled: !isUserMessage,
+                },
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: "Delete",
+                  danger: true,
+                  onClick: (e) => {
+                    e.domEvent.stopPropagation();
+                    handleDelete();
+                  },
+                  disabled: !isUserMessage,
+                },
+              ],
+            }}
+            trigger={["click"]}
+            placement={isUserMessage ? "bottomLeft" : "bottomRight"} // Updated for bottom position
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<EllipsisOutlined />}
+              style={{
+                backgroundColor: "rgba(255, 255, 255, 0.9)",
+                borderRadius: "50%",
+                width: "24px",
+                height: "24px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                padding: 0,
+                border: "1px solid #e8e8e8",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                transition: "all 0.2s ease",
+                marginBottom: "0", // Ensure no bottom margin
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Dropdown>
+        </div>
+      )}
+
+      {/* Message content */}
+      {isEditing ? (
+        <div style={{ width: "100%" }}>
+          <Input.TextArea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            autoSize={{ minRows: 1, maxRows: 5 }}
+            style={{
+              marginBottom: "8px",
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              color: "#000",
+            }}
+            autoFocus
+          />
+          <div
+            style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}
+          >
+            <Button
+              size="small"
+              onClick={handleCancelEdit}
+              style={{ fontSize: "12px" }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              onClick={handleSaveEdit}
+              style={{ fontSize: "12px" }}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div>{message.content}</div>
+      )}
+
+      {/* Message footer */}
+      <div
+        style={{
+          fontSize: 11,
+          marginTop: 4,
+          textAlign: "right",
+          opacity: 0.8,
+          fontWeight: 500,
+          letterSpacing: "0.3px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
+        >
+          {message.persistent === false && (
+            <span
+              style={{
+                fontSize: "10px",
+                color: isUserMessage ? "#fff" : "#ff4d4f",
+                opacity: 0.8,
+              }}
+              title="This message is not saved to database"
+            >
+              ⚡
+            </span>
+          )}
+          {new Date(message.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+
+        {isUserMessage && (
+          <span
+            style={{
+              fontSize: "14px",
+              color: message.read ? "#52c41a" : "#fff",
+              opacity: message.read ? 1 : 0.7,
+              fontWeight: message.read ? "bold" : "normal",
+            }}
+            title={message.read ? "Read" : "Sent"}
+          >
+            {message.read ? "✓✓" : "✓"}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 import {
   NovuProvider,
   PopoverNotificationCenter,
@@ -48,6 +325,8 @@ import {
   sendMessageThunk,
   // markAsRead, // Không sử dụng trực tiếp, thay thế bằng updateMessagesReadStatus
   addContactThunk as addContact, // Renamed in the combined slice
+  editMessageThunk,
+  deleteMessageThunk,
   setSelectedContact,
   updateContactGroupThunk,
   updateContactDisplayNameThunk,
@@ -116,14 +395,46 @@ const addCssStyles = () => {
     styleEl.id = "chat-page-styles";
     styleEl.innerHTML = `
       .action-button.ant-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        border-color: #40a9ff;
+        color: #40a9ff;
       }
       .action-button.ant-btn-primary:hover {
         background-color: #40a9ff;
+        opacity: 0.9;
       }
       .action-button.ant-btn:not(.ant-btn-primary):hover {
         opacity: 0.85;
+      }
+      .contact-list-item:hover {
+        background-color: rgba(24, 144, 255, 0.05) !important;
+        border: 1px solid rgba(24, 144, 255, 0.1) !important;
+        /* Ensure no transform is applied on hover */
+        transform: none !important;
+      }
+      /* Prevent transform on Card components and their children */
+      .ant-card, 
+      .ant-card-body, 
+      .ant-card-head, 
+      .ant-list, 
+      .ant-list-item,
+      .ant-list-item-meta,
+      .ant-list-item-meta-content,
+      .ant-list-item-meta-title,
+      .ant-list-item-meta-description {
+        transform: none !important;
+        transition: box-shadow 0.3s ease, background-color 0.3s ease, border 0.3s ease !important;
+      }
+      
+      .ant-card:hover,
+      .ant-card-body:hover, 
+      .ant-card-head:hover, 
+      .ant-list:hover, 
+      .ant-list-item:hover,
+      .ant-list-item-meta:hover,
+      .ant-list-item-meta-content:hover,
+      .ant-list-item-meta-title:hover,
+      .ant-list-item-meta-description:hover {
+        transform: none !important;
       }
     `;
     document.head.appendChild(styleEl);
@@ -144,7 +455,7 @@ const ChatPage: React.FC = () => {
 
   // Get user info from Redux store first
   const { userInfo } = useSelector((state: RootState) => state.user);
-  const { token } = useSelector((state: RootState) => state.auth);
+  const { token: _token } = useSelector((state: RootState) => state.auth);
   const userId = userInfo?.id || "guest";
   const {
     messages,
@@ -746,11 +1057,21 @@ const ChatPage: React.FC = () => {
         padding: "20px",
         borderRadius: "12px",
         boxShadow: "0 10px 30px rgba(0, 0, 0, 0.05)",
+        /* Ensure no transform is applied */
+        transform: "none !important",
       }}
     >
       {/* Removed top header with Chat title and notification */}
 
-      <div style={{ display: "flex", height: "100%", gap: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          height: "100%",
+          gap: 16,
+          /* Ensure no transform is applied */
+          transform: "none !important",
+        }}
+      >
         {/* Contacts List - 25% width */}
         <Card
           style={{
@@ -760,6 +1081,8 @@ const ChatPage: React.FC = () => {
             borderRadius: "12px",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
             border: "none",
+            /* Ensure no transform is applied on hover */
+            transform: "none !important",
           }}
           styles={{
             body: { padding: 0, height: "100%" },
@@ -1336,7 +1659,10 @@ const ChatPage: React.FC = () => {
                         padding: "12px 16px",
                         borderRadius: "8px",
                         margin: "4px 8px",
-                        transition: "all 0.3s ease",
+                        transition:
+                          "background-color 0.2s ease, border 0.2s ease",
+                        /* Ensure no transform is applied */
+                        transform: "none",
                         border:
                           selectedContact?.id === contact.id
                             ? "1px solid rgba(24, 144, 255, 0.2)"
@@ -1661,6 +1987,8 @@ const ChatPage: React.FC = () => {
             border: "none",
             background: "#fff",
             overflow: "hidden", // Prevent overflow from the card
+            /* Ensure no transform is applied on hover */
+            transform: "none !important",
           }}
           styles={{
             body: {
@@ -1862,109 +2190,14 @@ const ChatPage: React.FC = () => {
                   ) : (
                     // Display messages in correct chronological order
                     messages.map((message) => (
-                      <div
+                      <MessageItem
                         key={`${message.id}-${
                           message.read ? "read" : "unread"
                         }-${readStatusVersion}`}
-                        style={{
-                          alignSelf:
-                            message.sender.id === userId
-                              ? "flex-end"
-                              : "flex-start",
-                          backgroundColor:
-                            message.sender.id === userId
-                              ? "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)"
-                              : "linear-gradient(135deg, #f5f5f5 0%, #e9e9e9 100%)",
-                          background:
-                            message.sender.id === userId
-                              ? "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)"
-                              : "linear-gradient(135deg, #f5f5f5 0%, #e9e9e9 100%)",
-                          color:
-                            message.sender.id === userId
-                              ? "white"
-                              : "rgba(0, 0, 0, 0.85)",
-                          padding: "10px 14px",
-                          borderRadius:
-                            message.sender.id === userId
-                              ? "18px 18px 4px 18px"
-                              : "18px 18px 18px 4px",
-                          maxWidth: "80%" /* Updated to 80% */,
-                          width:
-                            "fit-content" /* Added to make width fit content */,
-                          marginBottom: 12,
-                          marginLeft:
-                            message.sender.id === userId
-                              ? "auto"
-                              : 0 /* Right align for current user */,
-                          marginRight:
-                            message.sender.id === userId
-                              ? 0
-                              : "auto" /* Left align for other users */,
-                          wordBreak: "break-word",
-                          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
-                          position: "relative",
-                        }}
-                      >
-                        <div>{message.content}</div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            marginTop: 4,
-                            textAlign: "right",
-                            opacity: 0.8,
-                            fontWeight: 500,
-                            letterSpacing: "0.3px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                            }}
-                          >
-                            {message.persistent === false && (
-                              <span
-                                style={{
-                                  fontSize: "10px",
-                                  color:
-                                    message.sender.id === userId
-                                      ? "#fff"
-                                      : "#ff4d4f",
-                                  opacity: 0.8,
-                                }}
-                                title="This message is not saved to database"
-                              >
-                                ⚡
-                              </span>
-                            )}
-                            {new Date(message.timestamp).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}
-                          </span>
-
-                          {message.sender.id === userId && (
-                            <span
-                              style={{
-                                fontSize: "14px",
-                                color: message.read ? "#52c41a" : "#fff",
-                                opacity: message.read ? 1 : 0.7,
-                                fontWeight: message.read ? "bold" : "normal",
-                              }}
-                              title={message.read ? "Read" : "Sent"}
-                            >
-                              {message.read ? "✓✓" : "✓"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                        message={message}
+                        userId={userId}
+                        dispatch={dispatch}
+                      />
                     ))
                   )}
                   <div ref={messagesEndRef} />{" "}
@@ -2148,5 +2381,4 @@ const ChatPage: React.FC = () => {
 };
 
 export default ChatPage;
-
 
