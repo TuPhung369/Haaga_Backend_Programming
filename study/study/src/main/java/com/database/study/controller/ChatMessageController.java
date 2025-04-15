@@ -3,6 +3,7 @@ package com.database.study.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.database.study.dto.request.ChatMessageRequest;
 import com.database.study.dto.response.ChatMessageResponse;
+import com.database.study.entity.User;
+import com.database.study.exception.AppException;
+import com.database.study.exception.ErrorCode;
+import com.database.study.repository.UserRepository;
 import com.database.study.service.ChatMessageService;
 
 import jakarta.validation.Valid;
@@ -35,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ChatMessageController {
 
     private final ChatMessageService messageService;
+    private final UserRepository userRepository;
 
     @PostMapping("/message-service/send")
     public ResponseEntity<ChatMessageResponse> sendMessage(@Valid @RequestBody ChatMessageRequest request) {
@@ -109,6 +115,33 @@ public class ChatMessageController {
         String username = auth.getName();
 
         log.info("Marking messages as read for user {} in conversation {}", username, conversationId);
+        
+        // Check if the conversationId is already in the correct format (uuid_uuid)
+        if (!conversationId.contains("_")) {
+            log.info("Converting contact ID to conversation ID");
+            
+            try {
+                // Find the current user
+                User currentUser = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                
+                // Find the contact user
+                User contactUser = userRepository.findById(UUID.fromString(conversationId))
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                
+                // Generate the conversation ID using both user IDs
+                String generatedConversationId = currentUser.getId().compareTo(contactUser.getId()) < 0 
+                        ? currentUser.getId() + "_" + contactUser.getId() 
+                        : contactUser.getId() + "_" + currentUser.getId();
+                
+                log.info("Generated conversation ID: {} from contact ID: {}", generatedConversationId, conversationId);
+                conversationId = generatedConversationId;
+            } catch (Exception e) {
+                log.error("Error converting contact ID to conversation ID", e);
+                // Continue with the original ID as a fallback
+            }
+        }
+        
         messageService.markMessagesAsRead(username, conversationId);
 
         return ResponseEntity.ok().build();
@@ -120,7 +153,24 @@ public class ChatMessageController {
         String username = auth.getName();
 
         log.info("Marking messages as read for user {} from contact {}", username, contactId);
-        messageService.markMessagesAsRead(username, contactId);
+        
+        // Find the current user
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        // Find the contact user
+        User contactUser = userRepository.findById(UUID.fromString(contactId))
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        // Generate the conversation ID using both user IDs
+        String conversationId = currentUser.getId().compareTo(contactUser.getId()) < 0 
+                ? currentUser.getId() + "_" + contactUser.getId() 
+                : contactUser.getId() + "_" + currentUser.getId();
+        
+        log.info("Generated conversation ID: {} for marking messages as read", conversationId);
+        
+        // Call the service with the correct conversation ID
+        messageService.markMessagesAsRead(username, conversationId);
 
         return ResponseEntity.ok().build();
     }

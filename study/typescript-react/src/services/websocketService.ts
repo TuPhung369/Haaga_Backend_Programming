@@ -2,7 +2,7 @@ import { Client, IMessage, StompHeaders } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import store from "../store/store";
 import { addMessage, updateMessagesReadStatus } from "../store/chatSlice";
-import { Message } from "./chatService";
+import { Message, markMessagesAsRead } from "./chatService";
 
 // Define interfaces for window extensions
 interface ReceiptTimeouts {
@@ -47,7 +47,6 @@ export const disconnectWebSocket = () => {
 };
 
 export const connectWebSocket = (userId: string): boolean => {
-
   if (stompClient) {
     console.log("[WebSocket] Existing client found, disconnecting first");
     disconnectWebSocket();
@@ -99,7 +98,6 @@ export const connectWebSocket = (userId: string): boolean => {
         }
       };
     }
-
   } catch (error) {
     console.error("[WebSocket] Error creating WebSocket connection:", error);
     return false;
@@ -111,7 +109,6 @@ export const connectWebSocket = (userId: string): boolean => {
   // Check if stompClient is null before accessing its properties
   if (stompClient) {
     stompClient.onConnect = () => {
-
       // Add a small delay to ensure the connection is fully established
       setTimeout(() => {
         try {
@@ -266,26 +263,40 @@ export const connectWebSocket = (userId: string): boolean => {
                 console.log("[WebSocket] Raw status update received:", message);
                 try {
                   const statusUpdate = JSON.parse(message.body);
-                  console.log("[WebSocket] Status update parsed:", statusUpdate);
-                  
+                  console.log(
+                    "[WebSocket] Status update parsed:",
+                    statusUpdate
+                  );
+
                   // Update the Redux store with the new status
                   if (statusUpdate.userId && statusUpdate.status) {
                     // Import the necessary actions to update contact status
-                    import("../store/chatSlice").then(({ updateContactStatus }) => {
-                      // Only update if we have the updateContactStatus action
-                      if (updateContactStatus) {
-                        store.dispatch(updateContactStatus({
-                          contactId: statusUpdate.userId,
-                          status: statusUpdate.status
-                        }));
-                        console.log("[WebSocket] Contact status updated in Redux store");
-                      } else {
-                        console.warn("[WebSocket] updateContactStatus action not found");
+                    import("../store/chatSlice").then(
+                      ({ updateContactStatus }) => {
+                        // Only update if we have the updateContactStatus action
+                        if (updateContactStatus) {
+                          store.dispatch(
+                            updateContactStatus({
+                              contactId: statusUpdate.userId,
+                              status: statusUpdate.status,
+                            })
+                          );
+                          console.log(
+                            "[WebSocket] Contact status updated in Redux store"
+                          );
+                        } else {
+                          console.warn(
+                            "[WebSocket] updateContactStatus action not found"
+                          );
+                        }
                       }
-                    });
+                    );
                   }
                 } catch (error) {
-                  console.error("[WebSocket] Error processing status update:", error);
+                  console.error(
+                    "[WebSocket] Error processing status update:",
+                    error
+                  );
                 }
               }
             );
@@ -406,44 +417,29 @@ export const connectWebSocket = (userId: string): boolean => {
                       ];
 
                       console.log(
-                        "[WebSocket] Found potential recipients who read our messages:",
+                        "[WebSocket] Other user IDs with unread messages:",
                         otherUserIds
                       );
 
-                      // Update read status only for the currently selected contact
-                      if (otherUserIds.length > 0 && selectedContact) {
-                        otherUserIds.forEach((recipientId) => {
-                          if (recipientId === selectedContact.id) {
-                            console.log(
-                              "[WebSocket] Updating read status for currently selected contact:",
-                              recipientId
-                            );
-                            store.dispatch(
-                              updateMessagesReadStatus({
-                                contactId: recipientId,
-                                currentUserId: currentUserId,
-                              })
-                            );
-                          } else {
-                            console.log(
-                              "[WebSocket] Skipping read status update for non-selected contact:",
-                              recipientId
-                            );
-                          }
-                        });
+                      // Only update the UI if we're currently viewing the conversation with this contact
+                      if (
+                        selectedContact &&
+                        otherUserIds.includes(selectedContact.id)
+                      ) {
+                        console.log(
+                          "[WebSocket] Selected contact has unread messages, updating UI"
+                        );
+                        store.dispatch(
+                          updateMessagesReadStatus({
+                            contactId: selectedContact.id,
+                            currentUserId: currentUserId,
+                          })
+                        );
                       }
                     }
                   } else {
                     console.log(
-                      "[WebSocket] This is a confirmation that we marked messages as read"
-                    );
-
-                    // This is the normal case - we marked messages from this contact as read
-                    store.dispatch(
-                      updateMessagesReadStatus({
-                        contactId: readReceipt.contactId,
-                        currentUserId: currentUserId,
-                      })
+                      "[WebSocket] This is a notification about messages we received"
                     );
                   }
                 } catch (error) {
@@ -458,209 +454,36 @@ export const connectWebSocket = (userId: string): boolean => {
               "[WebSocket] Read receipt subscription created:",
               readReceiptSubscription ? "Success" : "Failed"
             );
-
-            // Subscribe to contact requests
-            console.log(
-              `[WebSocket] Subscribing to contact requests at: /user/${capturedUserId}/queue/contact-requests`
-            );
-            const contactRequestSubscription = stompClient.subscribe(
-              `/user/${capturedUserId}/queue/contact-requests`,
-              (message: IMessage) => {
-                console.log(
-                  "[WebSocket] Raw contact request received:",
-                  message
-                );
-                try {
-                  const contactRequest = JSON.parse(message.body);
-                  console.log(
-                    "[WebSocket] Contact request parsed:",
-                    contactRequest
-                  );
-
-                  // Dispatch an action to update the UI and show a notification
-                  // We'll import the action from chatSlice
-                  import("../store/chatSlice").then(
-                    ({ fetchPendingRequests }) => {
-                      store.dispatch(fetchPendingRequests());
-
-                      // Show a browser notification if supported
-                      if ("Notification" in window) {
-                        if (Notification.permission === "granted") {
-                          new Notification("New Contact Request", {
-                            body: `${contactRequest.senderName} wants to connect with you`,
-                            icon: "/favicon.ico",
-                          });
-                        } else if (Notification.permission !== "denied") {
-                          Notification.requestPermission().then(
-                            (permission) => {
-                              if (permission === "granted") {
-                                new Notification("New Contact Request", {
-                                  body: `${contactRequest.senderName} wants to connect with you`,
-                                  icon: "/favicon.ico",
-                                });
-                              }
-                            }
-                          );
-                        }
-                      }
-                    }
-                  );
-                } catch (error) {
-                  console.error(
-                    "[WebSocket] Error processing contact request:",
-                    error
-                  );
-                }
-              }
-            );
-            console.log(
-              "[WebSocket] Contact request subscription created:",
-              contactRequestSubscription ? "Success" : "Failed"
-            );
-
-            // Subscribe to contact request responses
-            console.log(
-              `[WebSocket] Subscribing to contact responses at: /user/${capturedUserId}/queue/contact-responses`
-            );
-            const contactResponseSubscription = stompClient.subscribe(
-              `/user/${capturedUserId}/queue/contact-responses`,
-              (message: IMessage) => {
-                console.log(
-                  "[WebSocket] Raw contact response received:",
-                  message
-                );
-                try {
-                  const contactResponse = JSON.parse(message.body);
-                  console.log(
-                    "[WebSocket] Contact response parsed:",
-                    contactResponse
-                  );
-
-                  // Dispatch an action to update the UI and show a notification
-                  // We'll import the action from chatSlice
-                  import("../store/chatSlice").then(({ fetchContacts }) => {
-                    // Refresh the contacts list to get the updated status
-                    store.dispatch(fetchContacts());
-
-                    // Show a browser notification if supported
-                    if ("Notification" in window) {
-                      if (Notification.permission === "granted") {
-                        new Notification(
-                          contactResponse.accepted
-                            ? "Contact Request Accepted"
-                            : "Contact Request Rejected",
-                          {
-                            body: contactResponse.accepted
-                              ? `${contactResponse.responderName} accepted your contact request`
-                              : `${contactResponse.responderName} rejected your contact request`,
-                            icon: "/favicon.ico",
-                          }
-                        );
-                      } else if (Notification.permission !== "denied") {
-                        Notification.requestPermission().then((permission) => {
-                          if (permission === "granted") {
-                            new Notification(
-                              contactResponse.accepted
-                                ? "Contact Request Accepted"
-                                : "Contact Request Rejected",
-                              {
-                                body: contactResponse.accepted
-                                  ? `${contactResponse.responderName} accepted your contact request`
-                                  : `${contactResponse.responderName} rejected your contact request`,
-                                icon: "/favicon.ico",
-                              }
-                            );
-                          }
-                        });
-                      }
-                    }
-                  });
-                } catch (error) {
-                  console.error(
-                    "[WebSocket] Error processing contact response:",
-                    error
-                  );
-                }
-              }
-            );
-            console.log(
-              "[WebSocket] Contact response subscription created:",
-              contactResponseSubscription ? "Success" : "Failed"
-            );
           }
         } catch (error) {
           console.error("[WebSocket] Error setting up subscriptions:", error);
         }
-      }, 100); // 100ms delay should be enough
+      }, 500);
     };
 
     stompClient.onStompError = (frame) => {
-      console.error("[WebSocket] STOMP protocol error:", frame);
-      console.error(
-        "[WebSocket] STOMP error details - Command:",
-        frame.command,
-        "Headers:",
-        frame.headers,
-        "Body:",
-        frame.body
-      );
+      console.error("[WebSocket] STOMP Error:", frame);
     };
 
-    stompClient.onWebSocketError = (event) => {
-      console.error("[WebSocket] WebSocket connection error:", event);
-    };
-
-    stompClient.onWebSocketClose = (event) => {
-      console.warn("[WebSocket] WebSocket connection closed:", event);
-      console.warn(
-        "[WebSocket] Close details - Code:",
-        event.code,
-        "Reason:",
-        event.reason,
-        "Clean:",
-        event.wasClean
-      );
-    };
-
-    // Activate the client
     stompClient.activate();
-    console.log("[WebSocket] STOMP client activation initiated");
-
-    // Add a timeout to check connection status
-    setTimeout(() => {
-      if (stompClient && !stompClient.connected) {
-        console.warn("[WebSocket] Connection not established after 5 seconds");
-        // Try to reconnect
-        try {
-          console.log("[WebSocket] Attempting to reconnect...");
-          stompClient.deactivate();
-          setTimeout(() => {
-            if (stompClient) {
-              stompClient.activate();
-            }
-          }, 1000);
-        } catch (reconnectError) {
-          console.error(
-            "[WebSocket] Error during reconnection attempt:",
-            reconnectError
-          );
-        }
-      } else {
-        console.log("[WebSocket] Connection verified after 5 seconds");
-      }
-    }, 5000);
+    console.log("[WebSocket] Connection activation initiated");
+    return true;
+  } else {
+    console.error("[WebSocket] Failed to create STOMP client");
+    return false;
   }
-
-  return true;
 };
 
 export const sendMessageViaWebSocket = (
   content: string,
   receiverId: string,
-  persistent = true
+  persistent: boolean = true
 ): boolean => {
-  console.log("[WebSocket] Attempting to send message via WebSocket");
-  console.log("[WebSocket] Message persistence setting:", persistent);
+  console.log("[WebSocket] Sending message via WebSocket:", {
+    content,
+    receiverId,
+    persistent,
+  });
 
   if (!stompClient || !stompClient.connected) {
     console.warn("[WebSocket] No active connection, cannot send message");
@@ -668,17 +491,19 @@ export const sendMessageViaWebSocket = (
   }
 
   try {
-    // Generate a unique receipt ID for this message
-    const receiptId = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    console.log("[WebSocket] Generated receipt ID:", receiptId);
+    // Create a unique ID for this message for tracking
+    const messageId = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const receiptId = `receipt-${Date.now()}-${Math.floor(
+      Math.random() * 1000
+    )}`;
 
     // Create message payload
     const messageBody = JSON.stringify({
       content,
       receiverId,
+      messageId,
       persistent,
     });
-    console.log("[WebSocket] Message payload:", messageBody);
 
     // Set up a fallback timeout in case we don't get a receipt
     const fallbackTimeout = window.setTimeout(() => {
@@ -692,11 +517,9 @@ export const sendMessageViaWebSocket = (
         extendedWindow.receiptTimeouts &&
         extendedWindow.receiptTimeouts[receiptId]
       ) {
-        console.warn("[WebSocket] Falling back to HTTP method");
-
-        // Import the sendMessage function from chatService and dispatch the sendMessageThunk
+        // Import the sendMessage function from chatService and use it
         import("./chatService").then(({ sendMessage }) => {
-          console.log("[WebSocket] Sending message via HTTP fallback");
+          console.log("[WebSocket] Falling back to HTTP method for message");
           sendMessage(content, receiverId, persistent)
             .then((response) => {
               console.log("[WebSocket] HTTP fallback successful:", response);
@@ -771,20 +594,64 @@ export const sendTypingNotification = (receiverId: string): boolean => {
 };
 
 export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
-  console.log("[WebSocket] Marking messages as read for contact:", contactId);
+  console.log(
+    "[WebSocket] *** STARTING PROCESS *** Marking messages as read for contact:",
+    contactId
+  );
 
+  // Get current user ID from store for logging
+  const currentUserId = store.getState().user.userInfo?.id;
+  console.log("[WebSocket] Current user ID:", currentUserId);
+
+  // IMPORTANT: Always update the database first via direct HTTP API call
+  // This ensures the database is updated regardless of WebSocket status
+  console.log(
+    "[WebSocket] *** STEP 1: CALLING HTTP API DIRECTLY *** to update database for contact:",
+    contactId
+  );
+
+  // Call the API directly to update the database
+  markMessagesAsRead(contactId)
+    .then((response) => {
+      console.log(
+        "[WebSocket] *** STEP 2: DATABASE UPDATED SUCCESSFULLY *** via direct HTTP API call for contact:",
+        contactId,
+        response
+      );
+
+      // Update UI after database is updated
+      console.log(
+        "[WebSocket] *** STEP 3: UPDATING UI *** after database update for contact:",
+        contactId
+      );
+      store.dispatch(
+        updateMessagesReadStatus({
+          contactId,
+          currentUserId,
+        })
+      );
+      console.log(
+        "[WebSocket] *** STEP 4: UI UPDATED SUCCESSFULLY *** for contact:",
+        contactId
+      );
+    })
+    .catch((error) => {
+      console.error(
+        "[WebSocket] *** ERROR: FAILED TO UPDATE DATABASE *** via direct HTTP API call for contact:",
+        contactId,
+        error
+      );
+    });
+
+  // Check if WebSocket is connected for notification purposes
   if (!stompClient || !stompClient.connected) {
     console.warn(
-      "[WebSocket] No active connection, cannot mark messages as read"
+      "[WebSocket] No active connection, cannot send read notification via WebSocket"
     );
     return false;
   }
 
   try {
-    // Get current user ID from store for logging
-    const currentUserId = store.getState().user.userInfo?.id;
-    console.log("[WebSocket] Current user ID:", currentUserId);
-
     // Generate a unique receipt ID for this operation
     const receiptId = `read-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const messageId = `read-msg-${Date.now()}`;
@@ -800,207 +667,9 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
       readerId: currentUserId, // Add the reader's ID to the payload
     });
 
-    // Set up a fallback timeout in case we don't get a receipt, but with a longer timeout
-    // and only if the window has focus (to prevent unnecessary HTTP calls)
-    const fallbackTimeout = window.setTimeout(() => {
-      // Only proceed with fallback if the window has focus
-      if (!document.hasFocus()) {
-        console.log(
-          "[WebSocket] Window doesn't have focus, skipping HTTP fallback for read operation"
-        );
-        return;
-      }
-
-      console.warn(
-        "[WebSocket] No receipt received for read operation, falling back to HTTP"
-      );
-
-      // If we don't get a receipt within 10 seconds, fall back to HTTP
-      const extendedWindow = window as ExtendedWindow;
-      if (
-        extendedWindow.receiptTimeouts &&
-        extendedWindow.receiptTimeouts[receiptId]
-      ) {
-        // Check if the contact is still selected before proceeding with HTTP fallback
-        const selectedContact = store.getState().chat.selectedContact;
-        if (!selectedContact || selectedContact.id !== contactId) {
-          console.log(
-            "[WebSocket] Contact is no longer selected, skipping HTTP fallback"
-          );
-          return;
-        }
-
-        console.warn(
-          "[WebSocket] Falling back to HTTP method for marking messages as read"
-        );
-
-        // Import the markAsRead function from chatSlice and dispatch it
-        import("../store/chatSlice").then(
-          ({ markAsRead, updateMessagesReadStatus }) => {
-            import("../store/store").then(({ default: store }) => {
-              console.log(
-                "[WebSocket] Marking messages as read via HTTP fallback"
-              );
-
-              // First check if there are any unread messages before updating
-              const messages = store.getState().chat.messages;
-              const hasUnreadMessages = messages.some(
-                (msg) =>
-                  msg.sender.id === contactId &&
-                  msg.receiver.id === currentUserId &&
-                  !msg.read
-              );
-
-              if (!hasUnreadMessages) {
-                console.log(
-                  "[WebSocket] No unread messages found, skipping HTTP fallback"
-                );
-                return;
-              }
-
-              // First update the UI immediately to provide feedback
-              store.dispatch(
-                updateMessagesReadStatus({
-                  contactId,
-                  currentUserId,
-                })
-              );
-
-              store
-                .dispatch(markAsRead(contactId))
-                .then(() => {
-                  console.log(
-                    "[WebSocket] HTTP fallback for marking messages as read successful"
-                  );
-
-                  // Update the UI to show messages as read, but only if needed
-                  store.dispatch(
-                    updateMessagesReadStatus({
-                      contactId,
-                      currentUserId,
-                    })
-                  );
-
-                  // No longer forcing a second update to prevent unnecessary re-renders
-                  console.log(
-                    "[WebSocket] Skipping forced second UI update after HTTP fallback to prevent unnecessary re-renders"
-                  );
-                })
-                .catch((error) => {
-                  console.error(
-                    "[WebSocket] HTTP fallback for marking messages as read failed:",
-                    error
-                  );
-                });
-            });
-          }
-        );
-      }
-    }, 10000); // Increased to 10 seconds to reduce unnecessary fallbacks
-
-    // Store the fallback timeout in a map keyed by receipt ID
-    const extendedWindow = window as ExtendedWindow;
-    extendedWindow.receiptTimeouts = extendedWindow.receiptTimeouts || {};
-    extendedWindow.receiptTimeouts[receiptId] = fallbackTimeout;
-
-    // Also store by message ID in case we get a response but not a receipt
-    extendedWindow.messageTimeouts = extendedWindow.messageTimeouts || {};
-    extendedWindow.messageTimeouts[messageId] = fallbackTimeout;
-
-    // Subscribe to the response from the server
+    // Send the read receipt notification via WebSocket
+    // This is only for notification purposes, database is already updated via HTTP API
     if (stompClient) {
-      const subscription = stompClient.subscribe(
-        `/user/queue/read-receipts-ack`,
-        (message: IMessage) => {
-          console.log(
-            "[WebSocket] Received read receipt acknowledgement:",
-            message
-          );
-          try {
-            const response = JSON.parse(message.body);
-            console.log(
-              "[WebSocket] Parsed read receipt acknowledgement:",
-              response
-            );
-
-            // Clear the fallback timeout
-            const extWindow = window as ExtendedWindow;
-            if (
-              extWindow.receiptTimeouts &&
-              extWindow.receiptTimeouts[receiptId]
-            ) {
-              clearTimeout(extWindow.receiptTimeouts[receiptId]);
-              delete extWindow.receiptTimeouts[receiptId];
-              console.log(
-                `[WebSocket] Cleared timeout for receipt: ${receiptId}`
-              );
-            }
-
-            // Also clear by message ID
-            if (
-              extWindow.messageTimeouts &&
-              extWindow.messageTimeouts[messageId]
-            ) {
-              clearTimeout(extWindow.messageTimeouts[messageId]);
-              delete extWindow.messageTimeouts[messageId];
-              console.log(
-                `[WebSocket] Cleared timeout for message: ${messageId}`
-              );
-            }
-
-            // Unsubscribe from the temporary subscription
-            subscription.unsubscribe();
-
-            // Get current user ID from store
-            const currentUserId = store.getState().user.userInfo?.id;
-            console.log(
-              "[WebSocket] Current user ID for read update:",
-              currentUserId
-            );
-
-            // First update the UI immediately to provide feedback
-            store.dispatch(
-              updateMessagesReadStatus({
-                contactId,
-                currentUserId,
-              })
-            );
-            console.log(
-              "[WebSocket] Immediate UI update dispatched with currentUserId:",
-              currentUserId
-            );
-
-            // Update the UI to show messages as read
-            import("../store/chatSlice").then(
-              ({ updateMessagesReadStatus }) => {
-                import("../store/store").then(({ default: store }) => {
-                  console.log(
-                    "[WebSocket] Updating read status in Redux store with currentUserId:",
-                    currentUserId
-                  );
-                  store.dispatch(
-                    updateMessagesReadStatus({
-                      contactId,
-                      currentUserId,
-                    })
-                  );
-
-                  // No longer forcing a second update to prevent unnecessary re-renders
-                  console.log(
-                    "[WebSocket] Skipping forced second UI update to prevent unnecessary re-renders"
-                  );
-                });
-              }
-            );
-          } catch (error) {
-            console.error(
-              "[WebSocket] Error processing read receipt acknowledgement:",
-              error
-            );
-          }
-        }
-      );
-
       // Send the read receipt
       stompClient.publish({
         destination: "/app/chat.markAsRead",
@@ -1009,8 +678,14 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
           "receipt": receiptId,
         },
       });
-      console.log("[WebSocket] Read receipt sent with receipt ID:", receiptId);
-      console.log("[WebSocket] Read receipt payload:", readReceiptBody);
+      console.log(
+        "[WebSocket] Read receipt notification sent with receipt ID:",
+        receiptId
+      );
+      console.log(
+        "[WebSocket] Read receipt notification payload:",
+        readReceiptBody
+      );
 
       // Log that we're expecting a notification to be sent to the sender
       console.log(
@@ -1021,9 +696,10 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
     return true;
   } catch (error) {
     console.error(
-      "[WebSocket] Error marking messages as read via WebSocket:",
+      "[WebSocket] Error sending read notification via WebSocket:",
       error
     );
+    // Even if WebSocket notification fails, database was already updated via HTTP API
     return false;
   }
 };

@@ -99,9 +99,23 @@ export const sendMessage = async (
 // Mark messages as read
 export const markMessagesAsRead = async (contactId: string): Promise<void> => {
   try {
-    await apiClient.post(`/chat/messages/read/${contactId}`, {});
+    console.log(
+      `[ChatService] STARTING HTTP API CALL to mark messages as read for contact: ${contactId}`
+    );
+    const response = await apiClient.post(
+      `/chat/messages/read/${contactId}`,
+      {}
+    );
+    console.log(
+      `[ChatService] DATABASE UPDATED SUCCESSFULLY via HTTP API for contact: ${contactId}`,
+      response
+    );
+    return response.data;
   } catch (error) {
-    console.error("Error marking messages as read:", error);
+    console.error(
+      `[ChatService] ERROR UPDATING DATABASE via HTTP API for contact: ${contactId}`,
+      error
+    );
     throw handleServiceError(error);
   }
 };

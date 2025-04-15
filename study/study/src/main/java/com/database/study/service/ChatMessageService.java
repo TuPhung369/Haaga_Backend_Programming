@@ -150,28 +150,46 @@ public class ChatMessageService {
         
         log.info("Marking messages as read for user {} (ID: {}) in conversation {}", 
                 username, user.getId(), conversationId);
+                
+        // Verify the conversation ID format
+        if (!conversationId.contains("_")) {
+            log.warn("Invalid conversation ID format: {}. Expected format: 'uuid_uuid'", conversationId);
+            // Try to find the other user ID from the provided ID (which might be a contact ID)
+            try {
+                UUID contactId = UUID.fromString(conversationId);
+                User contact = userRepository.findById(contactId)
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                
+                // Generate the correct conversation ID
+                conversationId = generateConversationId(user.getId(), contact.getId());
+                log.info("Generated correct conversation ID: {}", conversationId);
+            } catch (Exception e) {
+                log.error("Failed to generate conversation ID from contact ID: {}", conversationId, e);
+                // Continue with the provided ID as a fallback
+            }
+        }
 
         // First try with a direct SQL update for better performance
         try {
-            log.info("Executing direct SQL update to mark messages as read");
+            log.info("Executing direct SQL update to mark messages as read for conversation ID: {}", conversationId);
             
             // Use a native SQL query to update all messages at once
             int updatedCount = messageRepository.markMessagesAsReadInConversation(conversationId, user.getId());
             
-            log.info("Direct SQL update affected {} rows", updatedCount);
+            log.info("Direct SQL update affected {} rows for conversation ID: {}", updatedCount, conversationId);
             
             // If no rows were affected, try the entity-based approach
             if (updatedCount == 0) {
-                log.info("No rows affected by direct SQL update, trying entity-based approach");
+                log.info("No rows affected by direct SQL update, trying entity-based approach for conversation ID: {}", conversationId);
                 updateMessagesEntityBased(user, conversationId);
             } else {
                 // Force a flush to ensure changes are committed
                 messageRepository.flush();
-                log.info("Flushed changes to database");
+                log.info("Flushed changes to database for conversation ID: {}", conversationId);
             }
         } catch (Exception e) {
-            log.error("Error with direct SQL update", e);
-            log.info("Falling back to entity-based approach");
+            log.error("Error with direct SQL update for conversation ID: {}", conversationId, e);
+            log.info("Falling back to entity-based approach for conversation ID: {}", conversationId);
             updateMessagesEntityBased(user, conversationId);
         }
         
@@ -179,17 +197,36 @@ public class ChatMessageService {
         verifyMessagesRead(user, conversationId);
     }
     
+    // Helper method to generate a conversation ID
+    private String generateConversationId(UUID user1Id, UUID user2Id) {
+        // Ensure the conversation ID is the same regardless of who initiates
+        UUID smallerId = user1Id.compareTo(user2Id) < 0 ? user1Id : user2Id;
+        UUID largerId = user1Id.compareTo(user2Id) < 0 ? user2Id : user1Id;
+        return smallerId.toString() + "_" + largerId.toString();
+    }
+    
     private void updateMessagesEntityBased(User user, String conversationId) {
-        log.info("Using entity-based approach to mark messages as read");
+        log.info("Using entity-based approach to mark messages as read for conversation ID: {}", conversationId);
         
         Page<ChatMessage> messages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
         log.info("Found {} messages in conversation {}", messages.getTotalElements(), conversationId);
+        
+        // Log all messages in the conversation for debugging
+        messages.forEach(message -> {
+            log.info("Message in conversation: ID={}, Sender={}, Receiver={}, Read={}, Content={}",
+                    message.getId(),
+                    message.getSender().getId(),
+                    message.getReceiver().getId(),
+                    message.isRead(),
+                    message.getContent().substring(0, Math.min(20, message.getContent().length())) + "...");
+        });
         
         int count = 0;
         for (ChatMessage message : messages) {
             if (message.getReceiver().equals(user) && !message.isRead()) {
                 try {
-                    log.info("Marking message {} as read (entity method)", message.getId());
+                    log.info("Marking message {} as read (entity method) - Receiver ID: {}, User ID: {}", 
+                            message.getId(), message.getReceiver().getId(), user.getId());
                     message.setRead(true);
                     messageRepository.save(message);
                     count++;
@@ -211,41 +248,65 @@ public class ChatMessageService {
                         log.error("Direct update also failed for message {}", message.getId(), directEx);
                     }
                 }
+            } else {
+                if (message.getReceiver().equals(user)) {
+                    log.info("Message {} already marked as read, skipping", message.getId());
+                } else {
+                    log.info("Message {} is not for this user (receiver: {}), skipping", 
+                            message.getId(), message.getReceiver().getId());
+                }
             }
         }
         
-        log.info("Entity-based approach marked {} messages as read", count);
+        log.info("Entity-based approach marked {} messages as read in conversation {}", count, conversationId);
     }
     
     private void verifyMessagesRead(User user, String conversationId) {
-        log.info("Verifying messages were marked as read");
+        log.info("Verifying messages were marked as read for conversation ID: {}", conversationId);
         
         // Clear persistence context to ensure we get fresh data
         entityManager.clear();
         
         Page<ChatMessage> verifyMessages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
+        log.info("Found {} messages in conversation {} for verification", verifyMessages.getTotalElements(), conversationId);
+        
         int stillUnreadCount = 0;
+        int totalMessagesForUser = 0;
         
         for (ChatMessage message : verifyMessages) {
-            if (message.getReceiver().equals(user) && !message.isRead()) {
-                stillUnreadCount++;
-                log.warn("Message {} is still unread after all update attempts", message.getId());
+            if (message.getReceiver().equals(user)) {
+                totalMessagesForUser++;
                 
-                // One final attempt with direct SQL
-                try {
-                    log.info("Final attempt to mark message {} as read", message.getId());
-                    messageRepository.markMessageAsRead(message.getId());
-                    messageRepository.flush();
-                } catch (Exception ex) {
-                    log.error("Final attempt failed for message {}", message.getId(), ex);
+                if (!message.isRead()) {
+                    stillUnreadCount++;
+                    log.warn("Message {} is still unread after all update attempts - Sender: {}, Content: {}", 
+                            message.getId(), 
+                            message.getSender().getId(),
+                            message.getContent().substring(0, Math.min(20, message.getContent().length())) + "...");
+                    
+                    // One final attempt with direct SQL
+                    try {
+                        log.info("Final attempt to mark message {} as read", message.getId());
+                        messageRepository.markMessageAsRead(message.getId());
+                        messageRepository.flush();
+                        log.info("Final direct update successful for message {}", message.getId());
+                    } catch (Exception ex) {
+                        log.error("Final attempt failed for message {}", message.getId(), ex);
+                    }
+                } else {
+                    log.info("Message {} is correctly marked as read", message.getId());
                 }
             }
         }
         
+        log.info("Verification summary for conversation {}: Total messages for user: {}, Still unread: {}", 
+                conversationId, totalMessagesForUser, stillUnreadCount);
+        
         if (stillUnreadCount > 0) {
-            log.warn("{} messages are still unread after all update attempts", stillUnreadCount);
+            log.warn("{} messages are still unread after all update attempts in conversation {}", 
+                    stillUnreadCount, conversationId);
         } else {
-            log.info("All messages successfully marked as read");
+            log.info("All messages successfully marked as read in conversation {}", conversationId);
         }
     }
 
