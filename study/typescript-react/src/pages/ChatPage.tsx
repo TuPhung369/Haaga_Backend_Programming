@@ -51,7 +51,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
+  const [isExpanded, setIsExpanded] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Character limit for message preview
+  const CHARACTER_LIMIT = 280;
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -251,62 +255,146 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         </div>
       ) : (
-        <div>{message.content}</div>
-      )}
-
-      {/* Message footer */}
-      <div
-        style={{
-          fontSize: 11,
-          marginTop: 4,
-          textAlign: "right",
-          opacity: 0.8,
-          fontWeight: 500,
-          letterSpacing: "0.3px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <span
+        <div
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: "4px",
+            flexWrap: "wrap",
+            alignItems: "flex-start",
           }}
         >
-          {message.persistent === false && (
+          <div
+            style={{
+              flexGrow: 1,
+              marginRight: message.content.length < 120 ? "16px" : "0",
+            }}
+          >
+            {message.content.length > CHARACTER_LIMIT && !isExpanded ? (
+              <>
+                {message.content.substring(0, CHARACTER_LIMIT)}
+                <span style={{ opacity: 0.5 }}>...</span>
+                <div style={{ marginTop: "8px" }}>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsExpanded(true);
+                    }}
+                    style={{
+                      padding: "2px 8px",
+                      height: "auto",
+                      fontSize: "12px",
+                      color: isUserMessage
+                        ? "rgba(255, 255, 255, 0.85)"
+                        : "#1890ff",
+                      background: isUserMessage
+                        ? "rgba(255, 255, 255, 0.15)"
+                        : "rgba(24, 144, 255, 0.1)",
+                      borderRadius: "4px",
+                      marginLeft: "-8px",
+                    }}
+                  >
+                    Read more
+                  </Button>
+                </div>
+              </>
+            ) : (
+              message.content
+            )}
+          </div>
+
+          {/* Message footer - inline for short messages, new line for long ones */}
+          <div
+            style={{
+              fontSize: 11,
+              opacity: 0.8,
+              fontWeight: 500,
+              letterSpacing: "0.3px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              marginTop: message.content.length < 120 && !isExpanded ? 0 : 4,
+              flexShrink: 0,
+              alignSelf: "flex-end", // Always align to bottom
+              width:
+                message.content.length < 120 && !isExpanded ? "auto" : "100%",
+              paddingTop: "10px",
+            }}
+          >
+            {message.persistent === false && (
+              <span
+                style={{
+                  fontSize: "10px",
+                  color: isUserMessage ? "#fff" : "#ff4d4f",
+                  opacity: 0.8,
+                  marginRight: "4px",
+                }}
+                title="This message is not saved to database"
+              >
+                ⚡
+              </span>
+            )}
+
             <span
               style={{
-                fontSize: "10px",
-                color: isUserMessage ? "#fff" : "#ff4d4f",
-                opacity: 0.8,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
               }}
-              title="This message is not saved to database"
             >
-              ⚡
-            </span>
-          )}
-          {new Date(message.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
+              {new Date(message.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
 
-        {isUserMessage && (
-          <span
-            style={{
-              fontSize: "14px",
-              color: message.read ? "#52c41a" : "#fff",
-              opacity: message.read ? 1 : 0.7,
-              fontWeight: message.read ? "bold" : "normal",
-            }}
-            title={message.read ? "Read" : "Sent"}
-          >
-            {message.read ? "✓✓" : "✓"}
-          </span>
-        )}
-      </div>
+              {isUserMessage && (
+                <span
+                  style={{
+                    color: message.read ? "#52c41a" : "#fff",
+                    opacity: message.read ? 1 : 0.7,
+                    marginLeft: "2px",
+                    display: "inline-flex",
+                    alignItems: "flex-end", // Align to bottom
+                    transform: "scale(1, 1.2)", // Make taller
+                    letterSpacing: message.read ? "-3px" : "0", // Bring double checks closer
+                    position: "relative",
+                    bottom: "-1px", // Fine-tune vertical alignment
+                  }}
+                  title={message.read ? "Read" : "Sent"}
+                >
+                  {message.read ? (
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "normal",
+                        fontFamily: "'Segoe UI', Arial, sans-serif", // Thinner font
+                        transform: "scaleX(0.8)", // Make thinner horizontally
+                        lineHeight: "1", // Prevent extra space below
+                        marginBottom: "5px",
+                      }}
+                    >
+                      ✓✓
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: "normal",
+                        fontFamily: "'Segoe UI', Arial, sans-serif", // Thinner font
+                        transform: "scaleX(0.8)", // Make thinner horizontally
+                        lineHeight: "1", // Prevent extra space below
+                        marginBottom: "5px",
+                      }}
+                    >
+                      ✓
+                    </span>
+                  )}
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -2188,17 +2276,117 @@ const ChatPage: React.FC = () => {
                       </Text>
                     </div>
                   ) : (
-                    // Display messages in correct chronological order
-                    messages.map((message) => (
-                      <MessageItem
-                        key={`${message.id}-${
-                          message.read ? "read" : "unread"
-                        }-${readStatusVersion}`}
-                        message={message}
-                        userId={userId}
-                        dispatch={dispatch}
-                      />
-                    ))
+                    // Group messages by date and add date dividers
+                    (() => {
+                      // Function to format date for grouping
+                      const formatMessageDate = (timestamp: string) => {
+                        const messageDate = new Date(timestamp);
+                        const today = new Date();
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+
+                        // Reset hours to compare just the date
+                        const messageDateOnly = new Date(
+                          messageDate.getFullYear(),
+                          messageDate.getMonth(),
+                          messageDate.getDate()
+                        );
+                        const todayOnly = new Date(
+                          today.getFullYear(),
+                          today.getMonth(),
+                          today.getDate()
+                        );
+                        const yesterdayOnly = new Date(
+                          yesterday.getFullYear(),
+                          yesterday.getMonth(),
+                          yesterday.getDate()
+                        );
+
+                        if (messageDateOnly.getTime() === todayOnly.getTime()) {
+                          return "Today";
+                        } else if (
+                          messageDateOnly.getTime() === yesterdayOnly.getTime()
+                        ) {
+                          return "Yesterday";
+                        } else {
+                          return messageDate.toLocaleDateString(undefined, {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          });
+                        }
+                      };
+
+                      // Group messages by date
+                      const messagesByDate: { [key: string]: ChatMessage[] } =
+                        {};
+                      messages.forEach((message) => {
+                        const dateKey = formatMessageDate(message.timestamp);
+                        if (!messagesByDate[dateKey]) {
+                          messagesByDate[dateKey] = [];
+                        }
+                        messagesByDate[dateKey].push(message);
+                      });
+
+                      // Render messages with date dividers
+                      const result: JSX.Element[] = [];
+                      Object.keys(messagesByDate).forEach((dateKey, index) => {
+                        // Add date divider
+                        result.push(
+                          <div
+                            key={`date-${dateKey}`}
+                            style={{
+                              display: "flex",
+                              justifyContent: "center",
+                              margin: "16px 0",
+                              position: "relative",
+                              width: "100%",
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                left: 0,
+                                right: 0,
+                                height: "1px",
+                                backgroundColor: "rgba(0, 0, 0, 0.1)",
+                                top: "50%",
+                              }}
+                            />
+                            <div
+                              style={{
+                                backgroundColor: "#f5f5f5",
+                                padding: "4px 12px",
+                                borderRadius: "16px",
+                                fontSize: "12px",
+                                color: "rgba(0, 0, 0, 0.65)",
+                                fontWeight: 500,
+                                zIndex: 1,
+                                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                              }}
+                            >
+                              {dateKey}
+                            </div>
+                          </div>
+                        );
+
+                        // Add messages for this date
+                        messagesByDate[dateKey].forEach((message) => {
+                          result.push(
+                            <MessageItem
+                              key={`${message.id}-${
+                                message.read ? "read" : "unread"
+                              }-${readStatusVersion}`}
+                              message={message}
+                              userId={userId}
+                              dispatch={dispatch}
+                            />
+                          );
+                        });
+                      });
+
+                      return result;
+                    })()
                   )}
                   <div ref={messagesEndRef} />{" "}
                   {/* Moved reference to the end of messages */}
