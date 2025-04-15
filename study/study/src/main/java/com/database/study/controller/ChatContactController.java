@@ -235,7 +235,7 @@ public class ChatContactController {
             response.setId(contactUser.getId().toString());
             response.setName(displayName);
             response.setEmail(contactUser.getEmail());
-            response.setStatus("online");
+            response.setStatus(contactUser.getUserStatus() != null ? contactUser.getUserStatus() : "online");
             response.setGroup(contact.getContactGroup());
             response.setContactStatus(contact.getStatus().toString());
 
