@@ -1,10 +1,9 @@
 package com.database.study.service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +22,8 @@ import com.database.study.mapper.ChatMessageMapper;
 import com.database.study.repository.ChatMessageRepository;
 import com.database.study.repository.UserRepository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -392,9 +393,29 @@ public class ChatMessageService {
         if (!message.getSender().getId().equals(user.getId()) && !message.getReceiver().getId().equals(user.getId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-
+        
+        // Store the receiver ID before deleting the message
+        UUID receiverId = message.getReceiver().getId();
+        UUID senderId = message.getSender().getId();
+        
+        // Create a notification object for the deleted message
+        Map<String, Object> deleteNotification = new HashMap<>();
+        deleteNotification.put("type", "MESSAGE_DELETED");
+        deleteNotification.put("messageId", messageId.toString());
+        
+        // Delete the message
         messageRepository.delete(message);
-        log.info("Message deleted: {} by {}", messageId, user.getUsername());
+        
+        // Notify the other user about the deletion
+        UUID otherUserId = user.getId().equals(senderId) ? receiverId : senderId;
+        messagingTemplate.convertAndSendToUser(
+                otherUserId.toString(),
+                "/queue/message-updates",
+                deleteNotification
+        );
+        
+        log.info("Message deleted: {} by {}, notification sent to user {}", 
+                messageId, user.getUsername(), otherUserId);
     }
 
     /**

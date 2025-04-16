@@ -480,6 +480,68 @@ export const connectWebSocket = (
               "[WebSocket] Read receipt subscription created:",
               readReceiptSubscription ? "Success" : "Failed"
             );
+
+            // Subscribe to message updates (edits and deletions)
+            console.log(
+              `[WebSocket] Subscribing to message updates at: /user/${capturedUserId}/queue/message-updates`
+            );
+            const messageUpdatesSubscription = stompClient.subscribe(
+              `/user/${capturedUserId}/queue/message-updates`,
+              (message: IMessage) => {
+                console.log(
+                  "[WebSocket] Raw message update received:",
+                  message
+                );
+                try {
+                  const updateData = JSON.parse(message.body);
+                  console.log("[WebSocket] Message update parsed:", updateData);
+
+                  // Handle message updates based on type
+                  if (updateData.type === "MESSAGE_DELETED") {
+                    console.log(
+                      "[WebSocket] Message deletion notification received for message:",
+                      updateData.messageId
+                    );
+
+                    // Import the necessary actions to handle message deletion
+                    import("../store/chatSlice").then(({ removeMessage }) => {
+                      if (removeMessage) {
+                        store.dispatch(removeMessage(updateData.messageId));
+                        console.log(
+                          "[WebSocket] Message removed from Redux store"
+                        );
+                      } else {
+                        console.warn(
+                          "[WebSocket] removeMessage action not found"
+                        );
+                      }
+                    });
+                  } else {
+                    // This is an edited message
+                    console.log(
+                      "[WebSocket] Message edit notification received"
+                    );
+
+                    // Update the message in the Redux store
+                    store.dispatch(addMessage(updateData));
+                    console.log("[WebSocket] Message updated in Redux store");
+                  }
+                } catch (error) {
+                  console.error(
+                    "[WebSocket] Error processing message update:",
+                    error
+                  );
+                  console.error(
+                    "[WebSocket] Problem message update body:",
+                    message.body
+                  );
+                }
+              }
+            );
+            console.log(
+              "[WebSocket] Message updates subscription created:",
+              messageUpdatesSubscription ? "Success" : "Failed"
+            );
           }
         } catch (error) {
           console.error("[WebSocket] Error setting up subscriptions:", error);

@@ -53,6 +53,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Character limit for message preview
@@ -137,20 +138,22 @@ const MessageItem: React.FC<MessageItemProps> = ({
         setIsHovered(true);
       }}
       onMouseLeave={() => {
-        // Set a timeout to delay hiding the menu
-        hoverTimeoutRef.current = setTimeout(() => {
-          setIsHovered(false);
-        }, 800); // 800ms delay before hiding
+        // Only hide if dropdown is not open
+        if (!isDropdownOpen) {
+          // Set a timeout to delay hiding the menu
+          hoverTimeoutRef.current = setTimeout(() => {
+            setIsHovered(false);
+          }, 1500); // 1500ms delay before hiding
+        }
       }}
     >
-      {/* Message options menu */}
-      {isHovered && (
+      {/* Message options menu - only show for user's own messages */}
+      {isHovered && isUserMessage && (
         <div
           style={{
             position: "absolute",
             bottom: "0", // Align with bottom border
-            right: isUserMessage ? "auto" : "-30px", // Right for other users' messages
-            left: isUserMessage ? "-30px" : "auto", // Left for user's messages
+            left: "-30px", // Always on the left for user's messages
             zIndex: 10,
             // Removed transform property to prevent Y-axis jumping
           }}
@@ -162,10 +165,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
             }
           }}
           onMouseLeave={() => {
-            // Set a timeout when mouse leaves the menu
-            hoverTimeoutRef.current = setTimeout(() => {
-              setIsHovered(false);
-            }, 500); // Slightly shorter delay for menu
+            // Only hide if dropdown is not open
+            if (!isDropdownOpen) {
+              // Set a timeout when mouse leaves the menu
+              hoverTimeoutRef.current = setTimeout(() => {
+                setIsHovered(false);
+              }, 1000); // 1000ms delay for menu
+            }
           }}
         >
           <Dropdown
@@ -178,8 +184,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   onClick: (e) => {
                     e.domEvent.stopPropagation();
                     handleEdit();
+                    setIsDropdownOpen(false);
                   },
-                  disabled: !isUserMessage,
                 },
                 {
                   key: "delete",
@@ -189,23 +195,25 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   onClick: (e) => {
                     e.domEvent.stopPropagation();
                     handleDelete();
+                    setIsDropdownOpen(false);
                   },
-                  disabled: !isUserMessage,
                 },
               ],
             }}
             trigger={["click"]}
+            destroyPopupOnHide={false}
+            onOpenChange={(open) => setIsDropdownOpen(open)}
             placement={isUserMessage ? "bottomLeft" : "bottomRight"} // Updated for bottom position
           >
             <Button
               type="text"
               size="small"
-              icon={<EllipsisOutlined />}
+              icon={<EllipsisOutlined style={{ fontSize: "16px" }} />}
               style={{
                 backgroundColor: "rgba(255, 255, 255, 0.9)",
                 borderRadius: "50%",
-                width: "24px",
-                height: "24px",
+                width: "28px", // Increased size
+                height: "28px", // Increased size
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
@@ -214,8 +222,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                 transition: "all 0.2s ease",
                 marginBottom: "0", // Ensure no bottom margin
+                cursor: "pointer",
               }}
-              onClick={(e) => e.stopPropagation()}
+              className="message-action-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Force the dropdown to stay open longer
+                setIsDropdownOpen(true);
+              }}
             />
           </Dropdown>
         </div>
@@ -507,6 +521,14 @@ const addCssStyles = () => {
       }
       .action-button.ant-btn:not(.ant-btn-primary):hover {
         opacity: 0.85;
+      }
+      .message-action-button:hover {
+        background-color: #f0f0f0 !important;
+        transform: scale(1.05);
+      }
+      .ant-dropdown-menu-item {
+        padding: 8px 16px !important;
+        min-width: 120px;
       }
       .contact-list-item:hover {
         background-color: rgba(24, 144, 255, 0.05) !important;
@@ -942,7 +964,7 @@ const ChatPage: React.FC = () => {
         console.log("[Chat] Applying debounced read status update");
         setReadStatusVersion((prev) => prev + 1);
         readStatusUpdateTimerRef.current = null;
-      }, 1000); // 1 second debounce
+      }, 1500); // 1.5 second debounce
     }
 
     // Clean up the timeout when the component unmounts

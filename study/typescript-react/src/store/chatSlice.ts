@@ -587,6 +587,15 @@ const chatSlice = createSlice({
       console.log("[Redux] Clearing all messages");
       state.messages = [];
     },
+    
+    // Remove a specific message by ID
+    removeMessage: (state, action: PayloadAction<string>) => {
+      console.log("[Redux] Removing message with ID:", action.payload);
+      state.messages = state.messages.filter(
+        (message) => message.id !== action.payload
+      );
+      console.log("[Redux] Message removed successfully");
+    },
 
     // Common reducers
     setLoading: (state, action: PayloadAction<boolean>) => {
@@ -928,6 +937,7 @@ export const {
   addMessage,
   updateMessagesReadStatus,
   clearMessages,
+  removeMessage,
 
   // Common actions
   setLoading,

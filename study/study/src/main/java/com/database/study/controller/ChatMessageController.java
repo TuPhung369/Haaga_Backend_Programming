@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -219,5 +220,105 @@ public class ChatMessageController {
         int unreadCount = messageService.getUnreadMessageCountFromUser(username, senderId);
 
         return ResponseEntity.ok(unreadCount);
+    }
+    
+    /**
+     * Delete a message by ID
+     * 
+     * @param messageId The ID of the message to delete
+     * @return ResponseEntity with no content
+     */
+    @DeleteMapping("/messages/{messageId}")
+    public ResponseEntity<Void> deleteMessage(@PathVariable String messageId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        log.info("Deleting message {} by user {}", messageId, username);
+        
+        try {
+            UUID messageUuid = UUID.fromString(messageId);
+            messageService.deleteMessage(user.getId().toString(), messageUuid);
+            log.info("Message {} successfully deleted by user {}", messageId, username);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid message ID format: {}", messageId, e);
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        } catch (Exception e) {
+            log.error("Error deleting message {}: {}", messageId, e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Alternative endpoint for deleting a message by ID
+     * This matches the URL pattern in the error message: /identify_service/chat/messages/{messageId}
+     * Note: The context path /identify_service is already configured in application.yaml,
+     * so we don't need to include it in the mapping
+     * 
+     * @param messageId The ID of the message to delete
+     * @return ResponseEntity with no content
+     */
+    @DeleteMapping("/chat/messages/{messageId}")
+    public ResponseEntity<Void> deleteMessageAlternative(@PathVariable String messageId) {
+        log.info("Alternative delete endpoint called for message ID: {}", messageId);
+        return deleteMessage(messageId);
+    }
+    
+    /**
+     * Edit a message by ID
+     * 
+     * @param messageId The ID of the message to edit
+     * @param request The request containing the new content
+     * @return ResponseEntity with the updated message
+     */
+    @PutMapping("/messages/{messageId}")
+    public ResponseEntity<ChatMessageResponse> editMessage(
+            @PathVariable String messageId,
+            @RequestBody Map<String, String> request) {
+        
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        String content = request.get("content");
+        if (content == null || content.trim().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+        
+        log.info("Editing message {} by user {}", messageId, username);
+        
+        try {
+            UUID messageUuid = UUID.fromString(messageId);
+            ChatMessageResponse response = messageService.editMessage(user.getId().toString(), messageUuid, content);
+            log.info("Message {} successfully edited by user {}", messageId, username);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid message ID format: {}", messageId, e);
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        } catch (Exception e) {
+            log.error("Error editing message {}: {}", messageId, e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Alternative endpoint for editing a message by ID
+     * 
+     * @param messageId The ID of the message to edit
+     * @param request The request containing the new content
+     * @return ResponseEntity with the updated message
+     */
+    @PutMapping("/chat/messages/{messageId}")
+    public ResponseEntity<ChatMessageResponse> editMessageAlternative(
+            @PathVariable String messageId,
+            @RequestBody Map<String, String> request) {
+        
+        log.info("Alternative edit endpoint called for message ID: {}", messageId);
+        return editMessage(messageId, request);
     }
 }
