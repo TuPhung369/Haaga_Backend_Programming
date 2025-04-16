@@ -38,7 +38,7 @@ public class ChatMessageService {
     private final UserRepository userRepository;
     private final ChatMessageMapper messageMapper;
     private final SimpMessagingTemplate messagingTemplate;
-    
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -46,30 +46,36 @@ public class ChatMessageService {
     public ChatMessageResponse sendMessage(String username, ChatMessageRequest request) {
         log.info("ChatMessageService.sendMessage called for user: {} to receiver: {}", username, request.getReceiverId());
         log.info("Message content: {}", request.getContent());
-        
+
         try {
             // Find the sender by username
             log.info("Finding sender by username: {}", username);
             User sender = userRepository.findByUsername(username)
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             log.info("Sender found: {}", sender.getId());
-    
+
             // Find the receiver by UUID
             log.info("Finding receiver by UUID: {}", request.getReceiverId());
             User receiver = userRepository.findById(UUID.fromString(request.getReceiverId()))
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             log.info("Receiver found: {}", receiver.getId());
-    
+
             // Create the message entity
             log.info("Creating message entity");
             ChatMessage message = messageMapper.toEntity(request, sender, receiver);
-            
+
             // Set the persistent flag based on the request
             Boolean persistentValue = request.getPersistent();
             boolean isPersistent = persistentValue != null ? persistentValue : true;
             message.setPersistent(isPersistent);
             log.info("Message persistence set to: {}, raw value from request: {}", isPersistent, persistentValue);
-    
+
+            // Log additional debug information
+            log.debug("Request details - Content: {}, ReceiverID: {}, Persistent flag type: {}",
+                    request.getContent().substring(0, Math.min(20, request.getContent().length())),
+                    request.getReceiverId(),
+                    persistentValue != null ? persistentValue.getClass().getName() : "null");
+
             // If conversationId is not provided, generate one
             if (message.getConversationId() == null) {
                 log.info("Generating conversation ID");
@@ -77,7 +83,7 @@ public class ChatMessageService {
                 message.setConversationId(conversationId);
                 log.info("Conversation ID generated: {}", conversationId);
             }
-    
+
             // Only save to database if the message is persistent
             if (isPersistent) {
                 log.info("Saving message to database (persistent=true)");
@@ -87,21 +93,27 @@ public class ChatMessageService {
                 log.info("Skipping database save for non-persistent message (persistent=false)");
                 // Generate a temporary ID for non-persistent messages
                 message.setId(UUID.randomUUID());
+
+                // Ensure we're explicitly marking this as non-persistent for downstream processing
+                message.setPersistent(false);
+
+                // Log the decision to skip saving
+                log.info("Message with ID {} will NOT be saved to database due to persistent=false flag", message.getId());
             }
-    
+
             log.info("Creating response DTO");
             ChatMessageResponse response = messageMapper.toResponse(message);
             log.info("Response created with ID: {}", response.getId());
-    
+
             // Send the message to the receiver via WebSocket
             log.info("Sending message to receiver via WebSocket: {}", receiver.getId());
             messagingTemplate.convertAndSendToUser(
-                receiver.getId().toString(),
-                "/queue/messages",
-                response
+                    receiver.getId().toString(),
+                    "/queue/messages",
+                    response
             );
             log.info("Message sent to receiver via WebSocket");
-    
+
             return response;
         } catch (AppException e) {
             log.error("Application error in ChatMessageService.sendMessage: {}", e.getMessage(), e);
@@ -147,10 +159,10 @@ public class ChatMessageService {
         // Find the user by username
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        
-        log.info("Marking messages as read for user {} (ID: {}) in conversation {}", 
+
+        log.info("Marking messages as read for user {} (ID: {}) in conversation {}",
                 username, user.getId(), conversationId);
-                
+
         // Verify the conversation ID format
         if (!conversationId.contains("_")) {
             log.warn("Invalid conversation ID format: {}. Expected format: 'uuid_uuid'", conversationId);
@@ -159,7 +171,7 @@ public class ChatMessageService {
                 UUID contactId = UUID.fromString(conversationId);
                 User contact = userRepository.findById(contactId)
                         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-                
+
                 // Generate the correct conversation ID
                 conversationId = generateConversationId(user.getId(), contact.getId());
                 log.info("Generated correct conversation ID: {}", conversationId);
@@ -172,12 +184,12 @@ public class ChatMessageService {
         // First try with a direct SQL update for better performance
         try {
             log.info("Executing direct SQL update to mark messages as read for conversation ID: {}", conversationId);
-            
+
             // Use a native SQL query to update all messages at once
             int updatedCount = messageRepository.markMessagesAsReadInConversation(conversationId, user.getId());
-            
+
             log.info("Direct SQL update affected {} rows for conversation ID: {}", updatedCount, conversationId);
-            
+
             // If no rows were affected, try the entity-based approach
             if (updatedCount == 0) {
                 log.info("No rows affected by direct SQL update, trying entity-based approach for conversation ID: {}", conversationId);
@@ -192,11 +204,11 @@ public class ChatMessageService {
             log.info("Falling back to entity-based approach for conversation ID: {}", conversationId);
             updateMessagesEntityBased(user, conversationId);
         }
-        
+
         // Final verification
         verifyMessagesRead(user, conversationId);
     }
-    
+
     // Helper method to generate a conversation ID
     private String generateConversationId(UUID user1Id, UUID user2Id) {
         // Ensure the conversation ID is the same regardless of who initiates
@@ -204,13 +216,13 @@ public class ChatMessageService {
         UUID largerId = user1Id.compareTo(user2Id) < 0 ? user2Id : user1Id;
         return smallerId.toString() + "_" + largerId.toString();
     }
-    
+
     private void updateMessagesEntityBased(User user, String conversationId) {
         log.info("Using entity-based approach to mark messages as read for conversation ID: {}", conversationId);
-        
+
         Page<ChatMessage> messages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
         log.info("Found {} messages in conversation {}", messages.getTotalElements(), conversationId);
-        
+
         // Log all messages in the conversation for debugging
         messages.forEach(message -> {
             log.info("Message in conversation: ID={}, Sender={}, Receiver={}, Read={}, Content={}",
@@ -220,24 +232,24 @@ public class ChatMessageService {
                     message.isRead(),
                     message.getContent().substring(0, Math.min(20, message.getContent().length())) + "...");
         });
-        
+
         int count = 0;
         for (ChatMessage message : messages) {
             if (message.getReceiver().equals(user) && !message.isRead()) {
                 try {
-                    log.info("Marking message {} as read (entity method) - Receiver ID: {}, User ID: {}", 
+                    log.info("Marking message {} as read (entity method) - Receiver ID: {}, User ID: {}",
                             message.getId(), message.getReceiver().getId(), user.getId());
                     message.setRead(true);
                     messageRepository.save(message);
                     count++;
-                    
+
                     // Force a flush after each save to ensure it's committed
                     messageRepository.flush();
-                    
+
                     log.info("Marked message {} as read via entity update", message.getId());
                 } catch (Exception ex) {
                     log.error("Error marking message {} as read with entity approach", message.getId(), ex);
-                    
+
                     // Try with direct update as last resort
                     try {
                         log.info("Trying direct update for message {}", message.getId());
@@ -252,38 +264,38 @@ public class ChatMessageService {
                 if (message.getReceiver().equals(user)) {
                     log.info("Message {} already marked as read, skipping", message.getId());
                 } else {
-                    log.info("Message {} is not for this user (receiver: {}), skipping", 
+                    log.info("Message {} is not for this user (receiver: {}), skipping",
                             message.getId(), message.getReceiver().getId());
                 }
             }
         }
-        
+
         log.info("Entity-based approach marked {} messages as read in conversation {}", count, conversationId);
     }
-    
+
     private void verifyMessagesRead(User user, String conversationId) {
         log.info("Verifying messages were marked as read for conversation ID: {}", conversationId);
-        
+
         // Clear persistence context to ensure we get fresh data
         entityManager.clear();
-        
+
         Page<ChatMessage> verifyMessages = messageRepository.findByConversationIdOrderByTimestampDesc(conversationId, Pageable.unpaged());
         log.info("Found {} messages in conversation {} for verification", verifyMessages.getTotalElements(), conversationId);
-        
+
         int stillUnreadCount = 0;
         int totalMessagesForUser = 0;
-        
+
         for (ChatMessage message : verifyMessages) {
             if (message.getReceiver().equals(user)) {
                 totalMessagesForUser++;
-                
+
                 if (!message.isRead()) {
                     stillUnreadCount++;
-                    log.warn("Message {} is still unread after all update attempts - Sender: {}, Content: {}", 
-                            message.getId(), 
+                    log.warn("Message {} is still unread after all update attempts - Sender: {}, Content: {}",
+                            message.getId(),
                             message.getSender().getId(),
                             message.getContent().substring(0, Math.min(20, message.getContent().length())) + "...");
-                    
+
                     // One final attempt with direct SQL
                     try {
                         log.info("Final attempt to mark message {} as read", message.getId());
@@ -298,12 +310,12 @@ public class ChatMessageService {
                 }
             }
         }
-        
-        log.info("Verification summary for conversation {}: Total messages for user: {}, Still unread: {}", 
+
+        log.info("Verification summary for conversation {}: Total messages for user: {}, Still unread: {}",
                 conversationId, totalMessagesForUser, stillUnreadCount);
-        
+
         if (stillUnreadCount > 0) {
-            log.warn("{} messages are still unread after all update attempts in conversation {}", 
+            log.warn("{} messages are still unread after all update attempts in conversation {}",
                     stillUnreadCount, conversationId);
         } else {
             log.info("All messages successfully marked as read in conversation {}", conversationId);
@@ -414,9 +426,9 @@ public class ChatMessageService {
 
         // Notify the receiver about the edit
         messagingTemplate.convertAndSendToUser(
-            message.getReceiver().getId().toString(),
-            "/queue/message-updates",
-            response
+                message.getReceiver().getId().toString(),
+                "/queue/message-updates",
+                response
         );
 
         log.info("Message edited: {} by {}", messageId, user.getUsername());

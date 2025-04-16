@@ -274,7 +274,7 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
 
         quickbars_selection_toolbar:
           "bold italic underline | formatselect | quicklink blockquote",
-        quickbars_insert_toolbar: "quickimage quicktable",
+        quickbars_insert_toolbar: false,
 
         // Đăng ký phím tắt Ctrl+Enter để gửi tin nhắn
         setup: (editor) => {
