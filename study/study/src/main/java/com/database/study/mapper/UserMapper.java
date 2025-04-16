@@ -15,6 +15,7 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -97,6 +98,9 @@ public interface UserMapper {
   @Mapping(target = "education", source = "education")
   @Mapping(target = "userStatus", source = "userStatus")
   UserResponse toUserResponse(User user);
+  
+  // Helper method for mapping lists of users
+  List<UserResponse> toUserResponseList(List<User> users);
 
   // New Method: Convert UserResponse back to User
   @Mapping(target = "roles", ignore = true)

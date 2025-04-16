@@ -4,10 +4,14 @@ package com.database.study.mapper;
 import com.database.study.dto.request.KanbanColumnRequest;
 import com.database.study.dto.response.KanbanColumnResponse;
 import com.database.study.entity.KanbanColumn;
+import com.database.study.entity.KanbanTask;
+import com.database.study.dto.response.KanbanTaskResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring", 
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
@@ -19,8 +23,11 @@ public interface KanbanColumnMapper {
     KanbanColumn toEntity(KanbanColumnRequest request);
 
     @Mapping(target = "boardId", source = "board.id")
-    @Mapping(target = "tasks", source = "tasks")
+    @Mapping(target = "tasks", expression = "java(toTaskResponseList(column.getTasks()))")
     KanbanColumnResponse toResponse(KanbanColumn column);
+    
+    // Helper methods for mapping lists
+    List<KanbanTaskResponse> toTaskResponseList(List<KanbanTask> tasks);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "board", ignore = true)
