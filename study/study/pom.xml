@@ -271,6 +271,8 @@
                 <version>3.13.0</version>
                 <configuration>
                     <release>21</release>
+                    <source>21</source>
+                    <target>21</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.mapstruct</groupId>

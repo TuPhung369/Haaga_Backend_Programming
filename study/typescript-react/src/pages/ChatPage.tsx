@@ -267,10 +267,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
               marginRight: message.content.length < 120 ? "16px" : "0",
             }}
           >
-            {message.content.length > CHARACTER_LIMIT && !isExpanded ? (
+            {message.content.length > CHARACTER_LIMIT &&
+            !isExpanded &&
+            !message.content.includes("<table") &&
+            !message.content.includes("<img") ? (
               <>
                 <div
-                  style={{ whiteSpace: "pre-wrap" }}
+                  style={{ whiteSpace: "pre-wrap", width: "100%" }}
+                  className="message-content"
                   dangerouslySetInnerHTML={{
                     __html: message.content.substring(0, CHARACTER_LIMIT),
                   }}
@@ -304,7 +308,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
               </>
             ) : (
               <div
-                style={{ whiteSpace: "pre-wrap" }}
+                style={{
+                  whiteSpace: "pre-wrap",
+                  width: "100%", // Đảm bảo div chiếm toàn bộ chiều rộng
+                }}
+                className="message-content"
                 dangerouslySetInnerHTML={{ __html: message.content }}
               ></div>
             )}
@@ -506,6 +514,47 @@ const addCssStyles = () => {
         /* Ensure no transform is applied on hover */
         transform: none !important;
       }
+      /* Styles for tables in messages */
+      .message-content table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 8px 0;
+        table-layout: fixed;
+      }
+      .message-content table td,
+      .message-content table th {
+        border: 1px solid #ddd !important;
+        padding: 8px;
+        word-wrap: break-word;
+      }
+      .message-content table tr:nth-child(even) {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+      .message-content table th {
+        padding-top: 10px;
+        padding-bottom: 10px;
+        text-align: left;
+        background-color: rgba(24, 144, 255, 0.1);
+      }
+      /* Styles for other elements in messages */
+      .message-content img {
+        max-width: 100%;
+        height: auto;
+      }
+      .message-content pre {
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        padding: 10px;
+        white-space: pre-wrap;
+        margin: 8px 0;
+      }
+      .message-content blockquote {
+        border-left: 3px solid #ccc;
+        margin-left: 0;
+        padding-left: 10px;
+        color: #666;
+      }
       /* Prevent transform on Card components and their children */
       .ant-card, 
       .ant-card-body, 
@@ -633,9 +682,32 @@ const ChatPage: React.FC = () => {
     // Connect to WebSocket if userId is available
     if (userId && userId !== "guest") {
       try {
-        const connected = connectWebSocket(userId);
+        const connected = connectWebSocket(userId, (isConnected) => {
+          // Callback to update connection status
+          setIsWebSocketConnected(isConnected);
+          console.log(
+            "[Chat] WebSocket connection status updated:",
+            isConnected
+          );
+
+          // If connected, try to send status update immediately
+          if (isConnected && userInfo?.id) {
+            console.log(
+              "[Chat] WebSocket connected, sending status update:",
+              userStatus
+            );
+            const sent = sendStatusUpdateViaWebSocket(userStatus);
+            if (sent) {
+              console.log(
+                "[Chat] Status update sent successfully after connection"
+              );
+            }
+          }
+        });
+
         if (!connected) {
           console.warn("WebSocket connection failed, falling back to HTTP");
+          setIsWebSocketConnected(false);
           // Optional: Show notification to user
           notification.info({
             message: "Chat Information",
@@ -646,6 +718,7 @@ const ChatPage: React.FC = () => {
         }
       } catch (error) {
         console.error("Error connecting to WebSocket:", error);
+        setIsWebSocketConnected(false);
       }
     }
 
@@ -653,7 +726,7 @@ const ChatPage: React.FC = () => {
     return () => {
       disconnectWebSocket();
     };
-  }, [dispatch, userId]);
+  }, [dispatch, userStatus, userInfo?.id, userId]);
 
   useEffect(() => {
     if (selectedContact) {
@@ -847,10 +920,13 @@ const ChatPage: React.FC = () => {
     }
   }, [selectedContact, userInfo?.id, dispatch]);
 
+  // State to track WebSocket connection status
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+
   // Add an effect to send the initial user status when the component mounts
   useEffect(() => {
-    // Only send status update if user is logged in
-    if (userInfo?.id) {
+    // Only send status update if user is logged in and WebSocket is connected
+    if (userInfo?.id && isWebSocketConnected) {
       console.log("[Chat] Sending initial user status:", userStatus);
 
       // Send the initial status update via WebSocket
@@ -864,7 +940,7 @@ const ChatPage: React.FC = () => {
         console.log("[Chat] Initial status update sent successfully");
       }
     }
-  }, [userInfo?.id, userStatus]);
+  }, [userInfo?.id, userStatus, isWebSocketConnected]);
 
   // These functions are now handled by Redux actions
 
@@ -877,10 +953,14 @@ const ChatPage: React.FC = () => {
     console.log("[Chat] Send message function called");
 
     // Sử dụng nội dung được truyền vào nếu có, nếu không thì sử dụng messageText
-    const textToSend = content || messageText;
+    const textToSend = content !== undefined ? content : messageText;
 
-    if (!textToSend.trim()) {
-      console.log("[Chat] Message text is empty, not sending");
+    // Kiểm tra xem textToSend có phải là chuỗi không
+    if (typeof textToSend !== "string" || !textToSend.trim()) {
+      console.log(
+        "[Chat] Message text is empty or invalid, not sending",
+        textToSend
+      );
       return;
     }
 
@@ -2441,7 +2521,7 @@ const ChatPage: React.FC = () => {
                   <Button
                     type="primary"
                     icon={<SendOutlined />}
-                    onClick={sendMessage}
+                    onClick={() => sendMessage()}
                     disabled={!messageText.trim()}
                     style={{
                       position: "absolute",
@@ -2464,11 +2544,13 @@ const ChatPage: React.FC = () => {
                   />
 
                   {/* TinyMCE Editor */}
-                  <div style={{ position: "relative" }}>
+                  <div style={{ position: "relative", minHeight: "120px" }}>
                     <TinyMCEEditor
                       placeholder="Type a message... (Shift+Enter for new line)"
                       value={messageText}
-                      height={120}
+                      height={
+                        120
+                      } /* Fixed height of 5 rows (approximately 120px) */
                       outputFormat="html"
                       onChange={(content) => {
                         setMessageText(content);

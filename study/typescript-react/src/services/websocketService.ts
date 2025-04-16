@@ -22,13 +22,10 @@ interface ExtendedWindow extends Window {
 const API_BASE_URI =
   import.meta.env.VITE_API_BASE_URI || "http://localhost:9095/identify_service";
 
-// Get JWT token from Redux store
-const getAuthToken = () => {
-  const state = store.getState();
-  return state.auth.token;
-};
-
 let stompClient: Client | null = null;
+
+// Store the connection callback for use in disconnectWebSocket
+let connectionStatusCallback: ((isConnected: boolean) => void) | null = null;
 
 // Forward declaration of disconnectWebSocket
 export const disconnectWebSocket = () => {
@@ -37,6 +34,11 @@ export const disconnectWebSocket = () => {
     try {
       stompClient.deactivate();
       console.log("[WebSocket] Deactivation initiated");
+
+      // Notify about disconnection
+      if (connectionStatusCallback) {
+        connectionStatusCallback(false);
+      }
     } catch (error) {
       console.error("[WebSocket] Error during deactivation:", error);
     }
@@ -46,24 +48,23 @@ export const disconnectWebSocket = () => {
   }
 };
 
-export const connectWebSocket = (userId: string): boolean => {
+export const connectWebSocket = (
+  userId: string,
+  connectionCallback?: (isConnected: boolean) => void
+): boolean => {
+  // Store the callback for later use
+  if (connectionCallback) {
+    connectionStatusCallback = connectionCallback;
+  }
+
   if (stompClient) {
     console.log("[WebSocket] Existing client found, disconnecting first");
     disconnectWebSocket();
   }
 
   try {
-    // Get the JWT token
-    const token = getAuthToken();
-
     // Create STOMP headers with authentication
     const connectHeaders: StompHeaders = {};
-    if (token) {
-      connectHeaders["Authorization"] = `Bearer ${token}`;
-      connectHeaders["X-Auth-Token"] = token;
-    } else {
-      console.warn("[WebSocket] No token available for authentication");
-    }
 
     // Create SockJS instance with proper URL
     const wsUrl = `${API_BASE_URI}/ws-messaging`;
@@ -100,6 +101,9 @@ export const connectWebSocket = (userId: string): boolean => {
     }
   } catch (error) {
     console.error("[WebSocket] Error creating WebSocket connection:", error);
+    if (connectionCallback) {
+      connectionCallback(false);
+    }
     return false;
   }
 
@@ -108,7 +112,29 @@ export const connectWebSocket = (userId: string): boolean => {
 
   // Check if stompClient is null before accessing its properties
   if (stompClient) {
+    // Handle disconnection events
+    stompClient.onDisconnect = () => {
+      console.log("[WebSocket] Connection closed");
+      if (connectionCallback) {
+        connectionCallback(false);
+      }
+    };
+
+    // Handle connection errors
+    stompClient.onStompError = (frame) => {
+      console.error("[WebSocket] Connection error:", frame);
+      if (connectionCallback) {
+        connectionCallback(false);
+      }
+    };
+
+    // Handle connection events
     stompClient.onConnect = () => {
+      console.log("[WebSocket] Connection established successfully");
+      if (connectionCallback) {
+        connectionCallback(true);
+      }
+
       // Add a small delay to ensure the connection is fully established
       setTimeout(() => {
         try {
@@ -710,13 +736,36 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
  * @returns true if the status was sent successfully, false otherwise
  */
 export const sendStatusUpdateViaWebSocket = (
-  status: "online" | "away" | "busy" | "offline"
+  status: "online" | "away" | "busy" | "offline",
+  retryCount: number = 0
 ): boolean => {
   try {
     console.log("[WebSocket] Sending status update via WebSocket:", status);
 
     if (!stompClient || !stompClient.connected) {
       console.warn("[WebSocket] Not connected, cannot send status update");
+
+      // If we have retries left and there's a stompClient instance, try to activate it
+      if (retryCount < 3 && stompClient) {
+        console.log(
+          `[WebSocket] Attempting to reconnect (retry ${retryCount + 1}/3)...`
+        );
+
+        // Get current user ID from store for reconnection
+        const currentUserId = store.getState().user.userInfo?.id;
+        if (currentUserId) {
+          // Try to reconnect
+          stompClient.activate();
+
+          // Schedule another attempt after a delay
+          setTimeout(() => {
+            sendStatusUpdateViaWebSocket(status, retryCount + 1);
+          }, 1000 * (retryCount + 1)); // Increasing delay for each retry
+
+          return true; // Return true as we're attempting to reconnect
+        }
+      }
+
       return false;
     }
 
