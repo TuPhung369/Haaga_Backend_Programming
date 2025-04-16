@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.extern.slf4j.Slf4j;
 
-import com.database.study.dto.request.ChatMessageRequest;
 import com.database.study.dto.response.ChatContactResponse;
 import com.database.study.dto.response.ChatMessageResponse;
 import com.database.study.dto.response.ChatMessageResponse.UserInfo;
