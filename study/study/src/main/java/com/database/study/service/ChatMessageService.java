@@ -445,11 +445,24 @@ public class ChatMessageService {
 
         ChatMessageResponse response = messageMapper.toResponse(message);
 
+        // Create a notification object for the edited message
+        Map<String, Object> editNotification = new HashMap<>();
+        editNotification.put("type", "MESSAGE_EDITED");
+        editNotification.put("messageId", messageId.toString());
+        editNotification.put("content", newContent);
+        
         // Notify the receiver about the edit
         messagingTemplate.convertAndSendToUser(
                 message.getReceiver().getId().toString(),
                 "/queue/message-updates",
-                response
+                editNotification
+        );
+        
+        // Also notify the sender for consistency
+        messagingTemplate.convertAndSendToUser(
+                message.getSender().getId().toString(),
+                "/queue/message-updates",
+                editNotification
         );
 
         log.info("Message edited: {} by {}", messageId, user.getUsername());

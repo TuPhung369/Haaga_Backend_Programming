@@ -127,6 +127,36 @@ public class WebSocketMessageController {
         }
     }
     
+    @MessageMapping("/chat.edit")
+    public void editMessage(@Payload EditMessageRequest request, Authentication authentication) {
+        String username = authentication.getName();
+        log.info("Editing message via WebSocket for user {}, message ID: {}", username, request.getMessageId());
+        log.info("New content: {}", request.getContent());
+        
+        try {
+            // Find the user by username
+            User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            log.info("Found user: {}", user.getId());
+            
+            // Call the service to edit the message
+            UUID messageId = UUID.fromString(request.getMessageId());
+            ChatMessageResponse response = messageService.editMessage(user.getId().toString(), messageId, request.getContent());
+            log.info("Message edited successfully, ID: {}", response.getId());
+            
+        } catch (AppException e) {
+            log.error("Application error editing message: {}", e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid UUID format in edit message request: {}", e.getMessage(), e);
+        } catch (MessagingException e) {
+            log.error("Messaging error editing message: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            log.error("Runtime error editing message: {}", e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Unexpected error editing message via WebSocket", e);
+        }
+    }
+    
     @MessageMapping("/chat.markAsRead")
     public ReadStatusResponse markMessagesAsRead(@Payload ReadStatusRequest request, Authentication authentication) {
         String username = authentication.getName();

@@ -256,6 +256,19 @@ export const editMessageThunk = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
+      // Try to send via WebSocket first for real-time updates
+      const sentViaWebSocket = await import(
+        "../services/websocketService"
+      ).then(({ editMessageViaWebSocket }) => {
+        return editMessageViaWebSocket(messageId, content);
+      });
+
+      console.log(
+        "[ChatSlice] WebSocket edit result:",
+        sentViaWebSocket ? "Success" : "Failed"
+      );
+
+      // Always use HTTP API to ensure persistence, even if WebSocket succeeds
       return await editMessage(messageId, content);
     } catch (error: unknown) {
       try {
@@ -587,7 +600,7 @@ const chatSlice = createSlice({
       console.log("[Redux] Clearing all messages");
       state.messages = [];
     },
-    
+
     // Remove a specific message by ID
     removeMessage: (state, action: PayloadAction<string>) => {
       console.log("[Redux] Removing message with ID:", action.payload);
@@ -595,6 +608,30 @@ const chatSlice = createSlice({
         (message) => message.id !== action.payload
       );
       console.log("[Redux] Message removed successfully");
+    },
+
+    // Update message content for a specific message
+    updateMessageContent: (
+      state,
+      action: PayloadAction<{ messageId: string; content: string }>
+    ) => {
+      console.log(
+        "[Redux] Updating message content for ID:",
+        action.payload.messageId
+      );
+      const messageIndex = state.messages.findIndex(
+        (message) => message.id === action.payload.messageId
+      );
+
+      if (messageIndex !== -1) {
+        state.messages[messageIndex].content = action.payload.content;
+        console.log("[Redux] Message content updated successfully");
+      } else {
+        console.warn(
+          "[Redux] Message not found for update:",
+          action.payload.messageId
+        );
+      }
     },
 
     // Common reducers
@@ -938,6 +975,7 @@ export const {
   updateMessagesReadStatus,
   clearMessages,
   removeMessage,
+  updateMessageContent,
 
   // Common actions
   setLoading,

@@ -108,9 +108,9 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
           "help",
         ],
         toolbar:
-          "undo redo | formatselect | bold italic underline | " +
+          "undo redo | formatselect | fontselect fontsizeselect | bold italic underline | " +
           "alignleft aligncenter alignright | bullist numlist | " +
-          "link image | forecolor backcolor | removeformat | code",
+          "link image table | forecolor backcolor | removeformat | code",
         toolbar_location: "top",
         toolbar_sticky: true,
         content_style:

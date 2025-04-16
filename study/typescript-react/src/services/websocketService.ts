@@ -516,15 +516,44 @@ export const connectWebSocket = (
                         );
                       }
                     });
-                  } else {
-                    // This is an edited message
+                  } else if (updateData.type === "MESSAGE_EDITED") {
                     console.log(
-                      "[WebSocket] Message edit notification received"
+                      "[WebSocket] Message edit notification received for message:",
+                      updateData.messageId
                     );
 
-                    // Update the message in the Redux store
-                    store.dispatch(addMessage(updateData));
-                    console.log("[WebSocket] Message updated in Redux store");
+                    // Import the necessary actions to handle message editing
+                    import("../store/chatSlice").then(
+                      ({ updateMessageContent }) => {
+                        if (updateMessageContent) {
+                          store.dispatch(
+                            updateMessageContent({
+                              messageId: updateData.messageId,
+                              content: updateData.content,
+                            })
+                          );
+                          console.log(
+                            "[WebSocket] Message content updated in Redux store"
+                          );
+                        } else {
+                          console.warn(
+                            "[WebSocket] updateMessageContent action not found"
+                          );
+                        }
+                      }
+                    );
+                  } else {
+                    // This is some other type of message update
+                    console.log(
+                      "[WebSocket] Unknown message update notification received:",
+                      updateData.type
+                    );
+
+                    // Update the message in the Redux store if it has the right format
+                    if (updateData.id) {
+                      store.dispatch(addMessage(updateData));
+                      console.log("[WebSocket] Message updated in Redux store");
+                    }
                   }
                 } catch (error) {
                   console.error(
@@ -558,6 +587,47 @@ export const connectWebSocket = (
     return true;
   } else {
     console.error("[WebSocket] Failed to create STOMP client");
+    return false;
+  }
+};
+
+export const editMessageViaWebSocket = (
+  messageId: string,
+  content: string
+): boolean => {
+  console.log("[WebSocket] Editing message via WebSocket:", {
+    messageId,
+    content,
+  });
+
+  if (!stompClient || !stompClient.connected) {
+    console.warn("[WebSocket] No active connection, cannot edit message");
+    return false;
+  }
+
+  try {
+    // Create a unique receipt ID for tracking
+    const receiptId = `receipt-edit-${Date.now()}-${Math.floor(
+      Math.random() * 1000
+    )}`;
+
+    // Create message payload with proper Unicode encoding
+    const messageBody = JSON.stringify({
+      messageId,
+      content: content, // Ensure content is passed as is, without additional encoding
+    });
+
+    // Send the edit message command to the server
+    stompClient.publish({
+      destination: "/app/chat.edit",
+      body: messageBody,
+      headers: { receipt: receiptId },
+    });
+
+    console.log("[WebSocket] Edit message sent successfully");
+    return true;
+  } catch (error) {
+    console.error("[WebSocket] Error sending edit message:", error);
     return false;
   }
 };
