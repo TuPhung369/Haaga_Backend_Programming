@@ -555,6 +555,71 @@ const addCssStyles = () => {
         padding-left: 10px;
         color: #666;
       }
+      /* Styles for lists in messages */
+      .message-content ul,
+      .message-content ol {
+        padding-left: 20px;
+        margin: 8px 0;
+        display: block;
+      }
+      .message-content ul {
+        list-style-type: disc;
+      }
+      .message-content ol {
+        list-style-type: decimal;
+      }
+      /* Nested lists styling */
+      .message-content li {
+        margin-bottom: 4px;
+        display: list-item;
+      }
+      /* Nested lists styling */
+      .message-content ul ul,
+      .message-content ol ol,
+      .message-content ul ol,
+      .message-content ol ul {
+        margin-top: 4px;
+        margin-bottom: 0;
+      }
+      /* Second level list style */
+      .message-content ul ul {
+        list-style-type: circle;
+      }
+      .message-content ol ol {
+        list-style-type: lower-alpha;
+      }
+      /* Third level list style */
+      .message-content ul ul ul {
+        list-style-type: square;
+      }
+      .message-content ol ol ol {
+        list-style-type: lower-roman;
+      }
+      /* Ensure proper indentation for nested lists */
+      .message-content li > ul,
+      .message-content li > ol {
+        margin-left: 10px;
+        margin-bottom: 0;
+      }
+      /* Second level list style */
+      .message-content ul ul {
+        list-style-type: circle;
+      }
+      .message-content ol ol {
+        list-style-type: lower-alpha;
+      }
+      /* Third level list style */
+      .message-content ul ul ul {
+        list-style-type: square;
+      }
+      .message-content ol ol ol {
+        list-style-type: lower-roman;
+      }
+      /* Ensure proper indentation for nested lists */
+      .message-content li > ul,
+      .message-content li > ol {
+        margin-left: 10px;
+      }
       /* Prevent transform on Card components and their children */
       .ant-card, 
       .ant-card-body, 
