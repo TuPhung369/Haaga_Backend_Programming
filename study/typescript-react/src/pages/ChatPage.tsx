@@ -14,6 +14,7 @@ import {
   Dropdown,
   Tag,
   Switch,
+  message,
 } from "antd";
 import {
   SendOutlined,
@@ -451,6 +452,7 @@ import {
   respondToRequest,
   addMessage, // Import the addMessage action
   updateMessagesReadStatus, // Import the updateMessagesReadStatus action
+  resetMessageDeletedFlag, // Import the resetMessageDeletedFlag action
 } from "../store/chatSlice";
 
 import {
@@ -730,6 +732,7 @@ const ChatPage: React.FC = () => {
   }, [userInfo?.userStatus]);
   const [form] = Form.useForm();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Novu application ID
   const NOVU_APP_ID = import.meta.env.VITE_NOVU_APP_ID || "your-novu-app-id";
@@ -867,6 +870,156 @@ const ChatPage: React.FC = () => {
         });
     }
   }, [selectedContact, dispatch, userInfo?.id]);
+
+  // Add a separate effect to handle message deletion
+  const messageDeleted = useSelector(
+    (state: RootState) => state.chat.messageDeleted
+  );
+
+  useEffect(() => {
+    // If a message was deleted, scroll to bottom and reset the flag
+    if (messageDeleted) {
+      console.log("[Chat] Message was deleted, scrolling to bottom");
+      scrollToBottom();
+      dispatch(resetMessageDeletedFlag());
+    }
+  }, [messageDeleted, dispatch]);
+
+  // Add an effect to handle window resize events
+  useEffect(() => {
+    const handleResize = () => {
+      console.log("[Chat] Window resize detected, scrolling to bottom");
+      // Use a short delay to allow the layout to stabilize
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop =
+            messagesContainerRef.current.scrollHeight;
+        }
+      }, 100);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  // Add a specific effect for initial load and page refresh
+  useEffect(() => {
+    if (messages.length > 0 && selectedContact) {
+      console.log(
+        "[Chat] Initial load or refresh detected, scrolling to bottom with delay"
+      );
+
+      // Use a longer delay for initial load to ensure everything is rendered
+      setTimeout(() => {
+        // Force scroll to absolute bottom using the ref
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop =
+            messagesContainerRef.current.scrollHeight;
+          console.log(
+            "[Chat] Forced initial scroll to absolute bottom using ref"
+          );
+        }
+        // Fallback to querySelector if ref is not available
+        else {
+          const messagesContainer = document.querySelector(
+            'div[style*="overflowY: auto"]'
+          );
+          if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            console.log(
+              "[Chat] Forced initial scroll to absolute bottom using querySelector"
+            );
+          } else {
+            console.log(
+              "[Chat] Could not find messages container for initial scroll"
+            );
+
+            // As a last resort, try scrolling the messagesEndRef into view
+            messagesEndRef.current?.scrollIntoView({ block: "end" });
+          }
+        }
+
+        // Double-check after a short delay to ensure we're really at the bottom
+        setTimeout(() => {
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop =
+              messagesContainerRef.current.scrollHeight;
+          }
+        }, 200);
+      }, 500); // Longer delay for initial load
+    }
+  }, [selectedContact, messages.length, messagesEndRef]); // Fixed dependency array for initial load effect
+
+  // Add an effect to handle window resize events
+  useEffect(() => {
+    const handleResize = () => {
+      console.log("[Chat] Window resize detected, scrolling to bottom");
+      // Use a short delay to allow the layout to stabilize
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop =
+            messagesContainerRef.current.scrollHeight;
+        }
+      }, 100);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  // Add a specific effect for initial load and page refresh
+  useEffect(() => {
+    if (messages.length > 0 && selectedContact) {
+      console.log(
+        "[Chat] Initial load or refresh detected, scrolling to bottom with delay"
+      );
+
+      // Use a longer delay for initial load to ensure everything is rendered
+      setTimeout(() => {
+        // Force scroll to absolute bottom using the ref
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop =
+            messagesContainerRef.current.scrollHeight;
+          console.log(
+            "[Chat] Forced initial scroll to absolute bottom using ref"
+          );
+        }
+        // Fallback to querySelector if ref is not available
+        else {
+          const messagesContainer = document.querySelector(
+            'div[style*="overflowY: auto"]'
+          );
+          if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            console.log(
+              "[Chat] Forced initial scroll to absolute bottom using querySelector"
+            );
+          } else {
+            console.log(
+              "[Chat] Could not find messages container for initial scroll"
+            );
+
+            // As a last resort, try scrolling the messagesEndRef into view
+            messagesEndRef.current?.scrollIntoView({ block: "end" });
+          }
+        }
+
+        // Double-check after a short delay to ensure we're really at the bottom
+        setTimeout(() => {
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop =
+              messagesContainerRef.current.scrollHeight;
+          }
+        }, 200);
+      }, 500); // Longer delay for initial load
+    }
+  }, [selectedContact, messages.length, messagesEndRef]); // Fixed dependency array for second load effect
 
   useEffect(() => {
     // Always scroll to bottom when messages change
@@ -1106,15 +1259,91 @@ const ChatPage: React.FC = () => {
         console.log("[Chat] WebSocket send failed, falling back to HTTP");
         console.log("[Chat] Dispatching sendMessageThunk");
 
-        const result = await dispatch(
-          sendMessageThunk({
-            content: textToSend,
-            receiverId: selectedContact.id,
-            persistent: persistMessages,
-          })
-        ).unwrap();
+        try {
+          const result = await dispatch(
+            sendMessageThunk({
+              content: textToSend,
+              receiverId: selectedContact.id,
+              persistent: persistMessages,
+            })
+          ).unwrap();
 
-        console.log("[Chat] HTTP send result:", result);
+          console.log("[Chat] HTTP send result:", result);
+        } catch (error) {
+          console.error("[Chat] Error sending message via HTTP:", error);
+
+          // Define a type for the error object
+          interface ErrorWithMessage {
+            message: string;
+            response?: {
+              status: number;
+            };
+          }
+
+          // Function to check if error has a message property
+          const hasMessage = (err: unknown): err is ErrorWithMessage => {
+            return (
+              typeof err === "object" &&
+              err !== null &&
+              "message" in err &&
+              typeof (err as ErrorWithMessage).message === "string"
+            );
+          };
+
+          // Check if this is an authentication error
+          const isAuthError =
+            error &&
+            typeof error === "object" &&
+            hasMessage(error) &&
+            (error.message.includes("401") ||
+              error.message.includes("unauthorized") ||
+              error.message.includes("authentication"));
+
+          if (isAuthError) {
+            console.log(
+              "[Chat] Authentication error detected, attempting token refresh and retry"
+            );
+
+            try {
+              // Import and call refreshToken
+              const { refreshToken } = await import("../utils/tokenRefresh");
+              const refreshed = await refreshToken(true);
+
+              if (refreshed) {
+                console.log(
+                  "[Chat] Token refreshed successfully, retrying message send"
+                );
+                // Wait a moment for the token to be properly set in the store
+                await new Promise((resolve) => setTimeout(resolve, 500));
+
+                // Retry sending the message
+                const retryResult = await dispatch(
+                  sendMessageThunk({
+                    content: textToSend,
+                    receiverId: selectedContact.id,
+                    persistent: persistMessages,
+                  })
+                ).unwrap();
+
+                console.log("[Chat] HTTP retry send result:", retryResult);
+              } else {
+                console.error(
+                  "[Chat] Token refresh failed, cannot retry message send"
+                );
+                message.error("Failed to send message. Please try again.");
+              }
+            } catch (refreshError) {
+              console.error(
+                "[Chat] Error during token refresh or retry:",
+                refreshError
+              );
+              message.error("Failed to send message. Please try again.");
+            }
+          } else {
+            // For other errors, show a notification
+            message.error("Failed to send message. Please try again.");
+          }
+        }
       }
 
       // Clear the input field
@@ -1130,7 +1359,35 @@ const ChatPage: React.FC = () => {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // First try with the ref approach
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+
+    // As a backup, also use direct DOM manipulation with the ref to ensure we scroll all the way
+    setTimeout(() => {
+      // First try with our direct ref
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop =
+          messagesContainerRef.current.scrollHeight;
+        console.log("[Chat] Forced scroll to bottom using container ref");
+      }
+      // If that fails, try with querySelector as a fallback
+      else {
+        const messagesContainer = document.querySelector(
+          'div[style*="overflowY: auto"]'
+        );
+        if (messagesContainer) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          console.log("[Chat] Forced scroll to bottom using querySelector");
+        } else {
+          console.log(
+            "[Chat] Could not find messages container for direct scroll"
+          );
+        }
+      }
+    }, 100); // Small delay to ensure DOM has updated
   };
 
   // Effect to update read status when selected contact changes
@@ -2434,6 +2691,7 @@ const ChatPage: React.FC = () => {
               </div>
 
               <div
+                ref={messagesContainerRef}
                 style={{
                   flex: 1,
                   padding: "16px",

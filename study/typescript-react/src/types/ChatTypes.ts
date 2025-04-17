@@ -38,6 +38,7 @@ export interface ChatState {
   selectedContact: ChatContact | null;
   loading: boolean;
   error: string | null;
+  messageDeleted?: boolean; // Flag to indicate a message was deleted
 }
 
 export interface AddContactPayload {

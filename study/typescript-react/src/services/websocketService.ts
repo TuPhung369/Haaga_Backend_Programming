@@ -678,8 +678,15 @@ export const sendMessageViaWebSocket = (
         // Import the sendMessage function from chatService and use it
         import("./chatService").then(({ sendMessage }) => {
           console.log("[WebSocket] Falling back to HTTP method for message");
-          sendMessage(content, receiverId, persistent)
-            .then((response) => {
+
+          // Function to handle HTTP sending with retry capability
+          const sendWithRetry = async (retryCount = 0, maxRetries = 2) => {
+            try {
+              const response = await sendMessage(
+                content,
+                receiverId,
+                persistent
+              );
               console.log("[WebSocket] HTTP fallback successful:", response);
 
               // Import and dispatch the addMessage action to update the UI
@@ -688,10 +695,75 @@ export const sendMessageViaWebSocket = (
                   store.dispatch(addMessage(response));
                 });
               });
-            })
-            .catch((error) => {
+
+              return response;
+            } catch (error) {
               console.error("[WebSocket] HTTP fallback failed:", error);
-            });
+
+              // Define a type for the error object
+              interface HttpError {
+                status?: number;
+                httpStatus?: number;
+                response?: { status: number };
+                message?: string;
+              }
+
+              // Check if this is an authentication error (401)
+              const isAuthError =
+                error &&
+                typeof error === "object" &&
+                ((error as HttpError).status === 401 ||
+                  (error as HttpError).httpStatus === 401 ||
+                  (error as HttpError).response?.status === 401 ||
+                  (error as Error).message?.includes("401"));
+
+              if (isAuthError && retryCount < maxRetries) {
+                console.log(
+                  `[WebSocket] Authentication error detected, attempting token refresh and retry (${
+                    retryCount + 1
+                  }/${maxRetries})`
+                );
+
+                // Import and call refreshToken
+                try {
+                  const { refreshToken } = await import(
+                    "../utils/tokenRefresh"
+                  );
+                  const refreshed = await refreshToken(true);
+
+                  if (refreshed) {
+                    console.log(
+                      "[WebSocket] Token refreshed successfully, retrying message send"
+                    );
+                    // Wait a moment for the token to be properly set in the store
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    return sendWithRetry(retryCount + 1, maxRetries);
+                  } else {
+                    console.error(
+                      "[WebSocket] Token refresh failed, cannot retry message send"
+                    );
+                    throw error;
+                  }
+                } catch (refreshError) {
+                  console.error(
+                    "[WebSocket] Error during token refresh:",
+                    refreshError
+                  );
+                  throw error;
+                }
+              } else {
+                throw error;
+              }
+            }
+          };
+
+          // Start the send with retry process
+          sendWithRetry().catch((finalError) => {
+            console.error(
+              "[WebSocket] All HTTP fallback attempts failed:",
+              finalError
+            );
+          });
         });
       }
     }, 5000);

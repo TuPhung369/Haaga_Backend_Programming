@@ -50,6 +50,7 @@ const initialState: ChatState = {
   selectedContact: null,
   loading: false,
   error: null,
+  messageDeleted: false,
 };
 
 // Async thunks
@@ -109,6 +110,44 @@ export const sendMessageThunk = createAsyncThunk(
       return await sendMessage(content, receiverId, persistent);
     } catch (error: unknown) {
       try {
+        // Check if this is an authentication error (401)
+        const isAuthError =
+          error &&
+          typeof error === "object" &&
+          ((error as { response?: { status: number } }).response?.status ===
+            401 ||
+            (error as Error).message?.includes("401"));
+
+        if (isAuthError) {
+          console.log(
+            "[ChatSlice] Authentication error detected, attempting token refresh"
+          );
+
+          try {
+            // Import and call refreshToken
+            const { refreshToken } = await import("../utils/tokenRefresh");
+            const refreshed = await refreshToken(true);
+
+            if (refreshed) {
+              console.log(
+                "[ChatSlice] Token refreshed successfully, retrying message send"
+              );
+              // Wait a moment for the token to be properly set in the store
+              await new Promise((resolve) => setTimeout(resolve, 500));
+
+              // Retry sending the message
+              return await sendMessage(content, receiverId, persistent);
+            }
+          } catch (refreshError) {
+            console.error(
+              "[ChatSlice] Error during token refresh:",
+              refreshError
+            );
+            // Continue to error handling below
+          }
+        }
+
+        // If we get here, either it wasn't an auth error or the refresh/retry failed
         handleServiceError(error);
       } catch (serviceError: unknown) {
         return rejectWithValue(
@@ -644,6 +683,11 @@ const chatSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+
+    // Reset the messageDeleted flag
+    resetMessageDeletedFlag: (state) => {
+      state.messageDeleted = false;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -951,6 +995,9 @@ const chatSlice = createSlice({
           state.messages = state.messages.filter(
             (message) => message.id !== action.payload
           );
+
+          // Add a flag to indicate a message was deleted (for scroll handling)
+          state.messageDeleted = true;
         }
       })
       .addCase(deleteMessageThunk.rejected, (state, action) => {
@@ -976,6 +1023,7 @@ export const {
   clearMessages,
   removeMessage,
   updateMessageContent,
+  resetMessageDeletedFlag,
 
   // Common actions
   setLoading,
