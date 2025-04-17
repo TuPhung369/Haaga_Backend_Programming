@@ -260,3 +260,34 @@ export const respondToContactRequest = async (
   }
 };
 
+// Forward a message to multiple recipients
+export const forwardMessage = async (
+  messageContent: string,
+  recipientIds: string[]
+): Promise<Message[]> => {
+  try {
+    // We'll rely on the filtering done in the ChatPage component
+    // This avoids potential issues with accessing the store during reducer execution
+    console.log("[ChatService] Recipients for forwarding:", recipientIds);
+    
+    // If there are no recipients, return an empty array
+    if (!recipientIds || recipientIds.length === 0) {
+      console.log("[ChatService] No recipients to forward to");
+      return [];
+    }
+    
+    // Send the message to each recipient individually using the existing sendMessage function
+    const forwardPromises = recipientIds.map(recipientId => 
+      sendMessage(messageContent, recipientId)
+    );
+    
+    // Wait for all messages to be sent
+    const results = await Promise.all(forwardPromises);
+    console.log("[ChatService] Forward results:", results);
+    return results;
+  } catch (error) {
+    console.error("[ChatService] Error forwarding message:", error);
+    throw handleServiceError(error);
+  }
+};
+

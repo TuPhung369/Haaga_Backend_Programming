@@ -1,0 +1,27 @@
+/* ChatPage.css */
+
+/* Styles for tables in messages */
+.message-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.message-content table td,
+.message-content table th {
+  border: 1px solid #333;
+  padding: 5px;
+}
+
+/* Specific styles for tables in other user's messages */
+.other-user-message .message-content table td,
+.other-user-message .message-content table th {
+  border: 1px solid #000 !important; /* Use black border for other user's messages */
+  border-width: 1px !important;
+}
+
+/* Specific styles for tables in current user's messages */
+.user-message .message-content table td,
+.user-message .message-content table th {
+  border: 1px solid #fff !important; /* Use white borders for user's messages */
+}

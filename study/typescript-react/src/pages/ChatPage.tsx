@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import TinyMCEEditor from "../components/TinyMCEEditor";
+import "../styles/ChatPage.css";
 import {
   Card,
   Input,
@@ -14,7 +15,7 @@ import {
   Dropdown,
   Tag,
   Switch,
-  message,
+  message as antMessage,
 } from "antd";
 import {
   SendOutlined,
@@ -32,11 +33,14 @@ import {
   UsergroupAddOutlined,
   EllipsisOutlined,
   DeleteOutlined,
+  CopyOutlined,
+  ForwardOutlined,
+  CheckOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
 import { RootState } from "../types";
-import { ChatMessage } from "../types/ChatTypes";
+import { ChatMessage, ChatContact } from "../types/ChatTypes";
 
 // Message Item Component
 interface MessageItemProps {
@@ -104,10 +108,340 @@ const MessageItem: React.FC<MessageItemProps> = ({
     });
   };
 
+  const handleCopy = () => {
+    // Create a temporary element to hold the message content without formatting
+    const tempElement = document.createElement("div");
+    tempElement.innerHTML = message.content;
+    const textContent = tempElement.textContent || tempElement.innerText || "";
+
+    // Copy to clipboard
+    navigator.clipboard
+      .writeText(textContent)
+      .then(() => {
+        // Use the imported antMessage from antd, not the message prop
+        antMessage.success("Message copied to clipboard");
+      })
+      .catch((err) => {
+        console.error("Failed to copy message: ", err);
+        // Use the imported antMessage from antd, not the message prop
+        antMessage.error("Failed to copy message");
+      });
+
+    setIsDropdownOpen(false);
+  };
+
+  // Forward Message Modal Component
+  const ForwardMessageModal = ({
+    messageContent,
+    contacts,
+    onCancel,
+    onForward,
+  }: {
+    messageContent: string;
+    contacts: ChatContact[];
+    onCancel: () => void;
+    onForward: (contactIds: string[]) => void;
+  }) => {
+    const [searchText, setSearchText] = useState("");
+    const [selectedContacts, setSelectedContacts] = useState<Set<string>>(
+      new Set()
+    );
+
+    // Filter contacts based on search text
+    const filteredContacts = contacts.filter(
+      (contact) =>
+        contact.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        contact.email.toLowerCase().includes(searchText.toLowerCase())
+    );
+
+    // Extract plain text from HTML content
+    const getPlainText = (html: string) => {
+      const tempElement = document.createElement("div");
+      tempElement.innerHTML = html;
+      return tempElement.textContent || tempElement.innerText || "";
+    };
+
+    const plainTextContent = getPlainText(messageContent);
+
+    const handleOk = () => {
+      if (selectedContacts.size === 0) {
+        antMessage.error("Please select at least one contact");
+        return;
+      }
+      onForward(Array.from(selectedContacts));
+    };
+
+    return (
+      <div>
+        {/* Message Preview */}
+        <div style={{ marginBottom: 16 }}>
+          <Typography.Text strong>Message Preview:</Typography.Text>
+          <div
+            style={{
+              maxHeight: "80px",
+              overflow: "auto",
+              border: "1px solid #d9d9d9",
+              borderRadius: "4px",
+              padding: "8px",
+              marginTop: "8px",
+              backgroundColor: "#f5f5f5",
+            }}
+          >
+            {plainTextContent.length > 100
+              ? plainTextContent.substring(0, 100) + "..."
+              : plainTextContent}
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <Input
+          placeholder="Search contacts..."
+          prefix={<SearchOutlined />}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ marginBottom: 16 }}
+          autoFocus
+        />
+
+        {/* Contact List */}
+        <div
+          style={{
+            maxHeight: "300px",
+            overflow: "auto",
+            border: "1px solid #d9d9d9",
+            borderRadius: "4px",
+          }}
+        >
+          <List
+            dataSource={filteredContacts}
+            renderItem={(contact) => (
+              <List.Item
+                key={contact.id}
+                onClick={() => {
+                  // Toggle selection
+                  const newSelected = new Set(selectedContacts);
+                  if (newSelected.has(contact.id)) {
+                    newSelected.delete(contact.id);
+                  } else {
+                    newSelected.add(contact.id);
+                  }
+                  setSelectedContacts(newSelected);
+                }}
+                style={{
+                  cursor: "pointer",
+                  backgroundColor: selectedContacts.has(contact.id)
+                    ? "#e6f7ff"
+                    : "transparent",
+                  padding: "8px 16px",
+                  transition: "background-color 0.3s",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Avatar icon={<UserOutlined />} style={{ marginRight: 12 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 500 }}>{contact.name}</div>
+                  <div style={{ fontSize: 12, color: "rgba(0, 0, 0, 0.45)" }}>
+                    {contact.email}
+                  </div>
+                </div>
+                {selectedContacts.has(contact.id) && (
+                  <div style={{ color: "#1890ff" }}>
+                    <CheckOutlined />
+                  </div>
+                )}
+              </List.Item>
+            )}
+            locale={{ emptyText: "No contacts found" }}
+          />
+        </div>
+
+        {/* Selected Contacts Count */}
+        {selectedContacts.size > 0 && (
+          <div style={{ marginTop: 8, textAlign: "right" }}>
+            <Typography.Text type="secondary">
+              {selectedContacts.size} contact
+              {selectedContacts.size > 1 ? "s" : ""} selected
+            </Typography.Text>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div
+          style={{
+            marginTop: 16,
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "8px",
+          }}
+        >
+          <Button onClick={onCancel}>Cancel</Button>
+          <Button
+            type="primary"
+            onClick={handleOk}
+            disabled={selectedContacts.size === 0}
+          >
+            Forward
+            {selectedContacts.size > 0 ? ` (${selectedContacts.size})` : ""}
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const handleForward = () => {
+    // Create the modal
+    const modal = Modal.info({
+      icon: null,
+      content: null, // We'll update this after creating the modal
+      footer: null,
+      closable: true,
+      maskClosable: true,
+      width: 520,
+      className: "forward-message-modal-container",
+    });
+
+    // Get the contacts from Redux store
+    const { contacts } = store.getState().chat;
+
+    // Render our custom component inside the modal
+    modal.update({
+      content: (
+        <ForwardMessageModal
+          messageContent={message.content}
+          contacts={contacts}
+          onCancel={() => {
+            modal.destroy();
+            setIsDropdownOpen(false);
+          }}
+          onForward={(contactIds) => {
+            // Get the current user ID
+            const currentUserId = store.getState().user.userInfo?.id || "";
+
+            // Check if the user is only trying to forward to themselves
+            const isOnlySendingToSelf =
+              contactIds.length === 1 && contactIds[0] === currentUserId;
+
+            if (isOnlySendingToSelf) {
+              antMessage.warning(
+                "You cannot forward a message only to yourself"
+              );
+              modal.destroy();
+              setIsDropdownOpen(false);
+              return;
+            }
+
+            // Check if any of the recipients is the current user
+            const includesSelf = contactIds.includes(currentUserId);
+
+            // Filter out current user from recipients to prevent duplicates
+            const filteredContactIds = contactIds.filter(
+              (id) => String(id) !== String(currentUserId)
+            );
+            console.log(
+              "[Chat] Recipients after filtering out current user:",
+              filteredContactIds
+            );
+
+            // Only proceed if we have recipients after filtering
+            if (filteredContactIds.length === 0) {
+              console.log(
+                "[Chat] No recipients to forward to after filtering out current user"
+              );
+
+              // Show appropriate message based on whether the user tried to forward only to themselves
+              if (includesSelf && contactIds.length === 1) {
+                antMessage.warning("Cannot forward a message to yourself");
+              } else {
+                antMessage.info("No valid recipients to forward to");
+              }
+              return;
+            }
+
+            try {
+              // Forward the message to the selected contacts
+              dispatch(
+                forwardMessageThunk({
+                  content: message.content,
+                  recipientIds: filteredContactIds,
+                })
+              )
+                .unwrap()
+                .then((results) => {
+                  console.log("Forward results:", results);
+                  // Count successful forwards
+                  const successCount = results ? results.length : 0;
+
+                  // Show success message
+                  if (successCount > 0) {
+                    // If the user was in the original list but filtered out, mention it
+                    if (includesSelf) {
+                      antMessage.success(
+                        `Message forwarded to ${successCount} contact${
+                          successCount > 1 ? "s" : ""
+                        } (excluding yourself)`
+                      );
+                    } else {
+                      antMessage.success(
+                        `Message forwarded to ${successCount} contact${
+                          successCount > 1 ? "s" : ""
+                        }`
+                      );
+                    }
+
+                    // Get the current selected contact from the Redux store
+                    const currentSelectedContact =
+                      store.getState().chat.selectedContact;
+
+                    // If the current selected contact is one of the recipients, refresh messages
+                    if (
+                      currentSelectedContact &&
+                      filteredContactIds.includes(currentSelectedContact.id)
+                    ) {
+                      console.log(
+                        "[Chat] Refreshing messages for current contact after forward"
+                      );
+                      dispatch(fetchMessages(currentSelectedContact.id));
+                    }
+                  } else {
+                    antMessage.warning("No messages were forwarded");
+                  }
+                })
+                .catch((error) => {
+                  console.error("Forward error:", error);
+                  // Show error message with more details
+                  let errorMessage = "Failed to forward message";
+                  if (typeof error === "string") {
+                    errorMessage += `: ${error}`;
+                  } else if (
+                    error &&
+                    typeof error === "object" &&
+                    "message" in error &&
+                    typeof error.message === "string"
+                  ) {
+                    errorMessage += `: ${error.message}`;
+                  }
+                  antMessage.error(errorMessage);
+                });
+            } catch (error) {
+              console.error("Unexpected error during forward dispatch:", error);
+              antMessage.error(
+                "An unexpected error occurred while forwarding the message"
+              );
+            }
+
+            modal.destroy();
+            setIsDropdownOpen(false);
+          }}
+        />
+      ),
+    });
+  };
+
   const isUserMessage = message.sender.id === userId;
 
   return (
     <div
+      className={isUserMessage ? "user-message" : "other-user-message"}
       style={{
         alignSelf: isUserMessage ? "flex-end" : "flex-start",
         backgroundColor: isUserMessage
@@ -127,7 +461,10 @@ const MessageItem: React.FC<MessageItemProps> = ({
         marginLeft: isUserMessage ? "auto" : 0,
         marginRight: isUserMessage ? 0 : "auto",
         wordBreak: "break-word",
-        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
+        boxShadow: isUserMessage 
+          ? "0 1px 2px rgba(0, 0, 0, 0.1)" 
+          : "0 1px 3px rgba(0, 0, 0, 0.2)",
+        border: isUserMessage ? "none" : "1px solid rgba(0, 0, 0, 0.2)",
         position: "relative",
       }}
       onMouseEnter={() => {
@@ -148,13 +485,14 @@ const MessageItem: React.FC<MessageItemProps> = ({
         }
       }}
     >
-      {/* Message options menu - only show for user's own messages */}
-      {isHovered && isUserMessage && (
+      {/* Message options menu - show for all messages */}
+      {isHovered && (
         <div
           style={{
             position: "absolute",
             bottom: "0", // Align with bottom border
-            left: "-30px", // Always on the left for user's messages
+            left: isUserMessage ? "-30px" : "auto", // Left for user's messages, right for others
+            right: isUserMessage ? "auto" : "-30px", // Right for other's messages
             zIndex: 10,
             // Removed transform property to prevent Y-axis jumping
           }}
@@ -178,27 +516,54 @@ const MessageItem: React.FC<MessageItemProps> = ({
           <Dropdown
             menu={{
               items: [
+                // Copy option for all messages
                 {
-                  key: "edit",
-                  icon: <EditOutlined />,
-                  label: "Edit",
+                  key: "copy",
+                  icon: <CopyOutlined />,
+                  label: "Copy",
                   onClick: (e) => {
                     e.domEvent.stopPropagation();
-                    handleEdit();
+                    handleCopy();
                     setIsDropdownOpen(false);
                   },
                 },
+                // Forward option for all messages
                 {
-                  key: "delete",
-                  icon: <DeleteOutlined />,
-                  label: "Delete",
-                  danger: true,
+                  key: "forward",
+                  icon: <ForwardOutlined />,
+                  label: "Forward",
                   onClick: (e) => {
                     e.domEvent.stopPropagation();
-                    handleDelete();
+                    handleForward();
                     setIsDropdownOpen(false);
                   },
                 },
+                // Edit and Delete options only for user's own messages
+                ...(isUserMessage
+                  ? [
+                      {
+                        key: "edit",
+                        icon: <EditOutlined />,
+                        label: "Edit",
+                        onClick: (e) => {
+                          e.domEvent.stopPropagation();
+                          handleEdit();
+                          setIsDropdownOpen(false);
+                        },
+                      },
+                      {
+                        key: "delete",
+                        icon: <DeleteOutlined />,
+                        label: "Delete",
+                        danger: true,
+                        onClick: (e) => {
+                          e.domEvent.stopPropagation();
+                          handleDelete();
+                          setIsDropdownOpen(false);
+                        },
+                      },
+                    ]
+                  : []),
               ],
             }}
             trigger={["click"]}
@@ -453,6 +818,7 @@ import {
   addMessage, // Import the addMessage action
   updateMessagesReadStatus, // Import the updateMessagesReadStatus action
   resetMessageDeletedFlag, // Import the resetMessageDeletedFlag action
+  forwardMessageThunk,
 } from "../store/chatSlice";
 
 import {
@@ -1330,18 +1696,18 @@ const ChatPage: React.FC = () => {
                 console.error(
                   "[Chat] Token refresh failed, cannot retry message send"
                 );
-                message.error("Failed to send message. Please try again.");
+                antMessage.error("Failed to send message. Please try again.");
               }
             } catch (refreshError) {
               console.error(
                 "[Chat] Error during token refresh or retry:",
                 refreshError
               );
-              message.error("Failed to send message. Please try again.");
+              antMessage.error("Failed to send message. Please try again.");
             }
           } else {
             // For other errors, show a notification
-            message.error("Failed to send message. Please try again.");
+            antMessage.error("Failed to send message. Please try again.");
           }
         }
       }

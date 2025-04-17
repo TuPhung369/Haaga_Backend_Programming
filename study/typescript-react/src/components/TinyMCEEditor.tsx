@@ -122,7 +122,7 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
           ".mce-content-body p { margin: 0; margin-bottom: 8px; } " +
           "img { max-width: 100%; height: auto; } " +
           "table { border-collapse: collapse; } " +
-          "table td, table th { border: 1px solid #ccc; padding: 5px; } " +
+          "table td, table th { border: 1px solid #333; padding: 5px; } " +
           "figure { margin: 0; } " +
           "figure figcaption { color: #999; font-size: 12px; margin-top: 5px; } " +
           "hr { border: 0; height: 1px; background: #ccc; margin: 10px 0; } " +

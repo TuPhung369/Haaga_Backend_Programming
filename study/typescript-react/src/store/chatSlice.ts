@@ -11,6 +11,7 @@ import {
   respondToContactRequest,
   editMessage,
   deleteMessage,
+  forwardMessage,
   Message,
   Contact,
 } from "../services/chatService";
@@ -360,6 +361,34 @@ export const deleteMessageThunk = createAsyncThunk(
   }
 );
 
+export const forwardMessageThunk = createAsyncThunk(
+  "chat/forwardMessage",
+  async (
+    {
+      content,
+      recipientIds,
+    }: {
+      content: string;
+      recipientIds: string[];
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await forwardMessage(content, recipientIds);
+    } catch (error: unknown) {
+      try {
+        handleServiceError(error);
+      } catch (serviceError: unknown) {
+        return rejectWithValue(
+          serviceError instanceof Error
+            ? serviceError.message
+            : "Failed to forward message"
+        );
+      }
+    }
+  }
+);
+
 // Slice
 const chatSlice = createSlice({
   name: "chat",
@@ -452,6 +481,29 @@ const chatSlice = createSlice({
           // Instead of skipping, we'll replace the temp message with the server response
           // This is handled below
           return false;
+        }
+
+        // Special handling for forwarded messages
+        // If we have a message with the same content, sender, and receiver within 10 seconds,
+        // consider it a duplicate
+        if (
+          msg.content === action.payload.content &&
+          msg.sender.id === action.payload.sender.id &&
+          msg.receiver.id === action.payload.receiver.id
+        ) {
+          const msgTime = new Date(msg.timestamp).getTime();
+          const newMsgTime = new Date(action.payload.timestamp).getTime();
+          const timeDiff = Math.abs(msgTime - newMsgTime);
+
+          // For forwarded messages, use a larger time window (10 seconds)
+          if (timeDiff < 10000) {
+            console.log(
+              "[Redux] Found potential forwarded message duplicate. Time diff:",
+              timeDiff,
+              "ms"
+            );
+            return true;
+          }
         }
 
         // Special handling for non-persistent messages
@@ -768,9 +820,39 @@ const chatSlice = createSlice({
       .addCase(sendMessageThunk.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload) {
-          state.messages.push(
-            convertServiceMessageToChatMessage(action.payload)
+          // Check if this message is already in the state
+          const isDuplicate = state.messages.some(
+            (existingMsg) => {
+              if (!action.payload) return false;
+              
+              // Exact ID match
+              return existingMsg.id === action.payload.id ||
+              // Same content, sender, receiver, and timestamp within 10 seconds
+              (existingMsg.content === action.payload.content &&
+                existingMsg.sender.id === action.payload.sender.id &&
+                existingMsg.receiver.id === action.payload.receiver.id &&
+                Math.abs(
+                  new Date(existingMsg.timestamp).getTime() -
+                    new Date(action.payload.timestamp).getTime()
+                ) < 10000);
+            }
           );
+
+          // Only add the message if it's not already in the state
+          if (!isDuplicate) {
+            console.log(
+              "[Redux] Adding new sent message to store:",
+              action.payload.id
+            );
+            state.messages.push(
+              convertServiceMessageToChatMessage(action.payload)
+            );
+          } else {
+            console.log(
+              "[Redux] Skipping duplicate sent message:",
+              action.payload.id
+            );
+          }
         }
       })
       .addCase(sendMessageThunk.rejected, (state, action) => {
@@ -1018,6 +1100,97 @@ const chatSlice = createSlice({
         }
       })
       .addCase(deleteMessageThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Forward message
+      .addCase(forwardMessageThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(forwardMessageThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload && Array.isArray(action.payload)) {
+          console.log(
+            "[Redux] Forward operation completed successfully:",
+            action.payload.length
+          );
+
+          // Create a map to track which recipients have already received this message
+          // This helps prevent duplicates when forwarding to multiple recipients
+          const processedRecipients = new Map<string, Set<string>>();
+
+          // Process each forwarded message
+          action.payload.forEach((message) => {
+            if (message && typeof message === "object" && "id" in message) {
+              console.log("[Redux] Processing forwarded message:", message.id);
+
+              // Get recipient ID
+              const recipientId = message.receiver?.id || "";
+              const messageContent = message.content || "";
+
+              // Create a content hash for duplicate detection
+              const contentHash = `${messageContent.substring(0, 50)}`;
+
+              // Check if we've already processed a similar message for this recipient
+              if (!processedRecipients.has(recipientId)) {
+                processedRecipients.set(recipientId, new Set());
+              }
+
+              const recipientHashes = processedRecipients.get(recipientId)!;
+              if (recipientHashes.has(contentHash)) {
+                console.log(
+                  "[Redux] Already processed a similar message for recipient:",
+                  recipientId
+                );
+                return; // Skip this message
+              }
+
+              // Check if this message is already in the state (by ID or by content+timestamp)
+              const isDuplicate = state.messages.some(
+                (existingMsg) =>
+                  // Exact ID match
+                  existingMsg.id === message.id ||
+                  // Same content, sender, receiver, and timestamp within 10 seconds
+                  (existingMsg.content === message.content &&
+                    existingMsg.sender.id === message.sender.id &&
+                    existingMsg.receiver.id === message.receiver.id &&
+                    Math.abs(
+                      new Date(existingMsg.timestamp).getTime() -
+                        new Date(message.timestamp).getTime()
+                    ) < 10000)
+              );
+
+              // Only add the message if it's not already in the state
+              if (!isDuplicate) {
+                console.log(
+                  "[Redux] Adding forwarded message to store:",
+                  message.id
+                );
+                state.messages.push(
+                  convertServiceMessageToChatMessage(message)
+                );
+
+                // Mark this content as processed for this recipient
+                recipientHashes.add(contentHash);
+              } else {
+                console.log(
+                  "[Redux] Skipping duplicate forwarded message:",
+                  message.id
+                );
+              }
+            }
+          });
+
+          // Sort messages by timestamp
+          state.messages.sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        }
+      })
+      .addCase(forwardMessageThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
