@@ -1544,7 +1544,43 @@ const ChatPage: React.FC = () => {
       }
 
       // Dispatch the addContact action
-      await dispatch(addContact(newContactEmail));
+      const resultAction = await dispatch(addContact(newContactEmail));
+
+      // Check if the action was rejected (error occurred)
+      if (addContact.rejected.match(resultAction)) {
+        // Get the error payload - ensure it's a string
+        const errorPayload = resultAction.payload;
+        const errorMessage =
+          typeof errorPayload === "string"
+            ? errorPayload
+            : "Failed to add contact";
+
+        // Check if it's a 404 error (user not found)
+        if (
+          (typeof errorMessage === "string" &&
+            (errorMessage.includes("not found") ||
+              errorMessage.includes("doesn't exist") ||
+              errorMessage.includes("doesn't exist"))) ||
+          resultAction.error.message?.includes("404")
+        ) {
+          notification.error({
+            message: "User Not Found",
+            description:
+              "This email doesn't exist in the system. Please check and try again.",
+            placement: "topRight",
+            duration: 4,
+          });
+        } else {
+          notification.error({
+            message: "Error",
+            description:
+              errorMessage || "Failed to add contact. Please try again.",
+            placement: "topRight",
+            duration: 4,
+          });
+        }
+        return;
+      }
 
       // Close the modal and reset the form
       setIsAddContactModalVisible(false);
@@ -1554,12 +1590,16 @@ const ChatPage: React.FC = () => {
       notification.success({
         message: "Success",
         description: "Contact request sent successfully! Waiting for approval.",
+        placement: "topRight",
+        duration: 4,
       });
     } catch (error) {
       console.error("Error adding contact:", error);
       notification.error({
         message: "Error",
         description: "Failed to add contact. Please try again.",
+        placement: "topRight",
+        duration: 4,
       });
     }
   };
@@ -1612,10 +1652,10 @@ const ChatPage: React.FC = () => {
           transform: "none !important",
         }}
       >
-        {/* Contacts List - 25% width */}
+        {/* Contacts List - 20% width */}
         <Card
           style={{
-            width: "25%",
+            width: "20%",
             height: "100%",
             overflow: "auto",
             borderRadius: "12px",
@@ -2124,6 +2164,7 @@ const ChatPage: React.FC = () => {
             style={{
               flex: 1,
               overflowY: "auto",
+              overflowX: "hidden",
               paddingBottom: "8px",
             }}
           >
@@ -2139,6 +2180,9 @@ const ChatPage: React.FC = () => {
               </div>
             ) : (
               <List
+                style={{
+                  overflowX: "hidden",
+                }}
                 locale={{
                   emptyText: (
                     <div style={{ padding: "20px", textAlign: "center" }}>
@@ -2212,6 +2256,9 @@ const ChatPage: React.FC = () => {
                       actions={[]}
                     >
                       <List.Item.Meta
+                        style={{
+                          overflow: "hidden",
+                        }}
                         avatar={
                           <div style={{ position: "relative" }}>
                             <Avatar
@@ -2254,6 +2301,8 @@ const ChatPage: React.FC = () => {
                               display: "flex",
                               justifyContent: "space-between",
                               alignItems: "center",
+                              overflow: "hidden",
+                              width: "100%",
                             }}
                           >
                             <div
@@ -2261,46 +2310,21 @@ const ChatPage: React.FC = () => {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "8px",
+                                overflow: "hidden",
+                                minWidth: 0 /* This is important for flex child to respect parent width */,
                               }}
                             >
-                              <span>{contact.name}</span>
-                              {contact.group && (
-                                <Tag
-                                  color={
-                                    contact.group === "Friend"
-                                      ? "red"
-                                      : contact.group === "Family"
-                                      ? "green"
-                                      : contact.group === "College"
-                                      ? "blue"
-                                      : contact.group === "Work"
-                                      ? "purple"
-                                      : contact.group === "Other"
-                                      ? "orange"
-                                      : "default"
-                                  }
-                                  icon={
-                                    contact.group === "Friend" ? (
-                                      <UserOutlined />
-                                    ) : contact.group === "Family" ? (
-                                      <TagOutlined />
-                                    ) : contact.group === "College" ? (
-                                      <BookOutlined />
-                                    ) : contact.group === "Work" ? (
-                                      <LaptopOutlined />
-                                    ) : contact.group === "Other" ? (
-                                      <StarOutlined />
-                                    ) : null
-                                  }
-                                  style={{
-                                    fontSize: "10px",
-                                    lineHeight: "14px",
-                                    padding: "0 4px",
-                                  }}
-                                >
-                                  {contact.group}
-                                </Tag>
-                              )}
+                              <span
+                                style={{
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  maxWidth: "120px",
+                                }}
+                                title={contact.name}
+                              >
+                                {contact.name}
+                              </span>
                               <Dropdown
                                 menu={{
                                   items: [
@@ -2478,17 +2502,57 @@ const ChatPage: React.FC = () => {
                                 placement="bottomRight"
                                 trigger={["click"]}
                               >
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={<TagOutlined />}
-                                  style={{
-                                    color: "#8c8c8c",
-                                    padding: 0,
-                                    minWidth: "20px",
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
+                                {contact.group ? (
+                                  <Tag
+                                    color={
+                                      contact.group === "Friend"
+                                        ? "red"
+                                        : contact.group === "Family"
+                                        ? "green"
+                                        : contact.group === "College"
+                                        ? "blue"
+                                        : contact.group === "Work"
+                                        ? "purple"
+                                        : contact.group === "Other"
+                                        ? "orange"
+                                        : "default"
+                                    }
+                                    icon={
+                                      contact.group === "Friend" ? (
+                                        <UserOutlined />
+                                      ) : contact.group === "Family" ? (
+                                        <TagOutlined />
+                                      ) : contact.group === "College" ? (
+                                        <BookOutlined />
+                                      ) : contact.group === "Work" ? (
+                                        <LaptopOutlined />
+                                      ) : contact.group === "Other" ? (
+                                        <StarOutlined />
+                                      ) : null
+                                    }
+                                    style={{
+                                      fontSize: "10px",
+                                      lineHeight: "14px",
+                                      padding: "0 4px",
+                                      cursor: "pointer",
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {contact.group}
+                                  </Tag>
+                                ) : (
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<TagOutlined />}
+                                    style={{
+                                      color: "#8c8c8c",
+                                      padding: 0,
+                                      minWidth: "20px",
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                )}
                               </Dropdown>
                             </div>
                             {contact.unreadCount > 0 && (

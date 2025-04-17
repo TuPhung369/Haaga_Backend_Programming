@@ -1,5 +1,5 @@
 import axios from "axios";
-import { handleServiceError } from "./baseService";
+import { handleServiceError, ServiceError, ErrorType } from "./baseService";
 import store from "../store/store";
 import { InternalAxiosRequestConfig } from "axios";
 
@@ -165,6 +165,21 @@ export const addContactByEmail = async (email: string): Promise<Contact> => {
     return response.data;
   } catch (error) {
     console.error("Error adding contact:", error);
+    // Check specifically for 404 errors to provide a more descriptive message
+    if (
+      error &&
+      typeof error === "object" &&
+      "response" in error &&
+      error.response &&
+      typeof error.response === "object" &&
+      "status" in error.response &&
+      error.response.status === 404
+    ) {
+      throw new ServiceError("This email doesn't exist in the system", {
+        errorType: ErrorType.NOT_FOUND,
+        httpStatus: 404,
+      });
+    }
     throw handleServiceError(error);
   }
 };

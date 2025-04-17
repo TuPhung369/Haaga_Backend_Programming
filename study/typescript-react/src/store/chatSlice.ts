@@ -190,14 +190,31 @@ export const addContactThunk = createAsyncThunk(
     try {
       return await addContactByEmail(email);
     } catch (error: unknown) {
-      try {
-        handleServiceError(error);
-      } catch (serviceError: unknown) {
-        return rejectWithValue(
-          serviceError instanceof Error
-            ? serviceError.message
-            : "Failed to add contact"
-        );
+      // Check if it's a 404 error (user not found)
+      if (
+        error &&
+        typeof error === "object" &&
+        "response" in error &&
+        error.response &&
+        typeof error.response === "object" &&
+        "status" in error.response &&
+        error.response.status === 404
+      ) {
+        return rejectWithValue("This email doesn't exist in the system");
+      }
+
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      } else {
+        try {
+          handleServiceError(error);
+        } catch (serviceError: unknown) {
+          return rejectWithValue(
+            serviceError instanceof Error
+              ? serviceError.message
+              : "Failed to add contact"
+          );
+        }
       }
     }
   }
