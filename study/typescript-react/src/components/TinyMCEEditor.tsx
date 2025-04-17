@@ -84,7 +84,7 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
       disabled={disabled}
       init={{
         height: calculatedHeight,
-        menubar: false,
+        menubar: true,
         statusbar: false,
         plugins: [
           "autolink",
@@ -106,11 +106,15 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
           "pagebreak",
           "quickbars",
           "help",
+          "visualblocks",
+          "visualchars",
+          "preview",
+          "anchor",
+          "importcss",
+          "directionality",
         ],
         toolbar:
-          "undo redo | formatselect | fontselect fontsizeselect | bold italic underline | " +
-          "alignleft aligncenter alignright | bullist numlist | " +
-          "link image table | forecolor backcolor | removeformat | code",
+          "undo redo | formatselect fontfamily fontsize | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image table | forecolor backcolor | removeformat code",
         toolbar_location: "top",
         toolbar_sticky: true,
         content_style:
@@ -153,7 +157,7 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
         remove_trailing_brs: true,
         // Removed duplicate statusbar and menubar properties
         elementpath: false,
-        toolbar_mode: "wrap",
+        toolbar_mode: "floating",
         auto_focus: "tinymce", // Changed from false to a string value
         // Removed duplicate toolbar_sticky and toolbar_location
         // Removed deprecated paste options (TinyMCE 7.0 migration)
@@ -192,6 +196,22 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
           "Verdana=verdana,geneva;" +
           "Webdings=webdings;" +
           "Wingdings=wingdings,zapf dingbats",
+        font_family_formats:
+          "Andale Mono=andale mono,times;" +
+          "Arial=arial,helvetica,sans-serif;" +
+          "Arial Black=arial black,avant garde;" +
+          "Book Antiqua=book antiqua,palatino;" +
+          "Comic Sans MS=comic sans ms,sans-serif;" +
+          "Courier New=courier new,courier;" +
+          "Georgia=georgia,palatino;" +
+          "Helvetica=helvetica;" +
+          "Impact=impact,chicago;" +
+          "Symbol=symbol;" +
+          "Tahoma=tahoma,arial,helvetica,sans-serif;" +
+          "Terminal=terminal,monaco;" +
+          "Times New Roman=times new roman,times;" +
+          "Trebuchet MS=trebuchet ms,geneva;" +
+          "Verdana=verdana,geneva;",
 
         color_map: [
           "#BFEDD2",
@@ -271,6 +291,20 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
             styles: { textAlign: "justify" },
           },
         },
+        style_formats: [
+          { title: "Paragraph", format: "p" },
+          { title: "Heading 1", format: "h1" },
+          { title: "Heading 2", format: "h2" },
+          { title: "Heading 3", format: "h3" },
+          { title: "Heading 4", format: "h4" },
+          { title: "Heading 5", format: "h5" },
+          { title: "Heading 6", format: "h6" },
+          { title: "Blockquote", format: "blockquote" },
+          { title: "Code", format: "code" },
+          { title: "Pre", format: "pre" },
+        ],
+        block_formats:
+          "Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 3=h3; Heading 4=h4; Heading 5=h5; Heading 6=h6; Blockquote=blockquote; Pre=pre",
 
         quickbars_selection_toolbar:
           "bold italic underline | formatselect | quicklink blockquote",
