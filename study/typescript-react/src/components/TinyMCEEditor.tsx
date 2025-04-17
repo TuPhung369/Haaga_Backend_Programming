@@ -17,7 +17,7 @@ interface TinyMCEEditorProps {
 const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
   value,
   onChange,
-  height = 300,
+  height = 350,
   placeholder = "Type your message here...",
   disabled = false,
   onEnterPress,
@@ -118,7 +118,7 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
         toolbar_location: "top",
         toolbar_sticky: true,
         content_style:
-          "body { font-family:Helvetica,Arial,sans-serif; font-size:14px; margin: 8px; line-height: 1.5; overflow-y: auto; max-height: 300px; } " +
+          "body { font-family:Helvetica,Arial,sans-serif; font-size:14px; margin: 8px; line-height: 1.5; overflow-y: auto; max-height: 350px; } " +
           ".mce-content-body p { margin: 0; margin-bottom: 8px; } " +
           "img { max-width: 100%; height: auto; } " +
           "table { border-collapse: collapse; } " +

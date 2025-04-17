@@ -243,7 +243,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
           <TinyMCEEditor
             value={editedContent}
             onChange={(content) => setEditedContent(content)}
-            height={150}
+            height={250}
             placeholder="Edit your message..."
             outputFormat="html"
             onEnterPress={handleSaveEdit}
@@ -2889,13 +2889,11 @@ const ChatPage: React.FC = () => {
                   />
 
                   {/* TinyMCE Editor */}
-                  <div style={{ position: "relative", minHeight: "120px" }}>
+                  <div style={{ position: "relative", minHeight: "150px" }}>
                     <TinyMCEEditor
                       placeholder="Type a message... (Shift+Enter for new line)"
                       value={messageText}
-                      height={
-                        120
-                      } /* Fixed height of 5 rows (approximately 120px) */
+                      height={250}
                       outputFormat="html"
                       onChange={(content) => {
                         setMessageText(content);
