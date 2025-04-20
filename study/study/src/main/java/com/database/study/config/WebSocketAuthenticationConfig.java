@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Configuration
 @EnableWebSocketMessageBroker
-@Order(Ordered.HIGHEST_PRECEDENCE + 99)
+@Order(Ordered.HIGHEST_PRECEDENCE + 99) // Higher precedence than WebSocketConfig
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketAuthenticationConfig implements WebSocketMessageBrokerConfigurer {

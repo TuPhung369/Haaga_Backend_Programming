@@ -644,3 +644,50 @@
 .main-menu-collapsed .ant-menu-sub .ant-menu-item:not(:last-child) {
   border-bottom: none !important;
 }
+
+/* Notification bell styles for sidebar */
+.sidebar-notification-bell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-notification-bell .notification-center-wrapper {
+  margin: 0;
+  padding: 0;
+}
+
+/* Adjust the bell icon size and color */
+.sidebar-notification-bell .n-bell-container {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.sidebar-notification-bell .n-bell {
+  width: 20px !important;
+  height: 20px !important;
+  color: #FF6699 !important; /* Using the same color as before (COLORS[4]) */
+}
+
+/* Position the notification count badge */
+.sidebar-notification-bell .n-bell-count {
+  top: -5px !important;
+  right: -5px !important;
+  font-size: 10px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  background-color: #f5222d !important;
+}
+
+/* Adjust popover position for sidebar */
+.sidebar-notification-bell .nc-popover-wrapper {
+  position: fixed !important;
+  left: 250px !important;
+  top: auto !important;
+  transform: none !important;
+}
+
+/* For collapsed sidebar */
+.bottom-menu-collapsed .sidebar-notification-bell .nc-popover-wrapper {
+  left: 64px !important;
+}

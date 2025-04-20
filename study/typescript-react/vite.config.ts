@@ -95,6 +95,17 @@ export default defineConfig({
             "/identify_service/api/language-ai"
           ),
       },
+      // Notification endpoints
+      "/api/notifications": {
+        target: "http://localhost:9095",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) =>
+          path.replace(
+            /^\/api\/notifications/,
+            "/identify_service/api/notifications"
+          ),
+      },
     },
   },
 });

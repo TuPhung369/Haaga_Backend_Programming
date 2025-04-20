@@ -26,4 +26,20 @@ public class TestController {
 
     return response;
   }
+  
+  /**
+   * Endpoint to test if static resources are accessible
+   * @return A simple response
+   */
+  @GetMapping("/test-static")
+  public Map<String, Object> testStatic() {
+    logger.info("Static resources test endpoint called");
+    
+    Map<String, Object> response = new HashMap<>();
+    response.put("status", "ok");
+    response.put("message", "Static resources should be accessible");
+    response.put("testPageUrl", "/identify_service/novu-test.html");
+    
+    return response;
+  }
 }

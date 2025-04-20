@@ -55,3 +55,7 @@ logging:
     "[org.apache.catalina.core]": DEBUG
     "[org.apache.tomcat.util.net]": DEBUG
 
+# Novu notification service configuration
+novu:
+  api-key: 6ac19261e2693610c6a548c4d8fc4a19
+

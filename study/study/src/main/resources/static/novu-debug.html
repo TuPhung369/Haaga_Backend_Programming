@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novu Notification Debug Tool</title>
+    <!-- Include Novu styles -->
+    <link rel="stylesheet" href="https://unpkg.com/@novu/notification-center@0.21.0/dist/style.css">
+    <!-- Include SockJS for WebSocket support -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+        }
+        .log {
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            font-family: monospace;
+            margin-top: 20px;
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            color: #333;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+        .visible {
+            display: block;
+        }
+        /* Notification bell styles */
+        .notification-bell-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            background-color: #f0f0f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: 2px solid #4CAF50;
+        }
+        .notification-bell {
+            cursor: pointer;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        /* Add a visual indicator if the bell is empty */
+        .notification-bell-container:empty::after {
+            content: "🔔";
+            font-size: 24px;
+            color: #4CAF50;
+        }
+        
+        /* Custom styles for the Novu bell to make it more visible */
+        .visible-bell {
+            transform: scale(1.5);
+            color: #4CAF50 !important;
+        }
+        
+        /* Override Novu styles to make the bell more visible */
+        .novu-notification-bell {
+            color: #4CAF50 !important;
+            font-size: 24px !important;
+        }
+        
+        .novu-unseen-badge {
+            background-color: red !important;
+            color: white !important;
+            font-weight: bold !important;
+            min-width: 20px !important;
+            height: 20px !important;
+            font-size: 12px !important;
+        }
+        
+        /* Custom bell styles */
+        .fallback-bell {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .fallback-bell:hover {
+            animation: none;
+            transform: scale(1.2);
+        }
+        
+        .fallback-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            min-width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            animation: bounce 1s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Novu Notification Debug Tool</h1>
+    <div style="margin-bottom: 20px;">
+        <button onclick="openTab(null, 'bell-tab'); document.querySelector('button.tablinks[onclick*=\'bell-tab\']').classList.add('active')" 
+                style="background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer;">
+            Go to Bell Debug
+        </button>
+        <button onclick="debugPage()" 
+                style="background-color: #f0ad4e; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+            Debug Page
+        </button>
+        <button onclick="directTriggerNotification()" 
+                style="background-color: #5bc0de; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+            Quick Notification
+        </button>
+        <button onclick="manuallyIdentifyToNovuSocket()" 
+                style="background-color: #ff9800; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+            Identify to Socket
+        </button>
+    </div>
+    
+    <div id="debug-output" style="display: none; margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;"></div>
+    
+    <!-- Notification Bell Container -->
+    <div class="notification-bell-container" id="notification-bell-container">
+        <!-- The notification bell will be added here by JavaScript -->
+        <span id="bell-loading-indicator">Loading bell...</span>
+    </div>
+    
+    <!-- Debug indicator for the bell -->
+    <div style="position: fixed; top: 80px; right: 20px; background: #fff; padding: 5px; border: 1px solid #ccc; z-index: 1000;">
+        <strong>Bell Status:</strong> <span id="bell-status-indicator">Not initialized</span>
+        <button onclick="initNotificationBell()" style="margin-left: 10px; background-color: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer;">
+            Reinit Bell
+        </button>
+        <button onclick="resetPayload(); resetBroadcastPayload();" style="margin-left: 5px; background-color: #f0ad4e; color: white; border: none; padding: 5px 10px; cursor: pointer;">
+            Reset JSON
+        </button>
+    </div>
+    
+    <div class="tab">
+        <button class="tablinks active" onclick="openTab(event, 'send-tab')">Send Notification</button>
+        <button class="tablinks" onclick="openTab(event, 'websocket-tab')">WebSocket Debug</button>
+        <button class="tablinks" onclick="openTab(event, 'storage-tab')">Storage</button>
+        <button class="tablinks" onclick="openTab(event, 'bell-tab')">Bell Debug</button>
+    </div>
+    
+    <div id="send-tab" class="tabcontent visible">
+        <div class="card">
+            <h2>Send Notification to User</h2>
+            <div class="form-group">
+                <label for="userId">User ID:</label>
+                <input type="text" id="userId" placeholder="Enter user ID">
+            </div>
+            <div class="form-group">
+                <label for="notificationType">Notification Type:</label>
+                <select id="notificationType">
+                    <option value="test-notification">Test Notification</option>
+                    <option value="contact-request">Contact Request</option>
+                    <option value="new-message">New Message</option>
+                    <option value="contact-accepted">Contact Accepted</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="payload">Notification Payload (JSON):</label>
+                <textarea id="payload" rows="5" placeholder='{"message": "This is a test notification"}'></textarea>
+                <button onclick="resetPayload()" style="margin-top: 5px; background-color: #f0f0f0; color: #333; border: 1px solid #ccc; padding: 5px 10px; cursor: pointer;">Reset to Default</button>
+            </div>
+            <button onclick="sendNotification()">Send Notification</button>
+            <div id="sendResult" class="result"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Broadcast Notification to All Sessions</h2>
+            <div class="form-group">
+                <label for="broadcastType">Notification Type:</label>
+                <select id="broadcastType">
+                    <option value="test-notification">Test Notification</option>
+                    <option value="system-announcement">System Announcement</option>
+                    <option value="maintenance-alert">Maintenance Alert</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="broadcastPayload">Notification Payload (JSON):</label>
+                <textarea id="broadcastPayload" rows="5" placeholder='{"message": "This is a broadcast notification"}'></textarea>
+                <button onclick="resetBroadcastPayload()" style="margin-top: 5px; background-color: #f0f0f0; color: #333; border: 1px solid #ccc; padding: 5px 10px; cursor: pointer;">Reset to Default</button>
+            </div>
+            <button onclick="broadcastNotification()">Broadcast Notification</button>
+            <div id="broadcastResult" class="result"></div>
+        </div>
+    </div>
+    
+    <div id="websocket-tab" class="tabcontent">
+        <div class="card">
+            <h2>WebSocket Debug</h2>
+            <div class="form-group">
+                <label for="wsMessage">WebSocket Message:</label>
+                <textarea id="wsMessage" rows="5" placeholder='42["identify",{"userId":"user-id-here"}]'></textarea>
+            </div>
+            <button onclick="sendWebSocketMessage()">Send Message</button>
+            <div id="wsResult" class="result"></div>
+            
+            <h3>WebSocket Log</h3>
+            <div id="wsLog" class="log"></div>
+        </div>
+    </div>
+    
+    <div id="storage-tab" class="tabcontent">
+        <div class="card">
+            <h2>Local Storage</h2>
+            <div class="form-group">
+                <label for="storageKey">Key:</label>
+                <input type="text" id="storageKey" placeholder="Enter key">
+            </div>
+            <div class="form-group">
+                <label for="storageValue">Value:</label>
+                <input type="text" id="storageValue" placeholder="Enter value">
+            </div>
+            <button onclick="setStorageItem()">Set Item</button>
+            <button onclick="getStorageItem()">Get Item</button>
+            <button onclick="removeStorageItem()">Remove Item</button>
+            <div id="storageResult" class="result"></div>
+            
+            <h3>Current Storage</h3>
+            <div id="storageContent" class="result"></div>
+            <button onclick="refreshStorage()">Refresh</button>
+        </div>
+    </div>
+    
+    <div id="bell-tab" class="tabcontent">
+        <div class="card">
+            <h2>Notification Bell Debug</h2>
+            <div class="form-group">
+                <label for="bellUserId">User ID for Bell:</label>
+                <input type="text" id="bellUserId" placeholder="Enter user ID for the notification bell">
+            </div>
+            <button onclick="reinitializeBell()">Reinitialize Bell</button>
+            <div id="bellResult" class="result"></div>
+            
+            <h3>Bell Status</h3>
+            <div class="form-group">
+                <button onclick="checkBellStatus()">Check Bell Status</button>
+                <div id="bellStatus" class="result"></div>
+            </div>
+            
+            <h3>Manual Notification Check</h3>
+            <div class="form-group">
+                <button onclick="checkForNotifications()">Check for Notifications</button>
+                <div id="notificationCheckResult" class="result"></div>
+            </div>
+            
+            <h3>Direct Notification Trigger</h3>
+            <div class="form-group">
+                <p>This uses the global triggerMockNotification function directly:</p>
+                <button onclick="directTriggerNotification()">Trigger Notification Directly</button>
+                <div id="directTriggerResult" class="result"></div>
+            </div>
+            
+            <h3>Notification Viewer</h3>
+            <div class="form-group">
+                <button onclick="viewNotifications()">View All Notifications</button>
+                <div id="notificationViewer" class="result" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Include Novu scripts -->
+    <script>
+        // Function to load scripts with error handling
+        function loadScript(url, callback) {
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = url;
+            
+            // Success handler
+            script.onload = function() {
+                callback(null);
+            };
+            
+            // Error handler
+            script.onerror = function() {
+                callback(new Error('Failed to load script: ' + url));
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // First load our override script to ensure it's available before Novu loads
+        loadScript('/identify_service/js/novu-override.js', function(error) {
+            if (error) {
+                console.error('Failed to load Novu override script');
+                // Create a fallback mock function
+                window.triggerMockNotification = function(userId, type, payload) {
+                    console.log('Using fallback mock notification function', userId, type, payload);
+                };
+            } else {
+                console.log('Script loaded successfully: /identify_service/js/novu-override.js');
+            }
+            
+            // Then load Novu library with error handling
+            loadScript('https://unpkg.com/@novu/notification-center@0.21.0/dist/umd/index.js', function(error) {
+                if (error) {
+                    console.error('Failed to load Novu library from CDN, trying alternative source');
+                    // Try loading from a different CDN or version
+                    loadScript('https://cdn.jsdelivr.net/npm/@novu/notification-center@0.21.0/dist/umd/index.js', function(err) {
+                        if (err) {
+                            console.error('All attempts to load Novu library failed');
+                            document.getElementById('bell-status-indicator').textContent = 'Error: Using mock Novu implementation';
+                            
+                            // Create a mock Novu implementation
+                        window.NovuNotificationCenter = {
+                            init: function(applicationIdentifier, options) {
+                                console.log('Mock Novu initialized with:', applicationIdentifier, options);
+                                
+                                // Return a mock Novu instance
+                                return {
+                                    mount: function(selector) {
+                                        console.log('Mock Novu mounted to:', selector);
+                                        // Check if selector is a DOM element or a string
+                                        let container;
+                                        if (typeof selector === 'string') {
+                                            container = document.querySelector(selector);
+                                        } else if (selector instanceof HTMLElement) {
+                                            container = selector;
+                                        } else {
+                                            console.error('Invalid selector type:', typeof selector);
+                                            return false;
+                                        }
+                                        
+                                        if (container) {
+                                            // Create a custom bell
+                                            container.innerHTML = `
+                                                <div class="fallback-bell" onclick="window.triggerMockNotification('${options.subscriberId}', 'test-notification', {message: 'Test notification'})">
+                                                    <span style="font-size: 24px;">🔔</span>
+                                                    <span class="fallback-badge">0</span>
+                                                </div>
+                                            `;
+                                            return true;
+                                        }
+                                        return false;
+                                    }
+                                };
+                            }
+                        };
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+    
+    <script>
+        
+        // Reset the JSON payloads immediately to ensure they're valid
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Reset the payload fields
+                resetPayload();
+                resetBroadcastPayload();
+                
+                // Check if the server is responding
+                checkServerStatus();
+            } catch (e) {
+                console.error('Error in DOMContentLoaded:', e);
+            }
+        });
+        
+        // Function to check if the server is responding
+        function checkServerStatus() {
+            fetch('/identify_service/api/mock-novu/health')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Server is responding correctly');
+                        document.getElementById('bell-status-indicator').textContent += ' (Server OK)';
+                    } else {
+                        console.error('Server returned an error:', response.status);
+                        document.getElementById('bell-status-indicator').textContent += ' (Server Error: ' + response.status + ')';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking server status:', error);
+                    document.getElementById('bell-status-indicator').textContent += ' (Server Unreachable)';
+                });
+        }
+        
+        // Debug function to help diagnose issues
+        function debugPage() {
+            const debugOutput = document.getElementById('debug-output');
+            debugOutput.style.display = 'block';
+            
+            let debugInfo = '<h3>Debug Information</h3>';
+            
+            // Check if key elements exist
+            const elements = [
+                'userId', 'payload', 'broadcastPayload', 'notification-bell-container',
+                'bell-status-indicator', 'sendResult', 'broadcastResult'
+            ];
+            
+            debugInfo += '<h4>DOM Elements:</h4><ul>';
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                debugInfo += `<li>${id}: ${element ? 'Found' : 'NOT FOUND'}</li>`;
+            });
+            debugInfo += '</ul>';
+            
+            // Check localStorage
+            debugInfo += '<h4>localStorage:</h4><ul>';
+            debugInfo += `<li>userId: ${localStorage.getItem('userId') || 'Not set'}</li>`;
+            debugInfo += '</ul>';
+            
+            // Check if Novu is loaded
+            debugInfo += '<h4>Novu Library:</h4><ul>';
+            debugInfo += `<li>window.NovuNotificationCenter: ${window.NovuNotificationCenter ? 'Loaded' : 'NOT LOADED'}</li>`;
+            debugInfo += `<li>window.triggerMockNotification: ${typeof window.triggerMockNotification === 'function' ? 'Loaded' : 'NOT LOADED'}</li>`;
+            debugInfo += '</ul>';
+            
+            // Add a test notification button
+            debugInfo += '<h4>Test Actions:</h4>';
+            debugInfo += '<button onclick="testNotification()" style="background-color: #4CAF50; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer;">Send Test Notification</button>';
+            debugInfo += ' <button onclick="document.getElementById(\'debug-output\').style.display = \'none\';" style="background-color: #f44336; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">Close Debug</button>';
+            
+            debugOutput.innerHTML = debugInfo;
+        }
+        
+        // Function to send a test notification with minimal code
+        function testNotification() {
+            const userId = localStorage.getItem('userId') || 'test-user-' + Date.now();
+            localStorage.setItem('userId', userId);
+            
+            const payload = {
+                message: "Test notification from debug panel",
+                timestamp: new Date().toISOString()
+            };
+            
+            fetch(`/identify_service/api/mock-novu/test/notify/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    notificationType: 'test-notification',
+                    payload: payload
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Test notification sent successfully!');
+                console.log('Test notification response:', data);
+            })
+            .catch(error => {
+                alert('Error sending test notification: ' + error.message);
+                console.error('Test notification error:', error);
+            });
+        }
+        
+        // Function to create a custom notification bell when Novu library isn't available
+        function createCustomBell(container, userId) {
+            // Create the bell UI
+            container.innerHTML = `
+                <div class="fallback-bell" id="custom-bell">
+                    <span style="font-size: 24px; color: #4CAF50;">🔔</span>
+                    <span class="fallback-badge" id="fallback-badge" style="display: none;">0</span>
+                </div>
+                <div id="custom-notification-panel" style="display: none; position: absolute; top: 60px; right: 0; width: 300px; max-height: 400px; overflow-y: auto; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1001;">
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; display: flex; justify-content: space-between;">
+                        <span>Notifications</span>
+                        <button id="close-notification-panel" style="background: none; border: none; cursor: pointer; font-size: 16px;">×</button>
+                    </div>
+                    <div id="custom-notification-list" style="padding: 10px;">
+                        <div style="text-align: center; padding: 20px;">Loading notifications...</div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listeners
+            const bell = document.getElementById('custom-bell');
+            const panel = document.getElementById('custom-notification-panel');
+            const closeButton = document.getElementById('close-notification-panel');
+            
+            bell.addEventListener('click', function() {
+                if (panel.style.display === 'none') {
+                    panel.style.display = 'block';
+                    loadNotifications(userId);
+                } else {
+                    panel.style.display = 'none';
+                }
+            });
+            
+            closeButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                panel.style.display = 'none';
+            });
+            
+            // Load initial notifications to update the badge
+            checkForNotifications();
+            
+            // Update status
+            document.getElementById('bell-status-indicator').textContent = 'Using custom bell (Novu library not available)';
+        }
+        
+        // Function to load notifications into the custom panel
+        function loadNotifications(userId) {
+            const notificationList = document.getElementById('custom-notification-list');
+            if (!notificationList) return;
+            
+            notificationList.innerHTML = '<div style="text-align: center; padding: 20px;">Loading notifications...</div>';
+            
+            fetch(`/identify_service/api/mock-novu/notifications/feed`, {
+                headers: {
+                    'Authorization': `Bearer ${userId}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.data) {
+                    notificationList.innerHTML = '<div style="text-align: center; padding: 20px;">No notifications</div>';
+                    return;
+                }
+                
+                let html = '';
+                // Ensure data.data is an array
+                const notifications = Array.isArray(data.data) ? data.data : [data.data];
+                
+                if (notifications.length === 0) {
+                    notificationList.innerHTML = '<div style="text-align: center; padding: 20px;">No notifications</div>';
+                    return;
+                }
+                
+                try {
+                    notifications.forEach(notification => {
+                        try {
+                            const payload = notification.payload || {};
+                            const message = payload.message || 'No message';
+                            const timestamp = payload.timestamp ? new Date(payload.timestamp).toLocaleString() : 'Unknown time';
+                            
+                            html += `
+                                <div style="padding: 10px; border-bottom: 1px solid #eee; ${notification.read ? '' : 'background-color: #f0f7ff;'}">
+                                    <div style="font-weight: bold;">${message}</div>
+                                    <div style="font-size: 12px; color: #666;">${timestamp}</div>
+                                </div>
+                            `;
+                        } catch (notificationError) {
+                            console.error('Error processing notification:', notificationError, notification);
+                            html += `
+                                <div style="padding: 10px; border-bottom: 1px solid #eee; background-color: #fff0f0;">
+                                    <div style="font-weight: bold;">Error displaying notification</div>
+                                    <div style="font-size: 12px; color: #666;">Error: ${notificationError.message}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                } catch (forEachError) {
+                    console.error('Error in forEach loop:', forEachError, notifications);
+                    html = `<div style="text-align: center; padding: 20px; color: red;">Error processing notifications: ${forEachError.message}</div>`;
+                }
+                
+                notificationList.innerHTML = html;
+            })
+            .catch(error => {
+                notificationList.innerHTML = `<div style="text-align: center; padding: 20px; color: red;">Error: ${error.message}</div>`;
+            });
+        }
+        
+        // Function to reinitialize the bell with a specific user ID
+        function reinitializeBell() {
+            try {
+                const bellUserId = document.getElementById('bellUserId').value.trim();
+                
+                if (bellUserId) {
+                    // Store the user ID in localStorage
+                    localStorage.setItem('userId', bellUserId);
+                    sessionStorage.setItem('userId', bellUserId);
+                    document.getElementById('userId').value = bellUserId;
+                }
+                
+                // Clear the bell container
+                const bellContainer = document.getElementById('notification-bell-container');
+                if (bellContainer) {
+                    bellContainer.innerHTML = '';
+                }
+                
+                // Reinitialize the bell
+                initNotificationBell();
+                
+                // Update the result
+                document.getElementById('bellResult').textContent = "Bell reinitialized for user: " + (bellUserId || localStorage.getItem('userId') || 'No user ID');
+                
+                // Check for notifications after a short delay
+                setTimeout(checkForNotifications, 1000);
+            } catch (error) {
+                console.error('Error in reinitializeBell:', error);
+                document.getElementById('bellResult').textContent = "Error reinitializing bell: " + error.message;
+            }
+        }
+        
+        // WebSocket connection
+        let socket = null;
+        
+        // Initialize Novu notification bell
+        function initNotificationBell() {
+            try {
+                // Update status indicator
+                document.getElementById('bell-status-indicator').textContent = 'Initializing...';
+                
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    console.log('No user ID found in localStorage, cannot initialize notification bell');
+                    document.getElementById('bell-status-indicator').textContent = 'Error: No user ID';
+                    return;
+                }
+                
+                console.log('Initializing Novu notification bell for user:', userId);
+                
+                // Create a container for the notification bell
+                const bellContainer = document.getElementById('notification-bell-container');
+                
+                // Clear any previous content
+                bellContainer.innerHTML = '<span id="bell-loading-indicator">Loading bell...</span>';
+                
+                // Check if the Novu library is loaded
+                if (typeof window.NovuNotificationCenter === 'undefined') {
+                    console.log('Novu library not loaded');
+                    document.getElementById('bell-status-indicator').textContent = 'Error: Using custom bell';
+                    
+                    // Create a custom bell since Novu isn't loaded
+                    createCustomBell(bellContainer, userId);
+                    return;
+                }
+                
+                // Initialize the Novu notification center
+                // Use relative URLs to avoid cross-origin issues
+                const protocol = window.location.protocol;
+                const host = window.location.host;
+                const backendUrl = `${protocol}//${host}/identify_service/api/mock-novu`;
+                const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+                const socketUrl = `${wsProtocol}//${host}/identify_service/socket.io`;
+                
+                console.log('Initializing Novu with backend URL:', backendUrl);
+                console.log('Initializing Novu with socket URL:', socketUrl);
+                
+                const novu = new window.NovuNotificationCenter.init(
+                    'test-app-id', // This will be overridden by novu-override.js
+                    {
+                        subscriberId: userId,
+                        subscriberHash: 'no-hash-needed-for-testing',
+                        backendUrl: backendUrl,
+                        socketUrl: socketUrl
+                    }
+                );
+                
+                // Mount the notification center
+                novu.mount(bellContainer);
+                
+                // Remove the loading indicator after a short delay
+                setTimeout(() => {
+                    const loadingIndicator = document.getElementById('bell-loading-indicator');
+                    if (loadingIndicator) {
+                        loadingIndicator.remove();
+                    }
+                    
+                    // Check if the bell was actually mounted
+                    const bellElement = bellContainer.querySelector('.novu-notification-bell');
+                    if (bellElement) {
+                        document.getElementById('bell-status-indicator').textContent = 'Initialized';
+                        
+                        // Add a custom class to make it more visible
+                        bellElement.classList.add('visible-bell');
+                        
+                        // Add a click event to the container to ensure it's clickable
+                        bellContainer.onclick = function() {
+                            console.log('Bell container clicked');
+                        };
+                    } else {
+                        document.getElementById('bell-status-indicator').textContent = 'Error: Bell not mounted';
+                        
+                        // If the Novu bell failed to mount, create a custom bell
+                        console.log('Novu bell failed to mount, creating custom bell');
+                        createCustomBell(bellContainer, userId);
+                    }
+                }, 1000);
+                
+                console.log('Novu notification bell initialized successfully');
+            } catch (error) {
+                console.error('Error initializing Novu notification bell:', error);
+                document.getElementById('bell-status-indicator').textContent = 'Error: ' + error.message;
+                
+                // If there's an error, create a custom bell
+                const bellContainer = document.getElementById('notification-bell-container');
+                if (bellContainer) {
+                    createCustomBell(bellContainer, userId);
+                }
+            }
+        }
+        
+        // Initialize
+        window.onload = function() {
+            refreshStorage();
+            initWebSocket();
+            
+            // Get the user ID from localStorage or create a test one if none exists
+            let userId = localStorage.getItem('userId');
+            if (!userId) {
+                userId = 'test-user-' + Date.now();
+                localStorage.setItem('userId', userId);
+            }
+            
+            // Set default values
+            document.getElementById('userId').value = userId;
+            document.getElementById('bellUserId').value = userId;
+            
+            // Reset the payload fields to ensure they have valid JSON
+            resetPayload();
+            resetBroadcastPayload();
+            
+            // Initialize the notification bell with a longer delay to ensure scripts are loaded
+            setTimeout(function() {
+                try {
+                    initNotificationBell();
+                    console.log('Bell initialized on page load');
+                } catch (error) {
+                    console.error('Error initializing bell on page load:', error);
+                    // If there's an error, try to create a custom bell directly
+                    const bellContainer = document.getElementById('notification-bell-container');
+                    if (bellContainer) {
+                        createCustomBell(bellContainer, userId);
+                    }
+                }
+            }, 1500); // Longer delay to ensure scripts are loaded
+            
+            // Check bell status after initialization
+            setTimeout(checkBellStatus, 2500);
+            
+            // Load notifications in the viewer
+            setTimeout(viewNotifications, 3000);
+            
+            // Add a final check to ensure the bell is visible
+            setTimeout(function() {
+                const bellContainer = document.getElementById('notification-bell-container');
+                if (bellContainer && bellContainer.innerHTML.trim() === '') {
+                    console.warn('Bell container is empty, creating custom bell');
+                    createCustomBell(bellContainer, userId);
+                }
+            }, 5000);
+        };
+        
+        // Tab functionality
+        function openTab(evt, tabName) {
+            const tabcontent = document.getElementsByClassName("tabcontent");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("visible");
+            }
+            
+            const tablinks = document.getElementsByClassName("tablinks");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            
+            document.getElementById(tabName).classList.add("visible");
+            
+            // Only add the active class to the button if an event was provided
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add("active");
+            }
+        }
+        
+        // Send notification
+        function sendNotification() {
+            try {
+                // Clear previous results
+                document.getElementById('sendResult').textContent = "Sending notification...";
+                
+                const userId = document.getElementById('userId').value.trim();
+                if (!userId) {
+                    document.getElementById('sendResult').textContent = "Error: User ID is required";
+                    return;
+                }
+                
+                // Store the user ID in localStorage for the notification bell
+                localStorage.setItem('userId', userId);
+                sessionStorage.setItem('userId', userId);
+                
+                const notificationType = document.getElementById('notificationType').value;
+                
+                // Use a hardcoded payload to completely avoid parsing issues
+                const payload = {
+                    message: "Test notification sent at " + new Date().toLocaleTimeString(),
+                    timestamp: new Date().toISOString()
+                };
+                
+                const url = `/identify_service/api/mock-novu/test/notify/${userId}`;
+                const body = {
+                    notificationType: notificationType,
+                    payload: payload
+                };
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('sendResult').textContent = JSON.stringify(data, null, 2);
+                    
+                    // Reinitialize the notification bell to show the new notification
+                    const bellContainer = document.getElementById('notification-bell-container');
+                    if (bellContainer) {
+                        // Check if we're using the custom bell
+                        const customBell = document.getElementById('custom-bell');
+                        if (customBell) {
+                            // Just update the badge without reinitializing
+                            setTimeout(checkForNotifications, 500);
+                        } else {
+                            // Reinitialize the Novu bell
+                            bellContainer.innerHTML = ''; // Clear the container
+                            setTimeout(initNotificationBell, 500); // Reinitialize the bell
+                        }
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('sendResult').textContent = "Error: " + error.message;
+                });
+            } catch (error) {
+                console.error('Unexpected error in sendNotification:', error);
+                document.getElementById('sendResult').textContent = "Unexpected error: " + error.message;
+            }
+        }
+        
+        // Broadcast notification
+        function broadcastNotification() {
+            try {
+                // Clear previous results
+                document.getElementById('broadcastResult').textContent = "Sending broadcast notification...";
+                
+                const notificationType = document.getElementById('broadcastType').value;
+                
+                // Use a hardcoded payload to completely avoid parsing issues
+                const payload = {
+                    message: "Broadcast notification sent at " + new Date().toLocaleTimeString(),
+                    timestamp: new Date().toISOString()
+                };
+                
+                const url = `/identify_service/api/mock-novu/test/broadcast`;
+                const body = {
+                    notificationType: notificationType,
+                    payload: payload
+                };
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('broadcastResult').textContent = JSON.stringify(data, null, 2);
+                    
+                    // Reinitialize the notification bell to show the new notification
+                    const bellContainer = document.getElementById('notification-bell-container');
+                    if (bellContainer) {
+                        // Check if we're using the custom bell
+                        const customBell = document.getElementById('custom-bell');
+                        if (customBell) {
+                            // Just update the badge without reinitializing
+                            setTimeout(checkForNotifications, 500);
+                        } else {
+                            // Reinitialize the Novu bell
+                            bellContainer.innerHTML = ''; // Clear the container
+                            setTimeout(initNotificationBell, 500); // Reinitialize the bell
+                        }
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('broadcastResult').textContent = "Error: " + error.message;
+                });
+            } catch (error) {
+                console.error('Unexpected error in broadcastNotification:', error);
+                document.getElementById('broadcastResult').textContent = "Unexpected error: " + error.message;
+            }
+        }
+        
+        // Create a mock WebSocket object for fallback
+        function createMockWebSocket() {
+            console.log('Creating mock WebSocket object');
+            return {
+                readyState: 1, // WebSocket.OPEN
+                send: function(data) {
+                    console.log('Mock WebSocket send:', data);
+                },
+                close: function() {
+                    console.log('Mock WebSocket closed');
+                    this.readyState = 3; // WebSocket.CLOSED
+                    if (this.onclose) {
+                        this.onclose({ code: 1000, reason: 'Mock close' });
+                    }
+                },
+                // Event handlers will be set by the caller
+                onopen: null,
+                onmessage: null,
+                onclose: null,
+                onerror: null
+            };
+        }
+        
+        // WebSocket functions
+        function initWebSocket() {
+            if (socket && socket.readyState !== WebSocket.CLOSED) {
+                logWebSocketMessage("WebSocket already connected");
+                return;
+            }
+            
+            try {
+                // Create a WebSocket connection to the mock Novu endpoint
+                // Use relative URL to avoid cross-origin issues
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsHost = window.location.host;
+                
+                // Get the user ID from localStorage
+                const userId = localStorage.getItem('userId') || '';
+                
+                // Use SockJS endpoint instead of raw WebSocket
+                // Try with the direct path first (no /identify_service prefix)
+                const wsUrl = `${wsProtocol}//${wsHost}/socket.io?EIO=4&transport=websocket&userId=${userId}`;
+                
+                // Create a backup URL in case the first one fails
+                const backupWsUrl = `${wsProtocol}//${wsHost}/identify_service/socket.io?EIO=4&transport=websocket&userId=${userId}`;
+                
+                console.log('Connecting to WebSocket at:', wsUrl);
+                
+                // Add a debug message to help troubleshoot
+                document.getElementById('wsLog').innerHTML += '<div>Attempting to connect to: ' + wsUrl + '</div>';
+                
+                // Try to create a connection using SockJS first, then fall back to raw WebSocket
+                try {
+                    // Check if SockJS is available
+                    if (typeof SockJS !== 'undefined') {
+                        logWebSocketMessage("Using SockJS for WebSocket connection");
+                        
+                        // Create a SockJS connection
+                        const sockJsUrl = `${window.location.protocol}//${window.location.host}/identify_service/socket.io`;
+                        const sockjs = new SockJS(sockJsUrl);
+                        
+                        // Create a WebSocket-like wrapper around SockJS
+                        socket = {
+                            send: function(data) {
+                                sockjs.send(data);
+                            },
+                            close: function() {
+                                sockjs.close();
+                            },
+                            readyState: 0, // connecting
+                            OPEN: 1,
+                            CLOSED: 3
+                        };
+                        
+                        // Set up event handlers
+                        sockjs.onopen = function() {
+                            socket.readyState = 1; // open
+                            if (socket.onopen) socket.onopen();
+                            logWebSocketMessage("SockJS connection established");
+                        };
+                        
+                        sockjs.onmessage = function(e) {
+                            if (socket.onmessage) socket.onmessage(e);
+                        };
+                        
+                        sockjs.onclose = function(e) {
+                            socket.readyState = 3; // closed
+                            if (socket.onclose) {
+                                // Create a WebSocket-like close event
+                                const closeEvent = e || { code: 1000, reason: "Normal closure" };
+                                socket.onclose(closeEvent);
+                            }
+                            logWebSocketMessage("SockJS connection closed");
+                        };
+                        
+                        sockjs.onerror = function(e) {
+                            if (socket.onerror) socket.onerror(e);
+                            logWebSocketMessage("SockJS error: " + e);
+                        };
+                        
+                        logWebSocketMessage("SockJS connection attempt initiated");
+                    } else {
+                        // Fall back to raw WebSocket
+                        logWebSocketMessage("SockJS not available, using raw WebSocket");
+                        socket = new WebSocket(wsUrl);
+                        logWebSocketMessage("WebSocket connection attempt initiated");
+                        
+                        // Add event handlers for debugging
+                        socket.onopen = function(event) {
+                            console.log("WebSocket connection opened:", event);
+                            logWebSocketMessage("WebSocket connection opened successfully");
+                        };
+                        
+                        socket.onerror = function(event) {
+                            console.error("WebSocket error:", event);
+                            logWebSocketMessage("WebSocket error: " + JSON.stringify(event));
+                        };
+                    }
+                    
+                    // Add a small delay before checking connection status
+                    setTimeout(() => {
+                        if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+                            logWebSocketMessage("WebSocket connection failed, trying backup URL: " + backupWsUrl);
+                            
+                            try {
+                                // Try the backup URL
+                                socket = new WebSocket(backupWsUrl);
+                                
+                                // Add event handlers for debugging
+                                socket.onopen = function(event) {
+                                    console.log("Backup WebSocket connection opened:", event);
+                                    logWebSocketMessage("Backup WebSocket connection opened successfully");
+                                };
+                                
+                                socket.onerror = function(event) {
+                                    console.error("Backup WebSocket error:", event);
+                                    logWebSocketMessage("Backup WebSocket error, using mock implementation");
+                                    socket = createMockWebSocket();
+                                };
+                            } catch (backupError) {
+                                logWebSocketMessage("Backup WebSocket connection failed, using mock implementation");
+                                console.error("Error creating backup WebSocket:", backupError);
+                                socket = createMockWebSocket();
+                            }
+                        }
+                    }, 1000);
+                } catch (wsError) {
+                    console.error('Error creating WebSocket connection, using mock implementation:', wsError);
+                    logWebSocketMessage("Error: " + wsError.message);
+                    // Create a mock WebSocket object
+                    socket = createMockWebSocket();
+                }
+                
+                socket.onopen = function(event) {
+                    logWebSocketMessage("WebSocket connection established");
+                };
+                
+                socket.onmessage = function(event) {
+                    logWebSocketMessage(`Received: ${event.data}`);
+                };
+                
+                socket.onclose = function(event) {
+                    if (event && typeof event.code !== 'undefined') {
+                        logWebSocketMessage(`WebSocket connection closed: ${event.code} ${event.reason || ''}`);
+                    } else {
+                        logWebSocketMessage(`WebSocket connection closed (no event details available)`);
+                    }
+                };
+                
+                socket.onerror = function(error) {
+                    logWebSocketMessage(`WebSocket error: ${error}`);
+                };
+            } catch (e) {
+                logWebSocketMessage(`Error creating WebSocket: ${e.message}`);
+            }
+        }
+        
+        function sendWebSocketMessage() {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                document.getElementById('wsResult').textContent = "Error: WebSocket not connected";
+                initWebSocket();
+                return;
+            }
+            
+            const message = document.getElementById('wsMessage').value;
+            try {
+                socket.send(message);
+                document.getElementById('wsResult').textContent = "Message sent";
+                logWebSocketMessage(`Sent: ${message}`);
+            } catch (e) {
+                document.getElementById('wsResult').textContent = "Error sending message: " + e.message;
+            }
+        }
+        
+        function logWebSocketMessage(message) {
+            const log = document.getElementById('wsLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Storage functions
+        function setStorageItem() {
+            const key = document.getElementById('storageKey').value;
+            const value = document.getElementById('storageValue').value;
+            
+            if (!key) {
+                document.getElementById('storageResult').textContent = "Error: Key is required";
+                return;
+            }
+            
+            localStorage.setItem(key, value);
+            document.getElementById('storageResult').textContent = `Item set: ${key} = ${value}`;
+            refreshStorage();
+        }
+        
+        function getStorageItem() {
+            const key = document.getElementById('storageKey').value;
+            
+            if (!key) {
+                document.getElementById('storageResult').textContent = "Error: Key is required";
+                return;
+            }
+            
+            const value = localStorage.getItem(key);
+            document.getElementById('storageResult').textContent = value !== null ? 
+                `Value for ${key}: ${value}` : 
+                `Key not found: ${key}`;
+        }
+        
+        function removeStorageItem() {
+            const key = document.getElementById('storageKey').value;
+            
+            if (!key) {
+                document.getElementById('storageResult').textContent = "Error: Key is required";
+                return;
+            }
+            
+            localStorage.removeItem(key);
+            document.getElementById('storageResult').textContent = `Item removed: ${key}`;
+            refreshStorage();
+        }
+        
+        function refreshStorage() {
+            const content = document.getElementById('storageContent');
+            content.innerHTML = '';
+            
+            if (localStorage.length === 0) {
+                content.textContent = "No items in localStorage";
+                return;
+            }
+            
+            const items = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                items[key] = localStorage.getItem(key);
+            }
+            
+            content.textContent = JSON.stringify(items, null, 2);
+        }
+        
+        // Bell debug functions
+        function reinitializeBell() {
+            const userId = document.getElementById('bellUserId').value.trim() || localStorage.getItem('userId');
+            if (!userId) {
+                document.getElementById('bellResult').textContent = "Error: User ID is required";
+                return;
+            }
+            
+            // Store the user ID
+            localStorage.setItem('userId', userId);
+            sessionStorage.setItem('userId', userId);
+            
+            // Update the input field
+            document.getElementById('bellUserId').value = userId;
+            
+            // Reinitialize the bell
+            const bellContainer = document.getElementById('notification-bell-container');
+            if (bellContainer) {
+                bellContainer.innerHTML = ''; // Clear the container
+                
+                try {
+                    initNotificationBell();
+                    document.getElementById('bellResult').textContent = `Bell reinitialized for user: ${userId}`;
+                } catch (error) {
+                    document.getElementById('bellResult').textContent = `Error reinitializing bell: ${error.message}`;
+                }
+            }
+        }
+        
+        function checkBellStatus() {
+            const bellContainer = document.getElementById('notification-bell-container');
+            const statusDiv = document.getElementById('bellStatus');
+            
+            if (!bellContainer) {
+                statusDiv.textContent = "Error: Bell container not found";
+                return;
+            }
+            
+            const userId = localStorage.getItem('userId');
+            const bellElement = bellContainer.querySelector('.novu-notification-bell');
+            const bellCount = bellContainer.querySelector('.novu-unseen-badge');
+            
+            const status = {
+                userId: userId || 'Not set',
+                bellInitialized: !!bellElement,
+                unseenCount: bellCount ? bellCount.textContent : '0',
+                bellContainerContent: bellContainer.innerHTML.substring(0, 100) + (bellContainer.innerHTML.length > 100 ? '...' : '')
+            };
+            
+            statusDiv.textContent = JSON.stringify(status, null, 2);
+            
+            // If the bell is not initialized, suggest reinitializing
+            if (!bellElement) {
+                statusDiv.textContent += "\n\nThe notification bell is not initialized. Try clicking 'Reinitialize Bell'.";
+            }
+        }
+        
+        function checkForNotifications() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                const resultElement = document.getElementById('notificationCheckResult');
+                if (resultElement) {
+                    resultElement.textContent = "Error: No user ID found in localStorage";
+                }
+                return;
+            }
+            
+            // Make a request to the notifications endpoint
+            const url = `/identify_service/api/mock-novu/notifications/feed`;
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userId}` // Using userId as a simple auth token
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultElement = document.getElementById('notificationCheckResult');
+                if (resultElement) {
+                    resultElement.textContent = JSON.stringify(data, null, 2);
+                }
+                
+                // If there are notifications, update the bell
+                if (data && data.data) {
+                    // Ensure data.data is an array
+                    const notifications = Array.isArray(data.data) ? data.data : [data.data];
+                    const notificationCount = notifications.length;
+                    
+                    // Update the badge on our custom bell if it exists
+                    const fallbackBadge = document.getElementById('fallback-badge');
+                    if (fallbackBadge) {
+                        if (notificationCount > 0) {
+                            fallbackBadge.textContent = notificationCount;
+                            fallbackBadge.style.display = 'flex';
+                        } else {
+                            fallbackBadge.style.display = 'none';
+                        }
+                    }
+                    
+                    // Check if we're using the Novu bell or our custom bell
+                    const bellContainer = document.getElementById('notification-bell-container');
+                    const novuBellElement = bellContainer.querySelector('.novu-notification-bell');
+                    const customBellElement = document.getElementById('custom-bell');
+                    
+                    // If using Novu bell and we have notifications, reinitialize it
+                    if (novuBellElement && notificationCount > 0 && !customBellElement) {
+                        bellContainer.innerHTML = '';
+                        setTimeout(initNotificationBell, 500);
+                    }
+                    
+                    // If using custom bell, update the notification list if the panel is open
+                    if (customBellElement) {
+                        const panel = document.getElementById('custom-notification-panel');
+                        if (panel && panel.style.display === 'block') {
+                            loadNotifications(localStorage.getItem('userId'));
+                        }
+                    }
+                    
+                    // Update the status indicator
+                    const statusIndicator = document.getElementById('bell-status-indicator');
+                    if (statusIndicator) {
+                        // Keep the first part of the status (which indicates the bell type)
+                        const currentStatus = statusIndicator.textContent || '';
+                        const bellTypeStatus = currentStatus.split('(')[0].trim();
+                        
+                        statusIndicator.textContent = 
+                            `${bellTypeStatus} (${notificationCount} notification${notificationCount !== 1 ? 's' : ''})`;
+                    }
+                }
+            })
+            .catch(error => {
+                document.getElementById('notificationCheckResult').textContent = "Error checking for notifications: " + error.message;
+            });
+        }
+        
+        function directTriggerNotification() {
+            try {
+                // Get the user ID or create a new one if none exists
+                let userId = localStorage.getItem('userId');
+                if (!userId) {
+                    userId = 'test-user-' + Date.now();
+                    localStorage.setItem('userId', userId);
+                    document.getElementById('userId').value = userId;
+                    document.getElementById('bellUserId').value = userId;
+                }
+                
+                // Create a notification message with timestamp
+                const message = "Quick notification at " + new Date().toLocaleTimeString();
+                
+                // Check if the triggerMockNotification function exists
+                if (typeof window.triggerMockNotification === 'function') {
+                    // Call the global triggerMockNotification function
+                    window.triggerMockNotification(userId, 'direct-trigger', {
+                        message: message,
+                        timestamp: new Date().toISOString(),
+                        method: "directTrigger"
+                    });
+                    
+                    // Show a success message
+                    const resultElement = document.getElementById('directTriggerResult');
+                    if (resultElement) {
+                        resultElement.textContent = "Notification triggered directly for user: " + userId;
+                    } else {
+                        // If we're not on the bell debug tab, show an alert
+                        alert("Notification sent: " + message);
+                    }
+                } else {
+                    // If the triggerMockNotification function doesn't exist, use the API directly
+                    fetch(`/identify_service/api/mock-novu/test/notify/${userId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            notificationType: 'direct-trigger',
+                            payload: {
+                                message: message,
+                                timestamp: new Date().toISOString()
+                            }
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Server returned ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const resultElement = document.getElementById('directTriggerResult');
+                        if (resultElement) {
+                            resultElement.textContent = "Notification sent via API for user: " + userId;
+                        } else {
+                            alert("Notification sent via API: " + message);
+                        }
+                    })
+                    .catch(error => {
+                        alert("Error sending notification: " + error.message);
+                        console.error('Error sending notification:', error);
+                    });
+                }
+                
+                // Check for notifications after a short delay
+                setTimeout(() => {
+                    try {
+                        checkForNotifications();
+                        checkBellStatus();
+                        
+                        // Update the notification viewer if it exists
+                        if (document.getElementById('notificationViewer')) {
+                            viewNotifications();
+                        }
+                        
+                        // Update the custom notification panel if it's open
+                        const customBell = document.getElementById('custom-bell');
+                        const panel = document.getElementById('custom-notification-panel');
+                        if (customBell && panel && panel.style.display === 'block') {
+                            loadNotifications(userId);
+                        }
+                    } catch (e) {
+                        console.error('Error updating notifications after direct trigger:', e);
+                    }
+                }, 1000);
+            } catch (error) {
+                console.error('Error in directTriggerNotification:', error);
+                
+                const resultElement = document.getElementById('directTriggerResult');
+                if (resultElement) {
+                    resultElement.textContent = "Error triggering notification: " + error.message;
+                } else {
+                    alert("Error triggering notification: " + error.message);
+                }
+            }
+        }
+        
+        function resetPayload() {
+            try {
+                const defaultPayload = {
+                    message: "This is a test notification",
+                    timestamp: new Date().toISOString()
+                };
+                
+                document.getElementById('payload').value = JSON.stringify(defaultPayload, null, 2);
+                
+                if (document.getElementById('sendResult')) {
+                    document.getElementById('sendResult').textContent = "Payload reset to default value";
+                }
+                
+                return defaultPayload;
+            } catch (error) {
+                console.error('Error in resetPayload:', error);
+                return { message: "Default notification", timestamp: new Date().toISOString() };
+            }
+        }
+        
+        function resetBroadcastPayload() {
+            try {
+                const defaultPayload = {
+                    message: "This is a broadcast notification",
+                    timestamp: new Date().toISOString()
+                };
+                
+                document.getElementById('broadcastPayload').value = JSON.stringify(defaultPayload, null, 2);
+                
+                if (document.getElementById('broadcastResult')) {
+                    document.getElementById('broadcastResult').textContent = "Payload reset to default value";
+                }
+                
+                return defaultPayload;
+            } catch (error) {
+                console.error('Error in resetBroadcastPayload:', error);
+                return { message: "Default broadcast", timestamp: new Date().toISOString() };
+            }
+        }
+        
+        function viewNotifications() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                document.getElementById('notificationViewer').innerHTML = "<p>Error: No user ID found in localStorage</p>";
+                return;
+            }
+            
+            // Show loading indicator
+            document.getElementById('notificationViewer').innerHTML = "<p>Loading notifications...</p>";
+            
+            // Make a request to the notifications endpoint
+            const url = `/identify_service/api/mock-novu/notifications/feed`;
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userId}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const viewer = document.getElementById('notificationViewer');
+                
+                if (!data || !data.data) {
+                    viewer.innerHTML = "<p>No notifications found</p>";
+                    return;
+                }
+                
+                // Ensure data.data is an array
+                const notifications = Array.isArray(data.data) ? data.data : [data.data];
+                
+                if (notifications.length === 0) {
+                    viewer.innerHTML = "<p>No notifications found</p>";
+                    return;
+                }
+                
+                // Create a nice HTML display of the notifications
+                let html = '<div class="notification-list">';
+                
+                try {
+                    notifications.forEach((notification, index) => {
+                        try {
+                            const payload = notification.payload || {};
+                            const message = payload.message || 'No message';
+                            const timestamp = payload.timestamp ? new Date(payload.timestamp).toLocaleString() : 'Unknown time';
+                            
+                            html += `
+                                <div class="notification-item" style="padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: ${notification.read ? '#f9f9f9' : '#e6f7ff'};">
+                                    <div style="font-weight: bold;">${message}</div>
+                                    <div style="font-size: 12px; color: #666;">${timestamp}</div>
+                                    <div style="font-size: 12px; color: #888;">Type: ${notification.type || 'Unknown'}</div>
+                                    <div style="font-size: 12px; color: #888;">Status: ${notification.read ? 'Read' : 'Unread'}</div>
+                                </div>
+                            `;
+                        } catch (notificationError) {
+                            console.error('Error processing notification:', notificationError, notification);
+                            html += `
+                                <div class="notification-item" style="padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #fff0f0;">
+                                    <div style="font-weight: bold;">Error displaying notification</div>
+                                    <div style="font-size: 12px; color: #666;">Error: ${notificationError.message}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                } catch (forEachError) {
+                    console.error('Error in forEach loop:', forEachError, notifications);
+                    html = '<div class="notification-list"><div style="text-align: center; padding: 20px; color: red;">Error processing notifications: ' + forEachError.message + '</div></div>';
+                }
+                
+                // Only add the closing div if we didn't replace the entire html in the catch block
+                if (!html.endsWith('</div>')) {
+                    html += '</div>';
+                }
+                viewer.innerHTML = html;
+            })
+            .catch(error => {
+                document.getElementById('notificationViewer').innerHTML = `<p>Error loading notifications: ${error.message}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>

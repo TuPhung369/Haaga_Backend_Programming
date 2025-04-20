@@ -28,7 +28,9 @@ import com.database.study.dto.response.ChatMessageResponse.UserInfo;
 import com.database.study.entity.ChatContact;
 import com.database.study.entity.User;
 import com.database.study.repository.ChatContactRepository;
+import com.database.study.repository.ChatMessageRepository;
 import com.database.study.repository.UserRepository;
+import com.database.study.service.NotificationService;
 
 @RestController
 @RequestMapping("/chat")
@@ -42,7 +44,13 @@ public class ChatContactController {
     private UserRepository userRepository;
     
     @Autowired
+    private ChatMessageRepository messageRepository;
+    
+    @Autowired
     private WebSocketMessageController webSocketMessageController;
+    
+    @Autowired
+    private NotificationService notificationService;
 
     // In-memory storage for messages - we'll keep these in memory for now
     private final Map<String, List<ChatMessageResponse>> messages = new HashMap<>();
@@ -177,6 +185,18 @@ public class ChatContactController {
             contactUser.getId().toString(),
             getUserDisplayName(currentUser)
         );
+        
+        // Send Novu notification
+        log.info("Sending Novu notification for contact request to user: {}", contactUser.getId());
+        try {
+            notificationService.sendContactRequestNotification(
+                currentUser.getId(), 
+                contactUser.getId()
+            );
+        } catch (Exception e) {
+            log.error("Failed to send Novu notification for contact request: {}", e.getMessage(), e);
+            // Continue execution even if notification fails
+        }
 
         // Create response DTO
         ChatContactResponse response = new ChatContactResponse();

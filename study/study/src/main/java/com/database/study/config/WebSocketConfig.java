@@ -14,7 +14,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @EnableWebSocketMessageBroker
-@Order(Ordered.HIGHEST_PRECEDENCE + 100)
+@Order(Ordered.HIGHEST_PRECEDENCE + 101) // Lower precedence than MockNovuWebSocketConfig
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override

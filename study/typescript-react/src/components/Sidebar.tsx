@@ -16,13 +16,14 @@ import {
   DashboardOutlined,
   RobotOutlined,
   SettingOutlined,
-  BellOutlined,
   LogoutOutlined,
   CopyrightOutlined,
   KeyOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
 import { SiProbot } from "react-icons/si";
+import { IMessage } from "@novu/notification-center";
+import NotificationCenter from "./NotificationCenter";
 
 import { COLORS } from "../utils/constant";
 import { resetAllData } from "../store/resetActions";
@@ -129,6 +130,30 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       });
     }
   }, [dispatch, navigate]);
+
+  const handleNotificationClick = useCallback(
+    (message: IMessage) => {
+      // Handle notification click based on type
+      if (message.payload && message.payload.type) {
+        switch (message.payload.type) {
+          case "message":
+            navigate("/chat");
+            break;
+          case "contact_request":
+            navigate("/chat");
+            break;
+          default:
+            // Default action for other notification types
+            navigate("/notifications/test");
+            break;
+        }
+      } else {
+        // Default action if no type is specified
+        navigate("/notifications/test");
+      }
+    },
+    [navigate]
+  );
 
   // Use useMemo to prevent mainMenuItems from being recreated on every render
   const mainMenuItems = useMemo(
@@ -313,11 +338,15 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
       {
         key: "notification",
         label: "Notification",
-        icon: <BellOutlined style={{ color: COLORS[4], fontSize: "20px" }} />,
+        icon: (
+          <div className="sidebar-notification-bell">
+            <NotificationCenter onNotificationClick={handleNotificationClick} />
+          </div>
+        ),
         onClick: () => {
-          window.location.href = "/notification";
+          // This will be handled by the NotificationCenter component
         },
-        path: "/notification",
+        path: "/notifications/test",
       },
       {
         key: "logout",
@@ -339,7 +368,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
         style: { opacity: 0.7 },
       },
     ],
-    [userInfo, collapsed, handleLogout]
+    [userInfo, collapsed, handleLogout, handleNotificationClick]
   );
 
   const isPathActive = useCallback(

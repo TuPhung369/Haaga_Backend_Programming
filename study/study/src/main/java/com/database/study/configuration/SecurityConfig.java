@@ -58,7 +58,22 @@ public class SecurityConfig {
       "/api/speech/**",
       "/api/language-ai/**",
       "/_dev_/**",
-      "/ws-messaging/**"  // Thêm endpoint WebSocket
+      "/ws-messaging/**",  // WebSocket endpoint
+      "/api/mock-novu/**", // All Mock Novu endpoints - allow all without authentication
+      "/api/notifications/debug/**", // Debug notification endpoints - allow all without authentication
+      "/socket.io/*",      // WebSocket endpoint for Socket.IO
+      "/socket.io",        // WebSocket endpoint for Socket.IO (without wildcard)
+      "/identify_service/socket.io/*", // WebSocket endpoint for Socket.IO with context path
+      "/identify_service/socket.io",   // WebSocket endpoint for Socket.IO with context path (without wildcard)
+      "/*.html",           // HTML files
+      "/*.js",             // JavaScript files
+      "/*.css",            // CSS files
+      "/*.ico",            // Favicon
+      "/js/**",            // JavaScript directory
+      "/css/**",           // CSS directory
+      "/images/**",        // Images directory
+      "/fonts/**",         // Fonts directory
+      "/webjars/**"        // WebJars
   };
 
   private final String[] COOKIES_ENDPOINTS = {

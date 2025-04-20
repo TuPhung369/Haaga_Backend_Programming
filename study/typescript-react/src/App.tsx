@@ -36,6 +36,7 @@ import ChatPage from "./pages/ChatPage";
 import Sidebar from "./components/Sidebar";
 import ProfilePage from "./pages/ProfilePage";
 import SettingPage from "./pages/SettingPage";
+import NotificationTestPage from "./pages/NotificationTestPage";
 import {
   introspectToken,
   refreshTokenFromCookie,
@@ -275,6 +276,7 @@ const App: React.FC = () => {
                         <Route path="/profile" element={<ProfilePage />} />
                         <Route path="/chat" element={<ChatPage />} />
                         <Route path="/setting" element={<SettingPage />} />
+                        <Route path="/notifications/test" element={<NotificationTestPage />} />
                         <Route path="*" element={<HomePage />} />
                       </Routes>
                     </MainLayout>

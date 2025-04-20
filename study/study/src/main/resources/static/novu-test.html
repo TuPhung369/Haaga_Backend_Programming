@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Novu Notification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, button {
+            margin-bottom: 15px;
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            font-family: monospace;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            background-color: #f1f1f1;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: white;
+            border-bottom: 2px solid white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mock Novu Notification Test</h1>
+    
+    <div class="tabs">
+        <div class="tab active" data-tab="send">Send Notification</div>
+        <div class="tab" data-tab="broadcast">Broadcast Notification</div>
+    </div>
+    
+    <div id="send-tab" class="tab-content active card">
+        <h2>Send Notification to User</h2>
+        <form id="send-form">
+            <label for="user-id">User ID:</label>
+            <input type="text" id="user-id" placeholder="Enter user ID" required>
+            
+            <label for="notification-type">Notification Type:</label>
+            <input type="text" id="notification-type" value="contact-request" required>
+            
+            <label for="notification-payload">Notification Payload (JSON):</label>
+            <textarea id="notification-payload">{
+  "requesterId": "72ae4f97-bd65-4342-8922-75059788a345",
+  "receiverId": "391c216e-2177-430b-8951-51818249edab"
+}</textarea>
+            
+            <button type="submit">Send Notification</button>
+        </form>
+        
+        <h3>Result:</h3>
+        <div id="send-result" class="result">No result yet</div>
+    </div>
+    
+    <div id="broadcast-tab" class="tab-content card">
+        <h2>Broadcast Notification to All Sessions</h2>
+        <form id="broadcast-form">
+            <label for="broadcast-type">Notification Type:</label>
+            <input type="text" id="broadcast-type" value="contact-request" required>
+            
+            <label for="broadcast-payload">Notification Payload (JSON):</label>
+            <textarea id="broadcast-payload">{
+  "requesterId": "72ae4f97-bd65-4342-8922-75059788a345",
+  "receiverId": "391c216e-2177-430b-8951-51818249edab"
+}</textarea>
+            
+            <button type="submit">Broadcast Notification</button>
+        </form>
+        
+        <h3>Result:</h3>
+        <div id="broadcast-result" class="result">No result yet</div>
+    </div>
+    
+    <script>
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and content
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+            });
+        });
+        
+        // Send notification form
+        document.getElementById('send-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('user-id').value;
+            const notificationType = document.getElementById('notification-type').value;
+            let payload;
+            
+            try {
+                payload = JSON.parse(document.getElementById('notification-payload').value);
+                // Add notification type to payload
+                payload.type = notificationType;
+            } catch (error) {
+                document.getElementById('send-result').textContent = 'Error parsing JSON: ' + error.message;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/identify_service/api/mock-novu/test/notify/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                document.getElementById('send-result').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('send-result').textContent = 'Error sending notification: ' + error.message;
+            }
+        });
+        
+        // Broadcast notification form
+        document.getElementById('broadcast-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const notificationType = document.getElementById('broadcast-type').value;
+            let payload;
+            
+            try {
+                payload = JSON.parse(document.getElementById('broadcast-payload').value);
+                // Add notification type to payload
+                payload.type = notificationType;
+            } catch (error) {
+                document.getElementById('broadcast-result').textContent = 'Error parsing JSON: ' + error.message;
+                return;
+            }
+            
+            try {
+                const response = await fetch('/identify_service/api/mock-novu/test/broadcast', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                document.getElementById('broadcast-result').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('broadcast-result').textContent = 'Error broadcasting notification: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

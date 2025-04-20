@@ -60,7 +60,21 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         boolean isApiEndpoint = requestURI.contains("/auth/introspect") ||
                 requestURI.contains("/auth/refresh") ||
                 requestURI.contains("/auth/email-otp") ||
-                requestURI.contains("/auth/totp");
+                requestURI.contains("/auth/totp") ||
+                requestURI.contains("/api/mock-novu") ||  // Add mock-novu endpoints
+                requestURI.contains("/socket.io") ||      // Add socket.io endpoints
+                requestURI.contains("/identify_service/socket.io") || // Add socket.io endpoints with context path
+                requestURI.contains("/ws-messaging");     // Add ws-messaging endpoints
+                
+        // Skip token validation completely for mock-novu and socket.io endpoints
+        if (requestURI.contains("/api/mock-novu") || 
+            requestURI.contains("/socket.io") || 
+            requestURI.contains("/identify_service/socket.io") || 
+            requestURI.contains("/ws-messaging")) {
+            logger.info("Skipping token validation for WebSocket or mock endpoint: " + requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String encryptedToken = authorizationHeader.substring(7);
@@ -127,9 +141,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 // 7. Extract authorities from JWT
                 Collection<SimpleGrantedAuthority> authorities = extractAuthoritiesFromJwt(signedJWT);
 
-                // 8. Create authentication object and set in security context
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username,
-                        null, authorities);
+                // 8. Create authentication object with UserPrincipal and set in security context
+                String userId = signedJWT.getJWTClaimsSet().getStringClaim("userId");
+                UserPrincipal userPrincipal = new UserPrincipal(userId != null ? userId : username, username, authorities);
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        userPrincipal, null, authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 logger.info("Authentication set in SecurityContextHolder: " +
@@ -139,10 +155,43 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                                 .map(a -> a.getAuthority())
                                 .collect(Collectors.joining(", ")));
 
-            } catch (Exception e) {
+            } catch (ParseException | JOSEException e) {
                 SecurityContextHolder.clearContext();
-                logger.error("Error validating token: " + e.getMessage(), e);
-
+                logger.error("Error parsing or verifying JWT token: " + e.getMessage(), e);
+                
+                if (isApiEndpoint) {
+                    // For API endpoints, just continue the filter chain without throwing exception
+                    filterChain.doFilter(request, response);
+                    return;
+                } else {
+                    throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
+            } catch (IOException e) {
+                SecurityContextHolder.clearContext();
+                logger.error("I/O error during token processing: " + e.getMessage(), e);
+                
+                if (isApiEndpoint) {
+                    // For API endpoints, just continue the filter chain without throwing exception
+                    filterChain.doFilter(request, response);
+                    return;
+                } else {
+                    throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
+            } catch (IllegalArgumentException e) {
+                SecurityContextHolder.clearContext();
+                logger.error("Invalid argument during token processing: " + e.getMessage(), e);
+                
+                if (isApiEndpoint) {
+                    // For API endpoints, just continue the filter chain without throwing exception
+                    filterChain.doFilter(request, response);
+                    return;
+                } else {
+                    throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
+            } catch (RuntimeException e) {
+                SecurityContextHolder.clearContext();
+                logger.error("Runtime error during token validation: " + e.getMessage(), e);
+                
                 if (isApiEndpoint) {
                     // For API endpoints, just continue the filter chain without throwing exception
                     filterChain.doFilter(request, response);
@@ -205,8 +254,17 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                     Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
                     verified = expiryTime.after(new Date());
                 }
-            } catch (Exception e) {
-                logger.warn("Error verifying with dynamic key: " + e.getMessage(), e);
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid UUID format: " + e.getMessage(), e);
+                verified = false;
+            } catch (ParseException e) {
+                logger.warn("Error parsing date format: " + e.getMessage(), e);
+                verified = false;
+            } catch (JOSEException e) {
+                logger.warn("Error during JWT verification: " + e.getMessage(), e);
+                verified = false;
+            } catch (RuntimeException e) {
+                logger.warn("Runtime error during dynamic key verification: " + e.getMessage(), e);
                 verified = false;
             }
         }
@@ -242,8 +300,14 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             }
 
             return List.of();
-        } catch (Exception e) {
-            logger.error("Error extracting authorities from token", e);
+        } catch (ParseException e) {
+            logger.error("Error parsing JWT claims: " + e.getMessage(), e);
+            return List.of();
+        } catch (NullPointerException e) {
+            logger.error("Null pointer while extracting authorities: " + e.getMessage(), e);
+            return List.of();
+        } catch (RuntimeException e) {
+            logger.error("Runtime error extracting authorities: " + e.getMessage(), e);
             return List.of();
         }
     }

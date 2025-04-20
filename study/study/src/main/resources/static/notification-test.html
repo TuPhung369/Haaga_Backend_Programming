@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        input, textarea, button {
+            margin: 8px 0;
+            padding: 8px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 10px 15px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            min-height: 50px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Notification Test Page</h1>
+    
+    <div class="card">
+        <h2>Send Debug Notification</h2>
+        <div>
+            <label for="userId">User ID:</label>
+            <input type="text" id="userId" placeholder="Enter user ID" style="width: 300px;">
+            <button onclick="loadFromLocalStorage()">Load from localStorage</button>
+        </div>
+        <div>
+            <label for="message">Message:</label>
+            <textarea id="message" placeholder="Enter notification message" rows="3" style="width: 100%;"></textarea>
+        </div>
+        <button onclick="sendDebugNotification()">Send Notification</button>
+        <div id="debugResult" class="result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>WebSocket Connection Test</h2>
+        <div>
+            <label for="wsUserId">User ID for WebSocket:</label>
+            <input type="text" id="wsUserId" placeholder="Enter user ID" style="width: 300px;">
+            <button onclick="document.getElementById('wsUserId').value = document.getElementById('userId').value">Copy from above</button>
+        </div>
+        <button onclick="testWebSocketConnection()">Test WebSocket Connection</button>
+        <div id="wsResult" class="result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Manual Session Association</h2>
+        <div>
+            <label for="associateUserId">User ID:</label>
+            <input type="text" id="associateUserId" placeholder="Enter user ID" style="width: 300px;">
+            <button onclick="document.getElementById('associateUserId').value = document.getElementById('userId').value">Copy from above</button>
+        </div>
+        <button onclick="associateUserWithAllSessions()">Associate with All Sessions</button>
+        <button onclick="createMockSession()" style="background-color: #ff9800; color: white;">Create Mock Session</button>
+        <div id="associateResult" class="result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Session Information</h2>
+        <button onclick="getSessionInfo()">Get Session Info</button>
+        <div id="sessionInfoResult" class="result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Pending Notifications</h2>
+        <button onclick="deliverPendingNotifications()">Deliver Pending Notifications</button>
+        <div id="pendingResult" class="result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Local Storage</h2>
+        <button onclick="displayLocalStorage()">Show localStorage Contents</button>
+        <div id="storageResult" class="result"></div>
+    </div>
+    
+    <script>
+        // Function to send a debug notification
+        function sendDebugNotification() {
+            const userId = document.getElementById('userId').value.trim();
+            const message = document.getElementById('message').value.trim();
+            const resultElement = document.getElementById('debugResult');
+            
+            if (!userId) {
+                resultElement.innerHTML = '<span class="error">Please enter a user ID</span>';
+                return;
+            }
+            
+            resultElement.innerHTML = 'Sending notification...';
+            
+            // Save to localStorage for convenience
+            localStorage.setItem('lastUserId', userId);
+            
+            fetch(`/identify_service/api/notifications/debug/send/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: message || 'Test notification from debug page'
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultElement.innerHTML = `<span class="success">Notification sent successfully!</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            })
+            .catch(error => {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                console.error('Error sending notification:', error);
+            });
+        }
+        
+        // Function to test WebSocket connection
+        function testWebSocketConnection() {
+            const userId = document.getElementById('wsUserId').value.trim();
+            const resultElement = document.getElementById('wsResult');
+            
+            if (!userId) {
+                resultElement.innerHTML = '<span class="error">Please enter a user ID</span>';
+                return;
+            }
+            
+            resultElement.innerHTML = 'Testing WebSocket connection...';
+            
+            try {
+                // Check if socket.io is available
+                if (typeof io === 'undefined') {
+                    // Load socket.io client library
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+                    script.onload = () => connectWebSocket(userId, resultElement);
+                    script.onerror = () => {
+                        resultElement.innerHTML = '<span class="error">Failed to load Socket.io library</span>';
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    connectWebSocket(userId, resultElement);
+                }
+            } catch (error) {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                console.error('Error testing WebSocket:', error);
+            }
+        }
+        
+        // Function to connect to WebSocket
+        function connectWebSocket(userId, resultElement) {
+            try {
+                resultElement.innerHTML += '<br>Socket.io library loaded, connecting...';
+                
+                // Connect to the socket - use the root URL without the path
+                const socket = io('http://localhost:9095', {
+                    transports: ['websocket', 'polling'],
+                    query: {
+                        userId: userId,
+                        subscriberId: userId
+                    }
+                });
+                
+                // Connection events
+                socket.on('connect', () => {
+                    resultElement.innerHTML += '<br><span class="success">Connected to WebSocket!</span>';
+                    
+                    // Send identification message
+                    socket.emit('identify', { userId: userId, subscriberId: userId });
+                    resultElement.innerHTML += '<br>Sent identification message';
+                    
+                    // Also try the 'set_user_id' event
+                    socket.emit('set_user_id', { userId: userId });
+                    resultElement.innerHTML += '<br>Sent set_user_id message';
+                });
+                
+                socket.on('connect_error', (error) => {
+                    resultElement.innerHTML += `<br><span class="error">Connection error: ${error.message}</span>`;
+                });
+                
+                socket.on('disconnect', (reason) => {
+                    resultElement.innerHTML += `<br>Disconnected: ${reason}`;
+                });
+                
+                // Listen for notifications
+                socket.on('notification', (data) => {
+                    resultElement.innerHTML += `<br><span class="success">Received notification: ${JSON.stringify(data)}</span>`;
+                });
+                
+                socket.on('received_notification', (data) => {
+                    resultElement.innerHTML += `<br><span class="success">Received notification event: ${JSON.stringify(data)}</span>`;
+                });
+                
+                // Listen for unseen count changes
+                socket.on('unseen_count_changed', (data) => {
+                    resultElement.innerHTML += `<br><span class="success">Unseen count changed: ${JSON.stringify(data)}</span>`;
+                });
+                
+                // Store the socket in a global variable for debugging
+                window.testSocket = socket;
+                resultElement.innerHTML += '<br>Socket stored in window.testSocket for debugging';
+            } catch (error) {
+                resultElement.innerHTML += `<br><span class="error">Error: ${error.message}</span>`;
+                console.error('Error connecting to WebSocket:', error);
+            }
+        }
+        
+        // Function to display localStorage contents
+        function displayLocalStorage() {
+            const resultElement = document.getElementById('storageResult');
+            let html = '<h3>localStorage Contents:</h3><ul>';
+            
+            if (localStorage.length === 0) {
+                html += '<li>No items in localStorage</li>';
+            } else {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    let value = localStorage.getItem(key);
+                    
+                    // Truncate long values
+                    if (value && value.length > 100) {
+                        value = value.substring(0, 97) + '...';
+                    }
+                    
+                    html += `<li><strong>${key}:</strong> ${value}</li>`;
+                }
+            }
+            
+            html += '</ul>';
+            resultElement.innerHTML = html;
+        }
+        
+        // Function to load user ID from localStorage
+        function loadFromLocalStorage() {
+            const userId = localStorage.getItem('lastUserId') || localStorage.getItem('userId');
+            if (userId) {
+                document.getElementById('userId').value = userId;
+            } else {
+                alert('No user ID found in localStorage');
+            }
+        }
+        
+        // Function to associate user with all sessions
+        function associateUserWithAllSessions() {
+            const userId = document.getElementById('associateUserId').value.trim();
+            const resultElement = document.getElementById('associateResult');
+            
+            if (!userId) {
+                resultElement.innerHTML = '<span class="error">Please enter a user ID</span>';
+                return;
+            }
+            
+            resultElement.innerHTML = 'Associating user with all sessions...';
+            
+            fetch('/identify_service/api/mock-novu/debug/associate-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: userId
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultElement.innerHTML = `<span class="success">User associated with sessions!</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            })
+            .catch(error => {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                console.error('Error associating user with sessions:', error);
+            });
+        }
+        
+        // Function to create a mock session
+        function createMockSession() {
+            const userId = document.getElementById('associateUserId').value.trim();
+            const resultElement = document.getElementById('associateResult');
+            
+            if (!userId) {
+                resultElement.innerHTML = '<span class="error">Please enter a user ID</span>';
+                return;
+            }
+            
+            resultElement.innerHTML = 'Creating mock session...';
+            
+            fetch('/identify_service/api/mock-novu/debug/create-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: userId
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultElement.innerHTML = `<span class="success">Mock session created!</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                // Refresh session info
+                getSessionInfo();
+            })
+            .catch(error => {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                console.error('Error creating mock session:', error);
+            });
+        }
+        
+        // Function to get session information
+        function getSessionInfo() {
+            const resultElement = document.getElementById('sessionInfoResult');
+            
+            resultElement.innerHTML = 'Getting session information...';
+            
+            fetch('/identify_service/api/mock-novu/test/sessions')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultElement.innerHTML = `<span class="success">Session information retrieved!</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            })
+            .catch(error => {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                console.error('Error getting session information:', error);
+            });
+        }
+        
+        // Function to deliver pending notifications
+        function deliverPendingNotifications() {
+            const userId = document.getElementById('userId').value.trim();
+            const resultElement = document.getElementById('pendingResult');
+            
+            if (!userId) {
+                resultElement.innerHTML = '<span class="error">Please enter a user ID</span>';
+                return;
+            }
+            
+            resultElement.innerHTML = 'Delivering pending notifications...';
+            
+            // First create a mock session
+            fetch('/identify_service/api/mock-novu/debug/create-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: userId
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultElement.innerHTML = `<span class="success">Mock session created and pending notifications delivered!</span><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                // Refresh session info
+                getSessionInfo();
+            })
+            .catch(error => {
+                resultElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                console.error('Error delivering pending notifications:', error);
+            });
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Try to load user ID from localStorage
+            const userId = localStorage.getItem('lastUserId') || localStorage.getItem('userId');
+            if (userId) {
+                document.getElementById('userId').value = userId;
+                document.getElementById('wsUserId').value = userId;
+                document.getElementById('associateUserId').value = userId;
+            }
+            
+            // Get session information on page load
+            getSessionInfo();
+        });
+    </script>
+</body>
+</html>
