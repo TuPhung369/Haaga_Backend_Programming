@@ -118,6 +118,26 @@ public class OAuth2TokenController {
     log.info("STEP 1: Redirecting to Google Authorization URI: {}", authorizationUri);
     return ResponseEntity.status(302).header("Location", authorizationUri).build();
   }
+  
+  /**
+   * Step 1: Initiate GitHub Authorization
+   */
+  @Transactional
+  @GetMapping("/oauth2/authorization/github")
+  public ResponseEntity<?> initiateGithubAuthorization() {
+    log.info("GitHub OAuth: Initiating GitHub Authorization");
+    
+    // Encode the redirect URI
+    String encodedRedirectUri = URLEncoder.encode(githubRedirectUri, StandardCharsets.UTF_8);
+    
+    String authorizationUri = "https://github.com/login/oauth/authorize" +
+        "?client_id=" + githubClientId +
+        "&redirect_uri=" + encodedRedirectUri +
+        "&scope=user:email%20read:user";
+        
+    log.info("GitHub OAuth: Redirecting to GitHub Authorization URI: {}", authorizationUri);
+    return ResponseEntity.status(302).header("Location", authorizationUri).build();
+  }
 
   /**
    * Step 2: Handle Google Redirect
@@ -403,7 +423,7 @@ public class OAuth2TokenController {
    * GitHub OAuth Callback - Alternative endpoint for backward compatibility
    */
   @Transactional
-  @GetMapping("/oauthGit/redirect")
+  @GetMapping({"/oauthGit/redirect", "/identify_service/oauthGit/redirect"})
   public ResponseEntity<?> handleGithubRedirectAlt(@RequestParam("code") String code,
       HttpServletRequest request, HttpServletResponse response) {
     log.info("GitHub OAuth (Alt Endpoint): Received authorization code: {}", code);

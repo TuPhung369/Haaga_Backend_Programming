@@ -20,16 +20,18 @@ import com.database.study.security.JwtTokenFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.ArrayList;
 
 @Configuration
 @EnableWebSecurity
-@Slf4j
 @EnableMethodSecurity(prePostEnabled = true)
-public class SecurityConfig {
+
+    public class SecurityConfig {
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
   @Value("${APP_BASE_URI}")
   private String appBaseUrl;
@@ -50,6 +52,7 @@ public class SecurityConfig {
       "/users/**",
       "/auth/**",
       "/oauth2/**",
+      "/oauthGit/**",
       "/login/oauth2/**",
       "https://accounts.google.com/o/oauth2/**",
       "https://github.com/login/oauth/**",

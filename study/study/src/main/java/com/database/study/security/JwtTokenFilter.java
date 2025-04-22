@@ -139,12 +139,43 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                                 .map(a -> a.getAuthority())
                                 .collect(Collectors.joining(", ")));
 
-            } catch (Exception e) {
+            } catch (ParseException | JOSEException e) {
                 SecurityContextHolder.clearContext();
-                logger.error("Error validating token: " + e.getMessage(), e);
-
+                logger.error("Error parsing or verifying JWT token: " + e.getMessage(), e);
+                
                 if (isApiEndpoint) {
                     // For API endpoints, just continue the filter chain without throwing exception
+                    filterChain.doFilter(request, response);
+                    return;
+                } else {
+                    throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
+            } catch (IOException e) {
+                SecurityContextHolder.clearContext();
+                logger.error("I/O error during token processing: " + e.getMessage(), e);
+                
+                if (isApiEndpoint) {
+                    filterChain.doFilter(request, response);
+                    return;
+                } else {
+                    throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
+            } catch (IllegalArgumentException e) {
+                SecurityContextHolder.clearContext();
+                logger.error("Invalid argument during token processing: " + e.getMessage(), e);
+                
+                if (isApiEndpoint) {
+                    filterChain.doFilter(request, response);
+                    return;
+                } else {
+                    throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
+            } catch (RuntimeException e) {
+                // Runtime exceptions from services (including wrapped crypto exceptions)
+                SecurityContextHolder.clearContext();
+                logger.error("Runtime error during token processing: " + e.getMessage(), e);
+                
+                if (isApiEndpoint) {
                     filterChain.doFilter(request, response);
                     return;
                 } else {
@@ -205,8 +236,21 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                     Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
                     verified = expiryTime.after(new Date());
                 }
-            } catch (Exception e) {
-                logger.warn("Error verifying with dynamic key: " + e.getMessage(), e);
+            } catch (IllegalArgumentException e) {
+                // This can happen with UUID.fromString() if userIdStr is not a valid UUID
+                logger.warn("Invalid UUID format: " + e.getMessage(), e);
+                verified = false;
+            } catch (ParseException e) {
+                // This can happen with sdf.parse() if refreshExpiryStr is not in the expected format
+                logger.warn("Error parsing date: " + e.getMessage(), e);
+                verified = false;
+            } catch (JOSEException e) {
+                // This can happen with signedJWT.verify() if there's an issue with the verification
+                logger.warn("Error during JWT verification: " + e.getMessage(), e);
+                verified = false;
+            } catch (RuntimeException e) {
+                // Fallback for any other unexpected runtime exceptions
+                logger.warn("Unexpected runtime error verifying with dynamic key: " + e.getMessage(), e);
                 verified = false;
             }
         }
@@ -242,8 +286,15 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             }
 
             return List.of();
-        } catch (Exception e) {
-            logger.error("Error extracting authorities from token", e);
+        } catch (ParseException e) {
+            logger.error("Error parsing JWT claims: " + e.getMessage(), e);
+            return List.of();
+        } catch (NullPointerException e) {
+            logger.error("Null value encountered while extracting authorities: " + e.getMessage(), e);
+            return List.of();
+        } catch (RuntimeException e) {
+            // Fallback for any other unexpected runtime exceptions
+            logger.error("Unexpected runtime error extracting authorities from token: " + e.getMessage(), e);
             return List.of();
         }
     }
