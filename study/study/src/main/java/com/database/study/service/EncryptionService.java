@@ -195,8 +195,7 @@ public class EncryptionService {
 
             // Derive a unique key for this secret
             SecretKey secretKey = new SecretKeySpec(deriveKeyWithPBKDF2(totpEncryptionKey, salt), "AES");
-            ;
-
+            
             GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
 
