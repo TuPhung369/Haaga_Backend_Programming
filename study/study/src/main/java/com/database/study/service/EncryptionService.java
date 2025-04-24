@@ -1,18 +1,6 @@
 package com.database.study.service;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.PostConstruct;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
@@ -23,8 +11,22 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Base64;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * Service for encryption and decryption using a dynamically derived key from
@@ -174,9 +176,15 @@ public class EncryptionService {
                 | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
             log.error("Error decrypting token: {}", e.getMessage());
             throw new RuntimeException("Error decrypting token", e);
-        } catch (Exception e) {
-            log.error("Unexpected error decrypting token: {}", e.getMessage());
-            throw new RuntimeException("Unexpected error decrypting token", e);
+        } catch (BufferUnderflowException | IllegalStateException | NullPointerException e) {
+            log.error("Buffer or state error decrypting token: {}", e.getMessage());
+            throw new RuntimeException("Buffer or state error decrypting token", e);
+        } catch (IndexOutOfBoundsException e) {
+            log.error("Index error decrypting token: {}", e.getMessage());
+            throw new RuntimeException("Index error decrypting token", e);
+        } catch (RuntimeException e) {
+            log.error("Runtime error decrypting token: {}", e.getMessage());
+            throw new RuntimeException("Runtime error decrypting token", e);
         }
     }
 
@@ -195,7 +203,7 @@ public class EncryptionService {
 
             // Derive a unique key for this secret
             SecretKey secretKey = new SecretKeySpec(deriveKeyWithPBKDF2(totpEncryptionKey, salt), "AES");
-            
+
             GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
 
@@ -208,8 +216,14 @@ public class EncryptionService {
             byteBuffer.put(encryptedData); // variable length
 
             return Base64.getEncoder().encodeToString(byteBuffer.array());
-        } catch (Exception e) {
-            throw new RuntimeException("Error encrypting TOTP secret", e);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            throw new RuntimeException("Encryption algorithm error for TOTP secret", e);
+        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+            throw new RuntimeException("Invalid key or parameter for TOTP secret encryption", e);
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException("Encryption padding error for TOTP secret", e);
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Runtime error encrypting TOTP secret", e);
         }
     }
 
@@ -242,9 +256,21 @@ public class EncryptionService {
 
             byte[] decryptedData = cipher.doFinal(encryptedData);
             return new String(decryptedData, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            log.error("Failed to decrypt TOTP secret: {}", e.getMessage(), e);
-            throw new RuntimeException("Error decrypting TOTP secret", e);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid Base64 input for TOTP secret: {}", e.getMessage(), e);
+            throw new RuntimeException("Invalid Base64 input for TOTP secret", e);
+        } catch (BufferUnderflowException e) {
+            log.error("Buffer underflow while decrypting TOTP secret: {}", e.getMessage(), e);
+            throw new RuntimeException("Buffer underflow while decrypting TOTP secret", e);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            log.error("Algorithm error decrypting TOTP secret: {}", e.getMessage(), e);
+            throw new RuntimeException("Algorithm error decrypting TOTP secret", e);
+        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+            log.error("Invalid key or parameter for TOTP secret decryption: {}", e.getMessage(), e);
+            throw new RuntimeException("Invalid key or parameter for TOTP secret decryption", e);
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            log.error("Decryption padding error for TOTP secret: {}", e.getMessage(), e);
+            throw new RuntimeException("Decryption padding error for TOTP secret", e);
         }
     }
 

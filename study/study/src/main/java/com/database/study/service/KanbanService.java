@@ -1,7 +1,22 @@
 // KanbanService.java
 package com.database.study.service;
 
-import com.database.study.dto.request.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.database.study.dto.request.KanbanBoardRequest;
+import com.database.study.dto.request.KanbanColumnRequest;
+import com.database.study.dto.request.KanbanMoveColumnRequest;
+import com.database.study.dto.request.KanbanMoveTaskRequest;
+import com.database.study.dto.request.KanbanTaskRequest;
 import com.database.study.dto.response.KanbanBoardResponse;
 import com.database.study.entity.KanbanBoard;
 import com.database.study.entity.KanbanColumn;
@@ -16,20 +31,11 @@ import com.database.study.repository.KanbanBoardRepository;
 import com.database.study.repository.KanbanColumnRepository;
 import com.database.study.repository.KanbanTaskRepository;
 import com.database.study.repository.UserRepository;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -535,9 +541,7 @@ public class KanbanService {
         }
 
         // For JWT authentication - additional checks
-        if (authentication.getPrincipal() instanceof Jwt) {
-            Jwt jwt = (Jwt) authentication.getPrincipal();
-
+        if (authentication.getPrincipal() instanceof Jwt jwt) {
             // Check if userId claim exists and matches resource owner
             String tokenUserId = jwt.getClaimAsString("userId");
             if (tokenUserId != null && tokenUserId.equals(resourceOwnerId.toString())) {
