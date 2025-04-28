@@ -180,10 +180,30 @@ export const connectWebSocket = (
                     hasTempMessage
                   );
 
-                  // Dispatch the message to Redux store
-                  console.log("[WebSocket] Dispatching message to Redux store");
-                  store.dispatch(addMessage(receivedMessage));
-                  console.log("[WebSocket] Message dispatched successfully");
+                  // Check if this message already exists in the store before dispatching
+                  const existingMessages = store.getState().chat.messages;
+                  const isDuplicate = existingMessages.some(
+                    (msg) =>
+                      // Exact ID match
+                      msg.id === receivedMessage.id ||
+                      // Same content, sender, receiver, and timestamp within 5 seconds
+                      (msg.content === receivedMessage.content &&
+                        msg.sender.id === receivedMessage.sender.id &&
+                        msg.receiver.id === receivedMessage.receiver.id &&
+                        Math.abs(
+                          new Date(msg.timestamp).getTime() -
+                          new Date(receivedMessage.timestamp).getTime()
+                        ) < 5000)
+                  );
+
+                  if (!isDuplicate) {
+                    // Dispatch the message to Redux store
+                    console.log("[WebSocket] Dispatching message to Redux store");
+                    store.dispatch(addMessage(receivedMessage));
+                    console.log("[WebSocket] Message dispatched successfully");
+                  } else {
+                    console.log("[WebSocket] Skipping duplicate message:", receivedMessage.id);
+                  }
                 } catch (error) {
                   console.error(
                     "[WebSocket] Error processing WebSocket message:",
@@ -223,14 +243,34 @@ export const connectWebSocket = (
                     receivedMessage
                   );
 
-                  // Dispatch the message to Redux store
-                  console.log(
-                    "[WebSocket] Dispatching general message to Redux store"
+                  // Check if this message already exists in the store before dispatching
+                  const existingMessages = store.getState().chat.messages;
+                  const isDuplicate = existingMessages.some(
+                    (msg) =>
+                      // Exact ID match
+                      msg.id === receivedMessage.id ||
+                      // Same content, sender, receiver, and timestamp within 5 seconds
+                      (msg.content === receivedMessage.content &&
+                        msg.sender.id === receivedMessage.sender.id &&
+                        msg.receiver.id === receivedMessage.receiver.id &&
+                        Math.abs(
+                          new Date(msg.timestamp).getTime() -
+                          new Date(receivedMessage.timestamp).getTime()
+                        ) < 5000)
                   );
-                  store.dispatch(addMessage(receivedMessage));
-                  console.log(
-                    "[WebSocket] General message dispatched successfully"
-                  );
+
+                  if (!isDuplicate) {
+                    // Dispatch the message to Redux store
+                    console.log(
+                      "[WebSocket] Dispatching general message to Redux store"
+                    );
+                    store.dispatch(addMessage(receivedMessage));
+                    console.log(
+                      "[WebSocket] General message dispatched successfully"
+                    );
+                  } else {
+                    console.log("[WebSocket] Skipping duplicate general message:", receivedMessage.id);
+                  }
                 } catch (error) {
                   console.error(
                     "[WebSocket] Error processing general WebSocket message:",

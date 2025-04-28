@@ -16,6 +16,12 @@ export interface ChatMessage {
   timestamp: string;
   read: boolean;
   persistent?: boolean;
+  metadata?: {
+    isForwarded?: boolean;
+    originalMessageId?: string;
+    forwardedAt?: string;
+    originalContactId?: string;
+  };
   _updateKey?: number; // Added for forcing re-renders
 }
 

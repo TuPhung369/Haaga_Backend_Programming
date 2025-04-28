@@ -367,14 +367,48 @@ export const forwardMessageThunk = createAsyncThunk(
     {
       content,
       recipientIds,
+      currentUserId,
+      currentContactId,
     }: {
       content: string;
       recipientIds: string[];
+      currentUserId?: string;
+      currentContactId?: string;
     },
-    { rejectWithValue }
+    { rejectWithValue, getState }
   ) => {
     try {
-      return await forwardMessage(content, recipientIds);
+      console.log("[ChatSlice] ===== FORWARD MESSAGE THUNK STARTED =====");
+      console.log(
+        "[ChatSlice] Message content:",
+        content.substring(0, 50) + "..."
+      );
+      console.log("[ChatSlice] Recipients:", recipientIds);
+      console.log("[ChatSlice] Current user ID:", currentUserId);
+      console.log("[ChatSlice] Provided current contact ID:", currentContactId);
+
+      // If currentContactId is not provided, get it from the state
+      let contactId = currentContactId;
+      if (!contactId) {
+        const state = getState() as {
+          chat: { selectedContact: { id: string } | null };
+        };
+        contactId = state.chat.selectedContact?.id;
+        console.log("[ChatSlice] Got contact ID from state:", contactId);
+      }
+
+      console.log(
+        "[ChatSlice] Final currentContactId for forwarding:",
+        contactId
+      );
+
+      // Pass the current contact ID to forwardMessage to prevent duplicates
+      const result = await forwardMessage(content, recipientIds, contactId);
+      console.log(
+        "[ChatSlice] Forward message service returned results:",
+        result.length
+      );
+      return result;
     } catch (error: unknown) {
       try {
         handleServiceError(error);
@@ -821,12 +855,12 @@ const chatSlice = createSlice({
         state.loading = false;
         if (action.payload) {
           // Check if this message is already in the state
-          const isDuplicate = state.messages.some(
-            (existingMsg) => {
-              if (!action.payload) return false;
-              
-              // Exact ID match
-              return existingMsg.id === action.payload.id ||
+          const isDuplicate = state.messages.some((existingMsg) => {
+            if (!action.payload) return false;
+
+            // Exact ID match
+            return (
+              existingMsg.id === action.payload.id ||
               // Same content, sender, receiver, and timestamp within 10 seconds
               (existingMsg.content === action.payload.content &&
                 existingMsg.sender.id === action.payload.sender.id &&
@@ -834,9 +868,9 @@ const chatSlice = createSlice({
                 Math.abs(
                   new Date(existingMsg.timestamp).getTime() -
                     new Date(action.payload.timestamp).getTime()
-                ) < 10000);
-            }
-          );
+                ) < 10000)
+            );
+          });
 
           // Only add the message if it's not already in the state
           if (!isDuplicate) {
@@ -1111,38 +1145,119 @@ const chatSlice = createSlice({
       })
       .addCase(forwardMessageThunk.fulfilled, (state, action) => {
         state.loading = false;
+        console.log("[Redux] ===== FORWARD MESSAGE REDUCER STARTED =====");
+
         if (action.payload && Array.isArray(action.payload)) {
           console.log(
-            "[Redux] Forward operation completed successfully:",
+            "[Redux] Forward operation completed successfully, received messages:",
             action.payload.length
           );
 
+          if (action.payload.length === 0) {
+            console.log("[Redux] No messages to process, exiting early");
+            return;
+          }
+
           // Create a map to track which recipients have already received this message
           // This helps prevent duplicates when forwarding to multiple recipients
-          const processedRecipients = new Map<string, Set<string>>();
+          const processedMessages = new Set<string>();
+
+          // Get the current user ID to avoid showing forwarded messages in the current chat
+          const currentUserId = action.meta?.arg?.currentUserId || "";
+          // Get the current selected contact ID from the action metadata
+          // This is more reliable than using state.selectedContact
+          const currentContactId = action.meta?.arg?.currentContactId || "";
+
+          // Log the current state for debugging
+          console.log("[Redux] Current user ID:", currentUserId);
+          console.log(
+            "[Redux] Current contact ID from action:",
+            currentContactId
+          );
+          console.log(
+            "[Redux] Current selected contact in state:",
+            state.selectedContact?.id
+          );
+          console.log(
+            "[Redux] Messages in payload:",
+            action.payload.map((m) => ({
+              id: m.id,
+              sender: m.sender?.id,
+              receiver: m.receiver?.id,
+            }))
+          );
 
           // Process each forwarded message
           action.payload.forEach((message) => {
             if (message && typeof message === "object" && "id" in message) {
               console.log("[Redux] Processing forwarded message:", message.id);
 
-              // Get recipient ID
+              // Create a unique identifier for this message
+              const messageId = message.id;
               const recipientId = message.receiver?.id || "";
+              const senderId = message.sender?.id || "";
               const messageContent = message.content || "";
+              const timestamp = message.timestamp || new Date().toISOString();
 
-              // Create a content hash for duplicate detection
-              const contentHash = `${messageContent.substring(0, 50)}`;
+              // Check if this is a forwarded message with metadata
+              const isForwarded = message.metadata?.isForwarded === true;
+              const originalContactId = message.metadata?.originalContactId;
 
-              // Check if we've already processed a similar message for this recipient
-              if (!processedRecipients.has(recipientId)) {
-                processedRecipients.set(recipientId, new Set());
+              console.log(
+                "[Redux] Message metadata check:",
+                "isForwarded:",
+                isForwarded,
+                "originalContactId:",
+                originalContactId,
+                "currentContactId:",
+                currentContactId
+              );
+
+              // Skip messages that are forwarded and the original contact matches the current contact
+              // This prevents the forwarded message from appearing in the chat where it was forwarded from
+              if (isForwarded && originalContactId === currentContactId) {
+                console.log(
+                  "[Redux] SKIPPING forwarded message with matching originalContactId:",
+                  messageId,
+                  "originalContactId:",
+                  originalContactId,
+                  "currentContactId:",
+                  currentContactId
+                );
+                return; // Skip this message
               }
 
-              const recipientHashes = processedRecipients.get(recipientId)!;
-              if (recipientHashes.has(contentHash)) {
+              // Also skip messages that would appear in the current chat window based on sender/receiver
+              // This is a fallback in case the metadata approach doesn't work
+              if (
+                currentContactId &&
+                (recipientId === currentContactId ||
+                  senderId === currentContactId)
+              ) {
                 console.log(
-                  "[Redux] Already processed a similar message for recipient:",
-                  recipientId
+                  "[Redux] SKIPPING forwarded message for current contact based on IDs:",
+                  messageId,
+                  "recipient:",
+                  recipientId,
+                  "sender:",
+                  senderId,
+                  "currentContactId:",
+                  currentContactId
+                );
+                return; // Skip this message
+              }
+
+              // Create a unique message signature
+              const messageSignature = `${senderId}-${recipientId}-${messageContent.substring(
+                0,
+                50
+              )}-${timestamp}`;
+
+              // Check if we've already processed this message
+              if (processedMessages.has(messageSignature)) {
+                console.log(
+                  "[Redux] Already processed this message signature:",
+                  messageSignature
                 );
                 return; // Skip this message
               }
@@ -1151,33 +1266,33 @@ const chatSlice = createSlice({
               const isDuplicate = state.messages.some(
                 (existingMsg) =>
                   // Exact ID match
-                  existingMsg.id === message.id ||
-                  // Same content, sender, receiver, and timestamp within 10 seconds
-                  (existingMsg.content === message.content &&
-                    existingMsg.sender.id === message.sender.id &&
-                    existingMsg.receiver.id === message.receiver.id &&
+                  existingMsg.id === messageId ||
+                  // Same content, sender, receiver, and timestamp within 5 seconds
+                  (existingMsg.content === messageContent &&
+                    existingMsg.sender.id === senderId &&
+                    existingMsg.receiver.id === recipientId &&
                     Math.abs(
                       new Date(existingMsg.timestamp).getTime() -
-                        new Date(message.timestamp).getTime()
-                    ) < 10000)
+                        new Date(timestamp).getTime()
+                    ) < 5000)
               );
 
               // Only add the message if it's not already in the state
               if (!isDuplicate) {
                 console.log(
                   "[Redux] Adding forwarded message to store:",
-                  message.id
+                  messageId
                 );
                 state.messages.push(
                   convertServiceMessageToChatMessage(message)
                 );
 
-                // Mark this content as processed for this recipient
-                recipientHashes.add(contentHash);
+                // Mark this message as processed
+                processedMessages.add(messageSignature);
               } else {
                 console.log(
                   "[Redux] Skipping duplicate forwarded message:",
-                  message.id
+                  messageId
                 );
               }
             }

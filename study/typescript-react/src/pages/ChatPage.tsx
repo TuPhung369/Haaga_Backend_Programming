@@ -359,10 +359,25 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
             try {
               // Forward the message to the selected contacts
+              // Get the current selected contact ID
+              const currentSelectedContact =
+                store.getState().chat.selectedContact;
+              const currentContactId = currentSelectedContact?.id;
+
+              console.log("[Chat] ===== FORWARD MESSAGE PROCESS STARTED =====");
+              console.log("[Chat] Message content:", message.content.substring(0, 50) + "...");
+              console.log("[Chat] Current user ID:", userId);
+              console.log("[Chat] Current contact ID:", currentContactId);
+              console.log("[Chat] Recipients after filtering:", filteredContactIds);
+              console.log("[Chat] Original message sender:", message.sender.id);
+              console.log("[Chat] Original message receiver:", message.receiver.id);
+
               dispatch(
                 forwardMessageThunk({
                   content: message.content,
                   recipientIds: filteredContactIds,
+                  currentUserId: userId,
+                  currentContactId: currentContactId,
                 })
               )
                 .unwrap()
@@ -461,8 +476,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
         marginLeft: isUserMessage ? "auto" : 0,
         marginRight: isUserMessage ? 0 : "auto",
         wordBreak: "break-word",
-        boxShadow: isUserMessage 
-          ? "0 1px 2px rgba(0, 0, 0, 0.1)" 
+        boxShadow: isUserMessage
+          ? "0 1px 2px rgba(0, 0, 0, 0.1)"
           : "0 1px 3px rgba(0, 0, 0, 0.2)",
         border: isUserMessage ? "none" : "1px solid rgba(0, 0, 0, 0.2)",
         position: "relative",
@@ -3200,10 +3215,48 @@ const ChatPage: React.FC = () => {
                         }
                       };
 
+                      console.log("[Chat] ===== RENDERING MESSAGES =====");
+                      console.log("[Chat] Current contact ID:", selectedContact?.id);
+                      console.log("[Chat] Total messages before filtering:", messages.length);
+                      
+                      // Filter out any messages that are being forwarded to the current contact
+                      // This is a final safety check to prevent forwarded messages from appearing in the current chat
+                      const filteredMessages = messages.filter(message => {
+                        // Check if this is a message that was forwarded from the current contact
+                        const isForwardedFromCurrentContact = 
+                          message.metadata?.isForwarded === true && 
+                          message.metadata?.originalContactId === selectedContact?.id;
+                          
+                        if (isForwardedFromCurrentContact) {
+                          console.log("[Chat] Filtering out forwarded message with metadata:", message.id, 
+                            "sender:", message.sender.id, 
+                            "receiver:", message.receiver.id,
+                            "originalContactId:", message.metadata?.originalContactId);
+                          return false;
+                        }
+                        
+                        // Also check based on sender/receiver IDs as a fallback
+                        const isForwardedBasedOnIds = 
+                          message.metadata?.isForwarded === true &&
+                          (message.sender.id === userInfo?.id || message.receiver.id === userInfo?.id) &&
+                          (message.sender.id === selectedContact?.id || message.receiver.id === selectedContact?.id);
+                          
+                        if (isForwardedBasedOnIds) {
+                          console.log("[Chat] Filtering out forwarded message based on IDs:", message.id, 
+                            "sender:", message.sender.id, 
+                            "receiver:", message.receiver.id);
+                          return false;
+                        }
+                        
+                        return true;
+                      });
+                      
+                      console.log("[Chat] Messages after filtering:", filteredMessages.length);
+                      
                       // Group messages by date
                       const messagesByDate: { [key: string]: ChatMessage[] } =
                         {};
-                      messages.forEach((message) => {
+                      filteredMessages.forEach((message) => {
                         const dateKey = formatMessageDate(message.timestamp);
                         if (!messagesByDate[dateKey]) {
                           messagesByDate[dateKey] = [];

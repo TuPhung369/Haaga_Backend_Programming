@@ -50,6 +50,12 @@ export interface Message {
   timestamp: string;
   read: boolean;
   persistent?: boolean;
+  metadata?: {
+    isForwarded?: boolean;
+    originalMessageId?: string;
+    forwardedAt?: string;
+    originalContactId?: string;
+  };
 }
 
 export interface Contact {
@@ -263,28 +269,86 @@ export const respondToContactRequest = async (
 // Forward a message to multiple recipients
 export const forwardMessage = async (
   messageContent: string,
-  recipientIds: string[]
+  recipientIds: string[],
+  currentContactId?: string
 ): Promise<Message[]> => {
   try {
-    // We'll rely on the filtering done in the ChatPage component
-    // This avoids potential issues with accessing the store during reducer execution
+    console.log("[ChatService] ===== FORWARD MESSAGE SERVICE STARTED =====");
+    console.log(
+      "[ChatService] Message content:",
+      messageContent.substring(0, 50) + "..."
+    );
     console.log("[ChatService] Recipients for forwarding:", recipientIds);
-    
+    console.log("[ChatService] Current contact ID:", currentContactId);
+
     // If there are no recipients, return an empty array
     if (!recipientIds || recipientIds.length === 0) {
       console.log("[ChatService] No recipients to forward to");
       return [];
     }
-    
-    // Send the message to each recipient individually using the existing sendMessage function
-    const forwardPromises = recipientIds.map(recipientId => 
-      sendMessage(messageContent, recipientId)
+
+    // Filter out the current contact from the recipients list
+    // This is the key change - we won't even attempt to send to the current contact
+    const filteredRecipients = currentContactId
+      ? recipientIds.filter((id) => id !== currentContactId)
+      : recipientIds;
+
+    console.log(
+      "[ChatService] After filtering out current contact, recipients:",
+      filteredRecipients
     );
-    
+
+    // If all recipients were filtered out (only trying to forward to current contact)
+    if (filteredRecipients.length === 0) {
+      console.log(
+        "[ChatService] All recipients were filtered out (only current contact)"
+      );
+      return [];
+    }
+
+    // Send the message to each recipient individually using the existing sendMessage function
+    const forwardPromises = filteredRecipients.map((recipientId) => {
+      console.log(`[ChatService] Forwarding to ${recipientId}`);
+      // Always persist messages for other contacts, but add metadata to indicate this is a forwarded message
+      return sendMessage(messageContent, recipientId, true).then((message) => {
+        // Add metadata to the message to indicate it's a forwarded message
+        // This will be used to filter out forwarded messages in the UI
+        console.log(
+          `[ChatService] Adding forwarded metadata to message:`,
+          message.id
+        );
+
+        // We can't modify the message directly, so we'll return it as is
+        // The metadata will be added in the Redux store
+        return {
+          ...message,
+          metadata: {
+            isForwarded: true,
+            forwardedAt: new Date().toISOString(),
+            originalContactId: currentContactId,
+          },
+        };
+      });
+    });
+
     // Wait for all messages to be sent
     const results = await Promise.all(forwardPromises);
-    console.log("[ChatService] Forward results:", results);
-    return results;
+    console.log("[ChatService] Forward results count:", results.length);
+    console.log(
+      "[ChatService] Forward results recipients:",
+      results.map((r) => r.receiver?.id)
+    );
+
+    // Double-check to make sure no messages for current contact slipped through
+    const finalResults = currentContactId
+      ? results.filter((msg) => msg.receiver?.id !== currentContactId)
+      : results;
+
+    console.log(
+      "[ChatService] Final filtered results count:",
+      finalResults.length
+    );
+    return finalResults;
   } catch (error) {
     console.error("[ChatService] Error forwarding message:", error);
     throw handleServiceError(error);
