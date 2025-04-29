@@ -2,7 +2,7 @@ import { Client, IMessage, StompHeaders } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import store from "../store/store";
 import { addMessage, updateMessagesReadStatus } from "../store/chatSlice";
-import { Message, markMessagesAsRead } from "./chatService";
+import { Message } from "./chatService";
 
 // Define interfaces for window extensions
 interface ReceiptTimeouts {
@@ -192,17 +192,22 @@ export const connectWebSocket = (
                         msg.receiver.id === receivedMessage.receiver.id &&
                         Math.abs(
                           new Date(msg.timestamp).getTime() -
-                          new Date(receivedMessage.timestamp).getTime()
+                            new Date(receivedMessage.timestamp).getTime()
                         ) < 5000)
                   );
 
                   if (!isDuplicate) {
                     // Dispatch the message to Redux store
-                    console.log("[WebSocket] Dispatching message to Redux store");
+                    console.log(
+                      "[WebSocket] Dispatching message to Redux store"
+                    );
                     store.dispatch(addMessage(receivedMessage));
                     console.log("[WebSocket] Message dispatched successfully");
                   } else {
-                    console.log("[WebSocket] Skipping duplicate message:", receivedMessage.id);
+                    console.log(
+                      "[WebSocket] Skipping duplicate message:",
+                      receivedMessage.id
+                    );
                   }
                 } catch (error) {
                   console.error(
@@ -255,7 +260,7 @@ export const connectWebSocket = (
                         msg.receiver.id === receivedMessage.receiver.id &&
                         Math.abs(
                           new Date(msg.timestamp).getTime() -
-                          new Date(receivedMessage.timestamp).getTime()
+                            new Date(receivedMessage.timestamp).getTime()
                         ) < 5000)
                   );
 
@@ -269,7 +274,10 @@ export const connectWebSocket = (
                       "[WebSocket] General message dispatched successfully"
                     );
                   } else {
-                    console.log("[WebSocket] Skipping duplicate general message:", receivedMessage.id);
+                    console.log(
+                      "[WebSocket] Skipping duplicate general message:",
+                      receivedMessage.id
+                    );
                   }
                 } catch (error) {
                   console.error(
@@ -675,13 +683,122 @@ export const editMessageViaWebSocket = (
 export const sendMessageViaWebSocket = (
   content: string,
   receiverId: string,
-  persistent: boolean = true
+  persistent: boolean = true,
+  isGroup: boolean = false
 ): boolean => {
   console.log("[WebSocket] Sending message via WebSocket:", {
-    content,
+    content: content.substring(0, 20) + "...",
     receiverId,
     persistent,
+    isGroup,
+    isGroupType: typeof isGroup,
   });
+
+  // ADDITIONAL SAFETY CHECK: Check if this might be a group ID by looking at the store
+  // We'll use a synchronous approach to ensure we have the correct isGroup value
+  let finalIsGroup = isGroup;
+
+  try {
+    // Get the store directly
+    const state = store.getState();
+    const groups = state.chat.groups || [];
+    const selectedContact = state.chat.selectedContact;
+
+    // Convert receiverId to string for consistent comparison
+    const receiverIdStr = String(receiverId);
+
+    // Log all groups for debugging
+    console.log(
+      "[WebSocket] All groups in store:",
+      groups.map((g) => ({ id: g.id, name: g.name }))
+    );
+    console.log(
+      "[WebSocket] Checking if receiverId is a group:",
+      receiverIdStr
+    );
+    console.log("[WebSocket] Selected contact:", selectedContact);
+
+    // Check if the receiverId matches any group ID - use string comparison
+    const matchingGroup = groups.find(
+      (group) => String(group.id) === receiverIdStr
+    );
+
+    // Check if the selected contact has isGroup=true and matches the receiverId
+    const isSelectedContactGroup =
+      selectedContact &&
+      String(selectedContact.id) === receiverIdStr &&
+      (selectedContact.isGroup === true ||
+        String(selectedContact.isGroup) === "true");
+
+    // Additional check: see if the receiverId is in the groups array
+    const isInGroupsList = groups.some(
+      (group) => String(group.id) === receiverIdStr
+    );
+
+    console.log("[WebSocket] Group detection results:", {
+      matchingGroup: matchingGroup ? matchingGroup.name : null,
+      isSelectedContactGroup,
+      isInGroupsList,
+      receiverIdStr,
+    });
+
+    // If we find a matching group or the selected contact is a group, override isGroup
+    if (matchingGroup || isSelectedContactGroup || isInGroupsList) {
+      console.log(
+        "[WebSocket] CRITICAL OVERRIDE: Detected receiverId as a group ID!"
+      );
+      console.log(
+        "[WebSocket] Group name:",
+        matchingGroup
+          ? matchingGroup.name
+          : selectedContact
+          ? selectedContact.name
+          : "Unknown"
+      );
+      console.log("[WebSocket] Original isGroup flag:", finalIsGroup);
+      console.log("[WebSocket] Overriding isGroup flag to true");
+      finalIsGroup = true;
+    }
+
+    // CRITICAL: Check if the current selected contact in the UI is a group
+    // This is the most reliable way to determine if we're sending to a group
+    const currentSelectedContact = state.chat.selectedContact;
+    if (currentSelectedContact) {
+      console.log(
+        "[WebSocket] Current selected contact:",
+        currentSelectedContact.id
+      );
+      console.log(
+        "[WebSocket] Current selected contact isGroup:",
+        currentSelectedContact.isGroup
+      );
+
+      // If the current selected contact is a group and we're sending to a different ID,
+      // this might be a bug - log a warning
+      if (
+        (currentSelectedContact.isGroup === true || isInGroupsList) &&
+        String(currentSelectedContact.id) !== receiverIdStr
+      ) {
+        console.warn(
+          "[WebSocket] WARNING: Sending to a different ID than the selected group contact!"
+        );
+        console.warn(
+          "[WebSocket] Selected contact:",
+          currentSelectedContact.id
+        );
+        console.warn("[WebSocket] Sending to:", receiverIdStr);
+      }
+    }
+  } catch (e) {
+    console.error("[WebSocket] Error checking if receiverId is a group:", e);
+  }
+
+  // Update the isGroup parameter with our final determination
+  isGroup = finalIsGroup;
+  console.log(
+    "[WebSocket] Final isGroup determination after all checks:",
+    isGroup
+  );
 
   if (!stompClient || !stompClient.connected) {
     console.warn("[WebSocket] No active connection, cannot send message");
@@ -695,13 +812,24 @@ export const sendMessageViaWebSocket = (
       Math.random() * 1000
     )}`;
 
-    // Create message payload with proper Unicode encoding
-    const messageBody = JSON.stringify({
+    // Define the message payload type to include all possible properties
+    interface MessagePayload {
+      content: string;
+      messageId: string;
+      persistent: boolean;
+      isGroup: boolean;
+      groupId?: string | null;
+      receiverId?: string | null;
+      messageType?: string;
+    }
+
+    // We'll create the message payload after our final group check
+    let messagePayload: MessagePayload = {
       content: content, // Ensure content is passed as is, without additional encoding
-      receiverId,
       messageId,
       persistent,
-    });
+      isGroup, // Initial isGroup flag
+    };
 
     // Set up a fallback timeout in case we don't get a receipt
     const fallbackTimeout = window.setTimeout(() => {
@@ -715,18 +843,63 @@ export const sendMessageViaWebSocket = (
         extendedWindow.receiptTimeouts &&
         extendedWindow.receiptTimeouts[receiptId]
       ) {
-        // Import the sendMessage function from chatService and use it
-        import("./chatService").then(({ sendMessage }) => {
+        // Import the necessary functions from chatService
+        import("./chatService").then(({ sendMessage, sendGroupMessage }) => {
           console.log("[WebSocket] Falling back to HTTP method for message");
+          console.log("[WebSocket] Final isGroup flag:", isGroup);
+
+          // CRITICAL: Double-check if this is a group message by looking at the store
+          // This is our last chance to catch a group message before sending it as a direct message
+          let finalIsGroup = isGroup;
+          try {
+            // Import store dynamically to avoid circular dependencies
+            import("../store/store").then(({ default: store }) => {
+              const state = store.getState();
+              const groups = state.chat.groups || [];
+              const receiverIdStr = String(receiverId);
+
+              // Check if the receiverId is in the groups list
+              const isInGroupsList = groups.some(
+                (group) => String(group.id) === receiverIdStr
+              );
+
+              if (isInGroupsList && !finalIsGroup) {
+                console.log(
+                  "[WebSocket] CRITICAL LAST-MINUTE OVERRIDE: Detected receiverId as a group ID in HTTP fallback!"
+                );
+                console.log("[WebSocket] Original isGroup flag:", finalIsGroup);
+                console.log(
+                  "[WebSocket] Overriding isGroup flag to true for HTTP fallback"
+                );
+                finalIsGroup = true;
+              }
+            });
+          } catch (e) {
+            console.error("[WebSocket] Error in last-minute group check:", e);
+          }
 
           // Function to handle HTTP sending with retry capability
           const sendWithRetry = async (retryCount = 0, maxRetries = 2) => {
             try {
-              const response = await sendMessage(
-                content,
-                receiverId,
-                persistent
-              );
+              let response;
+
+              // Use the appropriate function based on whether this is a group message
+              if (finalIsGroup) {
+                console.log(
+                  "[WebSocket] Using group-specific endpoint for fallback"
+                );
+                response = await sendGroupMessage(content, receiverId);
+              } else {
+                console.log(
+                  "[WebSocket] Using direct message endpoint for fallback"
+                );
+                response = await sendMessage(
+                  content,
+                  receiverId,
+                  persistent,
+                  false
+                );
+              }
               console.log("[WebSocket] HTTP fallback successful:", response);
 
               // Import and dispatch the addMessage action to update the UI
@@ -815,12 +988,60 @@ export const sendMessageViaWebSocket = (
 
     // Publish the message
     if (stompClient) {
+      console.log("[WebSocket] Final isGroup determination:", isGroup);
+
+      // Update the message payload based on our final determination
+      if (isGroup) {
+        // For group messages, use groupId instead of receiverId
+        messagePayload = {
+          ...messagePayload,
+          groupId: receiverId, // Set the groupId
+          receiverId: null, // Clear the receiverId
+          isGroup: true, // Ensure isGroup is true
+          messageType: "GROUP", // Set the message type
+        };
+        console.log(
+          "[WebSocket] Using GROUP message handling with groupId:",
+          receiverId
+        );
+      } else {
+        // For direct messages, keep receiverId
+        messagePayload = {
+          ...messagePayload,
+          receiverId, // Keep the receiverId
+          groupId: null, // Ensure groupId is null
+          isGroup: false, // Ensure isGroup is false
+          messageType: "DIRECT", // Set the message type
+        };
+        console.log(
+          "[WebSocket] Using DIRECT message handling with receiverId:",
+          receiverId
+        );
+      }
+
+      // Create the final message body
+      const finalMessageBody = JSON.stringify(messagePayload);
+
+      // Use different destinations for group and direct messages
+      const destination = isGroup
+        ? "/app/chat.sendGroupMessage"
+        : "/app/chat.sendMessage";
+
+      console.log(
+        `[WebSocket] Using destination: ${destination} for ${
+          isGroup ? "GROUP" : "DIRECT"
+        } message`
+      );
+      console.log(`[WebSocket] Final message payload:`, messagePayload);
+
       stompClient.publish({
-        destination: "/app/chat.sendMessage",
-        body: messageBody,
+        destination: destination,
+        body: finalMessageBody,
         headers: {
           "receipt": receiptId,
           "persistent": persistent.toString(),
+          "isGroup": isGroup.toString(),
+          "messageType": isGroup ? "GROUP" : "DIRECT",
         },
       });
     }
@@ -864,34 +1085,65 @@ export const sendTypingNotification = (receiverId: string): boolean => {
 };
 
 export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
+  // Get the selected contact from the store to check if it's a group
+  const state = store.getState();
+  const selectedContact = state.chat.selectedContact;
+  const isGroup = selectedContact?.isGroup || false;
+
+  // Verify that the contact ID matches the selected contact ID
+  // This prevents trying to mark messages as read for a non-existent contact/group
+  if (selectedContact?.id !== contactId) {
+    console.warn(
+      `[WebSocket] *** WARNING *** Contact ID mismatch. Selected: ${selectedContact?.id}, Requested: ${contactId}. Aborting.`
+    );
+    return false;
+  }
+
   console.log(
-    "[WebSocket] *** STARTING PROCESS *** Marking messages as read for contact:",
-    contactId
+    `[WebSocket] *** STARTING PROCESS *** Marking messages as read for ${
+      isGroup ? "group" : "contact"
+    }:`,
+    contactId,
+    `(isGroup: ${isGroup})`
   );
 
   // Get current user ID from store for logging
-  const currentUserId = store.getState().user.userInfo?.id;
+  const currentUserId = state.user.userInfo?.id;
   console.log("[WebSocket] Current user ID:", currentUserId);
 
   // IMPORTANT: Always update the database first via direct HTTP API call
   // This ensures the database is updated regardless of WebSocket status
   console.log(
-    "[WebSocket] *** STEP 1: CALLING HTTP API DIRECTLY *** to update database for contact:",
+    `[WebSocket] *** STEP 1: CALLING HTTP API DIRECTLY *** to update database for ${
+      isGroup ? "group" : "contact"
+    }:`,
     contactId
   );
 
-  // Call the API directly to update the database
-  markMessagesAsRead(contactId)
+  // Call the appropriate API based on whether this is a group or regular contact
+  const apiCall = isGroup
+    ? import("../services/chatService").then(({ markGroupMessagesAsRead }) =>
+        markGroupMessagesAsRead(contactId)
+      )
+    : import("../services/chatService").then(({ markMessagesAsRead }) =>
+        markMessagesAsRead(contactId)
+      );
+
+  apiCall
     .then((response) => {
       console.log(
-        "[WebSocket] *** STEP 2: DATABASE UPDATED SUCCESSFULLY *** via direct HTTP API call for contact:",
+        `[WebSocket] *** STEP 2: DATABASE UPDATED SUCCESSFULLY *** via direct HTTP API call for ${
+          isGroup ? "group" : "contact"
+        }:`,
         contactId,
         response
       );
 
       // Update UI after database is updated
       console.log(
-        "[WebSocket] *** STEP 3: UPDATING UI *** after database update for contact:",
+        `[WebSocket] *** STEP 3: UPDATING UI *** after database update for ${
+          isGroup ? "group" : "contact"
+        }:`,
         contactId
       );
       store.dispatch(
@@ -901,13 +1153,36 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
         })
       );
       console.log(
-        "[WebSocket] *** STEP 4: UI UPDATED SUCCESSFULLY *** for contact:",
+        `[WebSocket] *** STEP 4: UI UPDATED SUCCESSFULLY *** for ${
+          isGroup ? "group" : "contact"
+        }:`,
         contactId
       );
     })
     .catch((error) => {
+      // If the error is a 404 (Not Found), it means the group/contact doesn't exist
+      // We should handle this gracefully without disrupting the UI
+      if (error?.response?.status === 404) {
+        console.warn(
+          `[WebSocket] *** WARNING: RESOURCE NOT FOUND *** ${
+            isGroup ? "Group" : "Contact"
+          } with ID ${contactId} does not exist. Skipping database update.`
+        );
+
+        // Still update the UI to prevent any UI inconsistencies
+        store.dispatch(
+          updateMessagesReadStatus({
+            contactId,
+            currentUserId,
+          })
+        );
+        return true;
+      }
+
       console.error(
-        "[WebSocket] *** ERROR: FAILED TO UPDATE DATABASE *** via direct HTTP API call for contact:",
+        `[WebSocket] *** ERROR: FAILED TO UPDATE DATABASE *** via direct HTTP API call for ${
+          isGroup ? "group" : "contact"
+        }:`,
         contactId,
         error
       );

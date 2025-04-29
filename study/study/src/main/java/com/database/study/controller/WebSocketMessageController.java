@@ -13,6 +13,7 @@ import org.springframework.stereotype.Controller;
 
 import com.database.study.dto.request.ChatMessageRequest;
 import com.database.study.dto.response.ChatMessageResponse;
+import com.database.study.dto.response.WebSocketErrorResponse;
 import com.database.study.entity.ChatMessage;
 import com.database.study.entity.User;
 import com.database.study.exception.AppException;
@@ -39,6 +40,9 @@ public class WebSocketMessageController {
         // Check if authentication is null
         if (authentication == null) {
             log.error("Authentication is null in sendMessage. Cannot process request.");
+            // Return an error message to the client
+            messagingTemplate.convertAndSend("/topic/errors", 
+                new WebSocketErrorResponse("Authentication required", "Please log in to send messages"));
             return;
         }
 
@@ -47,6 +51,9 @@ public class WebSocketMessageController {
         // Check if this is an anonymous user
         if ("anonymous".equals(username)) {
             log.warn("Anonymous user attempted to send a message. Cannot process request.");
+            // Return an error message to the client
+            messagingTemplate.convertAndSend("/topic/errors", 
+                new WebSocketErrorResponse("Authentication required", "Please log in to send messages"));
             return;
         }
 
@@ -106,6 +113,9 @@ public class WebSocketMessageController {
         // Check if authentication is null
         if (authentication == null) {
             log.error("Authentication is null in notifyTyping. Cannot process request.");
+            // Return an error message to the client
+            messagingTemplate.convertAndSend("/topic/errors", 
+                new WebSocketErrorResponse("Authentication required", "Please log in to send typing notifications"));
             return;
         }
 
@@ -114,6 +124,9 @@ public class WebSocketMessageController {
         // Check if this is an anonymous user
         if ("anonymous".equals(username)) {
             log.warn("Anonymous user attempted to send typing notification. Cannot process request.");
+            // Return an error message to the client
+            messagingTemplate.convertAndSend("/topic/errors", 
+                new WebSocketErrorResponse("Authentication required", "Please log in to send typing notifications"));
             return;
         }
 
@@ -155,6 +168,9 @@ public class WebSocketMessageController {
         // Check if authentication is null
         if (authentication == null) {
             log.error("Authentication is null in editMessage. Cannot process request.");
+            // Return an error message to the client
+            messagingTemplate.convertAndSend("/topic/errors", 
+                new WebSocketErrorResponse("Authentication required", "Please log in to edit messages"));
             return;
         }
 
@@ -163,6 +179,9 @@ public class WebSocketMessageController {
         // Check if this is an anonymous user
         if ("anonymous".equals(username)) {
             log.warn("Anonymous user attempted to edit a message. Cannot process request.");
+            // Return an error message to the client
+            messagingTemplate.convertAndSend("/topic/errors", 
+                new WebSocketErrorResponse("Authentication required", "Please log in to edit messages"));
             return;
         }
 
@@ -199,6 +218,9 @@ public class WebSocketMessageController {
         // Check if authentication is null
         if (authentication == null) {
             log.error("Authentication is null in markMessagesAsRead. Cannot process request.");
+            // Return an error message to the client
+            messagingTemplate.convertAndSend("/topic/errors", 
+                new WebSocketErrorResponse("Authentication required", "Please log in to mark messages as read"));
             return new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
         }
 
@@ -207,6 +229,9 @@ public class WebSocketMessageController {
         // Check if this is an anonymous user
         if ("anonymous".equals(username)) {
             log.warn("Anonymous user attempted to mark messages as read. Cannot process request.");
+            // Return an error message to the client
+            messagingTemplate.convertAndSend("/topic/errors", 
+                new WebSocketErrorResponse("Authentication required", "Please log in to mark messages as read"));
             return new ReadStatusResponse(request.getContactId(), false, request.getMessageId());
         }
 

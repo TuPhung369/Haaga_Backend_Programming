@@ -78,6 +78,7 @@ export interface Group {
   id: string;
   name: string;
   members: Contact[];
+  group?: string;
   createdBy: string;
   createdAt: string;
   unreadCount: number;
@@ -112,10 +113,87 @@ export const getMessages = async (contactId: string): Promise<Message[]> => {
 export const sendMessage = async (
   content: string,
   receiverId: string,
-  persistent: boolean = true
+  persistent: boolean = true,
+  isGroup: boolean = false
 ): Promise<Message> => {
   try {
-    // Ensure content is properly encoded for Unicode characters like emojis
+    console.log("[ChatService] sendMessage called with params:", {
+      content: content.substring(0, 20) + "...",
+      receiverId,
+      persistent,
+      isGroup,
+      isGroupType: typeof isGroup,
+    });
+
+    // CRITICAL CHECK: Always verify if this is a group message first
+    // If isGroup flag is explicitly set, use the group message endpoint
+    if (isGroup === true) {
+      console.log(
+        "[ChatService] isGroup flag is true, redirecting to sendGroupMessage"
+      );
+      return sendGroupMessage(content, receiverId);
+    }
+
+    // ADDITIONAL SAFETY CHECK: Check if this might be a group ID by looking at the store
+    const state = store.getState();
+    const groups = state.chat.groups || [];
+    
+    // CRITICAL: Log all groups for debugging
+    console.log("[ChatService] CRITICAL DEBUG - All groups in store:", 
+      JSON.stringify(groups.map(g => ({ id: g.id, name: g.name })), null, 2)
+    );
+    console.log("[ChatService] CRITICAL DEBUG - Checking if receiverId is a group:", receiverId);
+
+    // Log all groups for debugging
+    console.log(
+      "[ChatService] All groups in store:",
+      groups.map((g) => ({ id: g.id, name: g.name }))
+    );
+
+    // CRITICAL: Check if receiverId matches any group ID - use strict equality and string comparison
+    // First convert all IDs to strings to ensure consistent comparison
+    const receiverIdStr = String(receiverId);
+    
+    // Check using multiple methods to be absolutely sure
+    const matchingGroup = groups.find((group) => String(group.id) === receiverIdStr);
+    const matchingGroupAlt = groups.some((group) => String(group.id) === receiverIdStr);
+    const matchingGroupIndex = groups.findIndex((group) => String(group.id) === receiverIdStr);
+    
+    console.log("[ChatService] CRITICAL DEBUG - Group detection results:", {
+      matchingGroup: matchingGroup ? matchingGroup.name : null,
+      matchingGroupAlt,
+      matchingGroupIndex,
+      receiverIdStr,
+      groupIds: groups.map(g => String(g.id))
+    });
+    
+    // If ANY of our checks indicate this is a group, use the group endpoint
+    if (matchingGroup || matchingGroupAlt || matchingGroupIndex >= 0) {
+      console.log(
+        "[ChatService] CRITICAL OVERRIDE: Detected receiverId as a group ID from store:",
+        matchingGroup ? matchingGroup.name : "Unknown Group"
+      );
+      console.log(
+        "[ChatService] Redirecting to sendGroupMessage for group ID:",
+        receiverIdStr
+      );
+      
+      // FORCE use of group message endpoint
+      return sendGroupMessage(content, receiverIdStr);
+    }
+    
+    // ADDITIONAL SAFETY: Check if the selected contact in Redux has isGroup=true
+    const selectedContact = state.chat.selectedContact;
+    if (selectedContact && String(selectedContact.id) === receiverIdStr && selectedContact.isGroup === true) {
+      console.log("[ChatService] CRITICAL OVERRIDE: Selected contact has isGroup=true");
+      return sendGroupMessage(content, receiverIdStr);
+    }
+
+    // This is a direct message
+    console.log(
+      "[ChatService] Confirmed this is a direct message to user:",
+      receiverId
+    );
     const response = await apiClient.post(`/chat/messages`, {
       content: content, // Pass content directly without additional encoding
       receiverId,
@@ -175,6 +253,53 @@ export const markMessagesAsRead = async (contactId: string): Promise<void> => {
       error
     );
     throw handleServiceError(error);
+  }
+};
+
+// Mark group messages as read
+export const markGroupMessagesAsRead = async (
+  groupId: string
+): Promise<void> => {
+  // Validate groupId
+  if (!groupId || groupId.trim() === "") {
+    console.error("[ChatService] Invalid group ID provided");
+    throw new Error("Invalid group ID");
+  }
+
+  try {
+    console.log(
+      `[ChatService] STARTING HTTP API CALL to mark messages as read for group: ${groupId}`
+    );
+
+    // Check if the group exists in the store before making the API call
+    const state = store.getState();
+    const groups = state.chat.groups || [];
+    const groupExists = groups.some((group) => group.id === groupId);
+
+    if (!groupExists) {
+      console.warn(
+        `[ChatService] Group ${groupId} not found in local store. API call may fail.`
+      );
+    }
+
+    const response = await apiClient.post(
+      `/chat/groups/${groupId}/messages/read`,
+      {}
+    );
+    console.log(
+      `[ChatService] DATABASE UPDATED SUCCESSFULLY via HTTP API for group: ${groupId}`,
+      response
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      `[ChatService] ERROR UPDATING DATABASE via HTTP API for group: ${groupId}`,
+      error
+    );
+    // Handle the error but don't throw it to prevent UI disruption
+    handleServiceError(error);
+    // Return empty to indicate completion without success
+    return;
   }
 };
 
@@ -322,11 +447,26 @@ export const forwardMessage = async (
       return [];
     }
 
-    // Send the message to each recipient individually using the existing sendMessage function
+    // Send the message to each recipient individually
     const forwardPromises = filteredRecipients.map((recipientId) => {
       console.log(`[ChatService] Forwarding to ${recipientId}`);
+
+      // Check if the recipient is a group by looking at the store
+      const state = store.getState();
+      const groups = state.chat.groups || [];
+      const isGroup = groups.some((group) => group.id === recipientId);
+
+      console.log(
+        `[ChatService] Recipient ${recipientId} is a group: ${isGroup}`
+      );
+
+      // Use the appropriate function based on whether this is a group or not
+      const sendPromise = isGroup
+        ? sendGroupMessage(messageContent, recipientId)
+        : sendMessage(messageContent, recipientId, true, false);
+
       // Always persist messages for other contacts, but add metadata to indicate this is a forwarded message
-      return sendMessage(messageContent, recipientId, true).then((message) => {
+      return sendPromise.then((message) => {
         // Add metadata to the message to indicate it's a forwarded message
         // This will be used to filter out forwarded messages in the UI
         console.log(
@@ -420,6 +560,7 @@ export const updateGroup = async (
   updates: {
     name?: string;
     avatar?: string;
+    group?: string;
   }
 ): Promise<Group> => {
   try {
@@ -427,6 +568,19 @@ export const updateGroup = async (
     return response.data;
   } catch (error) {
     console.error("Error updating group:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Update group tag
+export const updateGroupTag = async (
+  groupId: string,
+  group: string
+): Promise<Group> => {
+  try {
+    return await updateGroup(groupId, { group });
+  } catch (error) {
+    console.error("Error updating group tag:", error);
     throw handleServiceError(error);
   }
 };
@@ -489,19 +643,116 @@ export const sendGroupMessage = async (
   groupId: string
 ): Promise<Message> => {
   try {
-    const response = await apiClient.post(`/chat/groups/${groupId}/messages`, {
-      content,
+    console.log("[ChatService] sendGroupMessage called with params:", {
+      content: content.substring(0, 20) + "...",
+      groupId,
     });
-    return {
-      ...response.data,
-      metadata: {
-        isGroupMessage: true,
-        groupId,
-      },
-    };
+
+    // Validate inputs
+    if (!content || content.trim() === "") {
+      console.error("[ChatService] Empty content provided to sendGroupMessage");
+      throw new ServiceError("Message content cannot be empty", {
+        errorType: ErrorType.VALIDATION,
+      });
+    }
+
+    if (!groupId || groupId.trim() === "") {
+      console.error("[ChatService] Empty groupId provided to sendGroupMessage");
+      throw new ServiceError("Group ID cannot be empty", {
+        errorType: ErrorType.VALIDATION,
+      });
+    }
+
+    // Log the endpoint we're using
+    const endpoint = `/chat/groups/${groupId}/messages`;
+    console.log(
+      "[ChatService] Using group-specific endpoint:",
+      endpoint
+    );
+
+    // Get the token for logging purposes
+    const token = store.getState().auth.token;
+    console.log("[ChatService] Token available:", !!token);
+
+    try {
+      // Make the API call with detailed error handling
+      const response = await apiClient.post(endpoint, {
+        content,
+      });
+
+      console.log("[ChatService] Group message sent successfully:", {
+        responseStatus: response.status,
+        responseId: response.data?.id,
+        responseData: response.data,
+      });
+
+      // Ensure we have a valid response
+      if (!response.data) {
+        console.error("[ChatService] Empty response data from group message API");
+        throw new ServiceError("Empty response from server", {
+          errorType: ErrorType.SERVER_ERROR,
+        });
+      }
+
+      return {
+        ...response.data,
+        metadata: {
+          isGroupMessage: true,
+          groupId,
+        },
+      };
+    } catch (apiError) {
+      console.error("[ChatService] API error in sendGroupMessage:", apiError);
+      
+      // Try a direct axios call as a fallback
+      console.log("[ChatService] Attempting direct axios call as fallback");
+      
+      const directResponse = await axios.post(
+        `${API_BASE_URI}/chat/groups/${groupId}/messages`,
+        { content },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
+      
+      console.log("[ChatService] Direct axios call successful:", {
+        responseStatus: directResponse.status,
+        responseData: directResponse.data,
+      });
+      
+      return {
+        ...directResponse.data,
+        metadata: {
+          isGroupMessage: true,
+          groupId,
+        },
+      };
+    }
   } catch (error) {
-    console.error("Error sending group message:", error);
-    throw handleServiceError(error);
+    console.error("[ChatService] Error sending group message:", error);
+    
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error("[ChatService] Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    }
+    
+    // Throw a more specific error
+    if (error instanceof ServiceError) {
+      throw error;
+    } else {
+      throw new ServiceError("Failed to send group message. Please try again.", {
+        errorType: ErrorType.UNKNOWN,
+        originalError: error,
+      });
+    }
   }
 };
 

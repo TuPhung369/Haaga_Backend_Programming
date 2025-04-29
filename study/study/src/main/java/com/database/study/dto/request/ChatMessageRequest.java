@@ -24,6 +24,11 @@ public class ChatMessageRequest {
     private String receiverId;
     
     /**
+     * The ID of the group (for group messages)
+     */
+    private String groupId;
+    
+    /**
      * Whether this message should be stored permanently in the database
      * Default is true
      */

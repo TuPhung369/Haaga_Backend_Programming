@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import TinyMCEEditor from "../components/TinyMCEEditor";
+import GroupAvatar from "../components/GroupAvatar";
 import "../styles/ChatPage.css";
 import {
   Card,
@@ -38,8 +39,6 @@ import {
   ForwardOutlined,
   CheckOutlined,
   TeamOutlined,
-  InfoCircleOutlined,
-  MailOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
@@ -466,6 +465,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   const isUserMessage = message.sender.id === userId;
+  const isGroupMessage = message.metadata?.isGroupMessage || false;
 
   return (
     <div
@@ -675,6 +675,19 @@ const MessageItem: React.FC<MessageItemProps> = ({
               marginRight: message.content.length < 120 ? "16px" : "0",
             }}
           >
+            {/* Show sender name for group messages that are not from the current user */}
+            {isGroupMessage && !isUserMessage && (
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  marginBottom: "4px",
+                  color: "#1890ff",
+                }}
+              >
+                {message.sender.name}
+              </div>
+            )}
             {message.content.length > CHARACTER_LIMIT &&
             !isExpanded &&
             !message.content.includes("<table") &&
@@ -843,19 +856,12 @@ import {
   updateContactDisplayNameThunk,
   fetchPendingRequests,
   respondToRequest,
-  addMessage, // Import the addMessage action
   updateMessagesReadStatus, // Import the updateMessagesReadStatus action
   resetMessageDeletedFlag, // Import the resetMessageDeletedFlag action
   forwardMessageThunk,
   // Group-related thunks
   fetchGroupsThunk,
   createGroupThunk,
-  fetchGroupDetailsThunk,
-  updateGroupThunk,
-  addGroupMembersThunk,
-  removeGroupMemberThunk,
-  leaveGroupThunk,
-  deleteGroupThunk,
   sendGroupMessageThunk,
   fetchGroupMessagesThunk,
 } from "../store/chatSlice";
@@ -863,7 +869,6 @@ import {
 import {
   connectWebSocket,
   disconnectWebSocket,
-  sendMessageViaWebSocket,
   sendTypingNotification,
   sendStatusUpdateViaWebSocket,
 } from "../services/websocketService";
@@ -1100,6 +1105,7 @@ const ChatPage: React.FC = () => {
     pendingRequests,
     selectedContact,
     loading: loadingContacts,
+    groups,
   } = useSelector((state: RootState) => state.chat);
 
   const [messageText, setMessageText] = useState("");
@@ -1178,7 +1184,7 @@ const ChatPage: React.FC = () => {
           description: "Failed to fetch pending contact requests.",
         });
       });
-      
+
     // Fetch groups
     dispatch(fetchGroupsThunk())
       .unwrap()
@@ -1244,18 +1250,28 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     if (selectedContact) {
-      console.log("[Chat] Contact selected:", selectedContact.name);
+      console.log(
+        "[Chat] Contact selected:",
+        selectedContact.name,
+        "isGroup:",
+        selectedContact.isGroup
+      );
+
+      // Fetch messages based on whether this is a group or individual contact
+      const fetchAction = selectedContact.isGroup
+        ? fetchGroupMessagesThunk(selectedContact.id)
+        : fetchMessages(selectedContact.id);
 
       // Fetch messages only once when contact is selected
-      // This is the only place we'll fetch messages from the server
-      dispatch(fetchMessages(selectedContact.id))
+      dispatch(fetchAction)
         .unwrap()
         .then(() => {
           // Get current user ID for proper logging
           const currentUserId = userInfo?.id;
 
           // Only mark messages as read if the document has focus (user is actively viewing)
-          if (document.hasFocus()) {
+          // and it's not a group chat (for individual chats only)
+          if (document.hasFocus() && !selectedContact.isGroup) {
             console.log(
               "[Chat] Marking messages as read for contact:",
               selectedContact.id,
@@ -1285,7 +1301,7 @@ const ChatPage: React.FC = () => {
             );
           } else {
             console.log(
-              "[Chat] Document does not have focus, not marking messages as read automatically on contact selection"
+              "[Chat] Document does not have focus or this is a group chat, not marking messages as read automatically"
             );
           }
         })
@@ -1609,176 +1625,226 @@ const ChatPage: React.FC = () => {
   // These functions are now handled by Redux actions
 
   // Wrapper function for sendMessage to use with TinyMCE
-  const handleSendMessage = (content?: string) => {
-    sendMessage(content);
-  };
+  const handleSendMessage = async (content?: string) => {
+    console.log("[Chat] TinyMCE handleSendMessage called with content");
 
-  const sendMessage = async (content?: string) => {
-    console.log("[Chat] Send message function called");
+    // CRITICAL: Always get the latest selectedContact from the Redux store
+    // This ensures we're using the most up-to-date contact information
+    const storeState = store.getState();
+    const storeSelectedContact = storeState.chat.selectedContact;
+    const currentContactId = storeSelectedContact?.id;
 
-    // Sử dụng nội dung được truyền vào nếu có, nếu không thì sử dụng messageText
+    console.log("[Chat] Redux store selectedContact:", storeSelectedContact);
+    console.log("[Chat] Component selectedContact:", selectedContact);
+    console.log("[Chat] Current contact ID from Redux:", currentContactId);
+
+    // Use the Redux store's selectedContact if available, otherwise fall back to the component state
+    const effectiveContact = storeSelectedContact || selectedContact;
+
+    // CRITICAL: Kiểm tra xem đây có phải là tin nhắn nhóm hay không
+    // Đầu tiên, lấy danh sách nhóm từ store
+    const groups = storeState.chat.groups || [];
+
+    // CRITICAL: Kiểm tra xem ID của effectiveContact có trùng với ID của bất kỳ nhóm nào không
+    // Đây là cách chính xác nhất để xác định xem đây có phải là tin nhắn nhóm hay không
+    let isGroupMessage =
+      effectiveContact &&
+      groups.some((group) => group.id === effectiveContact.id);
+
+    // Định nghĩa biến textToSend ở đây để tránh lỗi
     const textToSend = content !== undefined ? content : messageText;
 
-    // Kiểm tra xem textToSend có phải là chuỗi không
-    if (typeof textToSend !== "string" || !textToSend.trim()) {
-      console.log(
-        "[Chat] Message text is empty or invalid, not sending",
-        textToSend
-      );
-      return;
-    }
-
-    if (!selectedContact) {
+    // Check if we have a selected contact
+    if (!effectiveContact) {
       console.log("[Chat] No contact selected, cannot send message");
       return;
     }
 
-    console.log("[Chat] Preparing to send message:", {
-      text: textToSend,
-      to: selectedContact.name,
-      contactId: selectedContact.id,
-      persistent: persistMessages,
+    // Log thông tin để debug
+    console.log(
+      "[Chat] All groups in store:",
+      groups.map((g) => ({ id: g.id, name: g.name }))
+    );
+    console.log(
+      "[Chat] CRITICAL DEBUG - Full effectiveContact object:",
+      JSON.stringify(effectiveContact, null, 2)
+    );
+    console.log(
+      "[Chat] CRITICAL DEBUG - Full groups array:",
+      JSON.stringify(groups, null, 2)
+    );
+    console.log("[Chat] CRITICAL DEBUG - isGroupMessage:", isGroupMessage);
+
+    console.log(
+      "[Chat] TinyMCE determined message type:",
+      isGroupMessage ? "GROUP" : "DIRECT"
+    );
+    console.log("[Chat] Selected contact details:", {
+      id: effectiveContact.id,
+      name: effectiveContact.name,
+      isGroup: effectiveContact.isGroup,
+      isGroupType: typeof effectiveContact.isGroup,
+      isGroupMessage: isGroupMessage,
     });
 
-    // Create a temporary message to display immediately
-    const tempId = `temp-${Date.now()}`;
-    console.log("[Chat] Creating temporary message with ID:", tempId);
+    // CRITICAL: Force check one more time by looking at the groups list directly
+    const forceGroupCheck = groups.some(
+      (group) => group.id === effectiveContact.id
+    );
 
-    const tempMessage: ChatMessage = {
-      id: tempId,
-      content: textToSend,
-      sender: {
-        id: userInfo?.id || "unknown",
-        name: userInfo?.username || "Me",
-      },
-      receiver: {
-        id: selectedContact.id,
-        name: selectedContact.name,
-      },
-      timestamp: new Date().toISOString(),
-      read: false,
-      persistent: persistMessages,
-    };
-
-    // Add the temporary message to the Redux store
-    console.log("[Chat] Adding temporary message to store:", tempMessage);
-    dispatch(addMessage(tempMessage));
-
-    try {
-      // Try to send via WebSocket first
-      console.log("[Chat] Attempting to send via WebSocket");
-      console.log("[Chat] Message persistence setting:", persistMessages);
-      const sentViaWebSocket = sendMessageViaWebSocket(
-        textToSend,
-        selectedContact.id,
-        persistMessages
-      );
+    // If forceGroupCheck is true, we KNOW this is a group message regardless of other checks
+    if (forceGroupCheck) {
       console.log(
-        "[Chat] WebSocket send result:",
-        sentViaWebSocket ? "Success" : "Failed"
+        "[Chat] CRITICAL OVERRIDE: Force detected as GROUP message based on direct group ID match"
       );
+      isGroupMessage = true;
+    }
 
-      // If WebSocket fails or is not connected, fall back to HTTP
-      if (!sentViaWebSocket) {
-        console.log("[Chat] WebSocket send failed, falling back to HTTP");
-        console.log("[Chat] Dispatching sendMessageThunk");
+    // CRITICAL: Nếu đây là tin nhắn nhóm, gửi trực tiếp đến API endpoint nhóm
+    if (isGroupMessage) {
+      console.log("[Chat] This is a GROUP message, sending to group endpoint");
 
+      // Validate content - không cần định nghĩa lại biến textToSend vì đã được định nghĩa ở trên
+      if (typeof textToSend !== "string" || !textToSend.trim()) {
+        console.log("[Chat] Message text is empty or invalid, not sending");
+        return;
+      }
+
+      try {
+        console.log(
+          "[Chat] CRITICAL: This is a GROUP message, using group endpoint"
+        );
+        console.log("[Chat] Group ID:", effectiveContact.id);
+        console.log("[Chat] Group name:", effectiveContact.name);
+
+        // NOTE: We don't need to create a temporary message here
+        // The sendGroupMessageThunk will handle creating a temporary message
+
+        // IMPORTANT: Always use the group-specific endpoint for group messages
+        console.log(
+          "[Chat] Using sendGroupMessage API endpoint for group message"
+        );
+
+        // CRITICAL: Double check that we're using the group endpoint
+        console.log(
+          "[Chat] CRITICAL: About to send group message to group ID:",
+          effectiveContact.id
+        );
+
+        // Use ONLY the Redux thunk to send the message - this will handle all API calls
+        // and ensure we don't have duplicate calls
         try {
+          console.log("[Chat] Using sendGroupMessageThunk for group message");
           const result = await dispatch(
-            sendMessageThunk({
+            sendGroupMessageThunk({
               content: textToSend,
-              receiverId: selectedContact.id,
-              persistent: persistMessages,
+              groupId: effectiveContact.id,
             })
           ).unwrap();
 
-          console.log("[Chat] HTTP send result:", result);
+          console.log("[Chat] Group message sent successfully:", result);
         } catch (error) {
-          console.error("[Chat] Error sending message via HTTP:", error);
+          console.error("[Chat] Error sending group message:", error);
 
-          // Define a type for the error object
-          interface ErrorWithMessage {
-            message: string;
-            response?: {
-              status: number;
-            };
-          }
-
-          // Function to check if error has a message property
-          const hasMessage = (err: unknown): err is ErrorWithMessage => {
-            return (
-              typeof err === "object" &&
-              err !== null &&
-              "message" in err &&
-              typeof (err as ErrorWithMessage).message === "string"
-            );
-          };
-
-          // Check if this is an authentication error
-          const isAuthError =
-            error &&
-            typeof error === "object" &&
-            hasMessage(error) &&
-            (error.message.includes("401") ||
-              error.message.includes("unauthorized") ||
-              error.message.includes("authentication"));
-
-          if (isAuthError) {
-            console.log(
-              "[Chat] Authentication error detected, attempting token refresh and retry"
-            );
-
-            try {
-              // Import and call refreshToken
-              const { refreshToken } = await import("../utils/tokenRefresh");
-              const refreshed = await refreshToken(true);
-
-              if (refreshed) {
-                console.log(
-                  "[Chat] Token refreshed successfully, retrying message send"
-                );
-                // Wait a moment for the token to be properly set in the store
-                await new Promise((resolve) => setTimeout(resolve, 500));
-
-                // Retry sending the message
-                const retryResult = await dispatch(
-                  sendMessageThunk({
-                    content: textToSend,
-                    receiverId: selectedContact.id,
-                    persistent: persistMessages,
-                  })
-                ).unwrap();
-
-                console.log("[Chat] HTTP retry send result:", retryResult);
-              } else {
-                console.error(
-                  "[Chat] Token refresh failed, cannot retry message send"
-                );
-                antMessage.error("Failed to send message. Please try again.");
-              }
-            } catch (refreshError) {
-              console.error(
-                "[Chat] Error during token refresh or retry:",
-                refreshError
-              );
-              antMessage.error("Failed to send message. Please try again.");
-            }
-          } else {
-            // For other errors, show a notification
-            antMessage.error("Failed to send message. Please try again.");
-          }
+          // Show error notification
+          notification.error({
+            message: "Group Message Not Sent",
+            description:
+              "There was a problem sending your message to the group. Please try again.",
+            duration: 4,
+          });
         }
+
+        // Clear the input field
+        setMessageText("");
+      } catch (error) {
+        console.error("[Chat] Error sending group message via TinyMCE:", error);
+        notification.error({
+          message: "Group Message Not Sent",
+          description:
+            "There was a problem sending your message to the group. Please try again.",
+          duration: 4,
+        });
+      }
+    } else {
+      // We don't need special handling for Ctrl+Enter anymore
+      // Both Send button and Ctrl+Enter use the same code path
+
+      // Regular check for non-Ctrl+Enter messages
+      // CRITICAL: Double-check one more time if this is actually a group message
+      // This is our last chance to catch a group message before sending it as a direct message
+      const groups = store.getState().chat.groups || [];
+      const isActuallyGroup = groups.some(
+        (group) => String(group.id) === String(effectiveContact.id)
+      );
+
+      if (isActuallyGroup) {
+        console.log(
+          "[Chat] CRITICAL OVERRIDE: Last-minute detection that this is actually a GROUP message"
+        );
+        console.log("[Chat] Redirecting to group message handler");
+
+        // Force isGroupMessage to true and recall this function
+        isGroupMessage = true;
+        return handleSendMessage(content);
       }
 
-      // Clear the input field
-      console.log("[Chat] Clearing message input field");
-      setMessageText("");
-    } catch (error) {
-      console.error("[Chat] Error sending message:", error);
-      notification.error({
-        message: "Error",
-        description: "Failed to send message. Please try again.",
-      });
+      // For direct messages, handle it directly here instead of calling sendMessage
+      console.log("[Chat] TinyMCE sending DIRECT message");
+
+      // Validate content - không cần định nghĩa lại biến textToSend vì đã được định nghĩa ở trên
+      if (typeof textToSend !== "string" || !textToSend.trim()) {
+        console.log("[Chat] Message text is empty or invalid, not sending");
+        return;
+      }
+
+      try {
+        // We'll let the Redux thunk handle adding the message to the store
+        // This prevents duplicate messages from appearing in the chat window
+        console.log(
+          "[Chat] Skipping temporary message creation to avoid duplicates"
+        );
+
+        // Use ONLY the Redux thunk to send the message - this will handle all API calls
+        // and ensure we don't have duplicate calls
+        try {
+          console.log("[Chat] Using sendMessageThunk for direct message");
+          const result = await dispatch(
+            sendMessageThunk({
+              content: textToSend,
+              receiverId: effectiveContact.id,
+              persistent: persistMessages,
+              isGroup: false,
+            })
+          ).unwrap();
+
+          console.log("[Chat] Direct message sent successfully:", result);
+        } catch (error) {
+          console.error("[Chat] Error sending direct message:", error);
+
+          // Show error notification
+          notification.error({
+            message: "Message Not Sent",
+            description:
+              "There was a problem sending your message. Please try again.",
+            duration: 4,
+          });
+        }
+
+        // Clear the input field
+        setMessageText("");
+      } catch (error) {
+        console.error(
+          "[Chat] Error sending direct message via TinyMCE:",
+          error
+        );
+        notification.error({
+          message: "Message Not Sent",
+          description:
+            "There was a problem sending your message. Please try again.",
+          duration: 4,
+        });
+      }
     }
   };
 
@@ -2698,37 +2764,62 @@ const ChatPage: React.FC = () => {
                     </div>
                   ),
                 }}
-                dataSource={contacts.filter((contact) => {
-                  // Apply search filter
-                  const matchesSearch =
-                    searchText === "" ||
-                    contact.name
-                      .toLowerCase()
-                      .includes(searchText.toLowerCase()) ||
-                    contact.email
-                      .toLowerCase()
-                      .includes(searchText.toLowerCase());
+                dataSource={[
+                  // Include regular contacts
+                  ...contacts.filter((contact) => {
+                    // Apply search filter
+                    const matchesSearch =
+                      searchText === "" ||
+                      contact.name
+                        .toLowerCase()
+                        .includes(searchText.toLowerCase()) ||
+                      contact.email
+                        .toLowerCase()
+                        .includes(searchText.toLowerCase());
 
-                  // Apply group/category filter
-                  const matchesFilter =
-                    activeFilter === "all"
-                      ? true
-                      : activeFilter === "unread"
-                      ? contact.unreadCount > 0
-                      : activeFilter === "friend"
-                      ? contact.group === "Friend"
-                      : activeFilter === "family"
-                      ? contact.group === "Family"
-                      : activeFilter === "college"
-                      ? contact.group === "College"
-                      : activeFilter === "work"
-                      ? contact.group === "Work"
-                      : activeFilter === "other"
-                      ? contact.group === "Other"
-                      : true;
+                    // Apply group/category filter
+                    const matchesFilter =
+                      activeFilter === "all"
+                        ? true
+                        : activeFilter === "unread"
+                        ? contact.unreadCount > 0
+                        : activeFilter === "friend"
+                        ? contact.group === "Friend"
+                        : activeFilter === "family"
+                        ? contact.group === "Family"
+                        : activeFilter === "college"
+                        ? contact.group === "College"
+                        : activeFilter === "work"
+                        ? contact.group === "Work"
+                        : activeFilter === "other"
+                        ? contact.group === "Other"
+                        : true;
 
-                  return matchesSearch && matchesFilter;
-                })}
+                    return matchesSearch && matchesFilter;
+                  }),
+                  // Include groups as contacts
+                  ...groups
+                    .map((group) => ({
+                      id: group.id,
+                      name: group.name,
+                      email: `${group.members.length} members`,
+                      status: "online", // Default status for groups
+                      unreadCount: group.unreadCount || 0,
+                      lastMessage: group.lastMessage,
+                      isGroup: true,
+                      members: group.members.map((member) => member.id),
+                      avatar: group.avatar,
+                    }))
+                    .filter((groupContact) => {
+                      // Apply search filter for groups
+                      return (
+                        searchText === "" ||
+                        groupContact.name
+                          .toLowerCase()
+                          .includes(searchText.toLowerCase())
+                      );
+                    }),
+                ]}
                 renderItem={(contact) => {
                   return (
                     <List.Item
@@ -2759,40 +2850,46 @@ const ChatPage: React.FC = () => {
                           overflow: "hidden",
                         }}
                         avatar={
-                          <div style={{ position: "relative" }}>
-                            <Avatar
-                              icon={<UserOutlined />}
-                              style={{
-                                backgroundColor:
-                                  contact.status === "online"
-                                    ? USER_STATUS_COLORS.ONLINE
-                                    : contact.status === "away"
-                                    ? USER_STATUS_COLORS.AWAY
-                                    : contact.status === "busy"
-                                    ? USER_STATUS_COLORS.BUSY
-                                    : USER_STATUS_COLORS.OFFLINE_AVATAR,
-                              }}
-                            />
-                            <div
-                              style={{
-                                position: "absolute",
-                                bottom: 0,
-                                right: 0,
-                                width: "10px",
-                                height: "10px",
-                                borderRadius: "50%",
-                                border: "1px solid white",
-                                background:
-                                  contact.status === "online"
-                                    ? USER_STATUS_COLORS.ONLINE
-                                    : contact.status === "away"
-                                    ? USER_STATUS_COLORS.AWAY
-                                    : contact.status === "busy"
-                                    ? USER_STATUS_COLORS.BUSY
-                                    : USER_STATUS_COLORS.OFFLINE,
-                              }}
-                            />
-                          </div>
+                          contact.isGroup ? (
+                            // Group avatar with multiple user avatars
+                            <GroupAvatar contact={contact} />
+                          ) : (
+                            // Regular user avatar
+                            <div style={{ position: "relative" }}>
+                              <Avatar
+                                icon={<UserOutlined />}
+                                style={{
+                                  backgroundColor:
+                                    contact.status === "online"
+                                      ? USER_STATUS_COLORS.ONLINE
+                                      : contact.status === "away"
+                                      ? USER_STATUS_COLORS.AWAY
+                                      : contact.status === "busy"
+                                      ? USER_STATUS_COLORS.BUSY
+                                      : USER_STATUS_COLORS.OFFLINE_AVATAR,
+                                }}
+                              />
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  bottom: 0,
+                                  right: 0,
+                                  width: "10px",
+                                  height: "10px",
+                                  borderRadius: "50%",
+                                  border: "1px solid white",
+                                  background:
+                                    contact.status === "online"
+                                      ? USER_STATUS_COLORS.ONLINE
+                                      : contact.status === "away"
+                                      ? USER_STATUS_COLORS.AWAY
+                                      : contact.status === "busy"
+                                      ? USER_STATUS_COLORS.BUSY
+                                      : USER_STATUS_COLORS.OFFLINE,
+                                }}
+                              />
+                            </div>
+                          )
                         }
                         title={
                           <div
@@ -2819,11 +2916,23 @@ const ChatPage: React.FC = () => {
                                   textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
                                   maxWidth: "120px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
                                 }}
                                 title={contact.name}
                               >
+                                {contact.isGroup && (
+                                  <TeamOutlined
+                                    style={{
+                                      color: "#1890ff",
+                                      fontSize: "14px",
+                                    }}
+                                  />
+                                )}
                                 {contact.name}
                               </span>
+                              {/* Group tag dropdown for both regular contacts and group contacts */}
                               <Dropdown
                                 menu={{
                                   items: [
@@ -2851,6 +2960,7 @@ const ChatPage: React.FC = () => {
                                           updateContactGroupThunk({
                                             contactId: contact.id,
                                             group: "Friend",
+                                            isGroup: contact.isGroup,
                                           })
                                         );
                                       },
@@ -2879,6 +2989,7 @@ const ChatPage: React.FC = () => {
                                           updateContactGroupThunk({
                                             contactId: contact.id,
                                             group: "Family",
+                                            isGroup: contact.isGroup,
                                           })
                                         );
                                       },
@@ -2907,6 +3018,7 @@ const ChatPage: React.FC = () => {
                                           updateContactGroupThunk({
                                             contactId: contact.id,
                                             group: "College",
+                                            isGroup: contact.isGroup,
                                           })
                                         );
                                       },
@@ -2935,6 +3047,7 @@ const ChatPage: React.FC = () => {
                                           updateContactGroupThunk({
                                             contactId: contact.id,
                                             group: "Work",
+                                            isGroup: contact.isGroup,
                                           })
                                         );
                                       },
@@ -2963,6 +3076,7 @@ const ChatPage: React.FC = () => {
                                           updateContactGroupThunk({
                                             contactId: contact.id,
                                             group: "Other",
+                                            isGroup: contact.isGroup,
                                           })
                                         );
                                       },
@@ -2991,6 +3105,7 @@ const ChatPage: React.FC = () => {
                                           updateContactGroupThunk({
                                             contactId: contact.id,
                                             group: "",
+                                            isGroup: contact.isGroup,
                                           })
                                         );
                                       },
@@ -3043,7 +3158,13 @@ const ChatPage: React.FC = () => {
                                   <Button
                                     type="text"
                                     size="small"
-                                    icon={<TagOutlined />}
+                                    icon={
+                                      contact.isGroup ? (
+                                        <TeamOutlined />
+                                      ) : (
+                                        <TagOutlined />
+                                      )
+                                    }
                                     style={{
                                       color: "#8c8c8c",
                                       padding: 0,
@@ -3064,9 +3185,20 @@ const ChatPage: React.FC = () => {
                             type="secondary"
                             style={{
                               fontSize: "12px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
                             }}
                           >
-                            {contact.email}
+                            {contact.isGroup ? (
+                              <>
+                                <TeamOutlined style={{ fontSize: "10px" }} />
+                                {contact.email}{" "}
+                                {/* This will show the member count */}
+                              </>
+                            ) : (
+                              contact.email
+                            )}
                           </Text>
                         }
                       />
@@ -3122,19 +3254,23 @@ const ChatPage: React.FC = () => {
               >
                 {/* Left side - Contact info */}
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Avatar
-                    icon={<UserOutlined />}
-                    style={{
-                      backgroundColor:
-                        selectedContact.status === "online"
-                          ? USER_STATUS_COLORS.ONLINE
-                          : selectedContact.status === "away"
-                          ? USER_STATUS_COLORS.AWAY
-                          : selectedContact.status === "busy"
-                          ? USER_STATUS_COLORS.BUSY
-                          : USER_STATUS_COLORS.OFFLINE_AVATAR,
-                    }}
-                  />
+                  {selectedContact.isGroup ? (
+                    <GroupAvatar contact={selectedContact} size={40} />
+                  ) : (
+                    <Avatar
+                      icon={<UserOutlined />}
+                      style={{
+                        backgroundColor:
+                          selectedContact.status === "online"
+                            ? USER_STATUS_COLORS.ONLINE
+                            : selectedContact.status === "away"
+                            ? USER_STATUS_COLORS.AWAY
+                            : selectedContact.status === "busy"
+                            ? USER_STATUS_COLORS.BUSY
+                            : USER_STATUS_COLORS.OFFLINE_AVATAR,
+                      }}
+                    />
+                  )}
                   <div>
                     <div
                       style={{
@@ -3153,45 +3289,84 @@ const ChatPage: React.FC = () => {
                       >
                         {selectedContact.name}
                       </Title>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<EditOutlined />}
-                        style={{ color: "#8c8c8c" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Show a modal to edit the display name
-                          Modal.confirm({
-                            title: "Edit Display Name",
-                            content: (
-                              <Input
-                                placeholder="Enter new display name"
-                                defaultValue={selectedContact.name}
-                                id="display-name-input"
-                              />
-                            ),
-                            onOk: () => {
-                              const input = document.getElementById(
-                                "display-name-input"
-                              ) as HTMLInputElement;
-                              const newName = input?.value;
-                              if (newName && newName.trim()) {
-                                dispatch(
-                                  updateContactDisplayNameThunk({
-                                    contactId: selectedContact.id,
-                                    displayName: newName.trim(),
-                                  })
-                                );
-                                notification.success({
-                                  message: "Success",
-                                  description:
-                                    "Contact name updated successfully!",
-                                });
-                              }
-                            },
-                          });
-                        }}
-                      />
+                      {selectedContact.group && (
+                        <Tag
+                          color={
+                            selectedContact.group === "Friend"
+                              ? "red"
+                              : selectedContact.group === "Family"
+                              ? "green"
+                              : selectedContact.group === "College"
+                              ? "blue"
+                              : selectedContact.group === "Work"
+                              ? "purple"
+                              : selectedContact.group === "Other"
+                              ? "orange"
+                              : "default"
+                          }
+                          icon={
+                            selectedContact.group === "Friend" ? (
+                              <UserOutlined />
+                            ) : selectedContact.group === "Family" ? (
+                              <TagOutlined />
+                            ) : selectedContact.group === "College" ? (
+                              <BookOutlined />
+                            ) : selectedContact.group === "Work" ? (
+                              <LaptopOutlined />
+                            ) : selectedContact.group === "Other" ? (
+                              <StarOutlined />
+                            ) : null
+                          }
+                          style={{
+                            fontSize: "10px",
+                            lineHeight: "14px",
+                            padding: "0 4px",
+                          }}
+                        >
+                          {selectedContact.group}
+                        </Tag>
+                      )}
+                      {!selectedContact.isGroup && (
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<EditOutlined />}
+                          style={{ color: "#8c8c8c" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Show a modal to edit the display name
+                            Modal.confirm({
+                              title: "Edit Display Name",
+                              content: (
+                                <Input
+                                  placeholder="Enter new display name"
+                                  defaultValue={selectedContact.name}
+                                  id="display-name-input"
+                                />
+                              ),
+                              onOk: () => {
+                                const input = document.getElementById(
+                                  "display-name-input"
+                                ) as HTMLInputElement;
+                                const newName = input?.value;
+                                if (newName && newName.trim()) {
+                                  dispatch(
+                                    updateContactDisplayNameThunk({
+                                      contactId: selectedContact.id,
+                                      displayName: newName.trim(),
+                                    })
+                                  );
+                                  notification.success({
+                                    message: "Success",
+                                    description:
+                                      "Contact name updated successfully!",
+                                  });
+                                }
+                              },
+                            });
+                          }}
+                        />
+                      )}
                     </div>
                     <Text
                       type="secondary"
@@ -3202,24 +3377,30 @@ const ChatPage: React.FC = () => {
                         gap: "4px",
                       }}
                     >
-                      <span
-                        style={{
-                          display: "inline-block",
-                          width: "8px",
-                          height: "8px",
-                          borderRadius: "50%",
-                          background:
-                            selectedContact.status === "online"
-                              ? USER_STATUS_COLORS.ONLINE
-                              : selectedContact.status === "away"
-                              ? USER_STATUS_COLORS.AWAY
-                              : selectedContact.status === "busy"
-                              ? USER_STATUS_COLORS.BUSY
-                              : USER_STATUS_COLORS.OFFLINE,
-                        }}
-                      />
-                      {selectedContact.status.charAt(0).toUpperCase() +
-                        selectedContact.status.slice(1)}
+                      {selectedContact.isGroup ? (
+                        <TeamOutlined style={{ fontSize: "12px" }} />
+                      ) : (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background:
+                              selectedContact.status === "online"
+                                ? USER_STATUS_COLORS.ONLINE
+                                : selectedContact.status === "away"
+                                ? USER_STATUS_COLORS.AWAY
+                                : selectedContact.status === "busy"
+                                ? USER_STATUS_COLORS.BUSY
+                                : USER_STATUS_COLORS.OFFLINE,
+                          }}
+                        />
+                      )}
+                      {selectedContact.isGroup
+                        ? `${selectedContact.members?.length || 0} members`
+                        : selectedContact.status.charAt(0).toUpperCase() +
+                          selectedContact.status.slice(1)}
                     </Text>
                   </div>
                 </div>
@@ -3490,7 +3671,7 @@ const ChatPage: React.FC = () => {
                   <Button
                     type="primary"
                     icon={<SendOutlined />}
-                    onClick={() => sendMessage()}
+                    onClick={() => handleSendMessage()}
                     disabled={!messageText.trim()}
                     style={{
                       position: "absolute",
@@ -3531,7 +3712,9 @@ const ChatPage: React.FC = () => {
                         // Update read status when input is focused
                         if (selectedContact && userInfo) {
                           console.log(
-                            "[Chat] Message input focused, updating read status"
+                            "[Chat] Message input focused, updating read status for",
+                            selectedContact.isGroup ? "group" : "contact",
+                            selectedContact.id
                           );
 
                           // Update read status in Redux
@@ -3542,14 +3725,26 @@ const ChatPage: React.FC = () => {
                             })
                           );
 
-                          // Mark messages as read via WebSocket
-                          import("../services/websocketService").then(
-                            ({ markMessagesAsReadViaWebSocket }) => {
-                              markMessagesAsReadViaWebSocket(
-                                selectedContact.id
-                              );
-                            }
-                          );
+                          // Only mark messages as read if there are unread messages
+                          const hasUnreadMessages =
+                            selectedContact.unreadCount > 0;
+                          if (hasUnreadMessages) {
+                            console.log(
+                              "[Chat] Has unread messages, marking as read via WebSocket"
+                            );
+                            // Mark messages as read via WebSocket
+                            import("../services/websocketService").then(
+                              ({ markMessagesAsReadViaWebSocket }) => {
+                                markMessagesAsReadViaWebSocket(
+                                  selectedContact.id
+                                );
+                              }
+                            );
+                          } else {
+                            console.log(
+                              "[Chat] No unread messages, skipping mark as read"
+                            );
+                          }
                         }
                       }}
                     />

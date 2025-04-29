@@ -90,7 +90,7 @@ public class ChatGroupService {
 
           // Try to count unread messages
           try {
-            int unreadCount = (int) chatMessageRepository.countByGroupAndReceiverAndReadFalse(group, user);
+            int unreadCount = (int) chatMessageRepository.countUnreadGroupMessagesForUser(group.getId(), user.getId());
             dto.setUnreadCount(unreadCount);
           } catch (Exception e) {
             System.err.println("ChatGroupService.getGroupsForUser: Error counting unread messages: " + e.getMessage());
@@ -196,7 +196,7 @@ public class ChatGroupService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
 
-    int unreadCount = (int) chatMessageRepository.countByGroupAndReceiverAndReadFalse(group, user);
+    int unreadCount = (int) chatMessageRepository.countUnreadGroupMessagesForUser(group.getId(), user.getId());
     return ChatGroupDTO.fromEntity(group, unreadCount);
   }
 
@@ -225,7 +225,7 @@ public class ChatGroupService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
 
-    int unreadCount = (int) chatMessageRepository.countByGroupAndReceiverAndReadFalse(updatedGroup, user);
+    int unreadCount = (int) chatMessageRepository.countUnreadGroupMessagesForUser(updatedGroup.getId(), user.getId());
     return ChatGroupDTO.fromEntity(updatedGroup, unreadCount);
   }
 
@@ -266,14 +266,14 @@ public class ChatGroupService {
       User user = userRepository.findById(userId)
           .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
 
-      int unreadCount = (int) chatMessageRepository.countByGroupAndReceiverAndReadFalse(updatedGroup, user);
+      int unreadCount = (int) chatMessageRepository.countUnreadGroupMessagesForUser(updatedGroup.getId(), user.getId());
       return ChatGroupDTO.fromEntity(updatedGroup, unreadCount);
     } else {
       // No new members to add
       User user = userRepository.findById(userId)
           .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
 
-      int unreadCount = (int) chatMessageRepository.countByGroupAndReceiverAndReadFalse(group, user);
+      int unreadCount = (int) chatMessageRepository.countUnreadGroupMessagesForUser(group.getId(), user.getId());
       return ChatGroupDTO.fromEntity(group, unreadCount);
     }
   }
@@ -307,7 +307,7 @@ public class ChatGroupService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
 
-    int unreadCount = (int) chatMessageRepository.countByGroupAndReceiverAndReadFalse(updatedGroup, user);
+    int unreadCount = (int) chatMessageRepository.countUnreadGroupMessagesForUser(updatedGroup.getId(), user.getId());
     return ChatGroupDTO.fromEntity(updatedGroup, unreadCount);
   }
 

@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+//import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -139,44 +139,21 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 // .map(a -> a.getAuthority())
                 // .collect(Collectors.joining(", ")));
 
-            } catch (ParseException | JOSEException e) {
+            } catch (ParseException | JOSEException | IOException | RuntimeException e) {
                 SecurityContextHolder.clearContext();
-                // logger.error("Error parsing or verifying JWT token: " + e.getMessage(), e);
+                // Different log messages based on exception type
+                // if (e instanceof ParseException || e instanceof JOSEException) {
+                //     logger.error("Error parsing or verifying JWT token: " + e.getMessage(), e);
+                // } else if (e instanceof IOException) {
+                //     logger.error("I/O error during token processing: " + e.getMessage(), e);
+                // } else if (e instanceof IllegalArgumentException) {
+                //     logger.error("Invalid argument during token processing: " + e.getMessage(), e);
+                // } else if (e instanceof RuntimeException) {
+                //     logger.error("Runtime error during token processing: " + e.getMessage(), e);
+                // }
 
                 if (isApiEndpoint) {
                     // For API endpoints, just continue the filter chain without throwing exception
-                    filterChain.doFilter(request, response);
-                    return;
-                } else {
-                    throw new AppException(ErrorCode.INVALID_TOKEN);
-                }
-            } catch (IOException e) {
-                SecurityContextHolder.clearContext();
-                // logger.error("I/O error during token processing: " + e.getMessage(), e);
-
-                if (isApiEndpoint) {
-                    filterChain.doFilter(request, response);
-                    return;
-                } else {
-                    throw new AppException(ErrorCode.INVALID_TOKEN);
-                }
-            } catch (IllegalArgumentException e) {
-                SecurityContextHolder.clearContext();
-                // logger.error("Invalid argument during token processing: " + e.getMessage(),
-                // e);
-
-                if (isApiEndpoint) {
-                    filterChain.doFilter(request, response);
-                    return;
-                } else {
-                    throw new AppException(ErrorCode.INVALID_TOKEN);
-                }
-            } catch (RuntimeException e) {
-                // Runtime exceptions from services (including wrapped crypto exceptions)
-                SecurityContextHolder.clearContext();
-                // logger.error("Runtime error during token processing: " + e.getMessage(), e);
-
-                if (isApiEndpoint) {
                     filterChain.doFilter(request, response);
                     return;
                 } else {
@@ -197,14 +174,16 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
 
         // Check if authentication exists before proceeding
-        Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
+        // Authentication existingAuth =
+        // SecurityContextHolder.getContext().getAuthentication();
         // logger.info("Before doFilter - Authentication in context: " +
         // (existingAuth != null ? existingAuth.getName() : "null"));
 
         filterChain.doFilter(request, response);
 
         // Check if authentication exists after filter chain
-        Authentication afterAuth = SecurityContextHolder.getContext().getAuthentication();
+        // Authentication afterAuth =
+        // SecurityContextHolder.getContext().getAuthentication();
         // logger.info("After doFilter - Authentication in context: " +
         // (afterAuth != null ? afterAuth.getName() : "null"));
     }

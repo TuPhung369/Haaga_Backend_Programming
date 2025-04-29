@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 import { Editor as TinyMCEEditorType } from "tinymce";
 
@@ -27,37 +27,8 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
   const calculatedHeight = height;
   const editorRef = useRef<TinyMCEEditorType | null>(null);
 
-  // Xử lý phím Ctrl+Enter toàn cục
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === "Enter" &&
-        e.ctrlKey &&
-        editorRef.current &&
-        document.activeElement === editorRef.current.getContainer()
-      ) {
-        console.log("Global Ctrl+Enter detected");
-        e.preventDefault();
-
-        if (editorRef.current) {
-          const htmlContent = editorRef.current.getContent();
-          const content =
-            outputFormat === "text"
-              ? editorRef.current.getContent({ format: "text" })
-              : htmlContent;
-
-          if (onEnterPress) {
-            onEnterPress(content);
-          }
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onEnterPress, onChange, outputFormat]);
+  // Chúng ta sẽ xử lý Ctrl+Enter trực tiếp trong setup của TinyMCE
+  // thay vì sử dụng document.addEventListener
 
   return (
     <Editor
@@ -312,19 +283,78 @@ const TinyMCEEditor: React.FC<TinyMCEEditorProps> = ({
 
         // Đăng ký phím tắt Ctrl+Enter để gửi tin nhắn
         setup: (editor) => {
-          editor.addShortcut("ctrl+13", "Send message", function () {
-            console.log("Ctrl+Enter shortcut triggered");
+          // Xử lý Ctrl+Enter thông qua sự kiện keydown
+          editor.on("keydown", function (e) {
+            // Kiểm tra nếu là Ctrl+Enter
+            if (e.keyCode === 13 && e.ctrlKey) {
+              console.log("TinyMCE: Ctrl+Enter keydown event detected");
+              e.preventDefault();
 
-            const htmlContent = editor.getContent();
-            const content =
-              outputFormat === "text"
-                ? editor.getContent({ format: "text" })
-                : htmlContent;
+              const htmlContent = editor.getContent();
+              const content =
+                outputFormat === "text"
+                  ? editor.getContent({ format: "text" })
+                  : htmlContent;
 
-            if (onEnterPress) {
-              onEnterPress(content);
+              console.log(
+                "TinyMCE: Content to send:",
+                content.substring(0, 50) + "..."
+              );
+              console.log(
+                "TinyMCE: onEnterPress function exists:",
+                !!onEnterPress
+              );
+
+              if (onEnterPress && content.trim()) {
+                console.log("TinyMCE: Calling onEnterPress function");
+
+                // IMPORTANT: Get the current selected contact from Redux store
+                // This ensures we're using the most up-to-date contact information
+                import("../store/store")
+                  .then(({ default: store }) => {
+                    const state = store.getState();
+                    const selectedContact = state.chat.selectedContact;
+                    const groups = state.chat.groups || [];
+
+                    console.log(
+                      "TinyMCE: Current Redux store selectedContact:",
+                      selectedContact
+                    );
+
+                    // Check if the selected contact is a group
+                    const isGroup =
+                      selectedContact &&
+                      groups.some((group) => group.id === selectedContact.id);
+                    console.log("TinyMCE: Is group message:", isGroup);
+
+                    // Pass both the content and a flag indicating if this is a group message
+                    onEnterPress(content);
+
+                    console.log(
+                      "TinyMCE: onEnterPress function called successfully"
+                    );
+
+                    // Clear the editor content after sending
+                    editor.setContent("");
+                  })
+                  .catch((error) => {
+                    console.error("TinyMCE: Error getting store:", error);
+
+                    // Fallback to original behavior if there's an error
+                    onEnterPress(content);
+                    editor.setContent("");
+                  });
+              }
+
+              return false;
             }
+          });
 
+          // Vẫn giữ lại shortcut để đảm bảo tương thích
+          // Nhưng chúng ta sẽ vô hiệu hóa nó vì chúng ta đã xử lý Ctrl+Enter thông qua sự kiện keydown
+          editor.addShortcut("ctrl+13", "Send message", function () {
+            console.log("TinyMCE: Ctrl+Enter shortcut triggered - DISABLED");
+            // Không làm gì cả, vì chúng ta đã xử lý Ctrl+Enter thông qua sự kiện keydown
             return true;
           });
 

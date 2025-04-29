@@ -7,6 +7,7 @@ import {
   addContactByEmail,
   updateContactGroup,
   updateContactDisplayName,
+  updateGroupTag,
   getPendingContactRequests,
   respondToContactRequest,
   editMessage,
@@ -27,6 +28,7 @@ import {
   Group,
 } from "../services/chatService";
 import { ChatState, ChatMessage, ChatContact } from "../types/ChatTypes";
+import type { RootState } from "../types";
 import { handleServiceError } from "../services/baseService";
 
 // Helper functions to convert between service types and state types
@@ -38,6 +40,8 @@ const convertServiceMessageToChatMessage = (message: Message): ChatMessage => {
     receiver: message.receiver,
     timestamp: message.timestamp,
     read: message.read,
+    persistent: message.persistent,
+    metadata: message.metadata,
   };
 };
 
@@ -189,13 +193,124 @@ export const sendGroupMessageThunk = createAsyncThunk(
   "chat/sendGroupMessage",
   async (
     { content, groupId }: { content: string; groupId: string },
-    { rejectWithValue }
+    { rejectWithValue, dispatch, getState }
   ) => {
     try {
-      const message = await sendGroupMessage(content, groupId);
-      return message;
+      // Create a temporary message to display immediately
+      const state = getState() as RootState;
+      const userInfo = state.user.userInfo;
+      const groups = state.chat.groups;
+
+      // Find the group by ID
+      const group = groups.find((g) => g.id === groupId);
+
+      if (userInfo) {
+        const tempId = `temp-${Date.now()}`;
+        console.log(
+          "[ChatSlice] Creating temporary group message with ID:",
+          tempId
+        );
+
+        const tempMessage: Message = {
+          id: tempId,
+          content: content,
+          sender: {
+            id: userInfo.id || "unknown",
+            name: userInfo.username || "Me",
+          },
+          receiver: {
+            id: groupId,
+            name: group?.name || "Group",
+          },
+          timestamp: new Date().toISOString(),
+          read: false,
+          persistent: true,
+          metadata: {
+            isGroupMessage: true,
+            groupId: groupId,
+          },
+        };
+
+        // Add the temporary message to the Redux store
+        console.log(
+          "[ChatSlice] Adding temporary group message to store:",
+          tempMessage
+        );
+        dispatch(addMessage(tempMessage));
+      }
+
+      // Now make the API call
+      console.log("[ChatSlice] Making API call to send group message:", {
+        content: content.substring(0, 20) + "...",
+        groupId,
+      });
+
+      try {
+        const message = await sendGroupMessage(content, groupId);
+        console.log("[ChatSlice] Group message API call successful:", message);
+        return message;
+      } catch (error) {
+        console.error("[ChatSlice] Error in sendGroupMessage API call:", error);
+
+        // Check if this is a ServiceError
+        if (error instanceof Error) {
+          console.error("[ChatSlice] Error details:", {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          });
+        }
+
+        // Try a direct API call as a fallback
+        try {
+          console.log("[ChatSlice] Attempting direct API call as fallback");
+
+          // Import axios for direct API call
+          const axios = await import("axios");
+
+          // Get the token from the current state
+          const state = getState() as RootState;
+          const token = state.auth.token;
+
+          // Make a direct API call to the group endpoint
+          const directResponse = await axios.default.post(
+            `http://localhost:9095/identify_service/chat/groups/${groupId}/messages`,
+            { content },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              withCredentials: true,
+            }
+          );
+
+          console.log(
+            "[ChatSlice] Direct API call response:",
+            directResponse.data
+          );
+          return {
+            ...directResponse.data,
+            metadata: {
+              isGroupMessage: true,
+              groupId,
+            },
+          };
+        } catch (directError) {
+          console.error(
+            "[ChatSlice] Direct API call also failed:",
+            directError
+          );
+          return rejectWithValue(
+            "Failed to send group message. Please try again."
+          );
+        }
+      }
     } catch (error) {
-      return rejectWithValue(handleServiceError(error));
+      console.error("[ChatSlice] Outer error in sendGroupMessageThunk:", error);
+      return rejectWithValue(
+        "An unexpected error occurred while sending the message."
+      );
     }
   }
 );
@@ -258,15 +373,58 @@ export const sendMessageThunk = createAsyncThunk(
       content,
       receiverId,
       persistent = true,
+      isGroup = false,
     }: {
       content: string;
       receiverId: string;
       persistent?: boolean;
+      isGroup?: boolean;
     },
-    { rejectWithValue }
+    { rejectWithValue, dispatch, getState }
   ) => {
     try {
-      return await sendMessage(content, receiverId, persistent);
+      // Create a temporary message to display immediately
+      const state = getState() as RootState;
+      const userInfo = state.user.userInfo;
+      const contacts = state.chat.contacts;
+
+      // Find the contact by ID
+      const contact = contacts.find((c) => c.id === receiverId);
+
+      if (userInfo) {
+        const tempId = `temp-${Date.now()}`;
+        console.log("[ChatSlice] Creating temporary message with ID:", tempId);
+
+        const tempMessage: Message = {
+          id: tempId,
+          content: content,
+          sender: {
+            id: userInfo.id || "unknown",
+            name: userInfo.username || "Me",
+          },
+          receiver: {
+            id: receiverId,
+            name: contact?.name || "Contact",
+          },
+          timestamp: new Date().toISOString(),
+          read: false,
+          persistent: persistent,
+          metadata: {
+            isGroupMessage: isGroup,
+            groupId: isGroup ? receiverId : undefined,
+          },
+        };
+
+        // Add the temporary message to the Redux store
+        console.log(
+          "[ChatSlice] Adding temporary message to store:",
+          tempMessage
+        );
+        dispatch(addMessage(tempMessage));
+      }
+
+      // Now make the API call
+      return await sendMessage(content, receiverId, persistent, isGroup);
     } catch (error: unknown) {
       try {
         // Check if this is an authentication error (401)
@@ -382,11 +540,20 @@ export const addContactThunk = createAsyncThunk(
 export const updateContactGroupThunk = createAsyncThunk(
   "chat/updateContactGroup",
   async (
-    { contactId, group }: { contactId: string; group: string },
+    {
+      contactId,
+      group,
+      isGroup = false,
+    }: { contactId: string; group: string; isGroup?: boolean },
     { rejectWithValue }
   ) => {
     try {
-      return await updateContactGroup(contactId, group);
+      // Use different service function based on whether this is a group or regular contact
+      if (isGroup) {
+        return await updateGroupTag(contactId, group);
+      } else {
+        return await updateContactGroup(contactId, group);
+      }
     } catch (error: unknown) {
       try {
         handleServiceError(error);
@@ -394,7 +561,7 @@ export const updateContactGroupThunk = createAsyncThunk(
         return rejectWithValue(
           serviceError instanceof Error
             ? serviceError.message
-            : "Failed to update contact group"
+            : "Failed to update contact/group tag"
         );
       }
     }
@@ -610,6 +777,8 @@ const chatSlice = createSlice({
     },
     setSelectedContact: (state, action: PayloadAction<ChatContact | null>) => {
       state.selectedContact = action.payload;
+      // Clear messages when switching contacts to prevent showing old messages
+      state.messages = [];
     },
     // Group-related reducers
     setGroups: (state, action: PayloadAction<Group[]>) => {
@@ -689,7 +858,13 @@ const chatSlice = createSlice({
           msg.id.toString().startsWith("temp-") &&
           msg.content === action.payload.content &&
           msg.sender.id === action.payload.sender.id &&
-          msg.receiver.id === action.payload.receiver.id
+          // Check if both messages have receivers before comparing receiver IDs
+          // If both messages are group messages (no receiver)
+          ((msg.receiver === null && action.payload.receiver === null) ||
+            // If both messages have receivers, compare their IDs
+            (msg.receiver &&
+              action.payload.receiver &&
+              msg.receiver.id === action.payload.receiver.id))
         ) {
           console.log("[Redux] Found matching temp message, will replace it");
           // Instead of skipping, we'll replace the temp message with the server response
@@ -703,7 +878,13 @@ const chatSlice = createSlice({
         if (
           msg.content === action.payload.content &&
           msg.sender.id === action.payload.sender.id &&
-          msg.receiver.id === action.payload.receiver.id
+          // Check if both messages have receivers before comparing receiver IDs
+          // If both messages are group messages (no receiver)
+          ((msg.receiver === null && action.payload.receiver === null) ||
+            // If both messages have receivers, compare their IDs
+            (msg.receiver &&
+              action.payload.receiver &&
+              msg.receiver.id === action.payload.receiver.id))
         ) {
           const msgTime = new Date(msg.timestamp).getTime();
           const newMsgTime = new Date(action.payload.timestamp).getTime();
@@ -727,7 +908,13 @@ const chatSlice = createSlice({
           (msg.persistent === false || action.payload.persistent === false) &&
           msg.content === action.payload.content &&
           msg.sender.id === action.payload.sender.id &&
-          msg.receiver.id === action.payload.receiver.id
+          // Check if both messages have receivers before comparing receiver IDs
+          // If both messages are group messages (no receiver)
+          ((msg.receiver === null && action.payload.receiver === null) ||
+            // If both messages have receivers, compare their IDs
+            (msg.receiver &&
+              action.payload.receiver &&
+              msg.receiver.id === action.payload.receiver.id))
         ) {
           console.log(
             "[Redux] Found matching non-persistent message, treating as duplicate"
@@ -739,7 +926,13 @@ const chatSlice = createSlice({
         if (
           msg.content === action.payload.content &&
           msg.sender.id === action.payload.sender.id &&
-          msg.receiver.id === action.payload.receiver.id
+          // Check if both messages have receivers before comparing receiver IDs
+          // If both messages are group messages (no receiver)
+          ((msg.receiver === null && action.payload.receiver === null) ||
+            // If both messages have receivers, compare their IDs
+            (msg.receiver &&
+              action.payload.receiver &&
+              msg.receiver.id === action.payload.receiver.id))
         ) {
           const msgTime = new Date(msg.timestamp).getTime();
           const newMsgTime = new Date(action.payload.timestamp).getTime();
@@ -768,7 +961,13 @@ const chatSlice = createSlice({
             msg.id.toString().startsWith("temp-") &&
             msg.content === action.payload.content &&
             msg.sender.id === action.payload.sender.id &&
-            msg.receiver.id === action.payload.receiver.id
+            // Check if both messages have receivers before comparing receiver IDs
+            // If both messages are group messages (no receiver or null receiver)
+            ((msg.receiver === null && action.payload.receiver === null) ||
+              // If both messages have receivers, compare their IDs
+              (msg.receiver &&
+                action.payload.receiver &&
+                msg.receiver.id === action.payload.receiver.id))
         );
 
         if (tempIndex !== -1) {
@@ -807,6 +1006,7 @@ const chatSlice = createSlice({
       const hasUnreadReceivedMessages = state.messages.some(
         (msg) =>
           msg.sender.id === action.payload.contactId &&
+          msg.receiver &&
           msg.receiver.id === currentUserId &&
           !msg.read
       );
@@ -816,6 +1016,7 @@ const chatSlice = createSlice({
         state.messages.some(
           (msg) =>
             msg.sender.id === currentUserId &&
+            msg.receiver &&
             msg.receiver.id === action.payload.contactId &&
             !msg.read
         );
@@ -903,6 +1104,7 @@ const chatSlice = createSlice({
           const sentMessages = state.messages.filter(
             (msg) =>
               msg.sender.id === currentUserId &&
+              msg.receiver &&
               msg.receiver.id === action.payload.contactId
           );
           console.log(
@@ -1090,6 +1292,7 @@ const chatSlice = createSlice({
           const hasUnreadMessages = state.messages.some(
             (msg) =>
               msg.sender.id === contactId &&
+              msg.receiver &&
               msg.receiver.id === currentUserId &&
               !msg.read
           );
@@ -1110,6 +1313,7 @@ const chatSlice = createSlice({
             // If the message is from the specified contact and sent to current user, mark it as read
             if (
               message.sender.id === contactId &&
+              message.receiver &&
               message.receiver.id === currentUserId &&
               !message.read
             ) {
@@ -1162,7 +1366,7 @@ const chatSlice = createSlice({
         state.error = action.payload as string;
       })
 
-      // Update contact group
+      // Update contact or group tag
       .addCase(updateContactGroupThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -1170,23 +1374,60 @@ const chatSlice = createSlice({
       .addCase(updateContactGroupThunk.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload) {
-          const updatedContact = convertServiceContactToChatContact(
-            action.payload
-          );
-          // Make sure to include the group property from the response
-          updatedContact.group = action.payload.group;
+          // Check if this is a group update or a contact update
+          const isGroupUpdate = "members" in action.payload;
 
-          // Update the contact in the contacts array
-          state.contacts = state.contacts.map((contact) =>
-            contact.id === updatedContact.id ? updatedContact : contact
-          );
+          if (isGroupUpdate) {
+            // Handle group update
+            const updatedGroup = action.payload as Group;
 
-          // If this is the selected contact, update that too
-          if (
-            state.selectedContact &&
-            state.selectedContact.id === updatedContact.id
-          ) {
-            state.selectedContact = updatedContact;
+            // Update the group in the groups array
+            state.groups = state.groups.map((group) =>
+              group.id === updatedGroup.id ? updatedGroup : group
+            );
+
+            // Update the group in the contacts array (groups are also in contacts)
+            state.contacts = state.contacts.map((contact) => {
+              if (contact.id === updatedGroup.id && contact.isGroup) {
+                return {
+                  ...contact,
+                  group: updatedGroup.group,
+                };
+              }
+              return contact;
+            });
+
+            // If this is the selected contact, update that too
+            if (
+              state.selectedContact &&
+              state.selectedContact.id === updatedGroup.id &&
+              state.selectedContact.isGroup
+            ) {
+              state.selectedContact = {
+                ...state.selectedContact,
+                group: updatedGroup.group,
+              };
+            }
+          } else {
+            // Handle regular contact update
+            const updatedContact = convertServiceContactToChatContact(
+              action.payload as Contact
+            );
+            // Make sure to include the group property from the response
+            updatedContact.group = action.payload.group;
+
+            // Update the contact in the contacts array
+            state.contacts = state.contacts.map((contact) =>
+              contact.id === updatedContact.id ? updatedContact : contact
+            );
+
+            // If this is the selected contact, update that too
+            if (
+              state.selectedContact &&
+              state.selectedContact.id === updatedContact.id
+            ) {
+              state.selectedContact = updatedContact;
+            }
           }
         }
       })
@@ -1488,6 +1729,150 @@ const chatSlice = createSlice({
       .addCase(forwardMessageThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+
+      // Group-related reducers
+      .addCase(fetchGroupsThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchGroupsThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.groups = action.payload || [];
+        console.log("[Redux] Groups fetched successfully:", state.groups);
+      })
+      .addCase(fetchGroupsThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        console.error("[Redux] Failed to fetch groups:", action.payload);
+      })
+
+      // Create group reducers
+      .addCase(createGroupThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createGroupThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          state.groups.push(action.payload);
+        }
+      })
+      .addCase(createGroupThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Fetch group messages reducers
+      .addCase(fetchGroupMessagesThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchGroupMessagesThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          // Convert service messages to chat messages and mark them as group messages
+          state.messages = action.payload.messages
+            ? action.payload.messages.map((message) => {
+                const chatMessage = convertServiceMessageToChatMessage(message);
+                // Add metadata to indicate this is a group message
+                return {
+                  ...chatMessage,
+                  metadata: {
+                    ...chatMessage.metadata,
+                    isGroupMessage: true,
+                    groupId: action.payload.groupId,
+                  },
+                };
+              })
+            : [];
+
+          console.log(
+            "[Redux] Group messages fetched successfully:",
+            state.messages.length
+          );
+
+          // Sort messages by timestamp
+          state.messages.sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        }
+      })
+      .addCase(fetchGroupMessagesThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        console.error(
+          "[Redux] Failed to fetch group messages:",
+          action.payload
+        );
+      })
+
+      // Send group message reducers
+      .addCase(sendGroupMessageThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(sendGroupMessageThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          // Convert service message to chat message and mark it as a group message
+          const chatMessage = convertServiceMessageToChatMessage(
+            action.payload
+          );
+
+          // Add metadata to indicate this is a group message
+          const messageWithMetadata = {
+            ...chatMessage,
+            metadata: {
+              ...chatMessage.metadata,
+              isGroupMessage: true,
+              groupId: action.meta.arg.groupId,
+            },
+          };
+
+          // Check if there's a temporary message to replace
+          const tempIndex = state.messages.findIndex(
+            (msg) =>
+              msg.id.toString().startsWith("temp-") &&
+              msg.content === messageWithMetadata.content &&
+              msg.sender.id === messageWithMetadata.sender.id &&
+              // For group messages, check the groupId in metadata
+              msg.metadata?.isGroupMessage === true &&
+              msg.metadata?.groupId === messageWithMetadata.metadata?.groupId
+          );
+
+          if (tempIndex !== -1) {
+            console.log(
+              "[Redux] Replacing temp group message at index",
+              tempIndex,
+              "with server response"
+            );
+            state.messages[tempIndex] = messageWithMetadata;
+          } else {
+            // Only add the message if we didn't find a temporary message to replace
+            console.log(
+              "[Redux] No temp message found, adding new group message to state"
+            );
+            state.messages.push(messageWithMetadata);
+          }
+
+          console.log(
+            "[Redux] Group message sent successfully:",
+            messageWithMetadata
+          );
+
+          // Sort messages by timestamp
+          state.messages.sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        }
+      })
+      .addCase(sendGroupMessageThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        console.error("[Redux] Failed to send group message:", action.payload);
       });
   },
 });

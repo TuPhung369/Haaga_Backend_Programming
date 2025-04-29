@@ -36,8 +36,8 @@ public class ChatMessage {
     private User sender;
 
     @ManyToOne
-    @JoinColumn(name = "receiver_id", nullable = false)
-    private User receiver;
+    @JoinColumn(name = "receiver_id", nullable = true)
+    private User receiver; // For direct messages only, can be null for group messages
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
@@ -59,6 +59,10 @@ public class ChatMessage {
     @ManyToOne
     @JoinColumn(name = "group_id")
     private ChatGroup group; // For group messages
+
+    @Column(name = "message_type", nullable = false)
+    @Builder.Default
+    private String messageType = "DIRECT"; // DIRECT or GROUP
 
     @Column(name = "metadata", columnDefinition = "TEXT")
     @Convert(converter = MapConverter.class)

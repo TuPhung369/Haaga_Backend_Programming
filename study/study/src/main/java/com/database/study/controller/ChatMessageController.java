@@ -48,10 +48,23 @@ public class ChatMessageController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        // log.info("Sending message from user {} to {}", username,
-        // request.getReceiverId());
-        ChatMessageResponse response = messageService.sendMessage(username, request);
+        log.info("Sending message from user {} to receiver: {}, group: {}",
+                username, request.getReceiverId(), request.getGroupId());
 
+        // Check if this is a group message
+        if (request.getGroupId() != null && !request.getGroupId().isEmpty()) {
+            log.info("Detected group message in /message-service/send endpoint");
+
+            // If this is a group message but receiverId is also set, log a warning
+            if (request.getReceiverId() != null && !request.getReceiverId().isEmpty()) {
+                log.warn(
+                        "Both groupId and receiverId are set in the request. For group messages, receiverId should be null.");
+                // Clear the receiverId to ensure it's handled as a group message
+                request.setReceiverId(null);
+            }
+        }
+
+        ChatMessageResponse response = messageService.sendMessage(username, request);
         return ResponseEntity.ok(response);
     }
 
@@ -60,10 +73,23 @@ public class ChatMessageController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        // log.info("Sending message from user {} to {}", username,
-        // request.getReceiverId());
-        ChatMessageResponse response = messageService.sendMessage(username, request);
+        log.info("Sending message from user {} to receiver: {}, group: {}",
+                username, request.getReceiverId(), request.getGroupId());
 
+        // Check if this is a group message
+        if (request.getGroupId() != null && !request.getGroupId().isEmpty()) {
+            log.info("Detected group message in /messages endpoint");
+
+            // If this is a group message but receiverId is also set, log a warning
+            if (request.getReceiverId() != null && !request.getReceiverId().isEmpty()) {
+                log.warn(
+                        "Both groupId and receiverId are set in the request. For group messages, receiverId should be null.");
+                // Clear the receiverId to ensure it's handled as a group message
+                request.setReceiverId(null);
+            }
+        }
+
+        ChatMessageResponse response = messageService.sendMessage(username, request);
         return ResponseEntity.ok(response);
     }
 

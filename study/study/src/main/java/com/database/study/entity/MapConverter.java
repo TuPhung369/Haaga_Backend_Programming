@@ -74,7 +74,7 @@ public class MapConverter implements AttributeConverter<Map<String, Object>, Str
           }
           return result;
         }
-      } catch (Exception nestedEx) {
+      } catch (JsonProcessingException | IllegalArgumentException nestedEx) {
         System.err.println("Failed to parse with alternative method: " + nestedEx.getMessage());
       }
 
