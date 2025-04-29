@@ -21,6 +21,8 @@ export interface ChatMessage {
     originalMessageId?: string;
     forwardedAt?: string;
     originalContactId?: string;
+    isGroupMessage?: boolean;
+    groupId?: string;
   };
   _updateKey?: number; // Added for forcing re-renders
 }
@@ -35,12 +37,27 @@ export interface ChatContact {
   group?: string; // Group categorization (Friend, College, Family, etc.)
   contactStatus?: "PENDING" | "ACCEPTED" | "BLOCKED" | "REJECTED";
   _updateKey?: number; // Added for forcing re-renders
+  isGroup?: boolean; // Flag to indicate if this is a group chat
+  members?: string[]; // Array of member IDs for group chats
+  avatar?: string; // Avatar URL for the contact or group
+}
+
+export interface ChatGroup {
+  id: string;
+  name: string;
+  members: ChatContact[];
+  createdBy: string;
+  createdAt: string;
+  unreadCount: number;
+  lastMessage?: string;
+  avatar?: string;
 }
 
 export interface ChatState {
   messages: ChatMessage[];
   contacts: ChatContact[];
   pendingRequests: ChatContact[];
+  groups: ChatGroup[];
   selectedContact: ChatContact | null;
   loading: boolean;
   error: string | null;
@@ -55,10 +72,17 @@ export interface SendMessagePayload {
   content: string;
   receiverId: string;
   persistent?: boolean;
+  isGroupMessage?: boolean;
 }
 
 export interface MarkAsReadPayload {
   contactId: string;
+}
+
+export interface CreateGroupPayload {
+  name: string;
+  memberIds: string[];
+  avatar?: string;
 }
 
 // ===== Message Types =====

@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.database.study.entity.ChatGroup;
 import com.database.study.entity.ChatMessage;
 import com.database.study.entity.User;
 
@@ -61,4 +62,25 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
     @Modifying
     @Query("UPDATE ChatMessage m SET m.read = true WHERE m.conversationId = :conversationId AND m.receiver.id = :receiverId AND m.read = false")
     int markMessagesAsReadInConversation(@Param("conversationId") String conversationId, @Param("receiverId") UUID receiverId);
+    
+    // Group-related queries
+    
+    // Find messages for a group
+    Page<ChatMessage> findByGroupOrderByTimestampDesc(ChatGroup group, Pageable pageable);
+    
+    // Find unread messages for a user in a group
+    List<ChatMessage> findByGroupAndReceiverAndReadFalseOrderByTimestampDesc(ChatGroup group, User receiver);
+    
+    // Count unread messages for a user in a group
+    long countByGroupAndReceiverAndReadFalse(ChatGroup group, User receiver);
+    
+    // Mark all messages in a group as read for a specific receiver
+    @Modifying
+    @Query("UPDATE ChatMessage m SET m.read = true WHERE m.group.id = :groupId AND m.receiver.id = :receiverId AND m.read = false")
+    int markMessagesAsReadInGroup(@Param("groupId") UUID groupId, @Param("receiverId") UUID receiverId);
+    
+    // Delete all messages in a group
+    @Modifying
+    @Query("DELETE FROM ChatMessage m WHERE m.group.id = :groupId")
+    void deleteByGroupId(@Param("groupId") UUID groupId);
 }

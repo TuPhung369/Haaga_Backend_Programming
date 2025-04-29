@@ -1,5 +1,16 @@
 package com.database.study.security;
 
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,17 +35,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 @Component
 public class JwtTokenFilter extends OncePerRequestFilter {
 
@@ -54,7 +54,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         String authorizationHeader = request.getHeader("Authorization");
         String requestURI = request.getRequestURI();
-        logger.info("Request path: " + requestURI);
+        // logger.info("Request path: " + requestURI);
 
         // Special handling for API endpoints that should not throw exceptions
         boolean isApiEndpoint = requestURI.contains("/auth/introspect") ||
@@ -64,18 +64,18 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String encryptedToken = authorizationHeader.substring(7);
-            logger.info("Processing authorization header");
+            // logger.info("Processing authorization header");
 
             try {
                 // 1. First decrypt the token received from client
                 String plainJwtToken = encryptionService.decryptToken(encryptedToken);
-                logger.info("Token decrypted successfully");
+                // logger.info("Token decrypted successfully");
 
                 // 2. Extract username from the decrypted JWT
                 SignedJWT signedJWT = SignedJWT.parse(plainJwtToken);
                 String username = signedJWT.getJWTClaimsSet().getSubject();
                 if (username == null) {
-                    logger.error("Username extraction failed");
+                    // logger.error("Username extraction failed");
                     if (isApiEndpoint) {
                         // For API endpoints, continue to the filter chain without authentication
                         filterChain.doFilter(request, response);
@@ -83,12 +83,12 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                     }
                     throw new AppException(ErrorCode.INVALID_TOKEN);
                 }
-                logger.info("Username extracted: " + username);
+                // logger.info("Username extracted: " + username);
 
                 // 3. Find stored token by username
                 Optional<ActiveToken> activeTokenOpt = activeTokenRepository.findByUsername(username);
                 if (!activeTokenOpt.isPresent()) {
-                    logger.error("No active token found for user: " + username);
+                    // logger.error("No active token found for user: " + username);
                     if (isApiEndpoint) {
                         // For API endpoints, continue to the filter chain without authentication
                         filterChain.doFilter(request, response);
@@ -101,7 +101,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
                 // 4. Check if token has expired
                 if (activeToken.getExpiryTime().before(new Date())) {
-                    logger.error("Token has expired for user: " + username);
+                    // logger.error("Token has expired for user: " + username);
                     if (isApiEndpoint) {
                         // For API endpoints, continue to the filter chain without authentication
                         filterChain.doFilter(request, response);
@@ -112,7 +112,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
                 // 5. Verify tokens match - compare encrypted tokens
                 if (!activeToken.getToken().equals(encryptedToken)) {
-                    logger.error("Token mismatch for user: " + username);
+                    // logger.error("Token mismatch for user: " + username);
                     if (isApiEndpoint) {
                         // For API endpoints, continue to the filter chain without authentication
                         filterChain.doFilter(request, response);
@@ -132,17 +132,17 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                         null, authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.info("Authentication set in SecurityContextHolder: " +
-                        authentication.getName());
-                logger.info("Authorities: " +
-                        authentication.getAuthorities().stream()
-                                .map(a -> a.getAuthority())
-                                .collect(Collectors.joining(", ")));
+                // logger.info("Authentication set in SecurityContextHolder: " +
+                // authentication.getName());
+                // logger.info("Authorities: " +
+                // authentication.getAuthorities().stream()
+                // .map(a -> a.getAuthority())
+                // .collect(Collectors.joining(", ")));
 
             } catch (ParseException | JOSEException e) {
                 SecurityContextHolder.clearContext();
-                logger.error("Error parsing or verifying JWT token: " + e.getMessage(), e);
-                
+                // logger.error("Error parsing or verifying JWT token: " + e.getMessage(), e);
+
                 if (isApiEndpoint) {
                     // For API endpoints, just continue the filter chain without throwing exception
                     filterChain.doFilter(request, response);
@@ -152,8 +152,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 }
             } catch (IOException e) {
                 SecurityContextHolder.clearContext();
-                logger.error("I/O error during token processing: " + e.getMessage(), e);
-                
+                // logger.error("I/O error during token processing: " + e.getMessage(), e);
+
                 if (isApiEndpoint) {
                     filterChain.doFilter(request, response);
                     return;
@@ -162,8 +162,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 }
             } catch (IllegalArgumentException e) {
                 SecurityContextHolder.clearContext();
-                logger.error("Invalid argument during token processing: " + e.getMessage(), e);
-                
+                // logger.error("Invalid argument during token processing: " + e.getMessage(),
+                // e);
+
                 if (isApiEndpoint) {
                     filterChain.doFilter(request, response);
                     return;
@@ -173,8 +174,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             } catch (RuntimeException e) {
                 // Runtime exceptions from services (including wrapped crypto exceptions)
                 SecurityContextHolder.clearContext();
-                logger.error("Runtime error during token processing: " + e.getMessage(), e);
-                
+                // logger.error("Runtime error during token processing: " + e.getMessage(), e);
+
                 if (isApiEndpoint) {
                     filterChain.doFilter(request, response);
                     return;
@@ -183,7 +184,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 }
             }
         } else {
-            logger.info("No Authorization header found or not Bearer token");
+            // logger.info("No Authorization header found or not Bearer token");
             // For API endpoints that require token validation but don't have one,
             // we still want to proceed with the filter chain
             if (isApiEndpoint && requestURI.contains("/auth/introspect")) {
@@ -197,15 +198,15 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         // Check if authentication exists before proceeding
         Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
-        logger.info("Before doFilter - Authentication in context: " +
-                (existingAuth != null ? existingAuth.getName() : "null"));
+        // logger.info("Before doFilter - Authentication in context: " +
+        // (existingAuth != null ? existingAuth.getName() : "null"));
 
         filterChain.doFilter(request, response);
 
         // Check if authentication exists after filter chain
         Authentication afterAuth = SecurityContextHolder.getContext().getAuthentication();
-        logger.info("After doFilter - Authentication in context: " +
-                (afterAuth != null ? afterAuth.getName() : "null"));
+        // logger.info("After doFilter - Authentication in context: " +
+        // (afterAuth != null ? afterAuth.getName() : "null"));
     }
 
     private void verifyJwtSignature(SignedJWT signedJWT) throws ParseException, JOSEException {
@@ -241,11 +242,13 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 logger.warn("Invalid UUID format: " + e.getMessage(), e);
                 verified = false;
             } catch (ParseException e) {
-                // This can happen with sdf.parse() if refreshExpiryStr is not in the expected format
+                // This can happen with sdf.parse() if refreshExpiryStr is not in the expected
+                // format
                 logger.warn("Error parsing date: " + e.getMessage(), e);
                 verified = false;
             } catch (JOSEException e) {
-                // This can happen with signedJWT.verify() if there's an issue with the verification
+                // This can happen with signedJWT.verify() if there's an issue with the
+                // verification
                 logger.warn("Error during JWT verification: " + e.getMessage(), e);
                 verified = false;
             } catch (RuntimeException e) {

@@ -12,8 +12,19 @@ import {
   editMessage,
   deleteMessage,
   forwardMessage,
+  getGroups,
+  createGroup,
+  getGroupDetails,
+  updateGroup,
+  addGroupMembers,
+  removeGroupMember,
+  leaveGroup,
+  deleteGroup,
+  sendGroupMessage,
+  getGroupMessages,
   Message,
   Contact,
+  Group,
 } from "../services/chatService";
 import { ChatState, ChatMessage, ChatContact } from "../types/ChatTypes";
 import { handleServiceError } from "../services/baseService";
@@ -48,13 +59,160 @@ const initialState: ChatState = {
   messages: [],
   contacts: [],
   pendingRequests: [],
+  groups: [],
   selectedContact: null,
   loading: false,
   error: null,
   messageDeleted: false,
 };
 
-// Async thunks
+// Group-related thunks
+export const fetchGroupsThunk = createAsyncThunk(
+  "chat/fetchGroups",
+  async (_, { rejectWithValue }) => {
+    try {
+      const groups = await getGroups();
+      return groups;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const createGroupThunk = createAsyncThunk(
+  "chat/createGroup",
+  async (
+    {
+      name,
+      memberIds,
+      avatar,
+    }: { name: string; memberIds: string[]; avatar?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const group = await createGroup(name, memberIds, avatar);
+      return group;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const fetchGroupDetailsThunk = createAsyncThunk(
+  "chat/fetchGroupDetails",
+  async (groupId: string, { rejectWithValue }) => {
+    try {
+      const group = await getGroupDetails(groupId);
+      return group;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const updateGroupThunk = createAsyncThunk(
+  "chat/updateGroup",
+  async (
+    {
+      groupId,
+      updates,
+    }: {
+      groupId: string;
+      updates: { name?: string; avatar?: string };
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const group = await updateGroup(groupId, updates);
+      return group;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const addGroupMembersThunk = createAsyncThunk(
+  "chat/addGroupMembers",
+  async (
+    { groupId, memberIds }: { groupId: string; memberIds: string[] },
+    { rejectWithValue }
+  ) => {
+    try {
+      const group = await addGroupMembers(groupId, memberIds);
+      return group;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const removeGroupMemberThunk = createAsyncThunk(
+  "chat/removeGroupMember",
+  async (
+    { groupId, memberId }: { groupId: string; memberId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const group = await removeGroupMember(groupId, memberId);
+      return group;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const leaveGroupThunk = createAsyncThunk(
+  "chat/leaveGroup",
+  async (groupId: string, { rejectWithValue }) => {
+    try {
+      await leaveGroup(groupId);
+      return groupId;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const deleteGroupThunk = createAsyncThunk(
+  "chat/deleteGroup",
+  async (groupId: string, { rejectWithValue }) => {
+    try {
+      await deleteGroup(groupId);
+      return groupId;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const sendGroupMessageThunk = createAsyncThunk(
+  "chat/sendGroupMessage",
+  async (
+    { content, groupId }: { content: string; groupId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const message = await sendGroupMessage(content, groupId);
+      return message;
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+export const fetchGroupMessagesThunk = createAsyncThunk(
+  "chat/fetchGroupMessages",
+  async (groupId: string, { rejectWithValue }) => {
+    try {
+      const messages = await getGroupMessages(groupId);
+      return { groupId, messages };
+    } catch (error) {
+      return rejectWithValue(handleServiceError(error));
+    }
+  }
+);
+
+// Contact and message thunks
 export const fetchContacts = createAsyncThunk(
   "chat/fetchContacts",
   async (_, { rejectWithValue }) => {
@@ -423,6 +581,8 @@ export const forwardMessageThunk = createAsyncThunk(
   }
 );
 
+// Slice definition follows
+
 // Slice
 const chatSlice = createSlice({
   name: "chat",
@@ -450,6 +610,26 @@ const chatSlice = createSlice({
     },
     setSelectedContact: (state, action: PayloadAction<ChatContact | null>) => {
       state.selectedContact = action.payload;
+    },
+    // Group-related reducers
+    setGroups: (state, action: PayloadAction<Group[]>) => {
+      state.groups = action.payload;
+    },
+    addGroup: (state, action: PayloadAction<Group>) => {
+      state.groups.push(action.payload);
+    },
+    updateGroup: (state, action: PayloadAction<Group>) => {
+      const index = state.groups.findIndex(
+        (group) => group.id === action.payload.id
+      );
+      if (index !== -1) {
+        state.groups[index] = action.payload;
+      }
+    },
+    removeGroup: (state, action: PayloadAction<string>) => {
+      state.groups = state.groups.filter(
+        (group) => group.id !== action.payload
+      );
     },
     updateContactStatus: (
       state,

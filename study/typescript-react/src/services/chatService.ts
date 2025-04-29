@@ -55,6 +55,8 @@ export interface Message {
     originalMessageId?: string;
     forwardedAt?: string;
     originalContactId?: string;
+    isGroupMessage?: boolean;
+    groupId?: string;
   };
 }
 
@@ -67,6 +69,20 @@ export interface Contact {
   lastMessage?: string;
   group?: string;
   contactStatus?: "PENDING" | "ACCEPTED" | "BLOCKED" | "REJECTED";
+  isGroup?: boolean;
+  members?: string[];
+  avatar?: string;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  members: Contact[];
+  createdBy: string;
+  createdAt: string;
+  unreadCount: number;
+  lastMessage?: string;
+  avatar?: string;
 }
 
 // Get all contacts
@@ -351,6 +367,158 @@ export const forwardMessage = async (
     return finalResults;
   } catch (error) {
     console.error("[ChatService] Error forwarding message:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Group-related API functions
+
+// Get all groups
+export const getGroups = async (): Promise<Group[]> => {
+  try {
+    const response = await apiClient.get(`/chat/groups`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching groups:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Create a new group
+export const createGroup = async (
+  name: string,
+  memberIds: string[],
+  avatar?: string
+): Promise<Group> => {
+  try {
+    const response = await apiClient.post(`/chat/groups`, {
+      name,
+      memberIds,
+      avatar,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating group:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Get group details
+export const getGroupDetails = async (groupId: string): Promise<Group> => {
+  try {
+    const response = await apiClient.get(`/chat/groups/${groupId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching group details:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Update group details
+export const updateGroup = async (
+  groupId: string,
+  updates: {
+    name?: string;
+    avatar?: string;
+  }
+): Promise<Group> => {
+  try {
+    const response = await apiClient.put(`/chat/groups/${groupId}`, updates);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating group:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Add members to a group
+export const addGroupMembers = async (
+  groupId: string,
+  memberIds: string[]
+): Promise<Group> => {
+  try {
+    const response = await apiClient.post(`/chat/groups/${groupId}/members`, {
+      memberIds,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error adding group members:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Remove members from a group
+export const removeGroupMember = async (
+  groupId: string,
+  memberId: string
+): Promise<Group> => {
+  try {
+    const response = await apiClient.delete(
+      `/chat/groups/${groupId}/members/${memberId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error removing group member:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Leave a group
+export const leaveGroup = async (groupId: string): Promise<void> => {
+  try {
+    await apiClient.post(`/chat/groups/${groupId}/leave`);
+  } catch (error) {
+    console.error("Error leaving group:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Delete a group (admin only)
+export const deleteGroup = async (groupId: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/chat/groups/${groupId}`);
+  } catch (error) {
+    console.error("Error deleting group:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Send a message to a group
+export const sendGroupMessage = async (
+  content: string,
+  groupId: string
+): Promise<Message> => {
+  try {
+    const response = await apiClient.post(`/chat/groups/${groupId}/messages`, {
+      content,
+    });
+    return {
+      ...response.data,
+      metadata: {
+        isGroupMessage: true,
+        groupId,
+      },
+    };
+  } catch (error) {
+    console.error("Error sending group message:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Get messages for a group
+export const getGroupMessages = async (groupId: string): Promise<Message[]> => {
+  try {
+    const response = await apiClient.get(`/chat/groups/${groupId}/messages`);
+    return response.data.map((message: Message) => ({
+      ...message,
+      metadata: {
+        ...message.metadata,
+        isGroupMessage: true,
+        groupId,
+      },
+    }));
+  } catch (error) {
+    console.error("Error fetching group messages:", error);
     throw handleServiceError(error);
   }
 };

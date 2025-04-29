@@ -15,6 +15,7 @@ import {
   Dropdown,
   Tag,
   Switch,
+  Select,
   message as antMessage,
 } from "antd";
 import {
@@ -36,6 +37,9 @@ import {
   CopyOutlined,
   ForwardOutlined,
   CheckOutlined,
+  TeamOutlined,
+  InfoCircleOutlined,
+  MailOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
@@ -365,12 +369,21 @@ const MessageItem: React.FC<MessageItemProps> = ({
               const currentContactId = currentSelectedContact?.id;
 
               console.log("[Chat] ===== FORWARD MESSAGE PROCESS STARTED =====");
-              console.log("[Chat] Message content:", message.content.substring(0, 50) + "...");
+              console.log(
+                "[Chat] Message content:",
+                message.content.substring(0, 50) + "..."
+              );
               console.log("[Chat] Current user ID:", userId);
               console.log("[Chat] Current contact ID:", currentContactId);
-              console.log("[Chat] Recipients after filtering:", filteredContactIds);
+              console.log(
+                "[Chat] Recipients after filtering:",
+                filteredContactIds
+              );
               console.log("[Chat] Original message sender:", message.sender.id);
-              console.log("[Chat] Original message receiver:", message.receiver.id);
+              console.log(
+                "[Chat] Original message receiver:",
+                message.receiver.id
+              );
 
               dispatch(
                 forwardMessageThunk({
@@ -834,6 +847,17 @@ import {
   updateMessagesReadStatus, // Import the updateMessagesReadStatus action
   resetMessageDeletedFlag, // Import the resetMessageDeletedFlag action
   forwardMessageThunk,
+  // Group-related thunks
+  fetchGroupsThunk,
+  createGroupThunk,
+  fetchGroupDetailsThunk,
+  updateGroupThunk,
+  addGroupMembersThunk,
+  removeGroupMemberThunk,
+  leaveGroupThunk,
+  deleteGroupThunk,
+  sendGroupMessageThunk,
+  fetchGroupMessagesThunk,
 } from "../store/chatSlice";
 
 import {
@@ -1081,8 +1105,13 @@ const ChatPage: React.FC = () => {
   const [messageText, setMessageText] = useState("");
   const [isAddContactModalVisible, setIsAddContactModalVisible] =
     useState(false);
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [newContactEmail, setNewContactEmail] = useState("");
   const [persistMessages, setPersistMessages] = useState(true);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>(
+    []
+  );
   // Add a state to force re-renders when read status changes
   const [readStatusVersion, setReadStatusVersion] = useState(0);
   // Add state for contact search
@@ -1147,6 +1176,20 @@ const ChatPage: React.FC = () => {
         notification.error({
           message: "Error",
           description: "Failed to fetch pending contact requests.",
+        });
+      });
+      
+    // Fetch groups
+    dispatch(fetchGroupsThunk())
+      .unwrap()
+      .then(() => {
+        console.log("[Chat] Groups fetched successfully");
+      })
+      .catch((error) => {
+        console.error("[Chat] Error fetching groups:", error);
+        notification.error({
+          message: "Error",
+          description: "Failed to fetch groups.",
         });
       });
 
@@ -1985,6 +2028,80 @@ const ChatPage: React.FC = () => {
     }
   };
 
+  // Function to handle creating a new group
+  const handleCreateGroup = async () => {
+    try {
+      if (!newGroupName.trim()) {
+        notification.error({
+          message: "Error",
+          description: "Please enter a valid group name.",
+          placement: "topRight",
+          duration: 4,
+        });
+        return;
+      }
+
+      if (selectedGroupMembers.length === 0) {
+        notification.error({
+          message: "Error",
+          description: "Please select at least one member for the group.",
+          placement: "topRight",
+          duration: 4,
+        });
+        return;
+      }
+
+      // Dispatch the createGroup action
+      const resultAction = await dispatch(
+        createGroupThunk({
+          name: newGroupName.trim(),
+          memberIds: selectedGroupMembers,
+        })
+      );
+
+      // Check if the action was rejected (error occurred)
+      if (createGroupThunk.rejected.match(resultAction)) {
+        const errorPayload = resultAction.payload;
+        const errorMessage =
+          typeof errorPayload === "string"
+            ? errorPayload
+            : "Failed to create group";
+
+        notification.error({
+          message: "Error",
+          description:
+            errorMessage || "Failed to create group. Please try again.",
+          placement: "topRight",
+          duration: 4,
+        });
+        return;
+      }
+
+      // Close the modal and reset the form
+      setShowCreateGroupModal(false);
+      setNewGroupName("");
+      setSelectedGroupMembers([]);
+
+      // Fetch groups to update the list
+      dispatch(fetchGroupsThunk());
+
+      notification.success({
+        message: "Success",
+        description: "Group created successfully!",
+        placement: "topRight",
+        duration: 4,
+      });
+    } catch (error) {
+      console.error("Error creating group:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to create group. Please try again.",
+        placement: "topRight",
+        duration: 4,
+      });
+    }
+  };
+
   // Function to handle responding to a contact request
   const handleRespondToRequest = async (
     contactId: string,
@@ -2260,6 +2377,7 @@ const ChatPage: React.FC = () => {
                 style={actionButtonStyles.addGroup}
                 title="Create New Group"
                 className="action-button"
+                onClick={() => setShowCreateGroupModal(true)}
               />
 
               <Dropdown
@@ -3216,43 +3334,66 @@ const ChatPage: React.FC = () => {
                       };
 
                       console.log("[Chat] ===== RENDERING MESSAGES =====");
-                      console.log("[Chat] Current contact ID:", selectedContact?.id);
-                      console.log("[Chat] Total messages before filtering:", messages.length);
-                      
+                      console.log(
+                        "[Chat] Current contact ID:",
+                        selectedContact?.id
+                      );
+                      console.log(
+                        "[Chat] Total messages before filtering:",
+                        messages.length
+                      );
+
                       // Filter out any messages that are being forwarded to the current contact
                       // This is a final safety check to prevent forwarded messages from appearing in the current chat
-                      const filteredMessages = messages.filter(message => {
+                      const filteredMessages = messages.filter((message) => {
                         // Check if this is a message that was forwarded from the current contact
-                        const isForwardedFromCurrentContact = 
-                          message.metadata?.isForwarded === true && 
-                          message.metadata?.originalContactId === selectedContact?.id;
-                          
-                        if (isForwardedFromCurrentContact) {
-                          console.log("[Chat] Filtering out forwarded message with metadata:", message.id, 
-                            "sender:", message.sender.id, 
-                            "receiver:", message.receiver.id,
-                            "originalContactId:", message.metadata?.originalContactId);
-                          return false;
-                        }
-                        
-                        // Also check based on sender/receiver IDs as a fallback
-                        const isForwardedBasedOnIds = 
+                        const isForwardedFromCurrentContact =
                           message.metadata?.isForwarded === true &&
-                          (message.sender.id === userInfo?.id || message.receiver.id === userInfo?.id) &&
-                          (message.sender.id === selectedContact?.id || message.receiver.id === selectedContact?.id);
-                          
-                        if (isForwardedBasedOnIds) {
-                          console.log("[Chat] Filtering out forwarded message based on IDs:", message.id, 
-                            "sender:", message.sender.id, 
-                            "receiver:", message.receiver.id);
+                          message.metadata?.originalContactId ===
+                            selectedContact?.id;
+
+                        if (isForwardedFromCurrentContact) {
+                          console.log(
+                            "[Chat] Filtering out forwarded message with metadata:",
+                            message.id,
+                            "sender:",
+                            message.sender.id,
+                            "receiver:",
+                            message.receiver.id,
+                            "originalContactId:",
+                            message.metadata?.originalContactId
+                          );
                           return false;
                         }
-                        
+
+                        // Also check based on sender/receiver IDs as a fallback
+                        const isForwardedBasedOnIds =
+                          message.metadata?.isForwarded === true &&
+                          (message.sender.id === userInfo?.id ||
+                            message.receiver.id === userInfo?.id) &&
+                          (message.sender.id === selectedContact?.id ||
+                            message.receiver.id === selectedContact?.id);
+
+                        if (isForwardedBasedOnIds) {
+                          console.log(
+                            "[Chat] Filtering out forwarded message based on IDs:",
+                            message.id,
+                            "sender:",
+                            message.sender.id,
+                            "receiver:",
+                            message.receiver.id
+                          );
+                          return false;
+                        }
+
                         return true;
                       });
-                      
-                      console.log("[Chat] Messages after filtering:", filteredMessages.length);
-                      
+
+                      console.log(
+                        "[Chat] Messages after filtering:",
+                        filteredMessages.length
+                      );
+
                       // Group messages by date
                       const messagesByDate: { [key: string]: ChatMessage[] } =
                         {};
@@ -3542,6 +3683,107 @@ const ChatPage: React.FC = () => {
             <p style={{ margin: 0 }}>
               Enter the email address of the person you want to chat with. They
               will receive a notification to connect with you.
+            </p>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Create Group Modal */}
+      <Modal
+        title={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              color: "#1890ff",
+              fontSize: "18px",
+              fontWeight: 600,
+            }}
+          >
+            <UsergroupAddOutlined style={{ fontSize: "20px" }} /> Create New
+            Group
+          </div>
+        }
+        open={showCreateGroupModal}
+        onOk={handleCreateGroup}
+        onCancel={() => {
+          setShowCreateGroupModal(false);
+          setNewGroupName("");
+          setSelectedGroupMembers([]);
+        }}
+        okText="Create Group"
+        cancelText="Cancel"
+        okButtonProps={{
+          style: {
+            background: "linear-gradient(135deg, #1890ff 0%, #096dd9 100%)",
+            border: "none",
+            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+          },
+        }}
+      >
+        <Form layout="vertical">
+          <Form.Item
+            name="groupName"
+            label="Group Name"
+            rules={[
+              {
+                required: true,
+                message: "Please enter a group name",
+              },
+            ]}
+          >
+            <Input
+              placeholder="Enter group name"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              style={{
+                borderRadius: "6px",
+                padding: "8px 12px",
+              }}
+              prefix={<TeamOutlined style={{ color: "rgba(0,0,0,.25)" }} />}
+            />
+          </Form.Item>
+          <Form.Item
+            name="members"
+            label="Select Members"
+            rules={[
+              {
+                required: true,
+                message: "Please select at least one member",
+              },
+            ]}
+          >
+            <Select
+              mode="multiple"
+              placeholder="Select members"
+              style={{ width: "100%", borderRadius: "6px" }}
+              value={selectedGroupMembers}
+              onChange={(values) => setSelectedGroupMembers(values)}
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label?.toString().toLowerCase() ?? "").includes(
+                  input.toLowerCase()
+                )
+              }
+              options={contacts
+                .filter((contact) => contact.contactStatus === "ACCEPTED")
+                .map((contact) => ({
+                  value: contact.id,
+                  label: contact.name || contact.email,
+                }))}
+            />
+          </Form.Item>
+          <div
+            style={{
+              marginTop: "16px",
+              fontSize: "13px",
+              color: "#8c8c8c",
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              Create a group chat with your contacts. You can add more members
+              later.
             </p>
           </div>
         </Form>

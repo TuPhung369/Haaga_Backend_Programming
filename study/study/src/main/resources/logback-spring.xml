@@ -6,14 +6,18 @@
     </encoder>
   </appender>
 
-  <!-- <root level="info">
+  <root level="warn">
     <appender-ref ref="STDOUT" />
-  </root> -->
+  </root>
 
-  <logger name="com.database.study" level="info">
+  <logger name="com.database.study" level="warn">
     <appender-ref ref="STDOUT" />
   </logger>
-  <logger name="org.hibernate.SQL" level="warn" />
-  <logger name="org.hibernate.type" level="trace" />
-  <logger name="org.springframework" level="info" />
+  <logger name="com.database.study.service.ChatGroupService" level="info">
+    <appender-ref ref="STDOUT" />
+  </logger>
+  <logger name="org.hibernate" level="error" />
+  <logger name="org.hibernate.SQL" level="error" />
+  <logger name="org.hibernate.type" level="error" />
+  <logger name="org.springframework" level="warn" />
 </configuration>

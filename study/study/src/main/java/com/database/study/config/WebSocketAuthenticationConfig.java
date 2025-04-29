@@ -1,5 +1,8 @@
 package com.database.study.config;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -12,6 +15,8 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -52,8 +57,13 @@ public class WebSocketAuthenticationConfig implements WebSocketMessageBrokerConf
                             log.error("Invalid JWT token in WebSocket connection", e);
                         }
                     } else {
-                        // Allow anonymous connections for now, but you can reject them if needed
+                        // Allow anonymous connections but log a warning
                         log.warn("No JWT token found in WebSocket connection");
+                        // Set a default anonymous authentication to prevent NullPointerException
+                        Authentication anonymousAuth = createAnonymousAuthentication();
+                        SecurityContextHolder.getContext().setAuthentication(anonymousAuth);
+                        accessor.setUser(anonymousAuth);
+                        log.info("Set anonymous authentication for WebSocket connection");
                     }
                 }
                 return message;
@@ -73,6 +83,49 @@ public class WebSocketAuthenticationConfig implements WebSocketMessageBrokerConf
                 }
                 
                 return null;
+            }
+            
+            /**
+             * Creates an anonymous authentication object for WebSocket connections without JWT tokens
+             * @return An Authentication object for anonymous users
+             */
+            private Authentication createAnonymousAuthentication() {
+                return new Authentication() {
+                    @Override
+                    public Collection<? extends GrantedAuthority> getAuthorities() {
+                        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_ANONYMOUS"));
+                    }
+
+                    @Override
+                    public Object getCredentials() {
+                        return null;
+                    }
+
+                    @Override
+                    public Object getDetails() {
+                        return null;
+                    }
+
+                    @Override
+                    public Object getPrincipal() {
+                        return "anonymous";
+                    }
+
+                    @Override
+                    public boolean isAuthenticated() {
+                        return true;
+                    }
+
+                    @Override
+                    public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
+                        // Cannot change authentication status
+                    }
+
+                    @Override
+                    public String getName() {
+                        return "anonymous";
+                    }
+                };
             }
         });
     }

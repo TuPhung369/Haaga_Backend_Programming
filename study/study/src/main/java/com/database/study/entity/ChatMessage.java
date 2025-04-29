@@ -1,9 +1,12 @@
 package com.database.study.entity;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -48,8 +51,30 @@ public class ChatMessage {
 
     @Column(name = "conversation_id")
     private String conversationId; // To group messages between two users
-    
+
     @Column(name = "persistent", nullable = false)
     @Builder.Default
     private boolean persistent = true; // Whether this message should be stored permanently
+
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private ChatGroup group; // For group messages
+
+    @Column(name = "metadata", columnDefinition = "TEXT")
+    @Convert(converter = MapConverter.class)
+    @Builder.Default
+    private Map<String, Object> metadata = new HashMap<>(); // For additional message metadata
+
+    // Add a getter that ensures we never return null
+    public Map<String, Object> getMetadata() {
+        if (metadata == null) {
+            metadata = new HashMap<>();
+        }
+        return metadata;
+    }
+
+    // Add a setter that handles null values
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata != null ? metadata : new HashMap<>();
+    }
 }

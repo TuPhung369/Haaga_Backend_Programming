@@ -48,7 +48,8 @@ public class ChatMessageController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        log.info("Sending message from user {} to {}", username, request.getReceiverId());
+        // log.info("Sending message from user {} to {}", username,
+        // request.getReceiverId());
         ChatMessageResponse response = messageService.sendMessage(username, request);
 
         return ResponseEntity.ok(response);
@@ -59,7 +60,8 @@ public class ChatMessageController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        log.info("Sending message from user {} to {}", username, request.getReceiverId());
+        // log.info("Sending message from user {} to {}", username,
+        // request.getReceiverId());
         ChatMessageResponse response = messageService.sendMessage(username, request);
 
         return ResponseEntity.ok(response);
@@ -70,11 +72,12 @@ public class ChatMessageController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        log.info("Getting messages between user {} and contact {}", username, contactId);
+        // log.info("Getting messages between user {} and contact {}", username,
+        // contactId);
 
         // Use the existing service method but convert Page to List
         Page<ChatMessageResponse> messagesPage = messageService.getMessagesBetweenUsers(
-            username, contactId, Pageable.unpaged());
+                username, contactId, Pageable.unpaged());
 
         return ResponseEntity.ok(messagesPage.getContent());
     }
@@ -88,7 +91,8 @@ public class ChatMessageController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        log.info("Getting messages between user {} and contact {}", username, otherUserId);
+        // log.info("Getting messages between user {} and contact {}", username,
+        // otherUserId);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
         Page<ChatMessageResponse> messages = messageService.getMessagesBetweenUsers(username, otherUserId, pageable);
@@ -102,7 +106,7 @@ public class ChatMessageController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        log.info("Getting messages for conversation {}", conversationId);
+        // log.info("Getting messages for conversation {}", conversationId);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
         Page<ChatMessageResponse> messages = messageService.getMessagesByConversationId(conversationId, pageable);
@@ -115,34 +119,36 @@ public class ChatMessageController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        log.info("Marking messages as read for user {} in conversation {}", username, conversationId);
-        
+        // log.info("Marking messages as read for user {} in conversation {}", username,
+        // conversationId);
+
         // Check if the conversationId is already in the correct format (uuid_uuid)
         if (!conversationId.contains("_")) {
-            log.info("Converting contact ID to conversation ID");
-            
+            // log.info("Converting contact ID to conversation ID");
+
             try {
                 // Find the current user
                 User currentUser = userRepository.findByUsername(username)
                         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-                
+
                 // Find the contact user
                 User contactUser = userRepository.findById(UUID.fromString(conversationId))
                         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-                
+
                 // Generate the conversation ID using both user IDs
-                String generatedConversationId = currentUser.getId().compareTo(contactUser.getId()) < 0 
-                        ? currentUser.getId() + "_" + contactUser.getId() 
+                String generatedConversationId = currentUser.getId().compareTo(contactUser.getId()) < 0
+                        ? currentUser.getId() + "_" + contactUser.getId()
                         : contactUser.getId() + "_" + currentUser.getId();
-                
-                log.info("Generated conversation ID: {} from contact ID: {}", generatedConversationId, conversationId);
+
+                // log.info("Generated conversation ID: {} from contact ID: {}",
+                // generatedConversationId, conversationId);
                 conversationId = generatedConversationId;
             } catch (Exception e) {
-                log.error("Error converting contact ID to conversation ID", e);
+                // log.error("Error converting contact ID to conversation ID", e);
                 // Continue with the original ID as a fallback
             }
         }
-        
+
         messageService.markMessagesAsRead(username, conversationId);
 
         return ResponseEntity.ok().build();
@@ -153,23 +159,25 @@ public class ChatMessageController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        log.info("Marking messages as read for user {} from contact {}", username, contactId);
-        
+        // log.info("Marking messages as read for user {} from contact {}", username,
+        // contactId);
+
         // Find the current user
         User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        
+
         // Find the contact user
         User contactUser = userRepository.findById(UUID.fromString(contactId))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        
+
         // Generate the conversation ID using both user IDs
-        String conversationId = currentUser.getId().compareTo(contactUser.getId()) < 0 
-                ? currentUser.getId() + "_" + contactUser.getId() 
+        String conversationId = currentUser.getId().compareTo(contactUser.getId()) < 0
+                ? currentUser.getId() + "_" + contactUser.getId()
                 : contactUser.getId() + "_" + currentUser.getId();
-        
-        log.info("Generated conversation ID: {} for marking messages as read", conversationId);
-        
+
+        // log.info("Generated conversation ID: {} for marking messages as read",
+        // conversationId);
+
         // Call the service with the correct conversation ID
         messageService.markMessagesAsRead(username, conversationId);
 
@@ -221,7 +229,7 @@ public class ChatMessageController {
 
         return ResponseEntity.ok(unreadCount);
     }
-    
+
     /**
      * Delete a message by ID
      * 
@@ -232,12 +240,12 @@ public class ChatMessageController {
     public ResponseEntity<Void> deleteMessage(@PathVariable String messageId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
-        
+
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        
+
         log.info("Deleting message {} by user {}", messageId, username);
-        
+
         try {
             UUID messageUuid = UUID.fromString(messageId);
             messageService.deleteMessage(user.getId().toString(), messageUuid);
@@ -251,11 +259,13 @@ public class ChatMessageController {
             throw e;
         }
     }
-    
+
     /**
      * Alternative endpoint for deleting a message by ID
-     * This matches the URL pattern in the error message: /identify_service/chat/messages/{messageId}
-     * Note: The context path /identify_service is already configured in application.yaml,
+     * This matches the URL pattern in the error message:
+     * /identify_service/chat/messages/{messageId}
+     * Note: The context path /identify_service is already configured in
+     * application.yaml,
      * so we don't need to include it in the mapping
      * 
      * @param messageId The ID of the message to delete
@@ -266,32 +276,32 @@ public class ChatMessageController {
         log.info("Alternative delete endpoint called for message ID: {}", messageId);
         return deleteMessage(messageId);
     }
-    
+
     /**
      * Edit a message by ID
      * 
      * @param messageId The ID of the message to edit
-     * @param request The request containing the new content
+     * @param request   The request containing the new content
      * @return ResponseEntity with the updated message
      */
     @PutMapping("/messages/{messageId}")
     public ResponseEntity<ChatMessageResponse> editMessage(
             @PathVariable String messageId,
             @RequestBody Map<String, String> request) {
-        
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
-        
+
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        
+
         String content = request.get("content");
         if (content == null || content.trim().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
-        
+
         log.info("Editing message {} by user {}", messageId, username);
-        
+
         try {
             UUID messageUuid = UUID.fromString(messageId);
             ChatMessageResponse response = messageService.editMessage(user.getId().toString(), messageUuid, content);
@@ -305,19 +315,19 @@ public class ChatMessageController {
             throw e;
         }
     }
-    
+
     /**
      * Alternative endpoint for editing a message by ID
      * 
      * @param messageId The ID of the message to edit
-     * @param request The request containing the new content
+     * @param request   The request containing the new content
      * @return ResponseEntity with the updated message
      */
     @PutMapping("/chat/messages/{messageId}")
     public ResponseEntity<ChatMessageResponse> editMessageAlternative(
             @PathVariable String messageId,
             @RequestBody Map<String, String> request) {
-        
+
         log.info("Alternative edit endpoint called for message ID: {}", messageId);
         return editMessage(messageId, request);
     }

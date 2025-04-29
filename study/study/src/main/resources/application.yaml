@@ -55,11 +55,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
-        "[format_sql]": true
-        "[use_sql_comments]": true
+        "[format_sql]": false
+        "[use_sql_comments]": false
     hibernate:
       ddl-auto: update # none, update, validate, create, create-drop
-    show-sql: true
+    show-sql: false
   security:
     oauth2:
       client:
@@ -133,15 +133,17 @@ novu:
   base-url: ${NOVU_BASE_URL:https://api.novu.co/v1}
 logging:
   level:
-    root: INFO # Set default to INFO, DEBUG is very verbose
-    "[org.springframework]": INFO
-    "[org.springframework.web]": DEBUG # Log web requests
-    "[org.springframework.security]": INFO # Or DEBUG for more security details
-    "[org.springframework.web.client.RestTemplate]": DEBUG # Log outgoing RestTemplate calls
-    "[com.database.study.controller]": DEBUG # Log our controllers
-    "[com.database.study.service]": DEBUG # Log our services
-    "[com.database.study.repository]": DEBUG # Log repository operations
-    "[org.hibernate.SQL]": DEBUG # Log SQL statements
-    "[org.hibernate.type.descriptor.sql.BasicBinder]": TRACE # Log SQL parameters
+    root: WARN # Set default to WARN to reduce noise
+    "[org.springframework]": WARN
+    "[org.springframework.web]": WARN
+    "[org.springframework.security]": WARN
+    "[org.springframework.web.client.RestTemplate]": WARN
+    "[com.database.study.controller]": WARN # Reduce controller logs
+    "[com.database.study.service]": WARN # Reduce service logs
+    "[com.database.study.service.ChatGroupService]": INFO # Keep ChatGroup logs for debugging
+    "[com.database.study.repository]": WARN
+    "[org.hibernate]": ERROR # Hide most Hibernate logs
+    "[org.hibernate.SQL]": ERROR # Hide SQL statements
+    "[org.hibernate.type.descriptor.sql]": ERROR # Hide SQL parameters
 
 
