@@ -866,6 +866,11 @@ import {
   sendGroupMessageThunk,
   fetchGroupMessagesThunk,
   updateGroupThunk,
+  fetchGroupDetailsThunk,
+  addGroupMembersThunk,
+  removeGroupMemberThunk,
+  leaveGroupThunk,
+  deleteGroupThunk,
 } from "../store/chatSlice";
 
 import {
@@ -3431,6 +3436,7 @@ const ChatPage: React.FC = () => {
                       <Dropdown
                         menu={{
                           items: [
+                            // Common option for both contacts and groups
                             {
                               key: "edit",
                               icon: <EditOutlined />,
@@ -3532,9 +3538,619 @@ const ChatPage: React.FC = () => {
                                 });
                               },
                             },
-                            // Only show remove option for regular contacts, not groups
+                            // Group-specific options
                             ...(selectedContact.isGroup
-                              ? []
+                              ? [
+                                  {
+                                    key: "listMembers",
+                                    icon: <TeamOutlined />,
+                                    label: "List Members",
+                                    onClick: () => {
+                                      // Fetch the latest group details
+                                      dispatch(
+                                        fetchGroupDetailsThunk(
+                                          selectedContact.id
+                                        )
+                                      )
+                                        .unwrap()
+                                        .then((group) => {
+                                          // Show modal with list of members
+                                          Modal.info({
+                                            title: `Members of ${selectedContact.name}`,
+                                            width: 500,
+                                            content: (
+                                              <List
+                                                dataSource={group.members || []}
+                                                renderItem={(member) => (
+                                                  <List.Item
+                                                    key={member.id}
+                                                    style={{
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                    }}
+                                                  >
+                                                    <Avatar
+                                                      icon={<UserOutlined />}
+                                                      style={{
+                                                        marginRight: 12,
+                                                      }}
+                                                    />
+                                                    <div>
+                                                      <div
+                                                        style={{
+                                                          fontWeight: 500,
+                                                        }}
+                                                      >
+                                                        {member.name}
+                                                      </div>
+                                                      <div
+                                                        style={{
+                                                          fontSize: 12,
+                                                          color:
+                                                            "rgba(0, 0, 0, 0.45)",
+                                                        }}
+                                                      >
+                                                        {member.email ||
+                                                          "No email"}
+                                                      </div>
+                                                    </div>
+                                                  </List.Item>
+                                                )}
+                                              />
+                                            ),
+                                            okText: "Close",
+                                          });
+                                        })
+                                        .catch((error) => {
+                                          console.error(
+                                            "Error fetching group details:",
+                                            error
+                                          );
+                                          notification.error({
+                                            message: "Error",
+                                            description:
+                                              "Failed to fetch group members. Please try again.",
+                                          });
+                                        });
+                                    },
+                                  },
+                                  {
+                                    key: "addMember",
+                                    icon: <UserAddOutlined />,
+                                    label: "Add Member",
+                                    onClick: () => {
+                                      // Get all contacts to select from
+                                      const { contacts } =
+                                        store.getState().chat;
+
+                                      // Create a modal to select contacts to add
+                                      const modal = Modal.info({
+                                        title: "Add Members to Group",
+                                        content: null,
+                                        icon: null,
+                                        width: 520,
+                                        okButtonProps: {
+                                          style: { display: "none" },
+                                        },
+                                        cancelButtonProps: {
+                                          style: { display: "none" },
+                                        },
+                                      });
+
+                                      // Custom component for selecting contacts
+                                      const SelectContactsComponent = () => {
+                                        const [searchText, setSearchText] =
+                                          useState("");
+                                        const [
+                                          selectedContacts,
+                                          setSelectedContacts,
+                                        ] = useState<Set<string>>(new Set());
+
+                                        // Filter out contacts already in the group
+                                        // First, fetch the group details to get the actual member objects
+                                        const [groupMembers, setGroupMembers] =
+                                          useState<string[]>([]);
+
+                                        // Fetch group details when component mounts
+                                        useEffect(() => {
+                                          // Store these values in variables to avoid the ESLint warning
+                                          const groupId = selectedContact.id;
+
+                                          // Use the dispatch function
+                                          dispatch(
+                                            fetchGroupDetailsThunk(groupId)
+                                          )
+                                            .unwrap()
+                                            .then((group) => {
+                                              // Extract member IDs
+                                              const memberIds =
+                                                group.members.map(
+                                                  (member) => member.id
+                                                );
+                                              setGroupMembers(memberIds);
+                                            })
+                                            .catch((error) => {
+                                              console.error(
+                                                "Error fetching group details:",
+                                                error
+                                              );
+                                            });
+                                        }, []);
+
+                                        const filteredContacts =
+                                          contacts.filter(
+                                            (contact) =>
+                                              !groupMembers.includes(
+                                                contact.id
+                                              ) &&
+                                              (contact.name
+                                                .toLowerCase()
+                                                .includes(
+                                                  searchText.toLowerCase()
+                                                ) ||
+                                                contact.email
+                                                  .toLowerCase()
+                                                  .includes(
+                                                    searchText.toLowerCase()
+                                                  ))
+                                          );
+
+                                        return (
+                                          <div>
+                                            <Input
+                                              placeholder="Search contacts..."
+                                              prefix={<SearchOutlined />}
+                                              onChange={(e) =>
+                                                setSearchText(e.target.value)
+                                              }
+                                              style={{ marginBottom: 16 }}
+                                              autoFocus
+                                            />
+
+                                            <div
+                                              style={{
+                                                maxHeight: "300px",
+                                                overflow: "auto",
+                                                border: "1px solid #d9d9d9",
+                                                borderRadius: "4px",
+                                                marginBottom: 16,
+                                              }}
+                                            >
+                                              <List
+                                                dataSource={filteredContacts}
+                                                renderItem={(contact) => (
+                                                  <List.Item
+                                                    key={contact.id}
+                                                    onClick={() => {
+                                                      const newSelected =
+                                                        new Set(
+                                                          selectedContacts
+                                                        );
+                                                      if (
+                                                        newSelected.has(
+                                                          contact.id
+                                                        )
+                                                      ) {
+                                                        newSelected.delete(
+                                                          contact.id
+                                                        );
+                                                      } else {
+                                                        newSelected.add(
+                                                          contact.id
+                                                        );
+                                                      }
+                                                      setSelectedContacts(
+                                                        newSelected
+                                                      );
+                                                    }}
+                                                    style={{
+                                                      cursor: "pointer",
+                                                      backgroundColor:
+                                                        selectedContacts.has(
+                                                          contact.id
+                                                        )
+                                                          ? "#e6f7ff"
+                                                          : "transparent",
+                                                      padding: "8px 16px",
+                                                    }}
+                                                  >
+                                                    <Avatar
+                                                      icon={<UserOutlined />}
+                                                      style={{
+                                                        marginRight: 12,
+                                                      }}
+                                                    />
+                                                    <div style={{ flex: 1 }}>
+                                                      <div
+                                                        style={{
+                                                          fontWeight: 500,
+                                                        }}
+                                                      >
+                                                        {contact.name}
+                                                      </div>
+                                                      <div
+                                                        style={{
+                                                          fontSize: 12,
+                                                          color:
+                                                            "rgba(0, 0, 0, 0.45)",
+                                                        }}
+                                                      >
+                                                        {contact.email}
+                                                      </div>
+                                                    </div>
+                                                    {selectedContacts.has(
+                                                      contact.id
+                                                    ) && (
+                                                      <CheckOutlined
+                                                        style={{
+                                                          color: "#1890ff",
+                                                        }}
+                                                      />
+                                                    )}
+                                                  </List.Item>
+                                                )}
+                                                locale={{
+                                                  emptyText:
+                                                    "No contacts found",
+                                                }}
+                                              />
+                                            </div>
+
+                                            <div
+                                              style={{
+                                                display: "flex",
+                                                justifyContent: "flex-end",
+                                                gap: 8,
+                                              }}
+                                            >
+                                              <Button
+                                                onClick={() => modal.destroy()}
+                                              >
+                                                Cancel
+                                              </Button>
+                                              <Button
+                                                type="primary"
+                                                disabled={
+                                                  selectedContacts.size === 0
+                                                }
+                                                onClick={() => {
+                                                  if (
+                                                    selectedContacts.size > 0
+                                                  ) {
+                                                    const memberIds =
+                                                      Array.from(
+                                                        selectedContacts
+                                                      );
+                                                    dispatch(
+                                                      addGroupMembersThunk({
+                                                        groupId:
+                                                          selectedContact.id,
+                                                        memberIds,
+                                                      })
+                                                    )
+                                                      .unwrap()
+                                                      .then(() => {
+                                                        notification.success({
+                                                          message: "Success",
+                                                          description: `Added ${
+                                                            memberIds.length
+                                                          } member${
+                                                            memberIds.length > 1
+                                                              ? "s"
+                                                              : ""
+                                                          } to the group.`,
+                                                        });
+                                                        modal.destroy();
+                                                      })
+                                                      .catch((error) => {
+                                                        console.error(
+                                                          "Error adding members:",
+                                                          error
+                                                        );
+                                                        notification.error({
+                                                          message: "Error",
+                                                          description:
+                                                            "Failed to add members to the group.",
+                                                        });
+                                                      });
+                                                  }
+                                                }}
+                                              >
+                                                Add{" "}
+                                                {selectedContacts.size > 0
+                                                  ? `(${selectedContacts.size})`
+                                                  : ""}
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        );
+                                      };
+
+                                      // Render the component in the modal
+                                      modal.update({
+                                        content: <SelectContactsComponent />,
+                                      });
+                                    },
+                                  },
+                                  {
+                                    key: "removeMember",
+                                    icon: <DeleteOutlined />,
+                                    label: "Remove Member",
+                                    onClick: () => {
+                                      // Fetch the latest group details
+                                      dispatch(
+                                        fetchGroupDetailsThunk(
+                                          selectedContact.id
+                                        )
+                                      )
+                                        .unwrap()
+                                        .then((group) => {
+                                          // Show modal with list of members to remove
+                                          const modal = Modal.info({
+                                            title: `Remove Members from ${selectedContact.name}`,
+                                            content: null,
+                                            icon: null,
+                                            width: 520,
+                                            okButtonProps: {
+                                              style: { display: "none" },
+                                            },
+                                            cancelButtonProps: {
+                                              style: { display: "none" },
+                                            },
+                                          });
+
+                                          // Get current user ID
+                                          const currentUserId =
+                                            store.getState().user.userInfo?.id;
+
+                                          // Custom component for removing members
+                                          const RemoveMembersComponent = () => {
+                                            const [
+                                              selectedMember,
+                                              setSelectedMember,
+                                            ] = useState<string | null>(null);
+
+                                            // Filter out current user from the list
+                                            const members =
+                                              group.members?.filter(
+                                                (member) =>
+                                                  member.id !== currentUserId
+                                              ) || [];
+
+                                            return (
+                                              <div>
+                                                <div
+                                                  style={{
+                                                    maxHeight: "300px",
+                                                    overflow: "auto",
+                                                    border: "1px solid #d9d9d9",
+                                                    borderRadius: "4px",
+                                                    marginBottom: 16,
+                                                  }}
+                                                >
+                                                  <List
+                                                    dataSource={members}
+                                                    renderItem={(member) => (
+                                                      <List.Item
+                                                        key={member.id}
+                                                        onClick={() =>
+                                                          setSelectedMember(
+                                                            member.id
+                                                          )
+                                                        }
+                                                        style={{
+                                                          cursor: "pointer",
+                                                          backgroundColor:
+                                                            selectedMember ===
+                                                            member.id
+                                                              ? "#fff2f0"
+                                                              : "transparent",
+                                                          padding: "8px 16px",
+                                                        }}
+                                                      >
+                                                        <Avatar
+                                                          icon={
+                                                            <UserOutlined />
+                                                          }
+                                                          style={{
+                                                            marginRight: 12,
+                                                          }}
+                                                        />
+                                                        <div
+                                                          style={{ flex: 1 }}
+                                                        >
+                                                          <div
+                                                            style={{
+                                                              fontWeight: 500,
+                                                            }}
+                                                          >
+                                                            {member.name}
+                                                          </div>
+                                                          <div
+                                                            style={{
+                                                              fontSize: 12,
+                                                              color:
+                                                                "rgba(0, 0, 0, 0.45)",
+                                                            }}
+                                                          >
+                                                            {member.email ||
+                                                              "No email"}
+                                                          </div>
+                                                        </div>
+                                                        {selectedMember ===
+                                                          member.id && (
+                                                          <DeleteOutlined
+                                                            style={{
+                                                              color: "#ff4d4f",
+                                                            }}
+                                                          />
+                                                        )}
+                                                      </List.Item>
+                                                    )}
+                                                    locale={{
+                                                      emptyText:
+                                                        "No members to remove",
+                                                    }}
+                                                  />
+                                                </div>
+
+                                                <div
+                                                  style={{
+                                                    display: "flex",
+                                                    justifyContent: "flex-end",
+                                                    gap: 8,
+                                                  }}
+                                                >
+                                                  <Button
+                                                    onClick={() =>
+                                                      modal.destroy()
+                                                    }
+                                                  >
+                                                    Cancel
+                                                  </Button>
+                                                  <Button
+                                                    danger
+                                                    disabled={!selectedMember}
+                                                    onClick={() => {
+                                                      if (selectedMember) {
+                                                        dispatch(
+                                                          removeGroupMemberThunk(
+                                                            {
+                                                              groupId:
+                                                                selectedContact.id,
+                                                              memberId:
+                                                                selectedMember,
+                                                            }
+                                                          )
+                                                        )
+                                                          .unwrap()
+                                                          .then(() => {
+                                                            notification.success(
+                                                              {
+                                                                message:
+                                                                  "Success",
+                                                                description:
+                                                                  "Member removed from the group.",
+                                                              }
+                                                            );
+                                                            modal.destroy();
+                                                          })
+                                                          .catch((error) => {
+                                                            console.error(
+                                                              "Error removing member:",
+                                                              error
+                                                            );
+                                                            notification.error({
+                                                              message: "Error",
+                                                              description:
+                                                                "Failed to remove member from the group.",
+                                                            });
+                                                          });
+                                                      }
+                                                    }}
+                                                  >
+                                                    Remove
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            );
+                                          };
+
+                                          // Render the component in the modal
+                                          modal.update({
+                                            content: <RemoveMembersComponent />,
+                                          });
+                                        })
+                                        .catch((error) => {
+                                          console.error(
+                                            "Error fetching group details:",
+                                            error
+                                          );
+                                          notification.error({
+                                            message: "Error",
+                                            description:
+                                              "Failed to fetch group members. Please try again.",
+                                          });
+                                        });
+                                    },
+                                  },
+                                  {
+                                    key: "leaveGroup",
+                                    icon: <CloseCircleOutlined />,
+                                    label: "Leave Group",
+                                    danger: true,
+                                    onClick: () => {
+                                      Modal.confirm({
+                                        title: "Leave Group",
+                                        content: `Are you sure you want to leave the group "${selectedContact.name}"?`,
+                                        okText: "Leave",
+                                        okType: "danger",
+                                        cancelText: "Cancel",
+                                        onOk: () => {
+                                          dispatch(
+                                            leaveGroupThunk(selectedContact.id)
+                                          )
+                                            .unwrap()
+                                            .then(() => {
+                                              notification.success({
+                                                message: "Success",
+                                                description: `You have left the group "${selectedContact.name}".`,
+                                              });
+                                            })
+                                            .catch((error) => {
+                                              console.error(
+                                                "Error leaving group:",
+                                                error
+                                              );
+                                              notification.error({
+                                                message: "Error",
+                                                description:
+                                                  "Failed to leave the group. Please try again.",
+                                              });
+                                            });
+                                        },
+                                      });
+                                    },
+                                  },
+                                  {
+                                    key: "deleteGroup",
+                                    icon: <DeleteOutlined />,
+                                    label: "Delete Group",
+                                    danger: true,
+                                    onClick: () => {
+                                      Modal.confirm({
+                                        title: "Delete Group",
+                                        content: `Are you sure you want to permanently delete the group "${selectedContact.name}"? This action cannot be undone.`,
+                                        okText: "Delete",
+                                        okType: "danger",
+                                        cancelText: "Cancel",
+                                        onOk: () => {
+                                          dispatch(
+                                            deleteGroupThunk(selectedContact.id)
+                                          )
+                                            .unwrap()
+                                            .then(() => {
+                                              notification.success({
+                                                message: "Success",
+                                                description: `Group "${selectedContact.name}" has been deleted.`,
+                                              });
+                                            })
+                                            .catch((error) => {
+                                              console.error(
+                                                "Error deleting group:",
+                                                error
+                                              );
+                                              notification.error({
+                                                message: "Error",
+                                                description:
+                                                  "Failed to delete the group. Please try again.",
+                                              });
+                                            });
+                                        },
+                                      });
+                                    },
+                                  },
+                                ]
                               : [
                                   {
                                     key: "remove",
