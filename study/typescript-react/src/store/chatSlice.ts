@@ -2031,6 +2031,128 @@ const chatSlice = createSlice({
         state.error = action.payload as string;
       })
 
+      // Update group reducers are already defined above
+
+      // Add group members reducers
+      .addCase(addGroupMembersThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addGroupMembersThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          // Update the group in the groups array
+          const index = state.groups.findIndex(
+            (group) => group.id === action.payload.id
+          );
+          if (index !== -1) {
+            state.groups[index] = action.payload;
+          }
+
+          // If this is the selected contact, update it too
+          if (
+            state.selectedContact &&
+            state.selectedContact.id === action.payload.id
+          ) {
+            state.selectedContact = {
+              ...state.selectedContact,
+              members: action.payload.members.map((member) => member.id),
+            };
+          }
+        }
+      })
+      .addCase(addGroupMembersThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Remove group member reducers
+      .addCase(removeGroupMemberThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(removeGroupMemberThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          // Update the group in the groups array
+          const index = state.groups.findIndex(
+            (group) => group.id === action.payload.id
+          );
+          if (index !== -1) {
+            state.groups[index] = action.payload;
+          }
+
+          // If this is the selected contact, update it too
+          if (
+            state.selectedContact &&
+            state.selectedContact.id === action.payload.id
+          ) {
+            state.selectedContact = {
+              ...state.selectedContact,
+              members: action.payload.members.map((member) => member.id),
+            };
+          }
+        }
+      })
+      .addCase(removeGroupMemberThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Leave group reducers
+      .addCase(leaveGroupThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(leaveGroupThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          // Remove the group from the groups array
+          state.groups = state.groups.filter(
+            (group) => group.id !== action.payload
+          );
+
+          // If this was the selected contact, clear it
+          if (
+            state.selectedContact &&
+            state.selectedContact.id === action.payload
+          ) {
+            state.selectedContact = null;
+          }
+        }
+      })
+      .addCase(leaveGroupThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Delete group reducers
+      .addCase(deleteGroupThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteGroupThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          // Remove the group from the groups array
+          state.groups = state.groups.filter(
+            (group) => group.id !== action.payload
+          );
+
+          // If this was the selected contact, clear it
+          if (
+            state.selectedContact &&
+            state.selectedContact.id === action.payload
+          ) {
+            state.selectedContact = null;
+          }
+        }
+      })
+      .addCase(deleteGroupThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
       // Fetch group messages reducers
       .addCase(fetchGroupMessagesThunk.pending, (state) => {
         state.loading = true;

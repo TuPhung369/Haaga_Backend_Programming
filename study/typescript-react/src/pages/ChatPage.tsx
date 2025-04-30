@@ -39,6 +39,7 @@ import {
   ForwardOutlined,
   CheckOutlined,
   TeamOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import { UnknownAction, ThunkDispatch } from "@reduxjs/toolkit";
@@ -3829,7 +3830,7 @@ const ChatPage: React.FC = () => {
                                                       })
                                                     )
                                                       .unwrap()
-                                                      .then(() => {
+                                                      .then((updatedGroup) => {
                                                         notification.success({
                                                           message: "Success",
                                                           description: `Added ${
@@ -3840,6 +3841,22 @@ const ChatPage: React.FC = () => {
                                                               : ""
                                                           } to the group.`,
                                                         });
+
+                                                        // Refresh the selected contact to update the UI
+                                                        if (updatedGroup) {
+                                                          dispatch(
+                                                            setSelectedContact({
+                                                              ...selectedContact,
+                                                              members:
+                                                                updatedGroup.members.map(
+                                                                  (
+                                                                    member: { id: string }
+                                                                  ) => member.id
+                                                                ),
+                                                            })
+                                                          );
+                                                        }
+
                                                         modal.destroy();
                                                       })
                                                       .catch((error) => {
@@ -3917,8 +3934,32 @@ const ChatPage: React.FC = () => {
                                                   member.id !== currentUserId
                                               ) || [];
 
+                                            // Calculate how many members are not shown
+                                            const totalMembers =
+                                              group.members?.length || 0;
+                                            const shownMembers = members.length;
+
                                             return (
                                               <div>
+                                                {totalMembers >
+                                                  shownMembers && (
+                                                  <div
+                                                    style={{ marginBottom: 16 }}
+                                                  >
+                                                    <Typography.Text type="secondary">
+                                                      <InfoCircleOutlined
+                                                        style={{
+                                                          marginRight: 8,
+                                                        }}
+                                                      />
+                                                      You are not shown in this
+                                                      list because you cannot
+                                                      remove yourself. To leave
+                                                      the group, use the "Leave
+                                                      Group" option instead.
+                                                    </Typography.Text>
+                                                  </div>
+                                                )}
                                                 <div
                                                   style={{
                                                     maxHeight: "300px",
@@ -4024,17 +4065,40 @@ const ChatPage: React.FC = () => {
                                                           )
                                                         )
                                                           .unwrap()
-                                                          .then(() => {
-                                                            notification.success(
-                                                              {
-                                                                message:
-                                                                  "Success",
-                                                                description:
-                                                                  "Member removed from the group.",
+                                                          .then(
+                                                            (updatedGroup) => {
+                                                              notification.success(
+                                                                {
+                                                                  message:
+                                                                    "Success",
+                                                                  description:
+                                                                    "Member removed from the group.",
+                                                                }
+                                                              );
+
+                                                              // Refresh the selected contact to update the UI
+                                                              if (
+                                                                updatedGroup
+                                                              ) {
+                                                                dispatch(
+                                                                  setSelectedContact(
+                                                                    {
+                                                                      ...selectedContact,
+                                                                      members:
+                                                                        updatedGroup.members.map(
+                                                                          (
+                                                                            member: { id: string }
+                                                                          ) =>
+                                                                            member.id
+                                                                        ),
+                                                                    }
+                                                                  )
+                                                                );
                                                               }
-                                                            );
-                                                            modal.destroy();
-                                                          })
+
+                                                              modal.destroy();
+                                                            }
+                                                          )
                                                           .catch((error) => {
                                                             console.error(
                                                               "Error removing member:",
