@@ -1466,6 +1466,48 @@ const chatSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      
+      // Update group
+      .addCase(updateGroupThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateGroupThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        
+        // Update the group in the groups array
+        const groupIndex = state.groups.findIndex(
+          (group) => group.id === action.payload.id
+        );
+        if (groupIndex !== -1) {
+          state.groups[groupIndex] = action.payload;
+        }
+        
+        // If this is the currently selected contact, update it too
+        if (state.selectedContact && state.selectedContact.id === action.payload.id) {
+          state.selectedContact = {
+            ...state.selectedContact,
+            name: action.payload.name,
+            avatar: action.payload.avatar || state.selectedContact.avatar,
+          };
+        }
+        
+        // Update the contact in the contacts list if it exists there
+        const contactIndex = state.contacts.findIndex(
+          (contact) => contact.id === action.payload.id
+        );
+        if (contactIndex !== -1) {
+          state.contacts[contactIndex] = {
+            ...state.contacts[contactIndex],
+            name: action.payload.name,
+            avatar: action.payload.avatar || state.contacts[contactIndex].avatar,
+          };
+        }
+      })
+      .addCase(updateGroupThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
       // Fetch pending requests
       .addCase(fetchPendingRequests.pending, (state) => {

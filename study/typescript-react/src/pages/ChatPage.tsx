@@ -864,6 +864,7 @@ import {
   createGroupThunk,
   sendGroupMessageThunk,
   fetchGroupMessagesThunk,
+  updateGroupThunk,
 } from "../store/chatSlice";
 
 import {
@@ -1258,56 +1259,65 @@ const ChatPage: React.FC = () => {
       );
 
       // Fetch messages based on whether this is a group or individual contact
-      const fetchAction = selectedContact.isGroup
-        ? fetchGroupMessagesThunk(selectedContact.id)
-        : fetchMessages(selectedContact.id);
+      if (selectedContact.isGroup) {
+        // Handle group messages
+        dispatch(fetchGroupMessagesThunk(selectedContact.id))
+          .unwrap()
+          .then(() => {
+            // Group messages don't need to be marked as read in the same way
+            console.log("[Chat] Group messages loaded successfully");
+          })
+          .catch((error) => {
+            console.error("[Chat] Error fetching group messages:", error);
+          });
+      } else {
+        // Handle individual messages
+        dispatch(fetchMessages(selectedContact.id))
+          .unwrap()
+          .then(() => {
+            // Get current user ID for proper logging
+            const currentUserId = userInfo?.id;
 
-      // Fetch messages only once when contact is selected
-      dispatch(fetchAction)
-        .unwrap()
-        .then(() => {
-          // Get current user ID for proper logging
-          const currentUserId = userInfo?.id;
+            // Only mark messages as read if the document has focus (user is actively viewing)
+            // and it's not a group chat (for individual chats only)
+            if (document.hasFocus()) {
+              console.log(
+                "[Chat] Marking messages as read for contact:",
+                selectedContact.id,
+                "Current user ID:",
+                currentUserId,
+                "Document has focus:",
+                document.hasFocus()
+              );
 
-          // Only mark messages as read if the document has focus (user is actively viewing)
-          // and it's not a group chat (for individual chats only)
-          if (document.hasFocus() && !selectedContact.isGroup) {
-            console.log(
-              "[Chat] Marking messages as read for contact:",
-              selectedContact.id,
-              "Current user ID:",
-              currentUserId,
-              "Document has focus:",
-              document.hasFocus()
-            );
+              // First, update the UI immediately based on Redux store
+              dispatch(
+                updateMessagesReadStatus({
+                  contactId: selectedContact.id,
+                  currentUserId: userInfo?.id,
+                })
+              );
 
-            // First, update the UI immediately based on Redux store
-            dispatch(
-              updateMessagesReadStatus({
-                contactId: selectedContact.id,
-                currentUserId: userInfo?.id,
-              })
-            );
+              console.log(
+                "[Chat] Dispatched immediate UI update for read status on contact selection"
+              );
 
-            console.log(
-              "[Chat] Dispatched immediate UI update for read status on contact selection"
-            );
-
-            // Try to mark messages as read via WebSocket
-            import("../services/websocketService").then(
-              ({ markMessagesAsReadViaWebSocket }) => {
-                markMessagesAsReadViaWebSocket(selectedContact.id);
-              }
-            );
-          } else {
-            console.log(
-              "[Chat] Document does not have focus or this is a group chat, not marking messages as read automatically"
-            );
-          }
-        })
-        .catch((error) => {
-          console.error("[Chat] Error fetching messages:", error);
-        });
+              // Try to mark messages as read via WebSocket
+              import("../services/websocketService").then(
+                ({ markMessagesAsReadViaWebSocket }) => {
+                  markMessagesAsReadViaWebSocket(selectedContact.id);
+                }
+              );
+            } else {
+              console.log(
+                "[Chat] Document does not have focus, not marking messages as read automatically"
+              );
+            }
+          })
+          .catch((error) => {
+            console.error("[Chat] Error fetching messages:", error);
+          });
+      }
     }
   }, [selectedContact, dispatch, userInfo?.id]);
 
@@ -2616,6 +2626,33 @@ const ChatPage: React.FC = () => {
                       ),
                       onClick: () => setActiveFilter("other"),
                     },
+                    {
+                      type: "divider",
+                    },
+                    {
+                      key: "group",
+                      label: (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <TeamOutlined style={{ color: "#1890ff" }} />
+                          <span
+                            style={{
+                              color: "#1890ff",
+                              fontWeight:
+                                activeFilter === "group" ? "bold" : "normal",
+                            }}
+                          >
+                            Groups
+                          </span>
+                        </div>
+                      ),
+                      onClick: () => setActiveFilter("group"),
+                    },
                   ],
                 }}
                 placement="bottomRight"
@@ -2625,7 +2662,7 @@ const ChatPage: React.FC = () => {
                   icon={
                     <FilterOutlined
                       style={{
-                        color: activeFilter !== "all" ? "#1890ff" : undefined,
+                        color: activeFilter !== "all" ? "white" : undefined,
                         fontSize: "14px",
                       }}
                     />
@@ -2783,6 +2820,8 @@ const ChatPage: React.FC = () => {
                         ? true
                         : activeFilter === "unread"
                         ? contact.unreadCount > 0
+                        : activeFilter === "group"
+                        ? false // Hide regular contacts when group filter is active
                         : activeFilter === "friend"
                         ? contact.group === "Friend"
                         : activeFilter === "family"
@@ -2812,12 +2851,29 @@ const ChatPage: React.FC = () => {
                     }))
                     .filter((groupContact) => {
                       // Apply search filter for groups
-                      return (
+                      const matchesSearch =
                         searchText === "" ||
                         groupContact.name
                           .toLowerCase()
-                          .includes(searchText.toLowerCase())
-                      );
+                          .includes(searchText.toLowerCase());
+
+                      // Apply group/category filter for groups
+                      const matchesFilter =
+                        activeFilter === "all"
+                          ? true
+                          : activeFilter === "unread"
+                          ? groupContact.unreadCount > 0
+                          : activeFilter === "group"
+                          ? true // Always show in group filter
+                          : activeFilter === "friend" ||
+                            activeFilter === "family" ||
+                            activeFilter === "college" ||
+                            activeFilter === "work" ||
+                            activeFilter === "other"
+                          ? false // Don't show groups when filtering by contact categories
+                          : true;
+
+                      return matchesSearch && matchesFilter;
                     }),
                 ]}
                 renderItem={(contact) => {
@@ -2922,261 +2978,260 @@ const ChatPage: React.FC = () => {
                                 }}
                                 title={contact.name}
                               >
-                                {contact.isGroup && (
-                                  <TeamOutlined
-                                    style={{
-                                      color: "#1890ff",
-                                      fontSize: "14px",
-                                    }}
-                                  />
-                                )}
+                                {/* Group icon before name removed */}
                                 {contact.name}
                               </span>
-                              {/* Group tag dropdown for both regular contacts and group contacts */}
-                              <Dropdown
-                                menu={{
-                                  items: [
-                                    {
-                                      key: "friend",
-                                      label: (
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "8px",
-                                          }}
-                                        >
-                                          <UserOutlined
-                                            style={{ color: "#f5222d" }}
-                                          />
-                                          <span style={{ color: "#f5222d" }}>
-                                            Friend
-                                          </span>
-                                        </div>
-                                      ),
-                                      onClick: (e) => {
-                                        e.domEvent.stopPropagation();
-                                        dispatch(
-                                          updateContactGroupThunk({
-                                            contactId: contact.id,
-                                            group: "Friend",
-                                            isGroup: contact.isGroup,
-                                          })
-                                        );
+                              {/* Display fixed Group tag for groups or show dropdown for regular contacts */}
+                              {contact.isGroup ? (
+                                <Tag
+                                  color="blue"
+                                  icon={<TeamOutlined />}
+                                  style={{
+                                    fontSize: "10px",
+                                    lineHeight: "14px",
+                                    padding: "0 4px",
+                                  }}
+                                >
+                                  Group
+                                </Tag>
+                              ) : (
+                                <Dropdown
+                                  menu={{
+                                    items: [
+                                      {
+                                        key: "friend",
+                                        label: (
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "8px",
+                                            }}
+                                          >
+                                            <UserOutlined
+                                              style={{ color: "#f5222d" }}
+                                            />
+                                            <span style={{ color: "#f5222d" }}>
+                                              Friend
+                                            </span>
+                                          </div>
+                                        ),
+                                        onClick: (e) => {
+                                          e.domEvent.stopPropagation();
+                                          dispatch(
+                                            updateContactGroupThunk({
+                                              contactId: contact.id,
+                                              group: "Friend",
+                                              isGroup: contact.isGroup,
+                                            })
+                                          );
+                                        },
                                       },
-                                    },
-                                    {
-                                      key: "family",
-                                      label: (
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "8px",
-                                          }}
-                                        >
-                                          <TagOutlined
-                                            style={{ color: "#52c41a" }}
-                                          />
-                                          <span style={{ color: "#52c41a" }}>
-                                            Family
-                                          </span>
-                                        </div>
-                                      ),
-                                      onClick: (e) => {
-                                        e.domEvent.stopPropagation();
-                                        dispatch(
-                                          updateContactGroupThunk({
-                                            contactId: contact.id,
-                                            group: "Family",
-                                            isGroup: contact.isGroup,
-                                          })
-                                        );
+                                      {
+                                        key: "family",
+                                        label: (
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "8px",
+                                            }}
+                                          >
+                                            <TagOutlined
+                                              style={{ color: "#52c41a" }}
+                                            />
+                                            <span style={{ color: "#52c41a" }}>
+                                              Family
+                                            </span>
+                                          </div>
+                                        ),
+                                        onClick: (e) => {
+                                          e.domEvent.stopPropagation();
+                                          dispatch(
+                                            updateContactGroupThunk({
+                                              contactId: contact.id,
+                                              group: "Family",
+                                              isGroup: contact.isGroup,
+                                            })
+                                          );
+                                        },
                                       },
-                                    },
-                                    {
-                                      key: "college",
-                                      label: (
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "8px",
-                                          }}
-                                        >
-                                          <BookOutlined
-                                            style={{ color: "#1890ff" }}
-                                          />
-                                          <span style={{ color: "#1890ff" }}>
-                                            College
-                                          </span>
-                                        </div>
-                                      ),
-                                      onClick: (e) => {
-                                        e.domEvent.stopPropagation();
-                                        dispatch(
-                                          updateContactGroupThunk({
-                                            contactId: contact.id,
-                                            group: "College",
-                                            isGroup: contact.isGroup,
-                                          })
-                                        );
+                                      {
+                                        key: "college",
+                                        label: (
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "8px",
+                                            }}
+                                          >
+                                            <BookOutlined
+                                              style={{ color: "#1890ff" }}
+                                            />
+                                            <span style={{ color: "#1890ff" }}>
+                                              College
+                                            </span>
+                                          </div>
+                                        ),
+                                        onClick: (e) => {
+                                          e.domEvent.stopPropagation();
+                                          dispatch(
+                                            updateContactGroupThunk({
+                                              contactId: contact.id,
+                                              group: "College",
+                                              isGroup: contact.isGroup,
+                                            })
+                                          );
+                                        },
                                       },
-                                    },
-                                    {
-                                      key: "work",
-                                      label: (
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "8px",
-                                          }}
-                                        >
-                                          <LaptopOutlined
-                                            style={{ color: "#722ed1" }}
-                                          />
-                                          <span style={{ color: "#722ed1" }}>
-                                            Work
-                                          </span>
-                                        </div>
-                                      ),
-                                      onClick: (e) => {
-                                        e.domEvent.stopPropagation();
-                                        dispatch(
-                                          updateContactGroupThunk({
-                                            contactId: contact.id,
-                                            group: "Work",
-                                            isGroup: contact.isGroup,
-                                          })
-                                        );
+                                      {
+                                        key: "work",
+                                        label: (
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "8px",
+                                            }}
+                                          >
+                                            <LaptopOutlined
+                                              style={{ color: "#722ed1" }}
+                                            />
+                                            <span style={{ color: "#722ed1" }}>
+                                              Work
+                                            </span>
+                                          </div>
+                                        ),
+                                        onClick: (e) => {
+                                          e.domEvent.stopPropagation();
+                                          dispatch(
+                                            updateContactGroupThunk({
+                                              contactId: contact.id,
+                                              group: "Work",
+                                              isGroup: contact.isGroup,
+                                            })
+                                          );
+                                        },
                                       },
-                                    },
-                                    {
-                                      key: "other",
-                                      label: (
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "8px",
-                                          }}
-                                        >
-                                          <StarOutlined
-                                            style={{ color: "#faad14" }}
-                                          />
-                                          <span style={{ color: "#faad14" }}>
-                                            Other
-                                          </span>
-                                        </div>
-                                      ),
-                                      onClick: (e) => {
-                                        e.domEvent.stopPropagation();
-                                        dispatch(
-                                          updateContactGroupThunk({
-                                            contactId: contact.id,
-                                            group: "Other",
-                                            isGroup: contact.isGroup,
-                                          })
-                                        );
+                                      {
+                                        key: "other",
+                                        label: (
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "8px",
+                                            }}
+                                          >
+                                            <StarOutlined
+                                              style={{ color: "#faad14" }}
+                                            />
+                                            <span style={{ color: "#faad14" }}>
+                                              Other
+                                            </span>
+                                          </div>
+                                        ),
+                                        onClick: (e) => {
+                                          e.domEvent.stopPropagation();
+                                          dispatch(
+                                            updateContactGroupThunk({
+                                              contactId: contact.id,
+                                              group: "Other",
+                                              isGroup: contact.isGroup,
+                                            })
+                                          );
+                                        },
                                       },
-                                    },
-                                    {
-                                      key: "none",
-                                      label: (
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "8px",
-                                          }}
-                                        >
-                                          <CloseCircleOutlined
-                                            style={{ color: "#8c8c8c" }}
-                                          />
-                                          <span style={{ color: "#8c8c8c" }}>
-                                            None
-                                          </span>
-                                        </div>
-                                      ),
-                                      onClick: (e) => {
-                                        e.domEvent.stopPropagation();
-                                        dispatch(
-                                          updateContactGroupThunk({
-                                            contactId: contact.id,
-                                            group: "",
-                                            isGroup: contact.isGroup,
-                                          })
-                                        );
+                                      {
+                                        key: "none",
+                                        label: (
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "8px",
+                                            }}
+                                          >
+                                            <CloseCircleOutlined
+                                              style={{ color: "#8c8c8c" }}
+                                            />
+                                            <span style={{ color: "#8c8c8c" }}>
+                                              None
+                                            </span>
+                                          </div>
+                                        ),
+                                        onClick: (e) => {
+                                          e.domEvent.stopPropagation();
+                                          dispatch(
+                                            updateContactGroupThunk({
+                                              contactId: contact.id,
+                                              group: "",
+                                              isGroup: contact.isGroup,
+                                            })
+                                          );
+                                        },
                                       },
-                                    },
-                                  ],
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                placement="bottomRight"
-                                trigger={["click"]}
-                              >
-                                {contact.group ? (
-                                  <Tag
-                                    color={
-                                      contact.group === "Friend"
-                                        ? "red"
-                                        : contact.group === "Family"
-                                        ? "green"
-                                        : contact.group === "College"
-                                        ? "blue"
-                                        : contact.group === "Work"
-                                        ? "purple"
-                                        : contact.group === "Other"
-                                        ? "orange"
-                                        : "default"
-                                    }
-                                    icon={
-                                      contact.group === "Friend" ? (
-                                        <UserOutlined />
-                                      ) : contact.group === "Family" ? (
-                                        <TagOutlined />
-                                      ) : contact.group === "College" ? (
-                                        <BookOutlined />
-                                      ) : contact.group === "Work" ? (
-                                        <LaptopOutlined />
-                                      ) : contact.group === "Other" ? (
-                                        <StarOutlined />
-                                      ) : null
-                                    }
-                                    style={{
-                                      fontSize: "10px",
-                                      lineHeight: "14px",
-                                      padding: "0 4px",
-                                      cursor: "pointer",
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {contact.group}
-                                  </Tag>
-                                ) : (
-                                  <Button
-                                    type="text"
-                                    size="small"
-                                    icon={
-                                      contact.isGroup ? (
-                                        <TeamOutlined />
-                                      ) : (
-                                        <TagOutlined />
-                                      )
-                                    }
-                                    style={{
-                                      color: "#8c8c8c",
-                                      padding: 0,
-                                      minWidth: "20px",
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                )}
-                              </Dropdown>
+                                    ],
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placement="bottomRight"
+                                  trigger={["click"]}
+                                >
+                                  {contact.group ? (
+                                    <Tag
+                                      color={
+                                        contact.group === "Friend"
+                                          ? "red"
+                                          : contact.group === "Family"
+                                          ? "green"
+                                          : contact.group === "College"
+                                          ? "blue"
+                                          : contact.group === "Work"
+                                          ? "purple"
+                                          : contact.group === "Other"
+                                          ? "orange"
+                                          : "default"
+                                      }
+                                      icon={
+                                        contact.group === "Friend" ? (
+                                          <UserOutlined />
+                                        ) : contact.group === "Family" ? (
+                                          <TagOutlined />
+                                        ) : contact.group === "College" ? (
+                                          <BookOutlined />
+                                        ) : contact.group === "Work" ? (
+                                          <LaptopOutlined />
+                                        ) : contact.group === "Other" ? (
+                                          <StarOutlined />
+                                        ) : null
+                                      }
+                                      style={{
+                                        fontSize: "10px",
+                                        lineHeight: "14px",
+                                        padding: "0 4px",
+                                        cursor: "pointer",
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {contact.group}
+                                    </Tag>
+                                  ) : null}
+                                </Dropdown>
+                              )}
                             </div>
                             {contact.unreadCount > 0 && (
-                              <Tag color="#1890ff">{contact.unreadCount}</Tag>
+                              <Tag
+                                color={contact.isGroup ? "#1890ff" : "#52c41a"}
+                                style={{
+                                  borderRadius: "12px",
+                                  fontWeight: "bold",
+                                  minWidth: "22px",
+                                  textAlign: "center",
+                                }}
+                              >
+                                {contact.unreadCount}
+                              </Tag>
                             )}
                           </div>
                         }
@@ -3289,84 +3344,157 @@ const ChatPage: React.FC = () => {
                       >
                         {selectedContact.name}
                       </Title>
-                      {selectedContact.group && (
+                      {selectedContact.isGroup ? (
                         <Tag
-                          color={
-                            selectedContact.group === "Friend"
-                              ? "red"
-                              : selectedContact.group === "Family"
-                              ? "green"
-                              : selectedContact.group === "College"
-                              ? "blue"
-                              : selectedContact.group === "Work"
-                              ? "purple"
-                              : selectedContact.group === "Other"
-                              ? "orange"
-                              : "default"
-                          }
-                          icon={
-                            selectedContact.group === "Friend" ? (
-                              <UserOutlined />
-                            ) : selectedContact.group === "Family" ? (
-                              <TagOutlined />
-                            ) : selectedContact.group === "College" ? (
-                              <BookOutlined />
-                            ) : selectedContact.group === "Work" ? (
-                              <LaptopOutlined />
-                            ) : selectedContact.group === "Other" ? (
-                              <StarOutlined />
-                            ) : null
-                          }
+                          color="blue"
+                          icon={<TeamOutlined />}
                           style={{
                             fontSize: "10px",
                             lineHeight: "14px",
                             padding: "0 4px",
                           }}
                         >
-                          {selectedContact.group}
+                          Group
                         </Tag>
+                      ) : (
+                        selectedContact.group && (
+                          <Tag
+                            color={
+                              selectedContact.group === "Friend"
+                                ? "red"
+                                : selectedContact.group === "Family"
+                                ? "green"
+                                : selectedContact.group === "College"
+                                ? "blue"
+                                : selectedContact.group === "Work"
+                                ? "purple"
+                                : selectedContact.group === "Other"
+                                ? "orange"
+                                : "default"
+                            }
+                            icon={
+                              selectedContact.group === "Friend" ? (
+                                <UserOutlined />
+                              ) : selectedContact.group === "Family" ? (
+                                <TagOutlined />
+                              ) : selectedContact.group === "College" ? (
+                                <BookOutlined />
+                              ) : selectedContact.group === "Work" ? (
+                                <LaptopOutlined />
+                              ) : selectedContact.group === "Other" ? (
+                                <StarOutlined />
+                              ) : null
+                            }
+                            style={{
+                              fontSize: "10px",
+                              lineHeight: "14px",
+                              padding: "0 4px",
+                            }}
+                          >
+                            {selectedContact.group}
+                          </Tag>
+                        )
                       )}
-                      {!selectedContact.isGroup && (
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<EditOutlined />}
-                          style={{ color: "#8c8c8c" }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Show a modal to edit the display name
-                            Modal.confirm({
-                              title: "Edit Display Name",
-                              content: (
-                                <Input
-                                  placeholder="Enter new display name"
-                                  defaultValue={selectedContact.name}
-                                  id="display-name-input"
-                                />
-                              ),
-                              onOk: () => {
-                                const input = document.getElementById(
-                                  "display-name-input"
-                                ) as HTMLInputElement;
-                                const newName = input?.value;
-                                if (newName && newName.trim()) {
+                      {/* Edit button for both regular contacts and groups */}
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<EditOutlined />}
+                        style={{ color: "#8c8c8c" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Show a modal to edit the display name
+                          Modal.confirm({
+                            title: `Edit ${
+                              selectedContact.isGroup ? "Group" : "Contact"
+                            } Name`,
+                            content: (
+                              <Input
+                                placeholder="Enter new display name"
+                                defaultValue={selectedContact.name}
+                                id="display-name-input"
+                              />
+                            ),
+                            onOk: () => {
+                              const input = document.getElementById(
+                                "display-name-input"
+                              ) as HTMLInputElement;
+                              const newName = input?.value;
+                              if (newName && newName.trim()) {
+                                if (selectedContact.isGroup) {
+                                  // Use updateGroupThunk for groups
+                                  dispatch(
+                                    updateGroupThunk({
+                                      groupId: selectedContact.id,
+                                      updates: {
+                                        name: newName.trim(),
+                                      },
+                                    })
+                                  )
+                                    .unwrap()
+                                    .then((updatedGroup) => {
+                                      // Update the UI immediately
+                                      console.log(
+                                        "Group updated successfully:",
+                                        updatedGroup
+                                      );
+
+                                      notification.success({
+                                        message: "Success",
+                                        description:
+                                          "Group name updated successfully!",
+                                      });
+                                    })
+                                    .catch((error) => {
+                                      console.error(
+                                        "Error updating group name:",
+                                        error
+                                      );
+                                      notification.error({
+                                        message: "Error",
+                                        description:
+                                          "Failed to update group name. Please try again.",
+                                      });
+                                    });
+                                } else {
+                                  // Use updateContactDisplayNameThunk for regular contacts
                                   dispatch(
                                     updateContactDisplayNameThunk({
                                       contactId: selectedContact.id,
                                       displayName: newName.trim(),
                                     })
-                                  );
-                                  notification.success({
-                                    message: "Success",
-                                    description:
-                                      "Contact name updated successfully!",
-                                  });
+                                  )
+                                    .unwrap()
+                                    .then((updatedContact) => {
+                                      // Update the UI immediately
+                                      console.log(
+                                        "Contact updated successfully:",
+                                        updatedContact
+                                      );
+
+                                      notification.success({
+                                        message: "Success",
+                                        description:
+                                          "Contact name updated successfully!",
+                                      });
+                                    })
+                                    .catch((error) => {
+                                      console.error(
+                                        "Error updating contact name:",
+                                        error
+                                      );
+                                      notification.error({
+                                        message: "Error",
+                                        description:
+                                          "Failed to update contact name. Please try again.",
+                                      });
+                                    });
                                 }
-                              },
-                            });
-                          }}
-                        />
-                      )}
+                              }
+                            },
+                          });
+                        }}
+                      />
                     </div>
                     <Text
                       type="secondary"
