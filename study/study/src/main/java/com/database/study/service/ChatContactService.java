@@ -293,8 +293,40 @@ public class ChatContactService {
                         throw e;
                 }
 
-                // Now that we have the ChatContact entity, use the existing method to remove it
-                removeContact(userId, contact.getId());
+                // Delete the contact directly instead of calling removeContact
+                try {
+                        log.info("ChatContactService.removeContactByContactUserId - Deleting contact with ID: {}",
+                                        contact.getId());
+                        contactRepository.delete(contact);
+                        contactRepository.flush(); // Force immediate flush to the database
+
+                        // Double-check that the contact was deleted
+                        boolean stillExists = contactRepository.existsById(contact.getId());
+                        if (stillExists) {
+                                log.error("ChatContactService.removeContactByContactUserId - Contact still exists after deletion attempt: {}",
+                                                contact.getId());
+                                // Try a direct delete by ID as a fallback
+                                contactRepository.deleteById(contact.getId());
+                                contactRepository.flush();
+                                log.info("ChatContactService.removeContactByContactUserId - Attempted direct deleteById as fallback");
+                        } else {
+                                log.info("ChatContactService.removeContactByContactUserId - Successfully deleted contact and verified removal");
+                        }
+
+                        // Also find and delete the reciprocal contact if it exists
+                        contactRepository.findByUserAndContact(contactUser, user)
+                                        .ifPresent(reciprocalContact -> {
+                                                log.info("ChatContactService.removeContactByContactUserId - Found reciprocal contact with ID: {}",
+                                                                reciprocalContact.getId());
+                                                contactRepository.delete(reciprocalContact);
+                                                contactRepository.flush();
+                                                log.info("ChatContactService.removeContactByContactUserId - Deleted reciprocal contact");
+                                        });
+                } catch (Exception e) {
+                        log.error("ChatContactService.removeContactByContactUserId - Error deleting contact: {}",
+                                        e.getMessage(), e);
+                        throw e;
+                }
         }
 
         @Transactional

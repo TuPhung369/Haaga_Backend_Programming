@@ -7,7 +7,7 @@ import {
   addContactByEmail,
   updateContactGroup,
   updateContactDisplayName,
-  removeContact,
+  removeContact as removeContactService,
   updateGroupTag,
   getPendingContactRequests,
   respondToContactRequest,
@@ -620,7 +620,7 @@ export const removeContactThunk = createAsyncThunk(
         `[ChatSlice] Calling removeContact service function with contactId: ${contactId}`
       );
       try {
-        await removeContact(contactId);
+        await removeContactService(contactId);
         console.log(
           `[ChatSlice] removeContact service function completed successfully`
         );

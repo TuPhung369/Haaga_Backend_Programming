@@ -17,7 +17,7 @@ import {
   Tag,
   Switch,
   Select,
-  message,
+  message as antdMessage,
 } from "antd";
 import {
   SendOutlined,
@@ -122,12 +122,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
       .writeText(textContent)
       .then(() => {
         // Use the imported message from antd, not the message prop
-        message.success("Message copied to clipboard");
+        antdMessage.success("Message copied to clipboard");
       })
       .catch((err) => {
         console.error("Failed to copy message: ", err);
         // Use the imported message from antd, not the message prop
-        message.error("Failed to copy message");
+        antdMessage.error("Failed to copy message");
       });
 
     setIsDropdownOpen(false);
@@ -168,7 +168,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
     const handleOk = () => {
       if (selectedContacts.size === 0) {
-        antMessage.error("Please select at least one contact");
+        antdMessage.error("Please select at least one contact");
         return;
       }
       onForward(Array.from(selectedContacts));
@@ -325,7 +325,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               contactIds.length === 1 && contactIds[0] === currentUserId;
 
             if (isOnlySendingToSelf) {
-              antMessage.warning(
+              antdMessage.warning(
                 "You cannot forward a message only to yourself"
               );
               modal.destroy();
@@ -353,9 +353,9 @@ const MessageItem: React.FC<MessageItemProps> = ({
 
               // Show appropriate message based on whether the user tried to forward only to themselves
               if (includesSelf && contactIds.length === 1) {
-                antMessage.warning("Cannot forward a message to yourself");
+                antdMessage.warning("Cannot forward a message to yourself");
               } else {
-                antMessage.info("No valid recipients to forward to");
+                antdMessage.info("No valid recipients to forward to");
               }
               return;
             }
@@ -402,13 +402,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   if (successCount > 0) {
                     // If the user was in the original list but filtered out, mention it
                     if (includesSelf) {
-                      antMessage.success(
+                      antdMessage.success(
                         `Message forwarded to ${successCount} contact${
                           successCount > 1 ? "s" : ""
                         } (excluding yourself)`
                       );
                     } else {
-                      antMessage.success(
+                      antdMessage.success(
                         `Message forwarded to ${successCount} contact${
                           successCount > 1 ? "s" : ""
                         }`
@@ -430,7 +430,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                       dispatch(fetchMessages(currentSelectedContact.id));
                     }
                   } else {
-                    antMessage.warning("No messages were forwarded");
+                    antdMessage.warning("No messages were forwarded");
                   }
                 })
                 .catch((error) => {
@@ -447,11 +447,11 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   ) {
                     errorMessage += `: ${error.message}`;
                   }
-                  antMessage.error(errorMessage);
+                  antdMessage.error(errorMessage);
                 });
             } catch (error) {
               console.error("Unexpected error during forward dispatch:", error);
-              antMessage.error(
+              antdMessage.error(
                 "An unexpected error occurred while forwarding the message"
               );
             }
@@ -3562,27 +3562,34 @@ const ChatPage: React.FC = () => {
                                               selectedContact.id;
 
                                             // Show loading message
-                                            message.loading({
+                                            antdMessage.loading({
                                               content: `Removing ${contactName} from contacts...`,
                                               key: "contact-removal",
                                               duration: 1,
                                             });
 
                                             // Call the removeContactThunk to permanently remove the contact from backend
-                                            console.log(`[ChatPage] Dispatching removeContactThunk with contactId: ${contactId}`);
-                                            
+                                            console.log(
+                                              `[ChatPage] Dispatching removeContactThunk with contactId: ${contactId}`
+                                            );
+
                                             const resultPromise = dispatch(
                                               removeContactThunk(contactId)
                                             );
-                                            console.log(`[ChatPage] removeContactThunk dispatched, waiting for result`);
-                                            
+                                            console.log(
+                                              `[ChatPage] removeContactThunk dispatched, waiting for result`
+                                            );
+
                                             resultPromise
                                               .unwrap()
                                               .then((result) => {
-                                                console.log(`[ChatPage] removeContactThunk succeeded with result:`, result);
-                                                
+                                                console.log(
+                                                  `[ChatPage] removeContactThunk succeeded with result:`,
+                                                  result
+                                                );
+
                                                 // Show success message
-                                                message.success({
+                                                antdMessage.success({
                                                   content: `${contactName} has been permanently removed from your contacts list.`,
                                                   key: "contact-removal",
                                                   duration: 3,
@@ -3617,7 +3624,7 @@ const ChatPage: React.FC = () => {
                                             );
 
                                             // Show error message
-                                            message.error({
+                                            antdMessage.error({
                                               content:
                                                 "Failed to remove contact. Please try again.",
                                               key: "contact-removal",
