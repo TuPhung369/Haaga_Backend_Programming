@@ -76,7 +76,7 @@ const GroupAvatar: React.FC<GroupAvatarProps> = ({ contact, size = 40 }) => {
 
   // Component for 3 members in a triangle
   const ThreeAvatarTriangle = () => {
-    const avatarSize = size * 0.4;
+    const avatarSize = size * 0.45;
     return (
       <div
         style={{
@@ -88,13 +88,13 @@ const GroupAvatar: React.FC<GroupAvatarProps> = ({ contact, size = 40 }) => {
           alignItems: "center",
         }}
       >
-        <div style={{ marginBottom: -5 }}>
+        <div style={{ marginTop: -5 }}>
           <Avatar
             icon={<UserOutlined />}
             size={avatarSize}
             style={{
               backgroundColor: getAvatarColor(0),
-              fontSize: avatarSize * 0.6,
+              fontSize: avatarSize * 0.7,
             }}
           />
         </div>
@@ -110,7 +110,7 @@ const GroupAvatar: React.FC<GroupAvatarProps> = ({ contact, size = 40 }) => {
             size={avatarSize}
             style={{
               backgroundColor: getAvatarColor(1),
-              fontSize: avatarSize * 0.6,
+              fontSize: avatarSize * 0.7,
             }}
           />
           <Avatar
@@ -118,7 +118,7 @@ const GroupAvatar: React.FC<GroupAvatarProps> = ({ contact, size = 40 }) => {
             size={avatarSize}
             style={{
               backgroundColor: getAvatarColor(2),
-              fontSize: avatarSize * 0.6,
+              fontSize: avatarSize * 0.7,
             }}
           />
         </div>
