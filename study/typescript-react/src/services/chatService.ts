@@ -137,12 +137,20 @@ export const sendMessage = async (
     // ADDITIONAL SAFETY CHECK: Check if this might be a group ID by looking at the store
     const state = store.getState();
     const groups = state.chat.groups || [];
-    
+
     // CRITICAL: Log all groups for debugging
-    console.log("[ChatService] CRITICAL DEBUG - All groups in store:", 
-      JSON.stringify(groups.map(g => ({ id: g.id, name: g.name })), null, 2)
+    console.log(
+      "[ChatService] CRITICAL DEBUG - All groups in store:",
+      JSON.stringify(
+        groups.map((g) => ({ id: g.id, name: g.name })),
+        null,
+        2
+      )
     );
-    console.log("[ChatService] CRITICAL DEBUG - Checking if receiverId is a group:", receiverId);
+    console.log(
+      "[ChatService] CRITICAL DEBUG - Checking if receiverId is a group:",
+      receiverId
+    );
 
     // Log all groups for debugging
     console.log(
@@ -153,20 +161,26 @@ export const sendMessage = async (
     // CRITICAL: Check if receiverId matches any group ID - use strict equality and string comparison
     // First convert all IDs to strings to ensure consistent comparison
     const receiverIdStr = String(receiverId);
-    
+
     // Check using multiple methods to be absolutely sure
-    const matchingGroup = groups.find((group) => String(group.id) === receiverIdStr);
-    const matchingGroupAlt = groups.some((group) => String(group.id) === receiverIdStr);
-    const matchingGroupIndex = groups.findIndex((group) => String(group.id) === receiverIdStr);
-    
+    const matchingGroup = groups.find(
+      (group) => String(group.id) === receiverIdStr
+    );
+    const matchingGroupAlt = groups.some(
+      (group) => String(group.id) === receiverIdStr
+    );
+    const matchingGroupIndex = groups.findIndex(
+      (group) => String(group.id) === receiverIdStr
+    );
+
     console.log("[ChatService] CRITICAL DEBUG - Group detection results:", {
       matchingGroup: matchingGroup ? matchingGroup.name : null,
       matchingGroupAlt,
       matchingGroupIndex,
       receiverIdStr,
-      groupIds: groups.map(g => String(g.id))
+      groupIds: groups.map((g) => String(g.id)),
     });
-    
+
     // If ANY of our checks indicate this is a group, use the group endpoint
     if (matchingGroup || matchingGroupAlt || matchingGroupIndex >= 0) {
       console.log(
@@ -177,15 +191,21 @@ export const sendMessage = async (
         "[ChatService] Redirecting to sendGroupMessage for group ID:",
         receiverIdStr
       );
-      
+
       // FORCE use of group message endpoint
       return sendGroupMessage(content, receiverIdStr);
     }
-    
+
     // ADDITIONAL SAFETY: Check if the selected contact in Redux has isGroup=true
     const selectedContact = state.chat.selectedContact;
-    if (selectedContact && String(selectedContact.id) === receiverIdStr && selectedContact.isGroup === true) {
-      console.log("[ChatService] CRITICAL OVERRIDE: Selected contact has isGroup=true");
+    if (
+      selectedContact &&
+      String(selectedContact.id) === receiverIdStr &&
+      selectedContact.isGroup === true
+    ) {
+      console.log(
+        "[ChatService] CRITICAL OVERRIDE: Selected contact has isGroup=true"
+      );
       return sendGroupMessage(content, receiverIdStr);
     }
 
@@ -373,6 +393,40 @@ export const updateContactDisplayName = async (
     return response.data;
   } catch (error) {
     console.error("Error updating contact display name:", error);
+    throw handleServiceError(error);
+  }
+};
+
+// Remove a contact
+export const removeContact = async (contactId: string): Promise<void> => {
+  try {
+    console.log(`[ChatService] Removing contact with ID: ${contactId}`);
+    console.log(`[ChatService] API URL: ${API_BASE_URI}/chat/contacts/${contactId}`);
+    
+    // Get the current token for debugging
+    const token = store.getState().auth.token;
+    console.log(`[ChatService] Using auth token: ${token ? token.substring(0, 15) + '...' : 'none'}`);
+    
+    // Use the DELETE endpoint we implemented in the backend
+    const response = await apiClient.delete(`/chat/contacts/${contactId}`);
+    console.log(`[ChatService] Contact removed successfully:`, response.data);
+    return;
+  } catch (error) {
+    console.error("Error removing contact:", error);
+    // Log more details about the error
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error(`[ChatService] Error status: ${error.response.status}`);
+      console.error(`[ChatService] Error data:`, error.response.data);
+      console.error(`[ChatService] Error headers:`, error.response.headers);
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error(`[ChatService] No response received:`, error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error(`[ChatService] Error message:`, error.message);
+    }
     throw handleServiceError(error);
   }
 };
@@ -665,10 +719,7 @@ export const sendGroupMessage = async (
 
     // Log the endpoint we're using
     const endpoint = `/chat/groups/${groupId}/messages`;
-    console.log(
-      "[ChatService] Using group-specific endpoint:",
-      endpoint
-    );
+    console.log("[ChatService] Using group-specific endpoint:", endpoint);
 
     // Get the token for logging purposes
     const token = store.getState().auth.token;
@@ -688,7 +739,9 @@ export const sendGroupMessage = async (
 
       // Ensure we have a valid response
       if (!response.data) {
-        console.error("[ChatService] Empty response data from group message API");
+        console.error(
+          "[ChatService] Empty response data from group message API"
+        );
         throw new ServiceError("Empty response from server", {
           errorType: ErrorType.SERVER_ERROR,
         });
@@ -703,10 +756,10 @@ export const sendGroupMessage = async (
       };
     } catch (apiError) {
       console.error("[ChatService] API error in sendGroupMessage:", apiError);
-      
+
       // Try a direct axios call as a fallback
       console.log("[ChatService] Attempting direct axios call as fallback");
-      
+
       const directResponse = await axios.post(
         `${API_BASE_URI}/chat/groups/${groupId}/messages`,
         { content },
@@ -718,12 +771,12 @@ export const sendGroupMessage = async (
           withCredentials: true,
         }
       );
-      
+
       console.log("[ChatService] Direct axios call successful:", {
         responseStatus: directResponse.status,
         responseData: directResponse.data,
       });
-      
+
       return {
         ...directResponse.data,
         metadata: {
@@ -734,7 +787,7 @@ export const sendGroupMessage = async (
     }
   } catch (error) {
     console.error("[ChatService] Error sending group message:", error);
-    
+
     // Log detailed error information
     if (error instanceof Error) {
       console.error("[ChatService] Error details:", {
@@ -743,15 +796,18 @@ export const sendGroupMessage = async (
         stack: error.stack,
       });
     }
-    
+
     // Throw a more specific error
     if (error instanceof ServiceError) {
       throw error;
     } else {
-      throw new ServiceError("Failed to send group message. Please try again.", {
-        errorType: ErrorType.UNKNOWN,
-        originalError: error,
-      });
+      throw new ServiceError(
+        "Failed to send group message. Please try again.",
+        {
+          errorType: ErrorType.UNKNOWN,
+          originalError: error,
+        }
+      );
     }
   }
 };

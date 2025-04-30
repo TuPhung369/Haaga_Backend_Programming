@@ -17,7 +17,7 @@ import {
   Tag,
   Switch,
   Select,
-  message as antMessage,
+  message,
 } from "antd";
 import {
   SendOutlined,
@@ -121,13 +121,13 @@ const MessageItem: React.FC<MessageItemProps> = ({
     navigator.clipboard
       .writeText(textContent)
       .then(() => {
-        // Use the imported antMessage from antd, not the message prop
-        antMessage.success("Message copied to clipboard");
+        // Use the imported message from antd, not the message prop
+        message.success("Message copied to clipboard");
       })
       .catch((err) => {
         console.error("Failed to copy message: ", err);
-        // Use the imported antMessage from antd, not the message prop
-        antMessage.error("Failed to copy message");
+        // Use the imported message from antd, not the message prop
+        message.error("Failed to copy message");
       });
 
     setIsDropdownOpen(false);
@@ -854,6 +854,7 @@ import {
   setSelectedContact,
   updateContactGroupThunk,
   updateContactDisplayNameThunk,
+  removeContactThunk,
   fetchPendingRequests,
   respondToRequest,
   updateMessagesReadStatus, // Import the updateMessagesReadStatus action
@@ -3426,106 +3427,221 @@ const ChatPage: React.FC = () => {
                           </Tag>
                         )
                       )}
-                      {/* Edit button for both regular contacts and groups */}
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<EditOutlined />}
-                        style={{ color: "#8c8c8c" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Show a modal to edit the display name
-                          Modal.confirm({
-                            title: `Edit ${
-                              selectedContact.isGroup ? "Group" : "Contact"
-                            } Name`,
-                            content: (
-                              <Input
-                                placeholder="Enter new display name"
-                                defaultValue={selectedContact.name}
-                                id="display-name-input"
-                              />
-                            ),
-                            onOk: () => {
-                              const input = document.getElementById(
-                                "display-name-input"
-                              ) as HTMLInputElement;
-                              const newName = input?.value;
-                              if (newName && newName.trim()) {
-                                if (selectedContact.isGroup) {
-                                  // Use updateGroupThunk for groups
-                                  dispatch(
-                                    updateGroupThunk({
-                                      groupId: selectedContact.id,
-                                      updates: {
-                                        name: newName.trim(),
-                                      },
-                                    })
-                                  )
-                                    .unwrap()
-                                    .then((updatedGroup) => {
-                                      // Update the UI immediately
-                                      console.log(
-                                        "Group updated successfully:",
-                                        updatedGroup
-                                      );
+                      {/* Edit dropdown menu for both regular contacts and groups */}
+                      <Dropdown
+                        menu={{
+                          items: [
+                            {
+                              key: "edit",
+                              icon: <EditOutlined />,
+                              label: `Edit ${
+                                selectedContact.isGroup ? "Group" : "Contact"
+                              } Name`,
+                              onClick: () => {
+                                // Show a modal to edit the display name
+                                Modal.confirm({
+                                  title: `Edit ${
+                                    selectedContact.isGroup
+                                      ? "Group"
+                                      : "Contact"
+                                  } Name`,
+                                  content: (
+                                    <Input
+                                      placeholder="Enter new display name"
+                                      defaultValue={selectedContact.name}
+                                      id="display-name-input"
+                                    />
+                                  ),
+                                  onOk: () => {
+                                    const input = document.getElementById(
+                                      "display-name-input"
+                                    ) as HTMLInputElement;
+                                    const newName = input?.value;
+                                    if (newName && newName.trim()) {
+                                      if (selectedContact.isGroup) {
+                                        // Use updateGroupThunk for groups
+                                        dispatch(
+                                          updateGroupThunk({
+                                            groupId: selectedContact.id,
+                                            updates: {
+                                              name: newName.trim(),
+                                            },
+                                          })
+                                        )
+                                          .unwrap()
+                                          .then((updatedGroup) => {
+                                            // Update the UI immediately
+                                            console.log(
+                                              "Group updated successfully:",
+                                              updatedGroup
+                                            );
 
-                                      notification.success({
-                                        message: "Success",
-                                        description:
-                                          "Group name updated successfully!",
-                                      });
-                                    })
-                                    .catch((error) => {
-                                      console.error(
-                                        "Error updating group name:",
-                                        error
-                                      );
-                                      notification.error({
-                                        message: "Error",
-                                        description:
-                                          "Failed to update group name. Please try again.",
-                                      });
-                                    });
-                                } else {
-                                  // Use updateContactDisplayNameThunk for regular contacts
-                                  dispatch(
-                                    updateContactDisplayNameThunk({
-                                      contactId: selectedContact.id,
-                                      displayName: newName.trim(),
-                                    })
-                                  )
-                                    .unwrap()
-                                    .then((updatedContact) => {
-                                      // Update the UI immediately
-                                      console.log(
-                                        "Contact updated successfully:",
-                                        updatedContact
-                                      );
+                                            notification.success({
+                                              message: "Success",
+                                              description:
+                                                "Group name updated successfully!",
+                                            });
+                                          })
+                                          .catch((error) => {
+                                            console.error(
+                                              "Error updating group name:",
+                                              error
+                                            );
+                                            notification.error({
+                                              message: "Error",
+                                              description:
+                                                "Failed to update group name. Please try again.",
+                                            });
+                                          });
+                                      } else {
+                                        // Use updateContactDisplayNameThunk for regular contacts
+                                        dispatch(
+                                          updateContactDisplayNameThunk({
+                                            contactId: selectedContact.id,
+                                            displayName: newName.trim(),
+                                          })
+                                        )
+                                          .unwrap()
+                                          .then((updatedContact) => {
+                                            // Update the UI immediately
+                                            console.log(
+                                              "Contact updated successfully:",
+                                              updatedContact
+                                            );
 
-                                      notification.success({
-                                        message: "Success",
-                                        description:
-                                          "Contact name updated successfully!",
-                                      });
-                                    })
-                                    .catch((error) => {
-                                      console.error(
-                                        "Error updating contact name:",
-                                        error
-                                      );
-                                      notification.error({
-                                        message: "Error",
-                                        description:
-                                          "Failed to update contact name. Please try again.",
-                                      });
-                                    });
-                                }
-                              }
+                                            notification.success({
+                                              message: "Success",
+                                              description:
+                                                "Contact name updated successfully!",
+                                            });
+                                          })
+                                          .catch((error) => {
+                                            console.error(
+                                              "Error updating contact name:",
+                                              error
+                                            );
+                                            notification.error({
+                                              message: "Error",
+                                              description:
+                                                "Failed to update contact name. Please try again.",
+                                            });
+                                          });
+                                      }
+                                    }
+                                  },
+                                });
+                              },
                             },
-                          });
+                            // Only show remove option for regular contacts, not groups
+                            ...(selectedContact.isGroup
+                              ? []
+                              : [
+                                  {
+                                    key: "remove",
+                                    icon: <DeleteOutlined />,
+                                    label: "Remove Contact",
+                                    danger: true,
+                                    onClick: () => {
+                                      // Show confirmation modal before removing contact
+                                      Modal.confirm({
+                                        title: "Remove Contact",
+                                        content: `Are you sure you want to remove ${selectedContact.name} from your contacts?`,
+                                        okText: "Remove",
+                                        okType: "danger",
+                                        cancelText: "Cancel",
+                                        onOk: async () => {
+                                          try {
+                                            console.log(
+                                              `[ChatPage] Removing contact: ${selectedContact.id} (${selectedContact.name})`
+                                            );
+
+                                            // Store the contact info before removal for the notification
+                                            const contactName =
+                                              selectedContact.name;
+                                            const contactId =
+                                              selectedContact.id;
+
+                                            // Show loading message
+                                            message.loading({
+                                              content: `Removing ${contactName} from contacts...`,
+                                              key: "contact-removal",
+                                              duration: 1,
+                                            });
+
+                                            // Call the removeContactThunk to permanently remove the contact from backend
+                                            console.log(`[ChatPage] Dispatching removeContactThunk with contactId: ${contactId}`);
+                                            
+                                            const resultPromise = dispatch(
+                                              removeContactThunk(contactId)
+                                            );
+                                            console.log(`[ChatPage] removeContactThunk dispatched, waiting for result`);
+                                            
+                                            resultPromise
+                                              .unwrap()
+                                              .then((result) => {
+                                                console.log(`[ChatPage] removeContactThunk succeeded with result:`, result);
+                                                
+                                                // Show success message
+                                                message.success({
+                                                  content: `${contactName} has been permanently removed from your contacts list.`,
+                                                  key: "contact-removal",
+                                                  duration: 3,
+                                                });
+                                              })
+                                              .catch((error) => {
+                                                console.error(
+                                                  "[ChatPage] removeContactThunk failed with error:",
+                                                  error
+                                                );
+
+                                                // If API call fails, still remove locally for better UX
+                                                dispatch({
+                                                  type: "chat/removeContactLocally",
+                                                  payload: contactId,
+                                                });
+
+                                                // Show warning about temporary removal
+                                                notification.warning({
+                                                  message:
+                                                    "Contact Removal Issue",
+                                                  description:
+                                                    "The contact has been removed from your view, but there was an issue with the permanent removal. " +
+                                                    "The contact may reappear after page refresh.",
+                                                  duration: 0, // Don't auto-close
+                                                });
+                                              });
+                                          } catch (error) {
+                                            console.error(
+                                              "[ChatPage] Error removing contact:",
+                                              error
+                                            );
+
+                                            // Show error message
+                                            message.error({
+                                              content:
+                                                "Failed to remove contact. Please try again.",
+                                              key: "contact-removal",
+                                              duration: 3,
+                                            });
+                                          }
+                                        },
+                                      });
+                                    },
+                                  },
+                                ]),
+                          ],
                         }}
-                      />
+                        trigger={["click"]}
+                        placement="bottomRight"
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<EditOutlined />}
+                          style={{ color: "#8c8c8c" }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </Dropdown>
                     </div>
                     <Text
                       type="secondary"

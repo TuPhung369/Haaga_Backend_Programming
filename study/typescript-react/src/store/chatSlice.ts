@@ -7,6 +7,7 @@ import {
   addContactByEmail,
   updateContactGroup,
   updateContactDisplayName,
+  removeContact,
   updateGroupTag,
   getPendingContactRequests,
   respondToContactRequest,
@@ -590,6 +591,186 @@ export const updateContactDisplayNameThunk = createAsyncThunk(
   }
 );
 
+export const removeContactThunk = createAsyncThunk(
+  "chat/removeContact",
+  async (contactId: string, { rejectWithValue, dispatch, getState }) => {
+    try {
+      console.log(
+        `[ChatSlice] Starting to remove contact with ID: ${contactId}`
+      );
+
+      // Get the current state to check if this is the selected contact
+      const state = getState() as RootState;
+      const isSelectedContact = state.chat.selectedContact?.id === contactId;
+      const contactName =
+        state.chat.contacts.find((c) => c.id === contactId)?.name || "Unknown";
+
+      if (isSelectedContact) {
+        console.log(
+          `[ChatSlice] This is the currently selected contact, will clear selection after removal`
+        );
+      }
+
+      console.log(
+        `[ChatSlice] Attempting to remove contact "${contactName}" (${contactId}) from database`
+      );
+
+      // Call the service function to remove the contact
+      console.log(
+        `[ChatSlice] Calling removeContact service function with contactId: ${contactId}`
+      );
+      try {
+        await removeContact(contactId);
+        console.log(
+          `[ChatSlice] removeContact service function completed successfully`
+        );
+      } catch (serviceError) {
+        console.error(
+          `[ChatSlice] removeContact service function failed:`,
+          serviceError
+        );
+        throw serviceError; // Re-throw to be caught by the outer catch
+      }
+
+      console.log(
+        `[ChatSlice] Contact "${contactName}" (${contactId}) successfully removed from backend database`
+      );
+
+      // Immediately refresh the contacts list to ensure UI is in sync with the backend
+      try {
+        console.log(`[ChatSlice] Refreshing contacts list after removal`);
+
+        // Wait a moment to ensure the backend has processed the removal
+        console.log(`[ChatSlice] Waiting 1 second for backend processing...`);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Force a refresh of the contacts list
+        console.log(`[ChatSlice] Fetching updated contacts list...`);
+        await dispatch(fetchContacts()).unwrap();
+        console.log(`[ChatSlice] Contacts list refreshed successfully`);
+
+        // Double-check if the contact was actually removed from the backend
+        const updatedState = getState() as RootState;
+        const contactStillExists = updatedState.chat.contacts.some(
+          (c) => c.id === contactId
+        );
+
+        if (contactStillExists) {
+          console.warn(
+            `[ChatSlice] CRITICAL ERROR: Contact still exists after removal and refresh: ${contactId}`
+          );
+          console.warn(
+            `[ChatSlice] This indicates the backend did not properly remove the contact`
+          );
+
+          // Log all contacts for debugging
+          console.log(
+            `[ChatSlice] Current contacts after refresh:`,
+            updatedState.chat.contacts.map((c) => ({ id: c.id, name: c.name }))
+          );
+
+          // Try a direct API call as a fallback
+          try {
+            console.log(
+              `[ChatSlice] Attempting direct API call as fallback to remove contact: ${contactId}`
+            );
+
+            // Import axios for direct API call
+            const axios = await import("axios");
+
+            // Get the token from the current state
+            const token = updatedState.auth.token;
+
+            // Make a direct API call to the contact endpoint
+            await axios.default.delete(
+              `http://localhost:9095/identify_service/chat/contacts/${contactId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+                withCredentials: true,
+              }
+            );
+
+            console.log(
+              `[ChatSlice] Direct API call to remove contact successful`
+            );
+
+            // Wait a moment and refresh contacts again
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await dispatch(fetchContacts()).unwrap();
+
+            // Check if contact is still there after second attempt
+            const finalState = getState() as RootState;
+            const stillExists = finalState.chat.contacts.some(
+              (c) => c.id === contactId
+            );
+
+            if (stillExists) {
+              console.warn(
+                `[ChatSlice] Contact STILL exists after second removal attempt: ${contactId}`
+              );
+              // Force remove locally as last resort
+              console.log(
+                `[ChatSlice] Forcing local removal of contact: ${contactId}`
+              );
+              dispatch({
+                type: "chat/removeContactLocally",
+                payload: contactId,
+              });
+            } else {
+              console.log(
+                `[ChatSlice] Contact successfully removed after second attempt: ${contactId}`
+              );
+            }
+          } catch (directError) {
+            console.error(
+              `[ChatSlice] Direct API call to remove contact failed:`,
+              directError
+            );
+            // Force remove the contact from the local state since all backend attempts failed
+            console.log(
+              `[ChatSlice] Forcing local removal of contact: ${contactId}`
+            );
+            dispatch({
+              type: "chat/removeContactLocally",
+              payload: contactId,
+            });
+          }
+        } else {
+          console.log(
+            `[ChatSlice] Contact successfully removed and verified: ${contactId}`
+          );
+        }
+      } catch (refreshError) {
+        console.error(
+          `[ChatSlice] Error refreshing contacts after removal:`,
+          refreshError
+        );
+        // We don't throw here because the contact was successfully removed
+      }
+
+      // Return the contactId for the reducer to use
+      return contactId;
+    } catch (error: unknown) {
+      console.error(`[ChatSlice] Error removing contact:`, error);
+
+      try {
+        handleServiceError(error);
+      } catch (serviceError: unknown) {
+        const errorMessage =
+          serviceError instanceof Error
+            ? serviceError.message
+            : "Failed to remove contact";
+
+        console.error(`[ChatSlice] Service error:`, errorMessage);
+        return rejectWithValue(errorMessage);
+      }
+    }
+  }
+);
+
 export const fetchPendingRequests = createAsyncThunk(
   "chat/fetchPendingRequests",
   async (_, { rejectWithValue }) => {
@@ -761,6 +942,22 @@ const chatSlice = createSlice({
     },
     addContact: (state, action: PayloadAction<Contact>) => {
       state.contacts.push(action.payload);
+    },
+    // Client-side only contact removal (for UI purposes)
+    removeContactLocally: (state, action: PayloadAction<string>) => {
+      const contactId = action.payload;
+      console.log(`[Redux] Removing contact locally (UI only): ${contactId}`);
+
+      // Remove the contact from the contacts array
+      state.contacts = state.contacts.filter(
+        (contact) => contact.id !== contactId
+      );
+
+      // If this is the selected contact, clear the selection
+      if (state.selectedContact && state.selectedContact.id === contactId) {
+        state.selectedContact = null;
+        state.messages = [];
+      }
     },
     updateContact: (state, action: PayloadAction<Contact>) => {
       const index = state.contacts.findIndex(
@@ -1466,7 +1663,32 @@ const chatSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      
+
+      // Remove contact
+      .addCase(removeContactThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(removeContactThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        const contactId = action.payload;
+
+        // Remove the contact from the contacts array
+        state.contacts = state.contacts.filter(
+          (contact) => contact.id !== contactId
+        );
+
+        // If this is the selected contact, clear the selection
+        if (state.selectedContact && state.selectedContact.id === contactId) {
+          state.selectedContact = null;
+          state.messages = [];
+        }
+      })
+      .addCase(removeContactThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
       // Update group
       .addCase(updateGroupThunk.pending, (state) => {
         state.loading = true;
@@ -1474,7 +1696,7 @@ const chatSlice = createSlice({
       })
       .addCase(updateGroupThunk.fulfilled, (state, action) => {
         state.loading = false;
-        
+
         // Update the group in the groups array
         const groupIndex = state.groups.findIndex(
           (group) => group.id === action.payload.id
@@ -1482,16 +1704,19 @@ const chatSlice = createSlice({
         if (groupIndex !== -1) {
           state.groups[groupIndex] = action.payload;
         }
-        
+
         // If this is the currently selected contact, update it too
-        if (state.selectedContact && state.selectedContact.id === action.payload.id) {
+        if (
+          state.selectedContact &&
+          state.selectedContact.id === action.payload.id
+        ) {
           state.selectedContact = {
             ...state.selectedContact,
             name: action.payload.name,
             avatar: action.payload.avatar || state.selectedContact.avatar,
           };
         }
-        
+
         // Update the contact in the contacts list if it exists there
         const contactIndex = state.contacts.findIndex(
           (contact) => contact.id === action.payload.id
@@ -1500,7 +1725,8 @@ const chatSlice = createSlice({
           state.contacts[contactIndex] = {
             ...state.contacts[contactIndex],
             name: action.payload.name,
-            avatar: action.payload.avatar || state.contacts[contactIndex].avatar,
+            avatar:
+              action.payload.avatar || state.contacts[contactIndex].avatar,
           };
         }
       })

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +30,7 @@ import com.database.study.entity.ChatContact;
 import com.database.study.entity.User;
 import com.database.study.repository.ChatContactRepository;
 import com.database.study.repository.UserRepository;
+import com.database.study.service.ChatContactService;
 
 @RestController
 @RequestMapping("/chat")
@@ -40,9 +42,12 @@ public class ChatContactController {
 
     @Autowired
     private UserRepository userRepository;
-    
+
     @Autowired
     private WebSocketMessageController webSocketMessageController;
+
+    @Autowired
+    private ChatContactService chatContactService;
 
     // In-memory storage for messages - we'll keep these in memory for now
     private final Map<String, List<ChatMessageResponse>> messages = new HashMap<>();
@@ -73,51 +78,54 @@ public class ChatContactController {
 
         // Convert to response objects
         List<ChatContactResponse> contactResponses = userContacts.stream()
-            .map(contact -> {
-                User contactUser = contact.getContact();
-                ChatContactResponse response = new ChatContactResponse();
-                response.setId(contactUser.getId().toString());
-                response.setName(contact.getDisplayName() != null ?
-                    contact.getDisplayName() : getUserDisplayName(contactUser));
-                response.setEmail(contactUser.getEmail());
-                
-                // Set status from user's actual status
-                response.setStatus(contactUser.getUserStatus() != null ? contactUser.getUserStatus() : "online");
-                
-                response.setGroup(contact.getContactGroup()); // Set the contact group
-                response.setContactStatus(contact.getStatus().toString()); // Add contact status
+                .map(contact -> {
+                    User contactUser = contact.getContact();
+                    ChatContactResponse response = new ChatContactResponse();
+                    response.setId(contactUser.getId().toString());
+                    response.setName(contact.getDisplayName() != null ? contact.getDisplayName()
+                            : getUserDisplayName(contactUser));
+                    response.setEmail(contactUser.getEmail());
 
-                // Set unread count and last message if available
-                String contactId = contactUser.getId().toString();
-                response.setUnreadCount(unreadCounts.getOrDefault(contactId, 0));
-                List<ChatMessageResponse> contactMessages = messages.getOrDefault(contactId, new ArrayList<>());
-                if (!contactMessages.isEmpty()) {
-                    response.setLastMessage(contactMessages.get(contactMessages.size() - 1).getContent());
-                }
+                    // Set status from user's actual status
+                    response.setStatus(contactUser.getUserStatus() != null ? contactUser.getUserStatus() : "online");
 
-                return response;
-            })
-            .collect(Collectors.toList());
+                    response.setGroup(contact.getContactGroup()); // Set the contact group
+                    response.setContactStatus(contact.getStatus().toString()); // Add contact status
+
+                    // Set unread count and last message if available
+                    String contactId = contactUser.getId().toString();
+                    response.setUnreadCount(unreadCounts.getOrDefault(contactId, 0));
+                    List<ChatMessageResponse> contactMessages = messages.getOrDefault(contactId, new ArrayList<>());
+                    if (!contactMessages.isEmpty()) {
+                        response.setLastMessage(contactMessages.get(contactMessages.size() - 1).getContent());
+                    }
+
+                    return response;
+                })
+                .collect(Collectors.toList());
 
         return ResponseEntity.ok(contactResponses);
     }
 
     // This endpoint is now handled by ChatMessageController
     // @GetMapping("/messages/{contactId}")
-    // public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable String contactId) {
-    //     // Implementation moved to ChatMessageController
+    // public ResponseEntity<List<ChatMessageResponse>> getMessages(@PathVariable
+    // String contactId) {
+    // // Implementation moved to ChatMessageController
     // }
 
     // This endpoint is now handled by ChatMessageController
     // @PostMapping("/messages")
-    // public ResponseEntity<ChatMessageResponse> sendMessage(@RequestBody ChatMessageRequest request) {
-    //     // Implementation moved to ChatMessageController
+    // public ResponseEntity<ChatMessageResponse> sendMessage(@RequestBody
+    // ChatMessageRequest request) {
+    // // Implementation moved to ChatMessageController
     // }
 
     // This endpoint is now handled by ChatMessageController
     // @PostMapping("/messages/read/{contactId}")
-    // public ResponseEntity<Void> markMessagesAsRead(@PathVariable String contactId) {
-    //     // Implementation moved to ChatMessageController
+    // public ResponseEntity<Void> markMessagesAsRead(@PathVariable String
+    // contactId) {
+    // // Implementation moved to ChatMessageController
     // }
 
     @PostMapping("/contacts")
@@ -150,8 +158,8 @@ public class ChatContactController {
 
             ChatContactResponse response = new ChatContactResponse();
             response.setId(contactUser.getId().toString());
-            response.setName(contact.getDisplayName() != null ?
-                contact.getDisplayName() : getUserDisplayName(contactUser));
+            response.setName(
+                    contact.getDisplayName() != null ? contact.getDisplayName() : getUserDisplayName(contactUser));
             response.setEmail(contactUser.getEmail());
             response.setStatus(contactUser.getUserStatus() != null ? contactUser.getUserStatus() : "offline");
             response.setUnreadCount(0);
@@ -161,22 +169,21 @@ public class ChatContactController {
 
         // Create new contact
         ChatContact newContact = ChatContact.builder()
-            .user(currentUser)
-            .contact(contactUser)
-            .status(ChatContact.ContactStatus.PENDING)
-            .createdAt(LocalDateTime.now())
-            .build();
+                .user(currentUser)
+                .contact(contactUser)
+                .status(ChatContact.ContactStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .build();
 
         // Save to database
         contactRepository.save(newContact);
-        
+
         // Send WebSocket notification to the contact user
         log.info("Sending contact request notification to user: {}", contactUser.getId());
         webSocketMessageController.sendContactRequestNotification(
-            currentUser.getId().toString(),
-            contactUser.getId().toString(),
-            getUserDisplayName(currentUser)
-        );
+                currentUser.getId().toString(),
+                contactUser.getId().toString(),
+                getUserDisplayName(currentUser));
 
         // Create response DTO
         ChatContactResponse response = new ChatContactResponse();
@@ -296,8 +303,8 @@ public class ChatContactController {
             // Create response
             ChatContactResponse response = new ChatContactResponse();
             response.setId(contactUser.getId().toString());
-            response.setName(contact.getDisplayName() != null ?
-                contact.getDisplayName() : getUserDisplayName(contactUser));
+            response.setName(
+                    contact.getDisplayName() != null ? contact.getDisplayName() : getUserDisplayName(contactUser));
             response.setEmail(contactUser.getEmail());
             response.setStatus(contactUser.getUserStatus() != null ? contactUser.getUserStatus() : "online");
             response.setGroup(contact.getContactGroup());
@@ -320,11 +327,12 @@ public class ChatContactController {
     // This endpoint is now handled by ChatMessageController
     // @GetMapping("/messages/unread/count")
     // public ResponseEntity<Map<String, Integer>> getUnreadMessageCount() {
-    //     // Implementation moved to ChatMessageController
+    // // Implementation moved to ChatMessageController
     // }
 
     /**
      * Get pending contact requests for the current user
+     * 
      * @return List of pending contact requests
      */
     @GetMapping("/contacts/pending")
@@ -337,30 +345,31 @@ public class ChatContactController {
 
         // Find contacts where current user is the contact and status is PENDING
         List<ChatContact> pendingRequests = contactRepository.findByContactAndStatus(
-            currentUser, ChatContact.ContactStatus.PENDING);
+                currentUser, ChatContact.ContactStatus.PENDING);
 
         // Convert to response objects
         List<ChatContactResponse> responseList = pendingRequests.stream()
-            .map(contact -> {
-                User requestUser = contact.getUser(); // The user who sent the request
-                ChatContactResponse response = new ChatContactResponse();
-                response.setId(requestUser.getId().toString());
-                response.setName(getUserDisplayName(requestUser));
-                response.setEmail(requestUser.getEmail());
-                response.setStatus(requestUser.getUserStatus() != null ? requestUser.getUserStatus() : "online");
-                response.setContactStatus(contact.getStatus().toString());
-                response.setUnreadCount(0);
-                return response;
-            })
-            .collect(Collectors.toList());
+                .map(contact -> {
+                    User requestUser = contact.getUser(); // The user who sent the request
+                    ChatContactResponse response = new ChatContactResponse();
+                    response.setId(requestUser.getId().toString());
+                    response.setName(getUserDisplayName(requestUser));
+                    response.setEmail(requestUser.getEmail());
+                    response.setStatus(requestUser.getUserStatus() != null ? requestUser.getUserStatus() : "online");
+                    response.setContactStatus(contact.getStatus().toString());
+                    response.setUnreadCount(0);
+                    return response;
+                })
+                .collect(Collectors.toList());
 
         return ResponseEntity.ok(responseList);
     }
 
     /**
      * Accept or reject a contact request
+     * 
      * @param contactId ID of the user who sent the request
-     * @param payload Contains action ("accept" or "reject")
+     * @param payload   Contains action ("accept" or "reject")
      * @return Updated contact information
      */
     @PostMapping("/contacts/{contactId}/respond")
@@ -394,7 +403,7 @@ public class ChatContactController {
             Optional<ChatContact> pendingRequestOpt = contactRepository.findByUserAndContact(requestUser, currentUser);
 
             if (pendingRequestOpt.isEmpty() ||
-                pendingRequestOpt.get().getStatus() != ChatContact.ContactStatus.PENDING) {
+                    pendingRequestOpt.get().getStatus() != ChatContact.ContactStatus.PENDING) {
                 return ResponseEntity.notFound().build();
             }
 
@@ -409,34 +418,32 @@ public class ChatContactController {
                 // Create a reciprocal contact relationship
                 if (!contactRepository.existsByUserAndContact(currentUser, requestUser)) {
                     ChatContact reciprocalContact = ChatContact.builder()
-                        .user(currentUser)
-                        .contact(requestUser)
-                        .status(ChatContact.ContactStatus.ACCEPTED)
-                        .createdAt(LocalDateTime.now())
-                        .build();
+                            .user(currentUser)
+                            .contact(requestUser)
+                            .status(ChatContact.ContactStatus.ACCEPTED)
+                            .createdAt(LocalDateTime.now())
+                            .build();
                     contactRepository.save(reciprocalContact);
                 }
-                
+
                 // Send WebSocket notification to the requester that their request was accepted
                 log.info("Sending contact response notification to user: {}", requestUser.getId());
                 webSocketMessageController.sendContactResponseNotification(
-                    requestUser.getId().toString(),
-                    currentUser.getId().toString(),
-                    getUserDisplayName(currentUser),
-                    true
-                );
+                        requestUser.getId().toString(),
+                        currentUser.getId().toString(),
+                        getUserDisplayName(currentUser),
+                        true);
             } else {
                 // Reject the request - delete it
                 contactRepository.delete(pendingRequest);
-                
+
                 // Send WebSocket notification to the requester that their request was rejected
                 log.info("Sending contact rejection notification to user: {}", requestUser.getId());
                 webSocketMessageController.sendContactResponseNotification(
-                    requestUser.getId().toString(),
-                    currentUser.getId().toString(),
-                    getUserDisplayName(currentUser),
-                    false
-                );
+                        requestUser.getId().toString(),
+                        currentUser.getId().toString(),
+                        getUserDisplayName(currentUser),
+                        false);
             }
 
             // Create response
@@ -445,8 +452,8 @@ public class ChatContactController {
             response.setName(getUserDisplayName(requestUser));
             response.setEmail(requestUser.getEmail());
             response.setStatus("online"); // Set status to online for the accepted contact
-            response.setContactStatus(action.equals("accept") ?
-                ChatContact.ContactStatus.ACCEPTED.toString() : "REJECTED");
+            response.setContactStatus(
+                    action.equals("accept") ? ChatContact.ContactStatus.ACCEPTED.toString() : "REJECTED");
 
             return ResponseEntity.ok(response);
 
@@ -457,6 +464,7 @@ public class ChatContactController {
 
     /**
      * Get the authenticated user from the security context
+     * 
      * @return The current user or null if not authenticated
      */
     private User getCurrentUser() {
@@ -487,8 +495,10 @@ public class ChatContactController {
 
     /**
      * Generate a display name from a user entity
+     * 
      * @param user The user entity
-     * @return A display name based on firstname + lastname, or username if those are not available
+     * @return A display name based on firstname + lastname, or username if those
+     *         are not available
      */
     private String getUserDisplayName(User user) {
         if (user.getFirstname() != null && user.getLastname() != null) {
@@ -497,6 +507,87 @@ public class ChatContactController {
             return user.getUsername();
         } else {
             return user.getEmail();
+        }
+    }
+
+    /**
+     * Permanently remove a contact
+     * 
+     * @param contactId ID of the contact to remove
+     * @return Success response
+     */
+    @DeleteMapping("/contacts/{contactId}")
+    public ResponseEntity<Map<String, Object>> removeContact(@PathVariable String contactId) {
+        log.info("DELETE /chat/contacts/{} - Request received to remove contact", contactId);
+        try {
+            // Get current user
+            User currentUser = getCurrentUser();
+            if (currentUser == null) {
+                log.error("DELETE /chat/contacts/{} - User not authenticated", contactId);
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "User not authenticated"));
+            }
+
+            // Convert contactId to UUID
+            UUID contactUUID;
+            try {
+                contactUUID = UUID.fromString(contactId);
+                log.info("DELETE /chat/contacts/{} - Valid UUID format", contactId);
+            } catch (IllegalArgumentException e) {
+                log.error("DELETE /chat/contacts/{} - Invalid UUID format", contactId);
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Invalid contact ID format"));
+            }
+
+            // Find contact by ID
+            Optional<User> contactUserOpt = userRepository.findById(contactUUID);
+            if (contactUserOpt.isEmpty()) {
+                log.error("DELETE /chat/contacts/{} - Contact user not found", contactId);
+                return ResponseEntity.notFound().build();
+            }
+
+            User contactUser = contactUserOpt.get();
+            log.info("DELETE /chat/contacts/{} - Found contact user: {}", contactId, contactUser.getUsername());
+
+            // Check if the contact relationship exists
+            boolean contactExists = contactRepository.existsByUserAndContact(currentUser, contactUser);
+            
+            // Use the service to permanently remove the contact
+            try {
+                log.info("DELETE /chat/contacts/{} - Contact relationship exists: {}", contactId, contactExists);
+                
+                if (contactExists) {
+                    log.info("DELETE /chat/contacts/{} - Calling service to remove contact with user ID: {}", 
+                        contactId, contactUser.getUsername());
+                    
+                    // The contactId in the URL is the ID of the contact user
+                    // We use the method that takes a contact user ID
+                    chatContactService.removeContactByContactUserId(currentUser.getId().toString(), contactUUID);
+                    
+                    log.info("DELETE /chat/contacts/{} - Contact successfully removed from database", contactId);
+                } else {
+                    log.info("DELETE /chat/contacts/{} - Contact relationship does not exist, nothing to remove", contactId);
+                }
+            } catch (Exception e) {
+                log.error("DELETE /chat/contacts/{} - Error in service layer: {}", contactId, e.getMessage(), e);
+                throw e; // Re-throw to be caught by outer try-catch
+            }
+
+            // Send WebSocket notification if needed
+            log.info("Contact permanently removed: {} removed {}",
+                    currentUser.getUsername(), contactUser.getUsername());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Contact permanently removed",
+                    "contactId", contactId));
+        } catch (Exception e) {
+            log.error("Error removing contact", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "success", false,
+                    "message", "An error occurred while removing the contact: " + e.getMessage()));
         }
     }
 
