@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <!-- Mermaid for flowcharts -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"></script>
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../architecture.html" class="sidebar-subnav-link">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="auth.html" class="sidebar-subnav-link">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="calendar.html" class="sidebar-subnav-link active">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="language-ai.html" class="sidebar-subnav-link">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../backend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/api.html" class="sidebar-subnav-link">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/websockets.html" class="sidebar-subnav-link">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/speech-processing.html" class="sidebar-subnav-link">Speech Processing</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>Calendar System</h1>
+      <p>Comprehensive documentation of the Calendar implementation in the TuPhung Project.</p>
+    </header>
+    
+    <section>
+      <h2>Overview</h2>
+      <p>
+        The Calendar system in the TuPhung Project provides a comprehensive event management solution that allows users 
+        to schedule, view, and manage events. It supports different calendar views (month, week, day), event categories, 
+        recurring events, reminders, and sharing capabilities.
+      </p>
+      
+      <div class="component-card">
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>Multiple Calendar Views</strong> - Month, week, day, and agenda views</li>
+          <li><strong>Event Management</strong> - Create, edit, delete, and view event details</li>
+          <li><strong>Recurring Events</strong> - Support for daily, weekly, monthly, and yearly recurring events</li>
+          <li><strong>Event Categories</strong> - Color-coded categories for different types of events</li>
+          <li><strong>Event Reminders</strong> - Notifications for upcoming events</li>
+          <li><strong>Calendar Sharing</strong> - Share calendars with other users</li>
+          <li><strong>Drag and Drop</strong> - Easily reschedule events by dragging</li>
+          <li><strong>Event Search</strong> - Search for events by title, description, or category</li>
+          <li><strong>Integration with Tasks</strong> - Link events to tasks in the Kanban board</li>
+        </ul>
+      </div>
+      
+      <h2>Architecture</h2>
+      
+      <div class="diagram-container">
+        <div class="diagram-title">Calendar System Architecture</div>
+        <div class="mermaid">
+          graph TD
+            User[User] --> UI[Calendar UI]
+            UI --> CalendarViews[Calendar Views]
+            UI --> EventForm[Event Form]
+            UI --> EventDetails[Event Details]
+            
+            CalendarViews --> CalendarState[Calendar State]
+            EventForm --> CalendarState
+            EventDetails --> CalendarState
+            
+            CalendarState --> CalendarService[Calendar Service]
+            CalendarService --> API[REST API]
+            
+            API --> Backend[Backend Server]
+            Backend --> Database[(Database)]
+            
+            subgraph Frontend
+              UI
+              CalendarViews
+              EventForm
+              EventDetails
+              CalendarState
+              CalendarService
+            end
+            
+            subgraph Backend
+              API
+              Backend
+              Database
+            end
+        </div>
+      </div>
+      
+      <h2>Frontend Implementation</h2>
+      
+      <p>
+        The Calendar frontend is built using React with TypeScript and leverages the react-big-calendar library 
+        for the calendar interface. The state management is handled through Redux, with a dedicated slice for 
+        calendar-related state.
+      </p>
+      
+      <div class="component-card">
+        <h3>Calendar Component</h3>
+        <p>
+          The main Calendar component provides a comprehensive interface for viewing and managing events.
+          It supports multiple views (month, week, day, agenda) and allows users to create, edit, and delete events.
+        </p>
+        
+        <p>Key features of the Calendar component:</p>
+        <ul>
+          <li>Multiple view options (month, week, day, agenda)</li>
+          <li>Event creation through clicking on time slots</li>
+          <li>Event editing through clicking on existing events</li>
+          <li>Color-coded events based on category</li>
+          <li>Drag and drop for rescheduling events</li>
+        </ul>
+        
+        <p>Example of the Calendar component initialization:</p>
+        <pre><code class="language-typescript">// Calendar component in CalendarPage.tsx
+return (
+  <div className="calendar-page">
+    <div className="calendar-header">
+      <div className="calendar-title">
+        <h2>Calendar</h2>
+      </div>
+      <div className="calendar-actions">
+        <Select
+          value={view}
+          onChange={handleViewChange}
+          className="view-selector"
+        >
+          <Option value={Views.MONTH}>Month</Option>
+          <Option value={Views.WEEK}>Week</Option>
+          <Option value={Views.DAY}>Day</Option>
+          <Option value={Views.AGENDA}>Agenda</Option>
+        </Select>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            setSelectedEvent(null);
+            setIsEditMode(false);
+            form.resetFields();
+            form.setFieldsValue({
+              dateRange: [moment(), moment().add(1, 'hour')],
+              allDay: false,
+              category: 'default',
+              recurring: false,
+              recurrencePattern: 'daily',
+              reminder: false
+            });
+            setIsModalVisible(true);
+          }}
+        >
+          New Event
+        </Button>
+      </div>
+    </div>
+    
+    <div className="calendar-container">
+      <Calendar
+        localizer={localizer}
+        events={events}
+        startAccessor="start"
+        endAccessor="end"
+        style={{ height: 'calc(100vh - 120px)' }}
+        view={view as any}
+        date={date}
+        onView={handleViewChange as any}
+        onNavigate={handleNavigate}
+        selectable
+        onSelectEvent={handleSelectEvent as any}
+        onSelectSlot={handleSelectSlot as any}
+        eventPropGetter={eventStyleGetter as any}
+        popup
+        tooltipAccessor={event => `${event.title}\n${event.description || ''}`}
+        components={{
+          toolbar: CustomToolbar
+        }}
+      />
+    </div>
+    
+    {/* Event creation/editing modal */}
+  </div>
+);</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Event Management</h3>
+        <p>
+          The Calendar system provides comprehensive event management capabilities, including creating, 
+          editing, and deleting events. Events can have various properties such as title, description, 
+          date/time, category, location, and recurrence pattern.
+        </p>
+        
+        <p>Key event handlers:</p>
+        <ul>
+          <li><strong>handleSelectSlot</strong> - Triggered when a user selects a time slot to create a new event</li>
+          <li><strong>handleSelectEvent</strong> - Triggered when a user clicks on an existing event to edit it</li>
+          <li><strong>handleFormSubmit</strong> - Handles the submission of the event creation/editing form</li>
+          <li><strong>handleDeleteEvent</strong> - Handles the deletion of an event</li>
+        </ul>
+        
+        <p>Example of event creation and editing:</p>
+        <pre><code class="language-typescript">// Event form submission handler
+const handleFormSubmit = async () => {
+  try {
+    const values = await form.validateFields();
+    
+    const eventData = {
+      id: selectedEvent?.id || '',
+      title: values.title,
+      description: values.description,
+      start: values.dateRange[0].toDate(),
+      end: values.dateRange[1].toDate(),
+      allDay: values.allDay,
+      category: values.category,
+      location: values.location,
+      recurring: values.recurring,
+      recurrencePattern: values.recurring ? values.recurrencePattern : null,
+      reminder: values.reminder,
+      createdBy: user?.id || ''
+    };
+    
+    if (isEditMode && selectedEvent) {
+      // Update existing event
+      const updatedEvent = await updateEvent(selectedEvent.id, eventData);
+      dispatch(updateEventAction(updatedEvent));
+      message.success('Event updated successfully');
+    } else {
+      // Create new event
+      const newEvent = await createEvent(eventData);
+      dispatch(addEvent(newEvent));
+      message.success('Event created successfully');
+    }
+    
+    setIsModalVisible(false);
+    form.resetFields();
+  } catch (error) {
+    console.error('Failed to save event:', error);
+    message.error('Failed to save event');
+  }
+};</code></pre>
+        
+        <p>Example of the event form:</p>
+        <pre><code class="language-typescript">// Event form in modal
+<Form
+  form={form}
+  layout="vertical"
+>
+  <Form.Item
+    name="title"
+    label="Event Title"
+    rules={[{ required: true, message: 'Please enter event title' }]}
+  >
+    <Input placeholder="Enter event title" />
+  </Form.Item>
+  
+  <Form.Item
+    name="description"
+    label="Description"
+  >
+    <TextArea rows={3} placeholder="Enter event description" />
+  </Form.Item>
+  
+  <Form.Item
+    name="dateRange"
+    label="Event Date and Time"
+    rules={[{ required: true, message: 'Please select event date and time' }]}
+  >
+    <RangePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
+  </Form.Item>
+  
+  <Form.Item
+    name="allDay"
+    valuePropName="checked"
+  >
+    <Checkbox>All Day Event</Checkbox>
+  </Form.Item>
+  
+  <Form.Item
+    name="category"
+    label="Category"
+  >
+    <Select>
+      <Option value="default">Default</Option>
+      <Option value="work">Work</Option>
+      <Option value="personal">Personal</Option>
+      <Option value="meeting">Meeting</Option>
+      <Option value="holiday">Holiday</Option>
+    </Select>
+  </Form.Item>
+  
+  <Form.Item
+    name="recurring"
+    valuePropName="checked"
+  >
+    <Checkbox>Recurring Event</Checkbox>
+  </Form.Item>
+  
+  {/* Additional form fields for recurring events, location, etc. */}
+</Form></code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Calendar Service</h3>
+        <p>
+          The Calendar service handles communication with the backend API for retrieving, creating, 
+          updating, and deleting events. It also provides functionality for filtering events by date range 
+          and sharing calendars with other users.
+        </p>
+        
+        <p>Key service functions:</p>
+        <ul>
+          <li><strong>fetchEvents</strong> - Retrieves all events from the backend</li>
+          <li><strong>fetchEventsByDateRange</strong> - Retrieves events within a specific date range</li>
+          <li><strong>createEvent</strong> - Creates a new event</li>
+          <li><strong>updateEvent</strong> - Updates an existing event</li>
+          <li><strong>deleteEvent</strong> - Deletes an event</li>
+          <li><strong>shareCalendar</strong> - Shares a calendar with another user</li>
+        </ul>
+        
+        <p>Example of the service implementation:</p>
+        <pre><code class="language-typescript">// Calendar service functions
+export const fetchEvents = async (): Promise<CalendarEvent[]> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/calendar/events`);
+    
+    // Convert date strings to Date objects
+    const events = response.data.result.map((event: any) => ({
+      ...event,
+      start: new Date(event.start),
+      end: new Date(event.end)
+    }));
+    
+    return events;
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    throw new Error('Failed to fetch events');
+  }
+};
+
+export const createEvent = async (event: Omit<CalendarEvent, 'id'>): Promise<CalendarEvent> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/calendar/events`, event);
+    
+    // Convert date strings to Date objects
+    const createdEvent = {
+      ...response.data.result,
+      start: new Date(response.data.result.start),
+      end: new Date(response.data.result.end)
+    };
+    
+    return createdEvent;
+  } catch (error) {
+    console.error('Error creating event:', error);
+    throw new Error('Failed to create event');
+  }
+};</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>State Management</h3>
+        <p>
+          The Calendar state is managed using Redux with a dedicated slice for calendar-related state.
+          This allows for centralized state management and easy synchronization with the backend.
+        </p>
+        
+        <p>Key state elements:</p>
+        <ul>
+          <li><strong>events</strong> - Array of calendar events</li>
+          <li><strong>loading</strong> - Loading state for async operations</li>
+          <li><strong>error</strong> - Error state for handling failures</li>
+        </ul>
+        
+        <p>Example of the Redux slice:</p>
+        <pre><code class="language-typescript">// Calendar Redux slice
+const calendarSlice = createSlice({
+  name: 'calendar',
+  initialState,
+  reducers: {
+    setEvents(state, action: PayloadAction<CalendarEvent[]>) {
+      state.events = action.payload;
+    },
+    
+    addEvent(state, action: PayloadAction<CalendarEvent>) {
+      state.events.push(action.payload);
+    },
+    
+    updateEvent(state, action: PayloadAction<CalendarEvent>) {
+      const index = state.events.findIndex(event => event.id === action.payload.id);
+      if (index !== -1) {
+        state.events[index] = action.payload;
+      }
+    },
+    
+    deleteEvent(state, action: PayloadAction<string>) {
+      state.events = state.events.filter(event => event.id !== action.payload);
+    },
+    
+    setLoading(state, action: PayloadAction<boolean>) {
+      state.loading = action.payload;
+    },
+    
+    setError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
+      state.loading = false;
+    }
+  }
+});</code></pre>
+      </div>
+      
+      <h2>Backend Implementation</h2>
+      
+      <p>
+        The backend for the Calendar system is implemented using Spring Boot with a RESTful API architecture.
+        It provides endpoints for managing events, handling recurring events, and sharing calendars.
+      </p>
+      
+      <div class="component-card">
+        <h3>API Endpoints</h3>
+        <p>The Calendar API provides the following key endpoints:</p>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/api/calendar/events</code></td>
+              <td>GET</td>
+              <td>Get all events</td>
+            </tr>
+            <tr>
+              <td><code>/api/calendar/events/range</code></td>
+              <td>GET</td>
+              <td>Get events within a specific date range</td>
+            </tr>
+            <tr>
+              <td><code>/api/calendar/events/{eventId}</code></td>
+              <td>GET</td>
+              <td>Get a specific event</td>
+            </tr>
+            <tr>
+              <td><code>/api/calendar/events</code></td>
+              <td>POST</td>
+              <td>Create a new event</td>
+            </tr>
+            <tr>
+              <td><code>/api/calendar/events/{eventId}</code></td>
+              <td>PUT</td>
+              <td>Update an existing event</td>
+            </tr>
+            <tr>
+              <td><code>/api/calendar/events/{eventId}</code></td>
+              <td>DELETE</td>
+              <td>Delete an event</td>
+            </tr>
+            <tr>
+              <td><code>/api/calendar/share</code></td>
+              <td>POST</td>
+              <td>Share a calendar with another user</td>
+            </tr>
+            <tr>
+              <td><code>/api/calendar/shared</code></td>
+              <td>GET</td>
+              <td>Get calendars shared with the current user</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <p>Example of the controller implementation:</p>
+        <pre><code class="language-java">// Calendar controller endpoints
+@RestController
+@RequestMapping("/api/calendar")
+public class CalendarController {
+
+    private final CalendarService calendarService;
+
+    public CalendarController(CalendarService calendarService) {
+        this.calendarService = calendarService;
+    }
+
+    @GetMapping("/events")
+    public ResponseEntity<ApiResponse<List<CalendarEventDTO>>> getAllEvents() {
+        List<CalendarEventDTO> events = calendarService.getAllEvents();
+        return ResponseEntity.ok(new ApiResponse<>(true, events, null));
+    }
+
+    @GetMapping("/events/range")
+    public ResponseEntity<ApiResponse<List<CalendarEventDTO>>> getEventsByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+        List<CalendarEventDTO> events = calendarService.getEventsByDateRange(start, end);
+        return ResponseEntity.ok(new ApiResponse<>(true, events, null));
+    }
+
+    @PostMapping("/events")
+    public ResponseEntity<ApiResponse<CalendarEventDTO>> createEvent(@Valid @RequestBody CalendarEventDTO eventDTO) {
+        CalendarEventDTO createdEvent = calendarService.createEvent(eventDTO);
+        return ResponseEntity.ok(new ApiResponse<>(true, createdEvent, null));
+    }
+}</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Data Model</h3>
+        <p>
+          The Calendar data model consists of entities for events and calendar sharing.
+          The main entity is CalendarEvent, which represents an event with properties like title, 
+          description, start/end times, category, and recurrence pattern.
+        </p>
+        
+        <p>Example of the CalendarEvent entity:</p>
+        <pre><code class="language-java">// CalendarEvent entity
+@Entity
+@Table(name = "calendar_events")
+public class CalendarEvent {
+    @Id
+    private String id;
+    
+    @Column(nullable = false)
+    private String title;
+    
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    
+    @Column(nullable = false)
+    private LocalDateTime start;
+    
+    @Column(nullable = false)
+    private LocalDateTime end;
+    
+    @Column(name = "all_day")
+    private boolean allDay;
+    
+    private String category;
+    
+    private String location;
+    
+    private boolean recurring;
+    
+    @Column(name = "recurrence_pattern")
+    private String recurrencePattern;
+    
+    private boolean reminder;
+    
+    @ManyToOne
+    @JoinColumn(name = "creator_id")
+    private User creator;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    // Getters and setters
+}</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Recurring Events</h3>
+        <p>
+          The Calendar system supports recurring events with various recurrence patterns (daily, weekly, monthly, yearly).
+          When a recurring event is created, the system generates instances of the event based on the recurrence pattern.
+        </p>
+        
+        <p>Key aspects of recurring event implementation:</p>
+        <ul>
+          <li>Events can be marked as recurring with a specific recurrence pattern</li>
+          <li>The backend generates instances of recurring events based on the pattern</li>
+          <li>Users can edit a single instance or all instances of a recurring event</li>
+          <li>Recurrence patterns can have end dates or a maximum number of occurrences</li>
+        </ul>
+        
+        <p>Example of recurring event handling:</p>
+        <pre><code class="language-java">// Recurring event handling in CalendarService
+private void createRecurringEvents(CalendarEvent baseEvent) {
+    if (!baseEvent.isRecurring() || baseEvent.getRecurrencePattern() == null) {
+        return;
+    }
+    
+    LocalDateTime startDate = baseEvent.getStart();
+    LocalDateTime endDate = baseEvent.getEnd();
+    Duration duration = Duration.between(startDate, endDate);
+    
+    // Generate recurring instances based on pattern
+    List<LocalDateTime> recurrenceDates = new ArrayList<>();
+    
+    switch (baseEvent.getRecurrencePattern()) {
+        case "daily":
+            // Generate daily occurrences for the next 30 days
+            for (int i = 1; i <= 30; i++) {
+                recurrenceDates.add(startDate.plusDays(i));
+            }
+            break;
+        case "weekly":
+            // Generate weekly occurrences for the next 12 weeks
+            for (int i = 1; i <= 12; i++) {
+                recurrenceDates.add(startDate.plusWeeks(i));
+            }
+            break;
+        case "monthly":
+            // Generate monthly occurrences for the next 12 months
+            for (int i = 1; i <= 12; i++) {
+                recurrenceDates.add(startDate.plusMonths(i));
+            }
+            break;
+        case "yearly":
+            // Generate yearly occurrences for the next 5 years
+            for (int i = 1; i <= 5; i++) {
+                recurrenceDates.add(startDate.plusYears(i));
+            }
+            break;
+    }
+    
+    // Create event instances for each recurrence date
+    for (LocalDateTime recurrenceDate : recurrenceDates) {
+        CalendarEvent recurrenceEvent = new CalendarEvent();
+        // Copy properties from base event
+        recurrenceEvent.setId(UUID.randomUUID().toString());
+        recurrenceEvent.setTitle(baseEvent.getTitle());
+        recurrenceEvent.setDescription(baseEvent.getDescription());
+        recurrenceEvent.setStart(recurrenceDate);
+        recurrenceEvent.setEnd(recurrenceDate.plus(duration));
+        recurrenceEvent.setAllDay(baseEvent.isAllDay());
+        recurrenceEvent.setCategory(baseEvent.getCategory());
+        recurrenceEvent.setLocation(baseEvent.getLocation());
+        recurrenceEvent.setRecurring(false); // Individual instances are not recurring
+        recurrenceEvent.setReminder(baseEvent.isReminder());
+        recurrenceEvent.setCreator(baseEvent.getCreator());
+        recurrenceEvent.setCreatedAt(LocalDateTime.now());
+        recurrenceEvent.setUpdatedAt(LocalDateTime.now());
+        
+        // Save the recurrence instance
+        eventRepository.save(recurrenceEvent);
+    }
+}</code></pre>
+      </div>
+      
+      <h2>Event Flow</h2>
+      
+      <div class="diagram-container">
+        <div class="diagram-title">Calendar Event Flow</div>
+        <div class="mermaid">
+          sequenceDiagram
+            participant User as User
+            participant Frontend as Frontend
+            participant Backend as Backend Server
+            participant DB as Database
+            
+            User->>Frontend: Select Date Range
+            Frontend->>Backend: Request Events in Range
+            Backend->>DB: Query Events
+            DB-->>Backend: Return Events
+            Backend-->>Frontend: Events Data
+            Frontend-->>User: Display Events
+            
+            User->>Frontend: Create New Event
+            Frontend->>Frontend: Show Event Form
+            User->>Frontend: Fill Event Details
+            Frontend->>Backend: Send Create Event Request
+            Backend->>DB: Save New Event
+            
+            alt Recurring Event
+              Backend->>Backend: Generate Recurring Instances
+              Backend->>DB: Save Recurring Events
+            end
+            
+            DB-->>Backend: Return Saved Event
+            Backend-->>Frontend: New Event Data
+            Frontend-->>User: Show New Event on Calendar
+        </div>
+      </div>
+      
+      <h2>User Experience</h2>
+      
+      <p>
+        The Calendar system provides an intuitive and responsive user experience with multiple view options
+        and easy event management. Users can quickly navigate between different time periods, create and edit
+        events, and visualize their schedule.
+      </p>
+      
+      <div class="component-card">
+        <h3>Key Interactions</h3>
+        <ul>
+          <li><strong>View Switching</strong> - Users can switch between month, week, day, and agenda views</li>
+          <li><strong>Date Navigation</strong> - Users can navigate to different time periods using the toolbar</li>
+          <li><strong>Event Creation</strong> - Users can create events by clicking on time slots</li>
+          <li><strong>Event Editing</strong> - Users can edit events by clicking on existing events</li>
+          <li><strong>Event Deletion</strong> - Users can delete events from the edit modal</li>
+          <li><strong>Event Rescheduling</strong> - Users can reschedule events by dragging them to new times</li>
+          <li><strong>Calendar Sharing</strong> - Users can share their calendar with other users</li>
+        </ul>
+      </div>
+      
+      <h2>Integration with Other Features</h2>
+      
+      <p>
+        The Calendar system integrates with other features of the TuPhung Project to provide a comprehensive
+        productivity solution. Key integrations include:
+      </p>
+      
+      <ul>
+        <li><strong>Kanban Board</strong> - Tasks from the Kanban board can be linked to calendar events</li>
+        <li><strong>User Management</strong> - Calendar events can be assigned to specific users</li>
+        <li><strong>Notifications</strong> - Event reminders trigger notifications</li>
+        <li><strong>AI Assistants</strong> - AI assistants can help schedule and manage events</li>
+      </ul>
+      
+      <h2>Related Components</h2>
+      <ul>
+        <li><a href="../backend/api.html">API Endpoints</a> - Backend API documentation</li>
+        <li><a href="../backend/database.html">Database Design</a> - Calendar-related database schema</li>
+        <li><a href="state-management.html">State Management</a> - Redux state management for Calendar</li>
+        <li><a href="kanban.html">Kanban Board</a> - Integration with Kanban tasks</li>
+      </ul>
+    </section>
+  </main>
+  
+  <script src="../../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+</body>
+</html>

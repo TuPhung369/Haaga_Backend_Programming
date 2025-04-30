@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSockets - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../architecture.html" class="sidebar-subnav-link">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/auth.html" class="sidebar-subnav-link">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/calendar.html" class="sidebar-subnav-link">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/language-ai.html" class="sidebar-subnav-link">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="api.html" class="sidebar-subnav-link">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="websockets.html" class="sidebar-subnav-link active">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="speech-processing.html" class="sidebar-subnav-link">Speech Processing</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="exception-handling.html" class="sidebar-subnav-link">Exception Handling</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>WebSockets Implementation</h1>
+      <p>Real-time communication between clients and server using WebSockets.</p>
+    </header>
+    
+    <section>
+      <h2>Overview</h2>
+      <p>
+        The application implements real-time bidirectional communication using WebSockets. This allows for
+        instant updates without polling, which is essential for features like the chat system, notifications,
+        collaborative kanban boards, and real-time language practice sessions.
+      </p>
+      
+      <div class="component-card">
+        <h3>WebSockets Architecture</h3>
+        <p>
+          The WebSockets implementation is based on the STOMP protocol over WebSockets, using Spring's
+          WebSocket support. This provides a standardized way to structure messages and handle subscriptions.
+        </p>
+        
+        <div class="diagram-container">
+          <pre><code class="language-plaintext">
+  ┌───────────┐                  ┌──────────────────┐                  ┌───────────┐
+  │           │                  │                  │                  │           │
+  │  Client A ◄──── Subscribe ───►  Message Broker  ◄──── Publish ─────►  Client B │
+  │           │                  │                  │                  │           │
+  └───────────┘                  └────────┬─────────┘                  └───────────┘
+                                          │
+                                          │
+                                 ┌────────▼─────────┐
+                                 │                  │
+                                 │  Backend Server  │
+                                 │                  │
+                                 └──────────────────┘
+          </code></pre>
+        </div>
+        
+        <ul>
+          <li>Clients connect to the server via WebSockets and subscribe to specific topics</li>
+          <li>The server authenticates connections using JWT tokens</li>
+          <li>Messages are published to topics and delivered to all subscribed clients</li>
+          <li>STOMP provides a frame-based protocol for message exchange</li>
+        </ul>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Server-Side Implementation</h2>
+      <div class="component-card">
+        <h3>WebSocket Configuration</h3>
+        <p>
+          The server-side configuration sets up the WebSocket endpoints, message broker, and security.
+        </p>
+        
+        <pre><code class="language-java">@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        // Enable a simple in-memory message broker
+        registry.enableSimpleBroker("/topic", "/queue", "/user");
+        
+        // Set prefix for client-to-server messages
+        registry.setApplicationDestinationPrefixes("/app");
+        
+        // Enable user-specific messaging with the /user/ prefix
+        registry.setUserDestinationPrefix("/user");
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Register the main WebSocket endpoint
+        registry.addEndpoint("/ws")
+               .setAllowedOrigins("*") // Configure CORS
+               .withSockJS(); // Enable SockJS fallback
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        // Add channel interceptors for JWT authentication
+        registration.interceptors(new JwtChannelInterceptor());
+    }
+}
+</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Security with JWT Authentication</h3>
+        <p>
+          WebSocket connections are secured using JWT tokens to authenticate users.
+        </p>
+        
+        <pre><code class="language-java">@Component
+public class JwtChannelInterceptor implements ChannelInterceptor {
+
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserDetailsService userDetailsService;
+    
+    @Autowired
+    public JwtChannelInterceptor(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.userDetailsService = userDetailsService;
+    }
+    
+    @Override
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+            // Extract JWT token from headers
+            List&lt;String&gt; authorization = accessor.getNativeHeader("Authorization");
+            
+            if (authorization != null && !authorization.isEmpty()) {
+                String token = authorization.get(0).substring(7); // Remove "Bearer " prefix
+                
+                if (jwtTokenProvider.validateToken(token)) {
+                    String username = jwtTokenProvider.getUsernameFromToken(token);
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    
+                    // Set authentication in security context
+                    UsernamePasswordAuthenticationToken authentication = 
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    
+                    accessor.setUser(authentication);
+                }
+            }
+        }
+        
+        return message;
+    }
+}
+</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Message Controllers</h3>
+        <p>
+          STOMP message controllers handle incoming WebSocket messages and broadcast to subscribers.
+        </p>
+        
+        <pre><code class="language-java">@Controller
+public class ChatMessageController {
+
+    private final ChatMessageService chatMessageService;
+    private final SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    public ChatMessageController(ChatMessageService chatMessageService, SimpMessagingTemplate messagingTemplate) {
+        this.chatMessageService = chatMessageService;
+        this.messagingTemplate = messagingTemplate;
+    }
+    
+    @MessageMapping("/chat.sendMessage")
+    @SendToUser("/queue/reply")
+    public ChatMessageResponse sendMessage(@Payload ChatMessageRequest request, 
+                                         @Header("simpUser") Principal user) {
+        // Save message to database
+        ChatMessageResponse response = chatMessageService.saveMessage(request, user.getName());
+        
+        // Broadcast to recipients
+        if (response.getGroupId() != null) {
+            // Group message
+            messagingTemplate.convertAndSend("/topic/group." + response.getGroupId(), response);
+        } else {
+            // Direct message to specific user
+            messagingTemplate.convertAndSendToUser(
+                response.getReceiverUsername(), 
+                "/queue/messages", 
+                response
+            );
+        }
+        
+        return response;
+    }
+    
+    @MessageMapping("/chat.typing")
+    public void notifyTyping(@Payload TypingNotification notification) {
+        if (notification.getGroupId() != null) {
+            messagingTemplate.convertAndSend(
+                "/topic/group." + notification.getGroupId() + ".typing", 
+                notification
+            );
+        } else {
+            messagingTemplate.convertAndSendToUser(
+                notification.getReceiverUsername(), 
+                "/queue/typing", 
+                notification
+            );
+        }
+    }
+}
+</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Sending Messages from Services</h3>
+        <p>
+          Services can send messages to WebSocket clients in response to events.
+        </p>
+        
+        <pre><code class="language-java">@Service
+public class NotificationService {
+
+    private final SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    public NotificationService(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
+    
+    public void sendTaskAssignmentNotification(UUID taskId, UUID assigneeId, String message) {
+        NotificationMessage notification = new NotificationMessage(
+            NotificationType.TASK_ASSIGNED,
+            message,
+            taskId.toString()
+        );
+        
+        // Send to specific user
+        messagingTemplate.convertAndSendToUser(
+            assigneeId.toString(),
+            "/queue/notifications",
+            notification
+        );
+    }
+    
+    public void broadcastKanbanBoardUpdate(UUID boardId, KanbanBoardResponse update) {
+        // Broadcast to all subscribers of this board
+        messagingTemplate.convertAndSend(
+            "/topic/kanban." + boardId,
+            update
+        );
+    }
+}
+</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Client-Side Implementation</h2>
+      <div class="component-card">
+        <h3>WebSocket Client Setup</h3>
+        <p>
+          The frontend uses the SockJS and STOMP client libraries to connect to the WebSocket server.
+        </p>
+        
+        <pre><code class="language-javascript">// WebSocket service
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+
+class WebSocketService {
+  constructor() {
+    this.client = null;
+    this.subscriptions = new Map();
+    this.connected = false;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.token = null;
+  }
+  
+  connect(token) {
+    return new Promise((resolve, reject) => {
+      this.token = token;
+      
+      this.client = new Client({
+        webSocketFactory: () => new SockJS('/ws'),
+        connectHeaders: {
+          Authorization: `Bearer ${token}`
+        },
+        debug: function (str) {
+          console.debug(str);
+        },
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
+        onConnect: frame => {
+          this.connected = true;
+          this.reconnectAttempts = 0;
+          console.log('WebSocket Connected:', frame);
+          resolve(frame);
+        },
+        onStompError: frame => {
+          console.error('WebSocket Error:', frame);
+          reject(frame);
+        },
+        onWebSocketClose: event => {
+          this.connected = false;
+          console.warn('WebSocket connection closed', event);
+          this._tryReconnect();
+        }
+      });
+      
+      this.client.activate();
+    });
+  }
+  
+  _tryReconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      setTimeout(() => {
+        console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+        this.connect(this.token);
+      }, 2000 * this.reconnectAttempts);
+    }
+  }
+  
+  disconnect() {
+    if (this.client && this.connected) {
+      this.client.deactivate();
+      this.connected = false;
+      this.subscriptions.clear();
+    }
+  }
+  
+  subscribe(destination, callback) {
+    if (!this.connected) {
+      throw new Error('WebSocket not connected');
+    }
+    
+    const subscription = this.client.subscribe(destination, message => {
+      try {
+        const parsedBody = JSON.parse(message.body);
+        callback(parsedBody);
+      } catch (e) {
+        console.error('Error parsing message', e);
+        callback(message);
+      }
+    });
+    
+    this.subscriptions.set(destination, subscription);
+    return subscription;
+  }
+  
+  unsubscribe(destination) {
+    const subscription = this.subscriptions.get(destination);
+    if (subscription) {
+      subscription.unsubscribe();
+      this.subscriptions.delete(destination);
+    }
+  }
+  
+  send(destination, body) {
+    if (!this.connected) {
+      throw new Error('WebSocket not connected');
+    }
+    
+    this.client.publish({
+      destination,
+      body: JSON.stringify(body)
+    });
+  }
+}
+
+export default new WebSocketService();
+</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>React WebSocket Hook</h3>
+        <p>
+          A custom React hook for using WebSockets in components.
+        </p>
+        
+        <pre><code class="language-javascript">// useWebSocket.js
+import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import WebSocketService from '../services/WebSocketService';
+
+export const useWebSocket = (destination, initialState = []) => {
+  const [messages, setMessages] = useState(initialState);
+  const [isConnected, setIsConnected] = useState(false);
+  const token = useSelector(state => state.auth.token);
+  
+  useEffect(() => {
+    if (!token) return;
+    
+    const connect = async () => {
+      try {
+        await WebSocketService.connect(token);
+        setIsConnected(true);
+        
+        WebSocketService.subscribe(destination, message => {
+          setMessages(prev => [...prev, message]);
+        });
+      } catch (error) {
+        console.error('Failed to connect to WebSocket:', error);
+      }
+    };
+    
+    if (!WebSocketService.connected) {
+      connect();
+    } else {
+      setIsConnected(true);
+      WebSocketService.subscribe(destination, message => {
+        setMessages(prev => [...prev, message]);
+      });
+    }
+    
+    return () => {
+      WebSocketService.unsubscribe(destination);
+    };
+  }, [destination, token]);
+  
+  const sendMessage = (message) => {
+    WebSocketService.send('/app/chat.sendMessage', message);
+  };
+  
+  return {
+    messages,
+    sendMessage,
+    isConnected
+  };
+};
+</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Chat Component with WebSockets</h3>
+        <p>
+          Example of a React component that uses WebSockets for real-time chat.
+        </p>
+        
+        <pre><code class="language-jsx">// ChatRoom.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { useWebSocket } from '../../hooks/useWebSocket';
+import { useSelector } from 'react-redux';
+import MessageList from './MessageList';
+import MessageInput from './MessageInput';
+
+const ChatRoom = () => {
+  const { contactId } = useParams();
+  const currentUser = useSelector(state => state.auth.user);
+  const messageEndRef = useRef();
+  
+  // Connect to WebSocket for direct messages
+  const wsDestination = `/user/queue/messages`;
+  const { messages, sendMessage, isConnected } = useWebSocket(wsDestination);
+  
+  // Also track typing status
+  const typingDestination = `/user/queue/typing`;
+  const { messages: typingNotifications } = useWebSocket(typingDestination);
+  
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
+  
+  useEffect(() => {
+    // Scroll to bottom when new messages arrive
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+  
+  useEffect(() => {
+    // Handle typing notifications
+    const latestTyping = typingNotifications[typingNotifications.length - 1];
+    if (latestTyping && latestTyping.senderUsername !== currentUser.username) {
+      setIsTyping(true);
+      
+      // Clear any existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Set timeout to remove typing indicator after 3 seconds
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+      }, 3000);
+    }
+    
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [typingNotifications, currentUser]);
+  
+  const handleSendMessage = (text) => {
+    if (!text.trim()) return;
+    
+    sendMessage({
+      content: text,
+      receiverId: contactId,
+      type: 'TEXT'
+    });
+  };
+  
+  const handleTyping = () => {
+    WebSocketService.send('/app/chat.typing', {
+      receiverId: contactId,
+      senderUsername: currentUser.username
+    });
+  };
+
+  return (
+    <div className="chat-container">
+      <div className="connection-status">
+        {isConnected ? 'Connected' : 'Connecting...'}
+      </div>
+      
+      <MessageList 
+        messages={messages} 
+        currentUser={currentUser} 
+      />
+      
+      {isTyping && (
+        <div className="typing-indicator">Contact is typing...</div>
+      )}
+      
+      <div ref={messageEndRef}></div>
+      
+      <MessageInput 
+        onSendMessage={handleSendMessage} 
+        onTyping={handleTyping}
+      />
+    </div>
+  );
+};
+
+export default ChatRoom;
+</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>WebSocket Features</h2>
+      <div class="component-card">
+        <h3>Real-time Chat System</h3>
+        <p>
+          The chat system uses WebSockets to provide instant messaging capabilities:
+        </p>
+        <ul>
+          <li><strong>Instant Message Delivery</strong> - Messages are delivered to recipients in real-time</li>
+          <li><strong>Typing Indicators</strong> - Show when another user is typing</li>
+          <li><strong>Read Receipts</strong> - Track when messages have been read</li>
+          <li><strong>Online Status</strong> - Provide real-time user presence information</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Collaborative Kanban Board</h3>
+        <p>
+          The Kanban board uses WebSockets to enable real-time collaboration:
+        </p>
+        <ul>
+          <li><strong>Live Task Updates</strong> - See changes to tasks in real-time</li>
+          <li><strong>Task Movement</strong> - Observe as tasks are moved between columns</li>
+          <li><strong>Concurrent Editing</strong> - Multiple users can work on the same board</li>
+          <li><strong>Change Notifications</strong> - Get notified when board updates occur</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Notifications System</h3>
+        <p>
+          WebSockets power the real-time notification system:
+        </p>
+        <ul>
+          <li><strong>Instant Alerts</strong> - Receive notifications without page refresh</li>
+          <li><strong>Event Notifications</strong> - Updates for calendar events, task assignments, etc.</li>
+          <li><strong>System Announcements</strong> - Broadcast messages to all users</li>
+          <li><strong>Toast Messages</strong> - Temporary visual notifications for user actions</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Speech Processing Feedback</h3>
+        <p>
+          The speech processing features use WebSockets for real-time feedback:
+        </p>
+        <ul>
+          <li><strong>Audio Streaming</strong> - Stream audio for real-time processing</li>
+          <li><strong>Transcription Updates</strong> - Get speech-to-text results as they're processed</li>
+          <li><strong>AI Response Streaming</strong> - Stream AI responses for more natural interactions</li>
+        </ul>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Performance and Scaling</h2>
+      <div class="component-card">
+        <h3>Connection Management</h3>
+        <p>
+          The WebSocket implementation includes features to manage connections efficiently:
+        </p>
+        <ul>
+          <li><strong>Connection Recovery</strong> - Automatic reconnection after disconnection</li>
+          <li><strong>Heartbeats</strong> - Regular pings to keep connections alive</li>
+          <li><strong>Connection Limits</strong> - Managing maximum connections per user</li>
+        </ul>
+        
+        <h4>Example Connection Recovery Logic</h4>
+        <pre><code class="language-javascript">// Excerpt from WebSocketService
+_tryReconnect() {
+  if (this.reconnectAttempts < this.maxReconnectAttempts) {
+    this.reconnectAttempts++;
+    
+    // Exponential backoff
+    const delay = Math.min(30000, 1000 * Math.pow(2, this.reconnectAttempts));
+    
+    setTimeout(() => {
+      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+      this.connect(this.token)
+        .catch(error => {
+          console.error('Reconnection failed:', error);
+        });
+    }, delay);
+  } else {
+    console.error('Maximum reconnection attempts reached');
+    // Notify user of connection failure
+    this.notifyConnectionFailed();
+  }
+}
+</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Message Delivery Guarantees</h3>
+        <p>
+          The application ensures reliable message delivery through:
+        </p>
+        <ul>
+          <li><strong>Message Persistence</strong> - All messages are stored in the database</li>
+          <li><strong>Acknowledgment</strong> - Client acknowledgment of message receipt</li>
+          <li><strong>Message Recovery</strong> - Ability to fetch missed messages after reconnection</li>
+        </ul>
+        
+        <h4>Message Delivery Flow</h4>
+        <pre><code class="language-plaintext">
+  Client A                     Server                     Client B
+    │                            │                           │
+    ├───> Send Message ─────────►│                           │
+    │                            │                           │
+    │                            ├───> Store in Database ────┤
+    │                            │                           │
+    │                            ├───> Forward to Client B ──►
+    │                            │                           │
+    │                            │◄───── Acknowledge ────────┤
+    │                            │                           │
+    │◄───── Confirmation ────────┤                           │
+    │                            │                           │
+</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Security Considerations</h2>
+      <div class="component-card">
+        <h3>Authentication and Authorization</h3>
+        <p>
+          WebSocket security measures to protect communication:
+        </p>
+        <ul>
+          <li><strong>JWT Authentication</strong> - Secure token validation for connections</li>
+          <li><strong>Topic Authorization</strong> - Permission checks before subscription</li>
+          <li><strong>Message Validation</strong> - Validate message content and sender permissions</li>
+          <li><strong>Rate Limiting</strong> - Prevent abuse through message limiting</li>
+        </ul>
+        
+        <h4>Topic Authorization Check</h4>
+        <pre><code class="language-java">@Component
+public class WebSocketAuthorizationInterceptor extends ChannelInterceptor {
+
+    @Override
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            Authentication authentication = (Authentication) accessor.getUser();
+            String destination = accessor.getDestination();
+            
+            if (!canSubscribe(authentication, destination)) {
+                throw new AccessDeniedException("No permission to subscribe to " + destination);
+            }
+        }
+        
+        return message;
+    }
+    
+    private boolean canSubscribe(Authentication authentication, String destination) {
+        if (authentication == null) return false;
+        
+        // Check if user can subscribe to the requested topic
+        if (destination.startsWith("/topic/group.")) {
+            String groupId = destination.substring("/topic/group.".length());
+            return hasGroupAccess(authentication.getName(), groupId);
+        }
+        
+        // User-specific topics are always allowed for the user
+        if (destination.startsWith("/user/" + authentication.getName())) {
+            return true;
+        }
+        
+        // Other topic authorization rules...
+        return false;
+    }
+    
+    private boolean hasGroupAccess(String username, String groupId) {
+        // Logic to check if user is a member of the group
+        // ...
+        return true; // Simplified for example
+    }
+}
+</code></pre>
+      </div>
+    </section>
+  </main>
+  
+  <script src="../../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+</body>
+</html>

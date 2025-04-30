@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend User Management - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <!-- Mermaid for flowcharts -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"></script>
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../architecture.html" class="sidebar-subnav-link">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/auth.html" class="sidebar-subnav-link">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/calendar.html" class="sidebar-subnav-link">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/language-ai.html" class="sidebar-subnav-link">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="user-management.html" class="sidebar-subnav-link active">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="api.html" class="sidebar-subnav-link">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="websockets.html" class="sidebar-subnav-link">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="speech-processing.html" class="sidebar-subnav-link">Speech Processing</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="exception-handling.html" class="sidebar-subnav-link">Exception Handling</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>Backend User Management</h1>
+      <p>A comprehensive guide to the user management system in the TuPhung Project backend.</p>
+    </header>
+    
+    <section>
+      <h2>Overview</h2>
+      <p>
+        The backend user management system is a core component of the TuPhung Project, providing robust 
+        functionality for managing user accounts, roles, permissions, and teams. It's designed with 
+        security, scalability, and flexibility in mind to support the diverse needs of modern applications.
+      </p>
+      
+      <div class="component-card">
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>User Account Management</strong> - Create, read, update, and delete user accounts</li>
+          <li><strong>Role-Based Access Control (RBAC)</strong> - Assign roles with specific permissions to users</li>
+          <li><strong>Team Management</strong> - Organize users into teams with hierarchical structures</li>
+          <li><strong>Profile Management</strong> - Store and update user profile information</li>
+          <li><strong>Account Verification</strong> - Email verification for new accounts</li>
+          <li><strong>Password Management</strong> - Secure password storage and reset functionality</li>
+          <li><strong>User Activity Tracking</strong> - Monitor and log user actions</li>
+          <li><strong>Multi-tenancy Support</strong> - Isolate user data across different organizations</li>
+        </ul>
+      </div>
+      
+      <h2>Architecture</h2>
+      
+      <div class="diagram-container">
+        <div class="diagram-title">User Management Architecture</div>
+        <div class="mermaid">
+          graph TD
+            Client[Client Application] --> API[API Gateway]
+            API --> UserController[User Controller]
+            API --> RoleController[Role Controller]
+            API --> TeamController[Team Controller]
+            
+            UserController --> UserService[User Service]
+            RoleController --> RoleService[Role Service]
+            TeamController --> TeamService[Team Service]
+            
+            UserService --> UserRepository[User Repository]
+            UserService --> EventPublisher[Event Publisher]
+            RoleService --> RoleRepository[Role Repository]
+            TeamService --> TeamRepository[Team Repository]
+            
+            UserRepository --> Database[(Database)]
+            RoleRepository --> Database
+            TeamRepository --> Database
+            
+            EventPublisher --> EmailService[Email Service]
+            EventPublisher --> NotificationService[Notification Service]
+            EventPublisher --> AuditService[Audit Service]
+            
+            subgraph "Controllers Layer"
+              UserController
+              RoleController
+              TeamController
+            end
+            
+            subgraph "Service Layer"
+              UserService
+              RoleService
+              TeamService
+              EventPublisher
+            end
+            
+            subgraph "Data Access Layer"
+              UserRepository
+              RoleRepository
+              TeamRepository
+            end
+            
+            subgraph "External Services"
+              EmailService
+              NotificationService
+              AuditService
+            end
+        </div>
+      </div>
+      
+      <p>
+        The user management system follows a layered architecture pattern:
+      </p>
+      
+      <ul>
+        <li><strong>Controllers Layer</strong> - Handles HTTP requests and responses, input validation, and routing</li>
+        <li><strong>Service Layer</strong> - Contains business logic, orchestrates operations, and manages transactions</li>
+        <li><strong>Data Access Layer</strong> - Interacts with the database and provides data persistence</li>
+        <li><strong>External Services</strong> - Integrates with email, notification, and audit services</li>
+      </ul>
+      
+      <h2>Data Models</h2>
+      
+      <p>
+        The user management system is built around several key data models that represent the core entities 
+        in the system. These models are designed to be flexible and extensible to accommodate various use cases.
+      </p>
+      
+      <div class="component-card">
+        <h3>User Model</h3>
+        <p>
+          The User model is the central entity in the user management system. It represents a user account 
+          and contains essential information about the user.
+        </p>
+        
+        <p><strong>Key Fields:</strong></p>
+        <ul>
+          <li><code>id</code> - Unique identifier for the user</li>
+          <li><code>username</code> - Unique username for login</li>
+          <li><code>email</code> - User's email address (unique)</li>
+          <li><code>password</code> - Hashed password</li>
+          <li><code>firstName</code> - User's first name</li>
+          <li><code>lastName</code> - User's last name</li>
+          <li><code>status</code> - Account status (active, inactive, suspended, etc.)</li>
+          <li><code>emailVerified</code> - Whether the email has been verified</li>
+          <li><code>lastLogin</code> - Timestamp of the last login</li>
+          <li><code>createdAt</code> - Timestamp of account creation</li>
+          <li><code>updatedAt</code> - Timestamp of last update</li>
+        </ul>
+        
+        <p><strong>Relationships:</strong></p>
+        <ul>
+          <li>Many-to-Many with Roles</li>
+          <li>Many-to-Many with Teams</li>
+          <li>One-to-One with UserProfile</li>
+          <li>One-to-Many with UserSessions</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Role Model</h3>
+        <p>
+          The Role model represents a set of permissions that can be assigned to users. Roles are used to 
+          implement role-based access control (RBAC) in the application.
+        </p>
+        
+        <p><strong>Key Fields:</strong></p>
+        <ul>
+          <li><code>id</code> - Unique identifier for the role</li>
+          <li><code>name</code> - Role name (e.g., "Admin", "User", "Manager")</li>
+          <li><code>description</code> - Description of the role's purpose</li>
+          <li><code>isSystem</code> - Whether this is a system-defined role</li>
+          <li><code>createdAt</code> - Timestamp of role creation</li>
+          <li><code>updatedAt</code> - Timestamp of last update</li>
+        </ul>
+        
+        <p><strong>Relationships:</strong></p>
+        <ul>
+          <li>Many-to-Many with Users</li>
+          <li>Many-to-Many with Permissions</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Permission Model</h3>
+        <p>
+          The Permission model represents a specific action that can be performed in the system. Permissions 
+          are grouped into roles to simplify access control management.
+        </p>
+        
+        <p><strong>Key Fields:</strong></p>
+        <ul>
+          <li><code>id</code> - Unique identifier for the permission</li>
+          <li><code>name</code> - Permission name (e.g., "create:users", "read:users")</li>
+          <li><code>description</code> - Description of what the permission allows</li>
+          <li><code>resource</code> - The resource this permission applies to</li>
+          <li><code>action</code> - The action allowed (create, read, update, delete)</li>
+          <li><code>createdAt</code> - Timestamp of permission creation</li>
+          <li><code>updatedAt</code> - Timestamp of last update</li>
+        </ul>
+        
+        <p><strong>Relationships:</strong></p>
+        <ul>
+          <li>Many-to-Many with Roles</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Team Model</h3>
+        <p>
+          The Team model represents a group of users who work together. Teams can have hierarchical structures 
+          and are used for organizing users and controlling access to resources.
+        </p>
+        
+        <p><strong>Key Fields:</strong></p>
+        <ul>
+          <li><code>id</code> - Unique identifier for the team</li>
+          <li><code>name</code> - Team name</li>
+          <li><code>description</code> - Description of the team's purpose</li>
+          <li><code>parentId</code> - ID of the parent team (for hierarchical structures)</li>
+          <li><code>createdAt</code> - Timestamp of team creation</li>
+          <li><code>updatedAt</code> - Timestamp of last update</li>
+        </ul>
+        
+        <p><strong>Relationships:</strong></p>
+        <ul>
+          <li>Many-to-Many with Users</li>
+          <li>One-to-Many with itself (parent-child relationship)</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>UserProfile Model</h3>
+        <p>
+          The UserProfile model contains additional information about a user that is not essential for 
+          authentication or authorization but is useful for personalization and user experience.
+        </p>
+        
+        <p><strong>Key Fields:</strong></p>
+        <ul>
+          <li><code>id</code> - Unique identifier for the profile</li>
+          <li><code>userId</code> - ID of the associated user</li>
+          <li><code>avatar</code> - URL to the user's profile picture</li>
+          <li><code>bio</code> - User's biography or description</li>
+          <li><code>phoneNumber</code> - User's phone number</li>
+          <li><code>address</code> - User's physical address</li>
+          <li><code>timezone</code> - User's preferred timezone</li>
+          <li><code>language</code> - User's preferred language</li>
+          <li><code>preferences</code> - JSON object with user preferences</li>
+          <li><code>createdAt</code> - Timestamp of profile creation</li>
+          <li><code>updatedAt</code> - Timestamp of last update</li>
+        </ul>
+        
+        <p><strong>Relationships:</strong></p>
+        <ul>
+          <li>One-to-One with User</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>UserSession Model</h3>
+        <p>
+          The UserSession model represents an active user session. It's used for tracking user logins and 
+          managing session-based authentication.
+        </p>
+        
+        <p><strong>Key Fields:</strong></p>
+        <ul>
+          <li><code>id</code> - Unique identifier for the session</li>
+          <li><code>userId</code> - ID of the associated user</li>
+          <li><code>token</code> - Session token</li>
+          <li><code>ipAddress</code> - IP address of the client</li>
+          <li><code>userAgent</code> - User agent string</li>
+          <li><code>lastActivity</code> - Timestamp of last activity</li>
+          <li><code>expiresAt</code> - Timestamp when the session expires</li>
+          <li><code>createdAt</code> - Timestamp of session creation</li>
+        </ul>
+        
+        <p><strong>Relationships:</strong></p>
+        <ul>
+          <li>Many-to-One with User</li>
+        </ul>
+      </div>
+      
+      <h2>API Endpoints</h2>
+      
+      <p>
+        The user management system exposes a set of RESTful API endpoints for managing users, roles, and teams.
+        These endpoints follow REST principles and use JSON for data exchange.
+      </p>
+      
+      <div class="component-card">
+        <h3>User Endpoints</h3>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>GET</td>
+              <td>/api/users</td>
+              <td>Get a list of users with pagination, filtering, and sorting</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/users/{id}</td>
+              <td>Get a specific user by ID</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/users</td>
+              <td>Create a new user</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/users/{id}</td>
+              <td>Update an existing user</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>DELETE</td>
+              <td>/api/users/{id}</td>
+              <td>Delete a user</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/users/{id}/profile</td>
+              <td>Get a user's profile</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/users/{id}/profile</td>
+              <td>Update a user's profile</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/users/{id}/roles</td>
+              <td>Get a user's roles</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/users/{id}/roles</td>
+              <td>Update a user's roles</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/users/{id}/teams</td>
+              <td>Get a user's teams</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/users/{id}/teams</td>
+              <td>Update a user's teams</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/users/{id}/activate</td>
+              <td>Activate a user account</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/users/{id}/deactivate</td>
+              <td>Deactivate a user account</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="component-card">
+        <h3>Role Endpoints</h3>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>GET</td>
+              <td>/api/roles</td>
+              <td>Get a list of roles</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/roles/{id}</td>
+              <td>Get a specific role by ID</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/roles</td>
+              <td>Create a new role</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/roles/{id}</td>
+              <td>Update an existing role</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>DELETE</td>
+              <td>/api/roles/{id}</td>
+              <td>Delete a role</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/roles/{id}/permissions</td>
+              <td>Get a role's permissions</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/roles/{id}/permissions</td>
+              <td>Update a role's permissions</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/roles/{id}/users</td>
+              <td>Get users with a specific role</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="component-card">
+        <h3>Team Endpoints</h3>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>GET</td>
+              <td>/api/teams</td>
+              <td>Get a list of teams</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/teams/{id}</td>
+              <td>Get a specific team by ID</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/teams</td>
+              <td>Create a new team</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/teams/{id}</td>
+              <td>Update an existing team</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>DELETE</td>
+              <td>/api/teams/{id}</td>
+              <td>Delete a team</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/teams/{id}/users</td>
+              <td>Get users in a team</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/teams/{id}/users</td>
+              <td>Update users in a team</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/teams/{id}/children</td>
+              <td>Get child teams</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <h2>Security Considerations</h2>
+      
+      <p>
+        The user management system is designed with security as a top priority. It implements several 
+        security measures to protect user data and prevent unauthorized access.
+      </p>
+      
+      <div class="component-card">
+        <h3>Password Security</h3>
+        <p>
+          User passwords are never stored in plain text. Instead, they are hashed using bcrypt with a 
+          work factor of 12. This provides strong protection against brute force attacks and ensures 
+          that even if the database is compromised, passwords cannot be easily recovered.
+        </p>
+        <ul>
+          <li>Password hashing with bcrypt</li>
+          <li>Salt generation for each password</li>
+          <li>Configurable password complexity requirements</li>
+          <li>Password expiration policies</li>
+          <li>Prevention of password reuse</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Access Control</h3>
+        <p>
+          The system implements role-based access control (RBAC) to ensure that users can only access 
+          resources and perform actions that they are authorized for.
+        </p>
+        <ul>
+          <li>Role-based permissions</li>
+          <li>Fine-grained access control</li>
+          <li>Permission checking at the API level</li>
+          <li>Permission checking at the service level</li>
+          <li>Hierarchical team-based access control</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Data Protection</h3>
+        <p>
+          Sensitive user data is protected through various mechanisms to prevent unauthorized access and 
+          ensure compliance with data protection regulations.
+        </p>
+        <ul>
+          <li>Encryption of sensitive data at rest</li>
+          <li>TLS/SSL for data in transit</li>
+          <li>Data anonymization for analytics</li>
+          <li>Data minimization principles</li>
+          <li>Regular security audits</li>
+          <li>Regular database backups</li>
+          <li>Point-in-time recovery capabilities</li>
+          <li>Disaster recovery procedures</li>
+          <li>Data retention policies</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+  
+  <script src="../../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script>
+    // Initialize syntax highlighting and mermaid diagrams
+    document.addEventListener('DOMContentLoaded', (event) => {
+      Prism.highlightAll();
+      mermaid.initialize({ startOnLoad: true });
+    });
+  </script>
+</body>
+</html>

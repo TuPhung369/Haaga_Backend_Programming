@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Endpoints - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../architecture.html" class="sidebar-subnav-link">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/auth.html" class="sidebar-subnav-link">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/calendar.html" class="sidebar-subnav-link">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/language-ai.html" class="sidebar-subnav-link">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="api.html" class="sidebar-subnav-link active">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="websockets.html" class="sidebar-subnav-link">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="speech-processing.html" class="sidebar-subnav-link">Speech Processing</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="exception-handling.html" class="sidebar-subnav-link">Exception Handling</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>API Endpoints</h1>
+      <p>Comprehensive documentation of the REST API endpoints provided by the backend services.</p>
+    </header>
+    
+    <section>
+      <h2>Overview</h2>
+      <p>
+        The application provides a comprehensive REST API that follows RESTful design principles. 
+        The API is organized into logical groups based on the features they support, such as authentication,
+        user management, kanban boards, calendar events, chat, and language AI functionalities.
+      </p>
+      
+      <div class="component-card">
+        <h3>API Design Principles</h3>
+        <ul>
+          <li><strong>RESTful Architecture</strong> - Resources are clearly defined and accessible via standard HTTP methods</li>
+          <li><strong>Consistent Response Format</strong> - All endpoints return responses in a standardized format</li>
+          <li><strong>Authentication Required</strong> - Most endpoints require authentication via JWT Bearer tokens</li>
+          <li><strong>Error Handling</strong> - Clear error messages and appropriate status codes</li>
+          <li><strong>Versioning</strong> - API versioning via URL paths when needed</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Common Response Format</h3>
+        <p>
+          All API endpoints return responses in a consistent format using the <code>ApiResponse&lt;T&gt;</code> wrapper class.
+          This provides a standardized way to handle success responses, error messages, and result objects.
+        </p>
+        <pre><code class="language-json">{
+  "code": 2000,
+  "message": "Operation successful",
+  "result": {
+    // Response data object goes here
+  }
+}</code></pre>
+        <p>For error responses, the format is:</p>
+        <pre><code class="language-json">{
+  "code": 4001,
+  "message": "Error message describing what went wrong",
+  "result": null
+}</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Authentication Endpoints</h2>
+      <div class="component-card">
+        <h3>Authorization API</h3>
+        <p>The authentication endpoints handle user registration, login, token management, and OAuth2 integration.</p>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/auth/register</code></td>
+              <td>POST</td>
+              <td>Register a new user</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/verify-email</code></td>
+              <td>POST</td>
+              <td>Verify email address using token</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/token</code></td>
+              <td>POST</td>
+              <td>Authenticate and get token</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/token/cookie</code></td>
+              <td>POST</td>
+              <td>Authenticate with cookie-based token</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/initAuthentication</code></td>
+              <td>POST</td>
+              <td>Check authentication options (incl. MFA)</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/refreshToken</code></td>
+              <td>POST</td>
+              <td>Refresh an expired token</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/logout</code></td>
+              <td>POST</td>
+              <td>Invalidate tokens and log out</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/auth/forgot-password</code></td>
+              <td>POST</td>
+              <td>Initiate password reset process</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/reset-password-with-token</code></td>
+              <td>POST</td>
+              <td>Reset password using token</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/change-password</code></td>
+              <td>POST</td>
+              <td>Change password for authenticated user</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Multi-Factor Authentication Endpoints</h4>
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/auth/totp/setup</code></td>
+              <td>POST</td>
+              <td>Set up TOTP authentication</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/auth/totp/verify</code></td>
+              <td>POST</td>
+              <td>Verify TOTP code</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/auth/totp/token</code></td>
+              <td>POST</td>
+              <td>Authenticate with TOTP code</td>
+              <td>Partial</td>
+            </tr>
+            <tr>
+              <td><code>/auth/totp/status</code></td>
+              <td>GET</td>
+              <td>Get TOTP setup status</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/auth/totp/devices</code></td>
+              <td>GET</td>
+              <td>List registered TOTP devices</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/auth/email-otp/token</code></td>
+              <td>POST</td>
+              <td>Authenticate with email OTP</td>
+              <td>Partial</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>OAuth2 Endpoints</h4>
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/oauth2/authorization/google</code></td>
+              <td>GET</td>
+              <td>Initiate Google OAuth</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/oauth2/redirect</code></td>
+              <td>GET</td>
+              <td>Handle Google OAuth callback</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/oauth2/github/redirect</code></td>
+              <td>GET</td>
+              <td>Handle GitHub OAuth callback</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/google/token</code></td>
+              <td>POST</td>
+              <td>Validate Google ID token</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/github/token</code></td>
+              <td>POST</td>
+              <td>Validate GitHub token</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><code>/auth/facebook/token</code></td>
+              <td>POST</td>
+              <td>Validate Facebook token</td>
+              <td>No</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Example Requests</h4>
+        <p>User Authentication:</p>
+        <pre><code class="language-javascript">// Request
+fetch('/auth/token', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    username: 'user@example.com',
+    password: 'password123'
+  })
+});
+
+// Response
+{
+  "code": 2000,
+  "message": "Authentication successful",
+  "result": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "authenticated": true
+  }
+}</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>User Management Endpoints</h2>
+      <div class="component-card">
+        <h3>User API</h3>
+        <p>The user management endpoints provide functionality for managing users, roles, and permissions.</p>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/users</code></td>
+              <td>GET</td>
+              <td>Get all users (admin only)</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/users/{userId}</code></td>
+              <td>GET</td>
+              <td>Get user by ID</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/users</code></td>
+              <td>POST</td>
+              <td>Create a new user</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/users/{userId}</code></td>
+              <td>PUT</td>
+              <td>Update user</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/users/{userId}</code></td>
+              <td>DELETE</td>
+              <td>Delete user</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/users/myInfo</code></td>
+              <td>GET</td>
+              <td>Get current user information</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/users/updateMyInfo/{userId}</code></td>
+              <td>PUT</td>
+              <td>Update current user's info</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/users/status/{userId}</code></td>
+              <td>PUT</td>
+              <td>Update user status</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Role Management Endpoints</h4>
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/roles</code></td>
+              <td>GET</td>
+              <td>Get all roles</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/roles</code></td>
+              <td>POST</td>
+              <td>Create a new role</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/roles/{role}</code></td>
+              <td>DELETE</td>
+              <td>Delete a role</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Chat System Endpoints</h2>
+      <div class="component-card">
+        <h3>Chat API</h3>
+        <p>
+          The chat system API provides endpoints for direct messaging between users, 
+          group chats, contact management, and message retrieval.
+        </p>
+        
+        <h4>Contacts Management</h4>
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/chat/contacts</code></td>
+              <td>GET</td>
+              <td>Get user's contacts</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/contacts</code></td>
+              <td>POST</td>
+              <td>Add a new contact</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/contacts/pending</code></td>
+              <td>GET</td>
+              <td>Get pending contact requests</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/contacts/{contactId}/respond</code></td>
+              <td>POST</td>
+              <td>Accept or reject a contact request</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/contacts/{contactId}/displayname</code></td>
+              <td>POST</td>
+              <td>Update contact's display name</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/contacts/{contactId}/group</code></td>
+              <td>POST</td>
+              <td>Assign contact to a group</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Group Chat Management</h4>
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/chat/groups</code></td>
+              <td>GET</td>
+              <td>Get user's chat groups</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/groups</code></td>
+              <td>POST</td>
+              <td>Create a new chat group</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/groups/{groupId}</code></td>
+              <td>GET</td>
+              <td>Get group details</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/groups/{groupId}/messages</code></td>
+              <td>GET</td>
+              <td>Get group messages</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/groups/{groupId}/messages</code></td>
+              <td>POST</td>
+              <td>Send a message to a group</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/groups/{groupId}/messages/read</code></td>
+              <td>POST</td>
+              <td>Mark group messages as read</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/groups/{groupId}/members</code></td>
+              <td>POST</td>
+              <td>Add member to group</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/chat/groups/{groupId}/members/{memberId}</code></td>
+              <td>DELETE</td>
+              <td>Remove member from group</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Example Request</h4>
+        <p>Adding a new contact:</p>
+        <pre><code class="language-javascript">// Request
+fetch('/chat/contacts', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  },
+  body: JSON.stringify({
+    email: 'friend@example.com'
+  })
+});
+
+// Response
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "name": "John Doe",
+  "email": "friend@example.com",
+  "status": "online",
+  "unreadCount": 0
+}</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Kanban Board Endpoints</h2>
+      <div class="component-card">
+        <h3>Kanban API</h3>
+        <p>
+          The Kanban API provides endpoints for managing boards, columns, and tasks,
+          including operations like board creation, task movement, and status updates.
+        </p>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/kanban/boards</code></td>
+              <td>GET</td>
+              <td>Get all Kanban boards</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/boards/{boardId}</code></td>
+              <td>GET</td>
+              <td>Get a specific board</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/boards</code></td>
+              <td>POST</td>
+              <td>Create a new board</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/boards/{boardId}</code></td>
+              <td>PUT</td>
+              <td>Update a board</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/boards/{boardId}</code></td>
+              <td>DELETE</td>
+              <td>Delete a board</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/boards/{boardId}/clear-tasks</code></td>
+              <td>POST</td>
+              <td>Clear all tasks from a board</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/boards/{boardId}/reset</code></td>
+              <td>POST</td>
+              <td>Reset board to default state</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/columns</code></td>
+              <td>POST</td>
+              <td>Create a new column</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/columns/{columnId}</code></td>
+              <td>PUT</td>
+              <td>Update a column</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/columns/{columnId}</code></td>
+              <td>DELETE</td>
+              <td>Delete a column</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/columns/move</code></td>
+              <td>POST</td>
+              <td>Reorder columns</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/tasks</code></td>
+              <td>POST</td>
+              <td>Create a new task</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/tasks/{taskId}</code></td>
+              <td>PUT</td>
+              <td>Update a task</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/tasks/{taskId}</code></td>
+              <td>DELETE</td>
+              <td>Delete a task</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/kanban/tasks/move</code></td>
+              <td>POST</td>
+              <td>Move a task</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Example Request</h4>
+        <p>Moving a task between columns:</p>
+        <pre><code class="language-javascript">// Request
+fetch('/kanban/tasks/move', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  },
+  body: JSON.stringify({
+    taskId: "123e4567-e89b-12d3-a456-426614174000",
+    sourceColumnId: "123e4567-e89b-12d3-a456-426614174001", 
+    destinationColumnId: "123e4567-e89b-12d3-a456-426614174002",
+    position: 1
+  })
+});
+
+// Response
+{
+  "code": 2000,
+  "message": "Task moved successfully",
+  "result": {
+    // Updated board data with new task positions
+  }
+}</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Calendar Endpoints</h2>
+      <div class="component-card">
+        <h3>Calendar API</h3>
+        <p>
+          The Calendar API provides endpoints for managing events, including creation, 
+          updates, and retrieval of events by date range and user.
+        </p>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/events</code></td>
+              <td>GET</td>
+              <td>Get events by user ID</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/events</code></td>
+              <td>POST</td>
+              <td>Create a new event</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/events/{eventId}</code></td>
+              <td>PUT</td>
+              <td>Update an event</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/events/series/{seriesId}</code></td>
+              <td>PUT</td>
+              <td>Update recurring event series</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/events/{eventId}</code></td>
+              <td>DELETE</td>
+              <td>Delete an event</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Example Request</h4>
+        <p>Creating a new calendar event:</p>
+        <pre><code class="language-javascript">// Request
+fetch('/events', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  },
+  body: JSON.stringify({
+    title: "Team Meeting",
+    start: "2025-05-01T10:00:00",
+    end: "2025-05-01T11:00:00",
+    description: "Weekly team status update",
+    color: "#4285F4",
+    allDay: false,
+    userId: "123e4567-e89b-12d3-a456-426614174000"
+  })
+});
+
+// Response
+{
+  "code": 2000,
+  "message": "Event created successfully",
+  "result": {
+    "id": "123e4567-e89b-12d3-a456-426614174010",
+    "title": "Team Meeting",
+    "start": "2025-05-01T10:00:00",
+    "end": "2025-05-01T11:00:00",
+    "description": "Weekly team status update",
+    "color": "#4285F4",
+    "allDay": false
+  }
+}</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Language AI Endpoints</h2>
+      <div class="component-card">
+        <h3>Language AI API</h3>
+        <p>
+          The Language AI API provides endpoints for language learning sessions, 
+          interaction history, and language assessment functionalities.
+        </p>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/api/language-ai/sessions</code></td>
+              <td>POST</td>
+              <td>Create/ensure session metadata</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/api/language-ai/users/{userId}/languages/{language}/history</code></td>
+              <td>GET</td>
+              <td>Get conversation history</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/api/language-ai/messages/user/{userId}</code></td>
+              <td>GET</td>
+              <td>Get user messages</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/api/language-ai/interactions</code></td>
+              <td>POST</td>
+              <td>Save a new interaction</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/api/language-ai/users/{userId}/languages</code></td>
+              <td>GET</td>
+              <td>Get languages user has used</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Speech API Endpoints</h4>
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/api/speech/health</code></td>
+              <td>GET</td>
+              <td>Check speech service health</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/api/speech/text-to-speech</code></td>
+              <td>POST</td>
+              <td>Convert text to speech</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/api/speech/speech-to-text</code></td>
+              <td>POST</td>
+              <td>Convert speech to text</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Example Request</h4>
+        <p>Saving a language interaction:</p>
+        <pre><code class="language-javascript">// Request
+fetch('/api/language-ai/interactions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  },
+  body: JSON.stringify({
+    userId: "123e4567-e89b-12d3-a456-426614174000",
+    language: "fi-FI",
+    userMessage: "Hyvää päivää! Minä olen opiskelija.",
+    aiResponse: "Hyvää päivää! Kiva tavata. Olet siis opiskelija. Mitä opiskelet?",
+    proficiencyLevel: "INTERMEDIATE",
+    recaptchaToken: "token123"
+  })
+});
+
+// Response
+{
+  "id": "123e4567-e89b-12d3-a456-426614174020",
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "language": "fi-FI",
+  "content": "Hyvää päivää! Kiva tavata. Olet siis opiskelija. Mitä opiskelet?",
+  "createdAt": "2025-04-30T15:45:23Z",
+  "messageType": "AI_RESPONSE",
+  "proficiencyLevel": "INTERMEDIATE"
+}</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>AI Assistant Endpoints</h2>
+      <div class="component-card">
+        <h3>AI Assistant API</h3>
+        <p>
+          The AI Assistant API provides endpoints for interacting with the AI assistant,
+          managing chat history, and sending messages.
+        </p>
+        
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Description</th>
+              <th>Auth Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/api/assistant/test</code> or <code>/api/chat/test</code></td>
+              <td>GET</td>
+              <td>Test endpoint</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/api/assistant/{userId}</code> or <code>/api/chat/{userId}</code></td>
+              <td>GET</td>
+              <td>Get chat history</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td><code>/api/assistant/send</code> or <code>/api/chat/send</code></td>
+              <td>POST</td>
+              <td>Send message to assistant</td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h4>Example Request</h4>
+        <p>Sending a message to the AI assistant:</p>
+        <pre><code class="language-javascript">// Request
+fetch('/api/assistant/send', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  },
+  body: JSON.stringify({
+    userId: "123e4567-e89b-12d3-a456-426614174000",
+    message: "How can I create a new kanban board?",
+    context: "user_management_app"
+  })
+});
+
+// Response
+{
+  "id": "123e4567-e89b-12d3-a456-426614174030",
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "message": "To create a new Kanban board, navigate to the Kanban section from...",
+  "timestamp": "2025-04-30T15:48:12Z",
+  "role": "assistant"
+}</code></pre>
+      </div>
+    </section>
+    
+    <section>
+      <h2>API Testing and Documentation</h2>
+      <div class="component-card">
+        <h3>API Documentation</h3>
+        <p>
+          The API is documented using OpenAPI/Swagger, which provides a comprehensive,
+          interactive documentation of all endpoints, request/response formats, and authentication requirements.
+        </p>
+        <p>
+          You can access the Swagger UI at <code>/swagger-ui/index.html</code> when running the application locally.
+        </p>
+        
+        <h4>API Security</h4>
+        <p>
+          Most API endpoints are secured using JWT (JSON Web Token) authentication. To access these endpoints,
+          you need to include an Authorization header with a valid Bearer token in your requests.
+        </p>
+        <pre><code class="language-http">Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></pre>
+        
+        <p>
+          Tokens can be obtained through the authentication endpoints (<code>/auth/token</code> or <code>/auth/token/cookie</code>)
+          and need to be refreshed using the refresh token when they expire.
+        </p>
+      </div>
+    </section>
+  </main>
+  
+  <script src="../../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+</body>
+</html>

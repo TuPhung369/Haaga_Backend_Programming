@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <!-- Mermaid for flowcharts -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"></script>
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../architecture.html" class="sidebar-subnav-link">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="auth.html" class="sidebar-subnav-link active">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="calendar.html" class="sidebar-subnav-link">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="language-ai.html" class="sidebar-subnav-link">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../backend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/api.html" class="sidebar-subnav-link">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/websockets.html" class="sidebar-subnav-link">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/speech-processing.html" class="sidebar-subnav-link">Speech Processing</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>Authentication System</h1>
+      <p>Comprehensive documentation of the authentication mechanisms in the frontend application.</p>
+    </header>
+    
+    <section>
+      <h2>Overview</h2>
+      <p>
+        The authentication system in the TuPhung Project is a robust, multi-layered security implementation that supports various 
+        authentication methods including traditional username/password, multi-factor authentication (TOTP and Email OTP), 
+        and OAuth2 social logins (Google, Facebook, GitHub).
+      </p>
+      
+      <div class="component-card">
+        <h3>Authentication Features</h3>
+        <ul>
+          <li><strong>JWT-based Authentication</strong> - Secure token-based authentication with automatic refresh</li>
+          <li><strong>Multi-factor Authentication</strong> - TOTP (Time-based One-Time Password) and Email OTP</li>
+          <li><strong>Social Login</strong> - OAuth2 integration with Google, Facebook, and GitHub</li>
+          <li><strong>Account Recovery</strong> - Password reset and account recovery workflows</li>
+          <li><strong>CAPTCHA Protection</strong> - reCAPTCHA v3 integration for bot protection</li>
+          <li><strong>Account Locking</strong> - Automatic account locking after multiple failed attempts</li>
+          <li><strong>Email Verification</strong> - Mandatory email verification for new accounts</li>
+        </ul>
+      </div>
+      
+      <h2>Authentication Flow</h2>
+      <div class="diagram-container">
+        <div class="diagram-title">Authentication Process Flow</div>
+        <div class="mermaid">
+          flowchart TD
+            Start([User Visits Auth Page]) --> Login{Login or Register?}
+            Login -->|Login| Credentials[Enter Username/Password]
+            Login -->|Register| RegisterForm[Complete Registration Form]
+            
+            RegisterForm --> Validate[Validate Input]
+            Validate -->|Valid| Captcha[reCAPTCHA Verification]
+            Validate -->|Invalid| ShowErrors[Show Validation Errors]
+            ShowErrors --> RegisterForm
+            
+            Captcha -->|Verified| SubmitReg[Submit Registration]
+            SubmitReg --> EmailVerif[Email Verification]
+            EmailVerif --> VerifComplete[Verification Complete]
+            VerifComplete --> Credentials
+            
+            Credentials --> InitAuth[Initiate Authentication]
+            InitAuth --> MFACheck{MFA Required?}
+            
+            MFACheck -->|No MFA| StandardAuth[Standard Authentication]
+            MFACheck -->|TOTP Required| TOTPAuth[TOTP Authentication]
+            MFACheck -->|Email OTP Required| EmailOTPAuth[Email OTP Authentication]
+            
+            TOTPAuth --> ValidateTOTP[Validate TOTP Code]
+            EmailOTPAuth --> ValidateEmailOTP[Validate Email OTP]
+            
+            ValidateTOTP --> AuthSuccess
+            ValidateEmailOTP --> AuthSuccess
+            StandardAuth --> AuthSuccess[Authentication Success]
+            
+            AuthSuccess --> JWT[Generate JWT Token]
+            JWT --> StoreToken[Store Token & User Data]
+            StoreToken --> SetupRefresh[Setup Token Refresh]
+            SetupRefresh --> Redirect[Redirect to Home]
+            
+            subgraph Social Login
+              SocialStart([User Clicks Social Login]) --> SocialProvider{Select Provider}
+              SocialProvider -->|Google| GoogleAuth[Google OAuth Flow]
+              SocialProvider -->|Facebook| FacebookAuth[Facebook OAuth Flow]
+              SocialProvider -->|GitHub| GitHubAuth[GitHub OAuth Flow]
+              
+              GoogleAuth --> OAuthRedirect[OAuth Redirect]
+              FacebookAuth --> OAuthRedirect
+              GitHubAuth --> OAuthRedirect
+              
+              OAuthRedirect --> HandleCallback[Handle OAuth Callback]
+              HandleCallback --> ProcessToken[Process OAuth Token]
+              ProcessToken --> AuthSuccess
+            end
+        </div>
+      </div>
+      
+      <h2>Key Components</h2>
+      
+      <div class="component-card">
+        <h3>AuthPage Component</h3>
+        <p>
+          The main authentication page component that handles both login and registration. It manages the state for different 
+          authentication modes and renders the appropriate forms based on the current context.
+        </p>
+        <pre><code class="language-typescript">// src/pages/AuthPage.tsx
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Form, Input, Button, Typography, DatePicker, notification } from "antd";
+import {
+  authenticateUserWithCookies,
+  registerUser,
+  initiateAuthentication
+} from "../services/authService";
+import { useApi } from "../hooks/useApi";
+import { useFieldErrors } from "../hooks/useFieldErrors";
+import { ServiceError } from "../services/baseService";
+import { useDispatch, useSelector } from "react-redux";
+import { setAuthData } from "../store/authSlice";
+import { resetAllData } from "../store/resetActions";
+import { ValidationInput, AuthState, ValidationErrors } from "../types/AuthTypes";
+import { setupTokenRefresh } from "../utils/tokenRefresh";
+import TotpAuthComponent from "../components/TotpAuthComponent";
+import EmailOtpAuthComponent from "../components/EmailOtpAuthComponent";
+import ReCaptchaV3 from "../components/ReCaptchaV3";
+
+// Component implementation...</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>Authentication Service</h3>
+        <p>
+          The authentication service handles all API calls related to authentication, including login, registration, 
+          password reset, and token refresh operations.
+        </p>
+        <pre><code class="language-typescript">// src/services/authService.ts
+import axios from "axios";
+import { ServiceError } from "./baseService";
+import { ValidationInput } from "../types/AuthTypes";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URI || "";
+
+export const authenticateUserWithCookies = async (username: string, password: string) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+      username,
+      password
+    });
+    return response.data;
+  } catch (error) {
+    // Error handling...
+    throw new ServiceError("Authentication failed", error);
+  }
+};
+
+export const registerUser = async (userData: ValidationInput) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/auth/register`, userData);
+    return response.data;
+  } catch (error) {
+    // Error handling...
+    throw new ServiceError("Registration failed", error);
+  }
+};
+
+export const initiateAuthentication = async (username: string, password: string) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/auth/initiate`, {
+      username,
+      password
+    });
+    return response.data.result;
+  } catch (error) {
+    // Error handling...
+    throw new ServiceError("Failed to initiate authentication", error);
+  }
+};
+
+// Additional authentication methods...</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>TOTP Authentication Component</h3>
+        <p>
+          Component for handling Time-based One-Time Password (TOTP) authentication as a second factor.
+        </p>
+        <pre><code class="language-typescript">// src/components/TotpAuthComponent.tsx
+import React, { useState } from "react";
+import { Form, Input, Button, notification } from "antd";
+import { verifyTotp } from "../services/totpService";
+import { useDispatch } from "react-redux";
+import { setAuthData } from "../store/authSlice";
+import { setupTokenRefresh } from "../utils/tokenRefresh";
+import VerificationCodeInput from "./VerificationCodeInput";
+
+interface TotpAuthComponentProps {
+  username: string;
+  password: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
+  username,
+  password,
+  onSuccess,
+  onCancel
+}) => {
+  const [code, setCode] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const dispatch = useDispatch();
+
+  const handleVerify = async () => {
+    if (!code || code.length !== 6) {
+      notification.error({
+        message: "Invalid Code",
+        description: "Please enter a valid 6-digit TOTP code."
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await verifyTotp(username, password, code);
+      
+      if (response && response.token) {
+        dispatch(
+          setAuthData({
+            token: response.token,
+            isAuthenticated: true,
+            loginSocial: false
+          })
+        );
+        
+        setupTokenRefresh(response.token);
+        
+        notification.success({
+          message: "Success",
+          description: "Two-factor authentication successful!"
+        });
+        
+        onSuccess();
+      }
+    } catch (error) {
+      notification.error({
+        message: "Verification Failed",
+        description: "Invalid TOTP code. Please try again."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Component rendering...
+};</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>OAuth2 Redirect Handler</h3>
+        <p>
+          Component that handles OAuth2 redirects and processes authentication tokens from social login providers.
+        </p>
+        <pre><code class="language-typescript">// src/components/OAuth2RedirectHandler.tsx
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { processOAuth2Callback } from "../services/authService";
+import { useDispatch } from "react-redux";
+import { setAuthData } from "../store/authSlice";
+import { setupTokenRefresh } from "../utils/tokenRefresh";
+import LoadingState from "./LoadingState";
+
+const OAuth2RedirectHandler: React.FC = () => {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const handleOAuth2Callback = async () => {
+      const params = new URLSearchParams(location.search);
+      const code = params.get("code");
+      const error = params.get("error");
+      const state = params.get("state");
+
+      if (error) {
+        setError(`Authentication failed: ${error}`);
+        setLoading(false);
+        return;
+      }
+
+      if (!code) {
+        setError("No authorization code found in the URL");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await processOAuth2Callback(code, state);
+        
+        if (response && response.token) {
+          dispatch(
+            setAuthData({
+              token: response.token,
+              isAuthenticated: true,
+              loginSocial: true
+            })
+          );
+          
+          setupTokenRefresh(response.token);
+          navigate("/");
+        } else {
+          throw new Error("Invalid response from server");
+        }
+      } catch (err) {
+        setError("Failed to process authentication");
+        console.error("OAuth callback error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    handleOAuth2Callback();
+  }, [location, navigate, dispatch]);
+
+  // Component rendering...
+};</code></pre>
+      </div>
+      
+      <h2>Token Management</h2>
+      <p>
+        The application uses JWT (JSON Web Tokens) for authentication. Tokens are stored securely and automatically 
+        refreshed before expiration to maintain a seamless user experience.
+      </p>
+      
+      <div class="component-card">
+        <h3>Token Refresh Mechanism</h3>
+        <pre><code class="language-typescript">// src/utils/tokenRefresh.ts
+import axios from "axios";
+import { store } from "../store/store";
+import { setAuthData } from "../store/authSlice";
+import jwtDecode from "jwt-decode";
+
+interface JwtPayload {
+  exp: number;
+  sub: string;
+  // Other JWT claims...
+}
+
+let refreshTimeout: NodeJS.Timeout | null = null;
+
+export const setupTokenRefresh = (token: string) => {
+  // Clear any existing refresh timeout
+  if (refreshTimeout) {
+    clearTimeout(refreshTimeout);
+  }
+
+  try {
+    // Decode the JWT to get expiration time
+    const decoded = jwtDecode<JwtPayload>(token);
+    const expirationTime = decoded.exp * 1000; // Convert to milliseconds
+    const currentTime = Date.now();
+    
+    // Calculate time until token needs to be refreshed (5 minutes before expiration)
+    const timeUntilRefresh = expirationTime - currentTime - 5 * 60 * 1000;
+    
+    if (timeUntilRefresh <= 0) {
+      // Token is already expired or about to expire, refresh immediately
+      refreshToken(token);
+    } else {
+      // Set timeout to refresh token before it expires
+      refreshTimeout = setTimeout(() => refreshToken(token), timeUntilRefresh);
+    }
+  } catch (error) {
+    console.error("Error setting up token refresh:", error);
+  }
+};
+
+const refreshToken = async (currentToken: string) => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URI || "";
+    const response = await axios.post(
+      `${API_BASE_URL}/api/auth/refresh-token`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${currentToken}`
+        }
+      }
+    );
+    
+    if (response.data && response.data.result && response.data.result.token) {
+      const newToken = response.data.result.token;
+      
+      // Update token in Redux store
+      store.dispatch(
+        setAuthData({
+          token: newToken,
+          isAuthenticated: true,
+          loginSocial: false
+        })
+      );
+      
+      // Set up refresh for the new token
+      setupTokenRefresh(newToken);
+    }
+  } catch (error) {
+    console.error("Token refresh failed:", error);
+    // Handle refresh failure (e.g., redirect to login)
+  }
+};</code></pre>
+      </div>
+      
+      <h2>Security Considerations</h2>
+      <p>
+        The authentication system implements several security measures to protect user accounts:
+      </p>
+      
+      <ul>
+        <li><strong>Input Validation</strong> - All user inputs are validated both client-side and server-side</li>
+        <li><strong>HTTPS</strong> - All API communications are encrypted using HTTPS</li>
+        <li><strong>CSRF Protection</strong> - Cross-Site Request Forgery protection is implemented</li>
+        <li><strong>Rate Limiting</strong> - API endpoints are protected against brute force attacks</li>
+        <li><strong>Account Locking</strong> - Accounts are temporarily locked after multiple failed login attempts</li>
+        <li><strong>Secure Token Storage</strong> - Authentication tokens are stored securely</li>
+        <li><strong>Password Policies</strong> - Strong password requirements are enforced</li>
+      </ul>
+      
+      <h2>Related Components</h2>
+      <ul>
+        <li><a href="user-management.html">User Management</a> - User profile and account settings</li>
+        <li><a href="../backend/auth.html">Backend Authentication</a> - Server-side authentication implementation</li>
+        <li><a href="state-management.html">State Management</a> - How authentication state is managed in Redux</li>
+      </ul>
+    </section>
+  </main>
+  
+  <script src="../../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+</body>
+</html>

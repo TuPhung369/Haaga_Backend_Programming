@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <!-- Mermaid for flowcharts -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"></script>
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="architecture.html" class="sidebar-subnav-link active">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="frontend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="frontend/auth.html" class="sidebar-subnav-link">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="frontend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="frontend/chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="frontend/kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="frontend/calendar.html" class="sidebar-subnav-link">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="frontend/ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="frontend/language-ai.html" class="sidebar-subnav-link">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="frontend/state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="backend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="backend/auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="backend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="backend/database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="backend/api.html" class="sidebar-subnav-link">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="backend/websockets.html" class="sidebar-subnav-link">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="backend/speech-processing.html" class="sidebar-subnav-link">Speech Processing</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>System Architecture</h1>
+      <p>Comprehensive overview of the TuPhung Project's architecture and component interactions.</p>
+    </header>
+    
+    <section>
+      <h2>Architecture Overview</h2>
+      <p>
+        The TuPhung Project follows a modern, scalable architecture that separates concerns between frontend and backend 
+        components while enabling real-time communication and integration with AI services. The system is designed to be 
+        modular, maintainable, and secure.
+      </p>
+      
+      <div class="diagram-container">
+        <div class="diagram-title">High-Level Architecture Diagram</div>
+        <div class="mermaid">
+          graph TB
+            Client[Client Browser] --> FE[Frontend - React/TypeScript]
+            FE --> API[REST API]
+            FE <--> WS[WebSockets]
+            API --> BE[Backend - Spring Boot]
+            WS --> BE
+            BE --> DB[(Database - PostgreSQL)]
+            BE --> AI[AI Services]
+            BE --> Speech[Speech Processing]
+            
+            subgraph Frontend
+              FE --> Components[React Components]
+              FE --> Redux[Redux State Management]
+              FE --> Router[React Router]
+              Components --> UI[UI Components]
+              Components --> Pages[Page Components]
+              Redux --> Actions[Actions]
+              Redux --> Reducers[Reducers]
+              Redux --> Store[Store]
+            end
+            
+            subgraph Backend
+              BE --> Controllers[REST Controllers]
+              BE --> Services[Business Services]
+              BE --> Repositories[Data Repositories]
+              BE --> Security[Security Layer]
+              BE --> WebSocketHandlers[WebSocket Handlers]
+              BE --> SpeechProcessing[Speech Processing]
+            end
+            
+            subgraph Database
+              DB --> Users[Users]
+              DB --> Auth[Authentication]
+              DB --> Chat[Chat Messages]
+              DB --> Kanban[Kanban Boards]
+              DB --> Calendar[Calendar Events]
+            end
+        </div>
+      </div>
+      
+      <h2>Key Architectural Components</h2>
+      
+      <div class="component-card">
+        <h3>Frontend Architecture</h3>
+        <p>
+          The frontend is built with React and TypeScript, following a component-based architecture with Redux for state management.
+        </p>
+        <div class="diagram-container">
+          <div class="diagram-title">Frontend Architecture</div>
+          <div class="mermaid">
+            graph TD
+              User[User Interface] --> Components[React Components]
+              Components --> Pages[Page Components]
+              Components --> SharedComponents[Shared Components]
+              
+              Pages --> AuthPage[Authentication Pages]
+              Pages --> Dashboard[Dashboard]
+              Pages --> UserManagement[User Management]
+              Pages --> ChatSystem[Chat System]
+              Pages --> KanbanBoard[Kanban Board]
+              Pages --> CalendarView[Calendar]
+              Pages --> AIAssistants[AI Assistants]
+              Pages --> LanguageAI[Language AI]
+              
+              SharedComponents --> UI[UI Components]
+              SharedComponents --> Forms[Form Components]
+              SharedComponents --> Modals[Modal Components]
+              
+              Components --> Hooks[Custom Hooks]
+              Components --> Services[API Services]
+              
+              Services --> AuthService[Auth Service]
+              Services --> UserService[User Service]
+              Services --> ChatService[Chat Service]
+              Services --> KanbanService[Kanban Service]
+              Services --> CalendarService[Calendar Service]
+              Services --> AIService[AI Service]
+              Services --> WebSocketService[WebSocket Service]
+              
+              Components --> Redux[Redux]
+              Redux --> Actions[Actions]
+              Redux --> Reducers[Reducers]
+              Redux --> Selectors[Selectors]
+              Redux --> Store[Store]
+              
+              Store --> AuthState[Auth State]
+              Store --> UserState[User State]
+              Store --> ChatState[Chat State]
+              Store --> KanbanState[Kanban State]
+              Store --> CalendarState[Calendar State]
+              Store --> AIState[AI State]
+          </div>
+        </div>
+      </div>
+      
+      <div class="component-card">
+        <h3>Backend Architecture</h3>
+        <p>
+          The backend is built with Spring Boot, following a layered architecture with controllers, services, and repositories.
+        </p>
+        <div class="diagram-container">
+          <div class="diagram-title">Backend Architecture</div>
+          <div class="mermaid">
+            graph TD
+              API[API Layer] --> Controllers[REST Controllers]
+              WebSockets[WebSocket Endpoints] --> WSHandlers[WebSocket Handlers]
+              
+              Controllers --> Services[Service Layer]
+              WSHandlers --> Services
+              
+              Services --> Repositories[Repository Layer]
+              Services --> ExternalServices[External Services]
+              
+              Repositories --> Entities[Entity Models]
+              Repositories --> DB[(Database)]
+              
+              ExternalServices --> EmailService[Email Service]
+              ExternalServices --> SpeechService[Speech Processing]
+              ExternalServices --> OAuth2Service[OAuth2 Service]
+              
+              subgraph Security Layer
+                SecurityFilters[Security Filters]
+                JwtProvider[JWT Provider]
+                AuthenticationManager[Authentication Manager]
+                UserDetailsService[User Details Service]
+                PasswordEncoder[Password Encoder]
+              end
+              
+              API --> SecurityFilters
+              WebSockets --> SecurityFilters
+              Controllers --> DTOs[Data Transfer Objects]
+              Services --> DTOs
+          </div>
+        </div>
+      </div>
+      
+      <h2>Communication Patterns</h2>
+      
+      <div class="component-card">
+        <h3>REST API Communication</h3>
+        <p>
+          The frontend communicates with the backend primarily through RESTful API endpoints for CRUD operations and business logic.
+        </p>
+        <div class="diagram-container">
+          <div class="diagram-title">REST API Communication Flow</div>
+          <div class="mermaid">
+            sequenceDiagram
+              participant Client as React Client
+              participant API as REST API
+              participant Service as Service Layer
+              participant DB as Database
+              
+              Client->>API: HTTP Request (GET, POST, PUT, DELETE)
+              API->>API: Validate Request & Authentication
+              API->>Service: Process Request
+              Service->>DB: Database Operation
+              DB-->>Service: Return Data
+              Service-->>API: Process Response
+              API-->>Client: HTTP Response (JSON)
+          </div>
+        </div>
+      </div>
+      
+      <div class="component-card">
+        <h3>WebSocket Communication</h3>
+        <p>
+          Real-time features like chat and notifications use WebSockets for bidirectional communication.
+        </p>
+        <div class="diagram-container">
+          <div class="diagram-title">WebSocket Communication Flow</div>
+          <div class="mermaid">
+            sequenceDiagram
+              participant Client as React Client
+              participant WS as WebSocket Server
+              participant Service as Service Layer
+              participant DB as Database
+              
+              Client->>WS: WebSocket Connection Request
+              WS->>WS: Authentication & Session Setup
+              WS-->>Client: Connection Established
+              
+              Client->>WS: Subscribe to Topics
+              WS-->>Client: Subscription Confirmed
+              
+              Client->>WS: Send Message
+              WS->>Service: Process Message
+              Service->>DB: Store Message
+              Service->>WS: Broadcast to Subscribers
+              WS-->>Client: Receive Message (All Subscribers)
+          </div>
+        </div>
+      </div>
+      
+      <h2>Data Flow</h2>
+      
+      <div class="component-card">
+        <h3>Authentication Flow</h3>
+        <p>
+          The authentication process involves multiple steps to ensure secure user authentication.
+        </p>
+        <div class="diagram-container">
+          <div class="diagram-title">Authentication Data Flow</div>
+          <div class="mermaid">
+            sequenceDiagram
+              participant User as User
+              participant Client as React Client
+              participant API as Auth API
+              participant Service as Auth Service
+              participant DB as Database
+              
+              User->>Client: Enter Credentials
+              Client->>API: Login Request
+              API->>Service: Authenticate User
+              Service->>DB: Verify Credentials
+              
+              alt MFA Required
+                DB-->>Service: Credentials Valid, MFA Required
+                Service-->>API: Initiate MFA
+                API-->>Client: Request MFA Code
+                User->>Client: Enter MFA Code
+                Client->>API: Submit MFA Code
+                API->>Service: Verify MFA Code
+                Service->>DB: Validate MFA
+              end
+              
+              DB-->>Service: Authentication Successful
+              Service->>Service: Generate JWT Token
+              Service-->>API: Return Token
+              API-->>Client: Authentication Response with Token
+              Client->>Client: Store Token & Update State
+          </div>
+        </div>
+      </div>
+      
+      <div class="component-card">
+        <h3>Chat System Flow</h3>
+        <p>
+          The chat system uses WebSockets for real-time messaging between users.
+        </p>
+        <div class="diagram-container">
+          <div class="diagram-title">Chat System Data Flow</div>
+          <div class="mermaid">
+            sequenceDiagram
+              participant Sender as Sender
+              participant SenderClient as Sender Client
+              participant WS as WebSocket Server
+              participant Service as Chat Service
+              participant DB as Database
+              participant ReceiverClient as Receiver Client
+              participant Receiver as Receiver
+              
+              Sender->>SenderClient: Type Message
+              SenderClient->>WS: Send Message
+              WS->>Service: Process Message
+              Service->>DB: Store Message
+              DB-->>Service: Message Stored
+              Service->>WS: Broadcast to Chat Room
+              WS-->>SenderClient: Deliver Message
+              WS-->>ReceiverClient: Deliver Message
+              ReceiverClient->>Receiver: Display Message
+              
+              alt Offline Receiver
+                Service->>Service: Queue Notification
+                Service->>DB: Store Notification
+                Receiver->>ReceiverClient: Come Online
+                ReceiverClient->>WS: Connect & Subscribe
+                WS->>Service: Fetch Pending Messages
+                Service->>DB: Retrieve Messages
+                DB-->>Service: Return Messages
+                Service-->>WS: Send Pending Messages
+                WS-->>ReceiverClient: Deliver Messages
+                ReceiverClient->>Receiver: Display Messages
+              end
+          </div>
+        </div>
+      </div>
+      
+      <h2>Deployment Architecture</h2>
+      
+      <div class="component-card">
+        <h3>Deployment Overview</h3>
+        <p>
+          The application is designed to be deployed in a containerized environment for scalability and maintainability.
+        </p>
+        <div class="diagram-container">
+          <div class="diagram-title">Deployment Architecture</div>
+          <div class="mermaid">
+            graph TB
+              Internet((Internet)) --> LB[Load Balancer]
+              LB --> FE1[Frontend Instance 1]
+              LB --> FE2[Frontend Instance 2]
+              LB --> FE3[Frontend Instance 3]
+              
+              FE1 --> APILB[API Load Balancer]
+              FE2 --> APILB
+              FE3 --> APILB
+              
+              APILB --> BE1[Backend Instance 1]
+              APILB --> BE2[Backend Instance 2]
+              APILB --> BE3[Backend Instance 3]
+              
+              BE1 --> DB[(Database Cluster)]
+              BE2 --> DB
+              BE3 --> DB
+              
+              BE1 --> Cache[(Redis Cache)]
+              BE2 --> Cache
+              BE3 --> Cache
+              
+              BE1 --> MQ[Message Queue]
+              BE2 --> MQ
+              BE3 --> MQ
+              
+              MQ --> Workers[Background Workers]
+              Workers --> AI[AI Services]
+              Workers --> Speech[Speech Processing]
+              Workers --> Email[Email Service]
+          </div>
+        </div>
+      </div>
+      
+      <h2>Security Architecture</h2>
+      
+      <p>
+        The application implements a comprehensive security architecture to protect user data and prevent unauthorized access.
+      </p>
+      
+      <div class="component-card">
+        <h3>Security Layers</h3>
+        <div class="diagram-container">
+          <div class="diagram-title">Security Architecture</div>
+          <div class="mermaid">
+            graph TD
+              Client[Client Browser] --> HTTPS[HTTPS/TLS]
+              HTTPS --> WAF[Web Application Firewall]
+              WAF --> CORS[CORS Policy]
+              CORS --> CSP[Content Security Policy]
+              CSP --> Auth[Authentication Layer]
+              Auth --> JWT[JWT Validation]
+              JWT --> RBAC[Role-Based Access Control]
+              RBAC --> API[API Endpoints]
+              API --> InputVal[Input Validation]
+              InputVal --> Services[Business Services]
+              Services --> DataEnc[Data Encryption]
+              DataEnc --> DB[(Database)]
+          </div>
+        </div>
+      </div>
+      
+      <h2>Related Documentation</h2>
+      <ul>
+        <li><a href="tech-stack.html">Tech Stack</a> - Detailed information about the technologies used</li>
+        <li><a href="frontend/structure.html">Frontend Structure</a> - Frontend project organization</li>
+        <li><a href="backend/structure.html">Backend Structure</a> - Backend project organization</li>
+        <li><a href="backend/database.html">Database Design</a> - Database schema and relationships</li>
+      </ul>
+    </section>
+  </main>
+  
+  <script src="../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+</body>
+</html>

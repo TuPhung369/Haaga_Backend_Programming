@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend Speech Processing - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <!-- Mermaid for flowcharts -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"></script>
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../architecture.html" class="sidebar-subnav-link">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/auth.html" class="sidebar-subnav-link">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/calendar.html" class="sidebar-subnav-link">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/language-ai.html" class="sidebar-subnav-link">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../frontend/state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="api.html" class="sidebar-subnav-link">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="websockets.html" class="sidebar-subnav-link">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="speech-processing.html" class="sidebar-subnav-link active">Speech Processing</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="exception-handling.html" class="sidebar-subnav-link">Exception Handling</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>Backend Speech Processing</h1>
+      <p>A comprehensive guide to the speech processing capabilities in the TuPhung Project backend.</p>
+    </header>
+    
+    <section>
+      <h2>Overview</h2>
+      <p>
+        The TuPhung Project incorporates advanced speech processing capabilities to enable voice-based interactions 
+        and language learning features. This system converts spoken language to text (speech-to-text), 
+        processes the text for understanding, and can generate spoken responses (text-to-speech).
+      </p>
+      
+      <div class="component-card">
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>Speech Recognition</strong> - Convert spoken language to text with high accuracy</li>
+          <li><strong>Speech Synthesis</strong> - Generate natural-sounding speech from text</li>
+          <li><strong>Language Detection</strong> - Automatically identify the language being spoken</li>
+          <li><strong>Pronunciation Assessment</strong> - Evaluate and score pronunciation quality</li>
+          <li><strong>Voice Authentication</strong> - Verify user identity through voice biometrics</li>
+          <li><strong>Real-time Processing</strong> - Process speech with minimal latency</li>
+          <li><strong>Multi-language Support</strong> - Support for multiple languages and dialects</li>
+          <li><strong>Noise Reduction</strong> - Filter out background noise for better recognition</li>
+        </ul>
+      </div>
+      
+      <h2>Architecture</h2>
+      
+      <div class="diagram-container">
+        <div class="diagram-title">Speech Processing Architecture</div>
+        <div class="mermaid">
+          graph TD
+            Client[Client Application] --> API[API Gateway]
+            API --> SpeechController[Speech Controller]
+            
+            SpeechController --> STT[Speech-to-Text Service]
+            SpeechController --> TTS[Text-to-Speech Service]
+            SpeechController --> LA[Language Analysis Service]
+            SpeechController --> PA[Pronunciation Assessment Service]
+            
+            STT --> AudioProcessor[Audio Processor]
+            STT --> SpeechRecognizer[Speech Recognizer]
+            
+            TTS --> TextProcessor[Text Processor]
+            TTS --> SpeechSynthesizer[Speech Synthesizer]
+            
+            LA --> LanguageDetector[Language Detector]
+            LA --> SentimentAnalyzer[Sentiment Analyzer]
+            LA --> IntentRecognizer[Intent Recognizer]
+            
+            PA --> PronunciationAnalyzer[Pronunciation Analyzer]
+            PA --> FeedbackGenerator[Feedback Generator]
+            
+            AudioProcessor --> AudioStorage[Audio Storage]
+            SpeechRecognizer --> TextStorage[Text Storage]
+            SpeechSynthesizer --> AudioCache[Audio Cache]
+            
+            subgraph "External AI Services"
+              ExternalSTT[External STT API]
+              ExternalTTS[External TTS API]
+              ExternalNLP[External NLP API]
+            end
+            
+            SpeechRecognizer -.-> ExternalSTT
+            SpeechSynthesizer -.-> ExternalTTS
+            IntentRecognizer -.-> ExternalNLP
+            LanguageDetector -.-> ExternalNLP
+            
+            subgraph "Data Storage"
+              AudioStorage
+              TextStorage
+              AudioCache
+              UserProfiles[User Speech Profiles]
+            end
+            
+            PA --> UserProfiles
+        </div>
+      </div>
+      
+      <p>
+        The speech processing system follows a modular architecture with several specialized services:
+      </p>
+      
+      <ul>
+        <li><strong>Speech Controller</strong> - Handles HTTP and WebSocket requests for speech processing</li>
+        <li><strong>Speech-to-Text Service</strong> - Converts audio to text with high accuracy</li>
+        <li><strong>Text-to-Speech Service</strong> - Generates natural-sounding speech from text</li>
+        <li><strong>Language Analysis Service</strong> - Analyzes text for language, sentiment, and intent</li>
+        <li><strong>Pronunciation Assessment Service</strong> - Evaluates pronunciation quality and provides feedback</li>
+      </ul>
+      
+      <h2>Speech-to-Text (STT) Service</h2>
+      
+      <p>
+        The Speech-to-Text service converts spoken language captured as audio into written text. 
+        This is a fundamental component that enables voice-based interactions with the system.
+      </p>
+      
+      <div class="component-card">
+        <h3>Implementation Approach</h3>
+        <p>
+          The STT service uses a hybrid approach combining local processing with cloud-based APIs:
+        </p>
+        <ul>
+          <li>Initial audio preprocessing is performed locally to optimize quality</li>
+          <li>For languages with high usage, local models are deployed for faster processing</li>
+          <li>For less common languages or when higher accuracy is needed, cloud APIs are used</li>
+          <li>Results are cached to improve performance for similar audio inputs</li>
+        </ul>
+        
+        <p>
+          The service supports both synchronous (real-time) and asynchronous (batch) processing modes:
+        </p>
+        <ul>
+          <li><strong>Synchronous Mode</strong> - Used for interactive conversations, with results returned immediately</li>
+          <li><strong>Asynchronous Mode</strong> - Used for processing longer recordings, with results delivered via webhook or polling</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>Continuous Recognition</strong> - Process speech in real-time as the user speaks</li>
+          <li><strong>Speaker Diarization</strong> - Identify and separate different speakers in a conversation</li>
+          <li><strong>Punctuation and Formatting</strong> - Add appropriate punctuation and formatting to the transcribed text</li>
+          <li><strong>Custom Vocabulary</strong> - Support for domain-specific terms and phrases</li>
+          <li><strong>Confidence Scores</strong> - Provide confidence levels for each transcribed word</li>
+          <li><strong>Partial Results</strong> - Return interim results before the user finishes speaking</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>API Endpoints</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/recognize</td>
+              <td>Synchronous speech recognition from audio data</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/recognize/async</td>
+              <td>Asynchronous speech recognition for longer audio</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/speech/recognize/status/:jobId</td>
+              <td>Check status of an asynchronous recognition job</td>
+            </tr>
+            <tr>
+              <td>WebSocket</td>
+              <td>/ws/speech/recognize</td>
+              <td>Real-time streaming speech recognition</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <h2>Text-to-Speech (TTS) Service</h2>
+      
+      <p>
+        The Text-to-Speech service converts written text into natural-sounding speech. This enables 
+        the system to provide spoken responses and feedback to users.
+      </p>
+      
+      <div class="component-card">
+        <h3>Implementation Approach</h3>
+        <p>
+          The TTS service uses advanced neural network models to generate high-quality speech:
+        </p>
+        <ul>
+          <li>Neural TTS models are used for the most natural-sounding speech</li>
+          <li>Multiple voices and speaking styles are available for different contexts</li>
+          <li>Frequently used phrases and responses are cached to reduce latency</li>
+          <li>Speech can be customized for pitch, rate, and emphasis</li>
+        </ul>
+        
+        <p>
+          The service supports both synchronous and asynchronous processing:
+        </p>
+        <ul>
+          <li><strong>Synchronous Mode</strong> - Used for short text, with audio returned immediately</li>
+          <li><strong>Asynchronous Mode</strong> - Used for longer text like articles, with audio delivered via webhook or polling</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>Natural Prosody</strong> - Generate speech with natural intonation and rhythm</li>
+          <li><strong>Multiple Voices</strong> - Support for different voices (male, female, different ages)</li>
+          <li><strong>SSML Support</strong> - Speech Synthesis Markup Language for fine-grained control</li>
+          <li><strong>Emotion and Style</strong> - Apply different emotional tones and speaking styles</li>
+          <li><strong>Pronunciation Customization</strong> - Custom pronunciation for specific words</li>
+          <li><strong>Audio Format Options</strong> - Output in various formats (MP3, WAV, OGG)</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>API Endpoints</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/synthesize</td>
+              <td>Synchronous text-to-speech conversion</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/synthesize/async</td>
+              <td>Asynchronous text-to-speech for longer content</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/speech/synthesize/status/:jobId</td>
+              <td>Check status of an asynchronous synthesis job</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/speech/voices</td>
+              <td>Get list of available voices and their capabilities</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <h2>Language Analysis Service</h2>
+      
+      <p>
+        The Language Analysis service processes text to extract meaning, detect language, analyze sentiment, 
+        and recognize user intents. This enables the system to understand and respond appropriately to user input.
+      </p>
+      
+      <div class="component-card">
+        <h3>Implementation Approach</h3>
+        <p>
+          The Language Analysis service uses natural language processing (NLP) techniques:
+        </p>
+        <ul>
+          <li>Language detection uses statistical models to identify the language</li>
+          <li>Sentiment analysis evaluates the emotional tone of the text</li>
+          <li>Intent recognition identifies the user's goal or purpose</li>
+          <li>Entity extraction identifies key information like names, dates, and locations</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>Multi-language Support</strong> - Process text in multiple languages</li>
+          <li><strong>Sentiment Analysis</strong> - Determine positive, negative, or neutral sentiment</li>
+          <li><strong>Intent Recognition</strong> - Identify user intents like questions, commands, or statements</li>
+          <li><strong>Entity Extraction</strong> - Identify and categorize entities in the text</li>
+          <li><strong>Topic Classification</strong> - Categorize text into predefined topics</li>
+          <li><strong>Language Detection</strong> - Automatically identify the language of the text</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>API Endpoints</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/analyze/language</td>
+              <td>Detect the language of the text</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/analyze/sentiment</td>
+              <td>Analyze the sentiment of the text</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/analyze/intent</td>
+              <td>Recognize the intent in the text</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/analyze/entities</td>
+              <td>Extract entities from the text</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/analyze/complete</td>
+              <td>Perform comprehensive analysis (all of the above)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <h2>Pronunciation Assessment Service</h2>
+      
+      <p>
+        The Pronunciation Assessment service evaluates how well a user pronounces words and phrases in a target 
+        language. This is particularly useful for language learning applications.
+      </p>
+      
+      <div class="component-card">
+        <h3>Implementation Approach</h3>
+        <p>
+          The Pronunciation Assessment service compares user speech with reference models:
+        </p>
+        <ul>
+          <li>Audio is processed to extract phonetic features</li>
+          <li>These features are compared with reference pronunciation models</li>
+          <li>Scores are calculated at word, sentence, and overall levels</li>
+          <li>Detailed feedback is generated to help users improve</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>Word-level Assessment</strong> - Score pronunciation accuracy for individual words</li>
+          <li><strong>Phoneme-level Feedback</strong> - Identify specific sounds that need improvement</li>
+          <li><strong>Fluency Scoring</strong> - Evaluate the rhythm and flow of speech</li>
+          <li><strong>Prosody Assessment</strong> - Evaluate intonation, stress, and rhythm</li>
+          <li><strong>Progress Tracking</strong> - Monitor improvement over time</li>
+          <li><strong>Customizable Reference</strong> - Support for different accents and dialects</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>API Endpoints</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/assess</td>
+              <td>Assess pronunciation against reference text</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/assess/detailed</td>
+              <td>Get detailed phoneme-level assessment</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/speech/assess/history/:userId</td>
+              <td>Get pronunciation assessment history for a user</td>
+            </tr>
+            <tr>
+              <td>GET</td>
+              <td>/api/speech/assess/progress/:userId</td>
+              <td>Get pronunciation progress report for a user</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <h2>Voice Authentication</h2>
+      
+      <p>
+        The Voice Authentication feature uses voice biometrics to verify a user's identity based on their 
+        unique voice characteristics. This can be used as an additional authentication factor.
+      </p>
+      
+      <div class="component-card">
+        <h3>Implementation Approach</h3>
+        <p>
+          Voice authentication works in two phases:
+        </p>
+        <ul>
+          <li><strong>Enrollment</strong> - Users register their voice by speaking specific phrases</li>
+          <li><strong>Verification</strong> - Users speak to verify their identity against their enrolled voice profile</li>
+        </ul>
+        
+        <p>
+          The system extracts unique voice characteristics (voiceprint) and uses them for matching:
+        </p>
+        <ul>
+          <li>Voice features are extracted and stored securely</li>
+          <li>During verification, new audio is compared with the stored voiceprint</li>
+          <li>A confidence score determines if the verification passes</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Security Considerations</h3>
+        <ul>
+          <li><strong>Anti-spoofing Measures</strong> - Detect recordings or synthetic speech</li>
+          <li><strong>Secure Storage</strong> - Voiceprints are encrypted and stored securely</li>
+          <li><strong>Adaptive Thresholds</strong> - Confidence thresholds adapt based on risk level</li>
+          <li><strong>Fallback Authentication</strong> - Alternative methods if voice authentication fails</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>API Endpoints</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/auth/enroll</td>
+              <td>Enroll a user's voice for authentication</td>
+            </tr>
+            <tr>
+              <td>POST</td>
+              <td>/api/speech/auth/verify</td>
+              <td>Verify a user's identity using voice</td>
+            </tr>
+            <tr>
+              <td>DELETE</td>
+              <td>/api/speech/auth/profile/:userId</td>
+              <td>Delete a user's voice profile</td>
+            </tr>
+            <tr>
+              <td>PUT</td>
+              <td>/api/speech/auth/update</td>
+              <td>Update a user's voice profile</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <h2>Integration with Other Systems</h2>
+      
+      <p>
+        The speech processing system integrates with various other systems in the TuPhung Project:
+      </p>
+      
+      <div class="component-card">
+        <h3>Chat System</h3>
+        <p>
+          Integration with the chat system enables voice-based conversations:
+        </p>
+        <ul>
+          <li>Users can send voice messages that are transcribed to text</li>
+          <li>Text responses can be converted to speech for audio playback</li>
+          <li>Voice commands can be used to control chat functions</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Language AI</h3>
+        <p>
+          Integration with the Language AI system for advanced language learning:
+        </p>
+        <ul>
+          <li>Speech input is processed for language learning exercises</li>
+          <li>Pronunciation feedback is provided for language practice</li>
+          <li>AI-generated responses are converted to speech for conversation practice</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Authentication System</h3>
+        <p>
+          Integration with the authentication system for voice biometrics:
+        </p>
+        <ul>
+          <li>Voice authentication can be used as an additional factor</li>
+          <li>Voice verification can be required for sensitive operations</li>
+          <li>Voice profiles are linked to user accounts</li>
+        </ul>
+      </div>
+      
+      <h2>Performance and Scalability</h2>
+      
+      <p>
+        The speech processing system is designed for high performance and scalability:
+      </p>
+      
+      <div class="component-card">
+        <h3>Performance Optimization</h3>
+        <ul>
+          <li><strong>Caching</strong> - Frequently used speech outputs are cached</li>
+          <li><strong>Parallel Processing</strong> - Audio processing tasks are parallelized</li>
+          <li><strong>Streaming</strong> - Audio is processed in chunks for real-time results</li>
+          <li><strong>Compression</strong> - Audio is compressed for efficient transmission</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Scalability Approach</h3>
+        <ul>
+          <li><strong>Horizontal Scaling</strong> - Services can be scaled out to handle increased load</li>
+          <li><strong>Load Balancing</strong> - Requests are distributed across multiple instances</li>
+          <li><strong>Queue-based Processing</strong> - Asynchronous jobs are managed through queues</li>
+          <li><strong>Resource Allocation</strong> - Resources are allocated based on priority</li>
+        </ul>
+      </div>
+      
+      <h2>Deployment and Operations</h2>
+      
+      <p>
+        The speech processing system is deployed and operated with reliability in mind:
+      </p>
+      
+      <div class="component-card">
+        <h3>Deployment Strategy</h3>
+        <ul>
+          <li><strong>Containerization</strong> - Services are containerized for consistent deployment</li>
+          <li><strong>Microservices</strong> - Each speech processing function is a separate service</li>
+          <li><strong>Edge Deployment</strong> - Processing is distributed to reduce latency</li>
+          <li><strong>Redundancy</strong> - Multiple instances ensure high availability</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Monitoring and Logging</h3>
+        <ul>
+          <li><strong>Performance Metrics</strong> - Response time, accuracy, and throughput are monitored</li>
+          <li><strong>Error Tracking</strong> - Speech processing errors are logged and analyzed</li>
+          <li><strong>Usage Analytics</strong> - Service usage patterns are tracked</li>
+          <li><strong>Alerting</strong> - Alerts are triggered for performance issues</li>
+        </ul>
+      </div>
+      
+      <h2>Future Enhancements</h2>
+      
+      <p>
+        The speech processing system has a roadmap for future enhancements:
+      </p>
+      
+      <div class="component-card">
+        <h3>Planned Features</h3>
+        <ul>
+          <li><strong>Emotion Detection</strong> - Identify emotions from voice characteristics</li>
+          <li><strong>Accent Adaptation</strong> - Improve recognition for various accents</li>
+          <li><strong>Voice Cloning</strong> - Generate speech that mimics a specific voice</li>
+          <li><strong>Multilingual Conversations</strong> - Real-time translation between spoken languages</li>
+          <li><strong>Context-aware Processing</strong> - Use conversation context to improve accuracy</li>
+          <li><strong>On-device Processing</strong> - More capabilities processed locally for privacy</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+  
+  <script src="../../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script>
+    // Initialize syntax highlighting and mermaid diagrams
+    document.addEventListener('DOMContentLoaded', (event) => {
+      Prism.highlightAll();
+      mermaid.initialize({ startOnLoad: true });
+    });
+  </script>
+</body>
+</html>

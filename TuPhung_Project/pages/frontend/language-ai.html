@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language AI - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <!-- Mermaid for flowcharts -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"></script>
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../architecture.html" class="sidebar-subnav-link">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="auth.html" class="sidebar-subnav-link">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="calendar.html" class="sidebar-subnav-link">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="language-ai.html" class="sidebar-subnav-link active">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../backend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/api.html" class="sidebar-subnav-link">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/websockets.html" class="sidebar-subnav-link">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/speech-processing.html" class="sidebar-subnav-link">Speech Processing</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>Language AI</h1>
+      <p>Comprehensive documentation of the Language AI features in the TuPhung Project.</p>
+    </header>
+    
+    <section>
+      <h2>Overview</h2>
+      <p>
+        The Language AI module in the TuPhung Project provides advanced natural language processing capabilities 
+        that enhance user productivity and enable intelligent interactions with the application. This module 
+        leverages state-of-the-art language models to understand, generate, and manipulate text in various contexts.
+      </p>
+      
+      <div class="component-card">
+        <h3>Key Features</h3>
+        <ul>
+          <li><strong>Text Generation</strong> - Create high-quality content based on prompts</li>
+          <li><strong>Text Summarization</strong> - Condense long documents into concise summaries</li>
+          <li><strong>Language Translation</strong> - Translate text between multiple languages</li>
+          <li><strong>Sentiment Analysis</strong> - Detect emotions and sentiment in text</li>
+          <li><strong>Entity Recognition</strong> - Identify people, organizations, dates, and other entities</li>
+          <li><strong>Text Classification</strong> - Categorize text into predefined categories</li>
+          <li><strong>Question Answering</strong> - Extract answers from context</li>
+          <li><strong>Grammar Correction</strong> - Fix grammatical errors in text</li>
+          <li><strong>Keyword Extraction</strong> - Identify important terms in documents</li>
+        </ul>
+      </div>
+      
+      <h2>Architecture</h2>
+      
+      <div class="diagram-container">
+        <div class="diagram-title">Language AI Architecture</div>
+        <div class="mermaid">
+          graph TD
+            User[User] --> UI[Language AI UI]
+            UI --> TextInput[Text Input]
+            UI --> ModelSelector[Model Selector]
+            UI --> OptionsPanel[Options Panel]
+            
+            TextInput --> LanguageProcessor[Language Processor]
+            ModelSelector --> LanguageProcessor
+            OptionsPanel --> LanguageProcessor
+            
+            LanguageProcessor --> AIService[AI Service]
+            AIService --> ModelAPI[Language Model API]
+            
+            ModelAPI --> ResponseHandler[Response Handler]
+            ResponseHandler --> UI
+            
+            subgraph Frontend
+              UI
+              TextInput
+              ModelSelector
+              OptionsPanel
+              LanguageProcessor
+              ResponseHandler
+            end
+            
+            subgraph Backend
+              AIService
+              ModelAPI
+            end
+        </div>
+      </div>
+      
+      <h2>Frontend Implementation</h2>
+      
+      <p>
+        The Language AI frontend is built using React with TypeScript and provides an intuitive interface for 
+        interacting with the language models. It includes components for text input, model selection, and 
+        displaying results.
+      </p>
+      
+      <div class="component-card">
+        <h3>Main Components</h3>
+        <p>The Language AI module consists of several key components:</p>
+        
+        <h4>1. LanguageAIPage Component</h4>
+        <p>
+          This is the main container component that renders the Language AI interface. It manages the state of 
+          the text input, selected model, and processing options.
+        </p>
+        
+        <p>Key responsibilities:</p>
+        <ul>
+          <li>Managing text input and output</li>
+          <li>Handling model selection</li>
+          <li>Coordinating processing options</li>
+          <li>Submitting requests to the backend</li>
+        </ul>
+        
+        <p>Example implementation:</p>
+        <pre><code class="language-typescript">// LanguageAIPage.tsx
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Layout, Input, Button, Select, Tabs, Card, Spin, message, Tooltip } from 'antd';
+import { SendOutlined, CopyOutlined, DownloadOutlined, SettingOutlined } from '@ant-design/icons';
+import { processText, fetchModels } from '../services/languageAIService';
+import { setModels, setActiveModel, addProcessingResult } from '../store/languageAISlice';
+import { RootState } from '../store/rootState';
+import { LanguageModel, ProcessingResult, ProcessingTask } from '../types/languageAI';
+import ModelSelector from '../components/ModelSelector';
+import OptionsPanel from '../components/OptionsPanel';
+import ResultDisplay from '../components/ResultDisplay';
+import '../styles/LanguageAI.css';
+
+const { TextArea } = Input;
+const { Option } = Select;
+const { TabPane } = Tabs;
+const { Content } = Layout;
+
+const LanguageAIPage: React.FC = () => {
+  const dispatch = useDispatch();
+  const { models, activeModel, results, loading } = useSelector(
+    (state: RootState) => state.languageAI
+  );
+  
+  const [inputText, setInputText] = useState('');
+  const [task, setTask] = useState&lt;ProcessingTask&gt;('generate');
+  const [options, setOptions] = useState({});
+  const [showOptions, setShowOptions] = useState(false);
+  
+  // Load available models on component mount
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const modelList = await fetchModels();
+        dispatch(setModels(modelList));
+        
+        if (modelList.length > 0 && !activeModel) {
+          dispatch(setActiveModel(modelList[0]));
+        }
+      } catch (error) {
+        console.error('Failed to load language models:', error);
+        message.error('Failed to load language models. Please try again later.');
+      }
+    };
+    
+    loadModels();
+  }, [dispatch, activeModel]);
+  
+  const handleTaskChange = (value: ProcessingTask) => {
+    setTask(value);
+    // Reset options when task changes
+    setOptions({});
+  };
+  
+  const handleModelChange = (modelId: string) => {
+    const selected = models.find(model => model.id === modelId);
+    if (selected) {
+      dispatch(setActiveModel(selected));
+    }
+  };
+  
+  const handleOptionsChange = (newOptions: any) => {
+    setOptions({ ...options, ...newOptions });
+  };
+  
+  const handleSubmit = async () => {
+    if (!inputText.trim() || !activeModel) return;
+    
+    try {
+      const result = await processText({
+        text: inputText,
+        modelId: activeModel.id,
+        task,
+        options
+      });
+      
+      dispatch(addProcessingResult(result));
+      message.success('Processing completed successfully');
+    } catch (error) {
+      console.error('Failed to process text:', error);
+      message.error('Failed to process text. Please try again.');
+    }
+  };
+  
+  const handleCopyResult = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => message.success('Copied to clipboard'))
+      .catch(() => message.error('Failed to copy text'));
+  };
+  
+  const handleDownloadResult = (result: ProcessingResult) => {
+    const element = document.createElement('a');
+    const file = new Blob([result.output], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = `${result.task}-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+  
+  return (
+    &lt;Layout className="language-ai-container"&gt;
+      &lt;Content className="language-ai-content"&gt;
+        &lt;div className="language-ai-header"&gt;
+          &lt;h1&gt;Language AI&lt;/h1&gt;
+          &lt;p&gt;Leverage advanced language models to process and generate text&lt;/p&gt;
+        &lt;/div&gt;
+        
+        &lt;div className="language-ai-controls"&gt;
+          &lt;div className="control-row"&gt;
+            &lt;Select
+              value={task}
+              onChange={handleTaskChange}
+              className="task-selector"
+            &gt;
+              &lt;Option value="generate"&gt;Text Generation&lt;/Option&gt;
+              &lt;Option value="summarize"&gt;Summarization&lt;/Option&gt;
+              &lt;Option value="translate"&gt;Translation&lt;/Option&gt;
+              &lt;Option value="sentiment"&gt;Sentiment Analysis&lt;/Option&gt;
+              &lt;Option value="entities"&gt;Entity Recognition&lt;/Option&gt;
+              &lt;Option value="classify"&gt;Text Classification&lt;/Option&gt;
+              &lt;Option value="qa"&gt;Question Answering&lt;/Option&gt;
+              &lt;Option value="grammar"&gt;Grammar Correction&lt;/Option&gt;
+              &lt;Option value="keywords"&gt;Keyword Extraction&lt;/Option&gt;
+            &lt;/Select&gt;
+            
+            &lt;ModelSelector
+              models={models}
+              activeModel={activeModel}
+              onChange={handleModelChange}
+            /&gt;
+            
+            &lt;Tooltip title="Processing Options"&gt;
+              &lt;Button
+                icon={&lt;SettingOutlined /&gt;}
+                onClick={() => setShowOptions(!showOptions)}
+                className={showOptions ? 'options-button active' : 'options-button'}
+              /&gt;
+            &lt;/Tooltip&gt;
+          &lt;/div&gt;
+          
+          {showOptions && (
+            &lt;OptionsPanel
+              task={task}
+              options={options}
+              onChange={handleOptionsChange}
+            /&gt;
+          )}
+        &lt;/div&gt;
+        
+        &lt;div className="language-ai-workspace"&gt;
+          &lt;div className="input-section"&gt;
+            &lt;h2&gt;Input&lt;/h2&gt;
+            &lt;TextArea
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              placeholder={`Enter text for ${task}...`}
+              autoSize={{ minRows: 6, maxRows: 12 }}
+              className="text-input"
+            /&gt;
+            &lt;Button
+              type="primary"
+              icon={&lt;SendOutlined /&gt;}
+              onClick={handleSubmit}
+              loading={loading}
+              disabled={!inputText.trim() || !activeModel}
+              className="submit-button"
+            &gt;
+              Process
+            &lt;/Button&gt;
+          &lt;/div&gt;
+          
+          &lt;div className="results-section"&gt;
+            &lt;h2&gt;Results&lt;/h2&gt;
+            {results.length === 0 ? (
+              &lt;div className="no-results"&gt;
+                &lt;p&gt;No processing results yet. Enter text and click Process to get started.&lt;/p&gt;
+              &lt;/div&gt;
+            ) : (
+              &lt;Tabs defaultActiveKey="0" className="results-tabs"&gt;
+                {results.map((result, index) => (
+                  &lt;TabPane
+                    tab={`${result.task} ${index + 1}`}
+                    key={index.toString()}
+                  &gt;
+                    &lt;Card className="result-card"&gt;
+                      &lt;div className="result-header"&gt;
+                        &lt;div className="result-info"&gt;
+                          &lt;span className="result-task"&gt;{result.task}&lt;/span&gt;
+                          &lt;span className="result-model"&gt;Model: {result.modelName}&lt;/span&gt;
+                          &lt;span className="result-time"&gt;
+                            {new Date(result.timestamp).toLocaleString()}
+                          &lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;div className="result-actions"&gt;
+                          &lt;Button
+                            icon={&lt;CopyOutlined /&gt;}
+                            onClick={() => handleCopyResult(result.output)}
+                            title="Copy to Clipboard"
+                          /&gt;
+                          &lt;Button
+                            icon={&lt;DownloadOutlined /&gt;}
+                            onClick={() => handleDownloadResult(result)}
+                            title="Download Result"
+                          /&gt;
+                        &lt;/div&gt;
+                      &lt;/div&gt;
+                      &lt;ResultDisplay result={result} /&gt;
+                    &lt;/Card&gt;
+                  &lt;/TabPane&gt;
+                ))}
+              &lt;/Tabs&gt;
+            )}
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/Content&gt;
+    &lt;/Layout&gt;
+  );
+};</code></pre>
+        
+        <h4>2. ModelSelector Component</h4>
+        <p>
+          This component provides a dropdown for selecting the language model to use for processing.
+        </p>
+        
+        <p>Example implementation:</p>
+        <pre><code class="language-typescript">// ModelSelector.tsx
+import React from 'react';
+import { Select, Tooltip } from 'antd';
+import { LanguageModel } from '../types/languageAI';
+
+const { Option } = Select;
+
+interface ModelSelectorProps {
+  models: LanguageModel[];
+  activeModel: LanguageModel | null;
+  onChange: (modelId: string) => void;
+}
+
+const ModelSelector: React.FC&lt;ModelSelectorProps&gt; = ({ 
+  models, 
+  activeModel, 
+  onChange 
+}) => {
+  return (
+    &lt;div className="model-selector-container"&gt;
+      &lt;Select
+        value={activeModel?.id}
+        onChange={onChange}
+        placeholder="Select a model"
+        className="model-selector"
+      &gt;
+        {models.map(model => (
+          &lt;Option key={model.id} value={model.id}&gt;
+            &lt;Tooltip title={model.description}&gt;
+              &lt;div className="model-option"&gt;
+                &lt;span className="model-name"&gt;{model.name}&lt;/span&gt;
+                &lt;span className="model-size"&gt;{model.size}&lt;/span&gt;
+              &lt;/div&gt;
+            &lt;/Tooltip&gt;
+          &lt;/Option&gt;
+        ))}
+      &lt;/Select&gt;
+    &lt;/div&gt;
+  );
+};</code></pre>
+        
+        <h4>3. OptionsPanel Component</h4>
+        <p>
+          This component provides task-specific options for controlling the language processing.
+        </p>
+        
+        <p>Example implementation:</p>
+        <pre><code class="language-typescript">// OptionsPanel.tsx
+import React from 'react';
+import { Form, Input, Select, Slider, Switch, InputNumber, Divider } from 'antd';
+import { ProcessingTask } from '../types/languageAI';
+
+const { Option } = Select;
+
+interface OptionsPanelProps {
+  task: ProcessingTask;
+  options: any;
+  onChange: (options: any) => void;
+}
+
+const OptionsPanel: React.FC&lt;OptionsPanelProps&gt; = ({ 
+  task, 
+  options, 
+  onChange 
+}) => {
+  const handleOptionChange = (key: string, value: any) => {
+    onChange({ [key]: value });
+  };
+  
+  const renderTaskOptions = () => {
+    switch (task) {
+      case 'generate':
+        return (
+          &lt;React.Fragment&gt;
+            &lt;Form.Item label="Max Length"&gt;
+              &lt;Slider
+                min={10}
+                max={1000}
+                value={options.maxLength || 100}
+                onChange={value => handleOptionChange('maxLength', value)}
+              /&gt;
+            &lt;/Form.Item&gt;
+            
+            &lt;Form.Item label="Temperature"&gt;
+              &lt;Slider
+                min={0}
+                max={1}
+                step={0.1}
+                value={options.temperature || 0.7}
+                onChange={value => handleOptionChange('temperature', value)}
+              /&gt;
+            &lt;/Form.Item&gt;
+            
+            &lt;Form.Item label="Top P"&gt;
+              &lt;Slider
+                min={0}
+                max={1}
+                step={0.1}
+                value={options.topP || 0.9}
+                onChange={value => handleOptionChange('topP', value)}
+              /&gt;
+            &lt;/Form.Item&gt;
+          &lt;/React.Fragment&gt;
+        );
+        
+      case 'summarize':
+        return (
+          &lt;React.Fragment&gt;
+            &lt;Form.Item label="Summary Length"&gt;
+              &lt;Select
+                value={options.length || 'medium'}
+                onChange={value => handleOptionChange('length', value)}
+              &gt;
+                &lt;Option value="short"&gt;Short&lt;/Option&gt;
+                &lt;Option value="medium"&gt;Medium&lt;/Option&gt;
+                &lt;Option value="long"&gt;Long&lt;/Option&gt;
+              &lt;/Select&gt;
+            &lt;/Form.Item&gt;
+            
+            &lt;Form.Item label="Format"&gt;
+              &lt;Select
+                value={options.format || 'paragraph'}
+                onChange={value => handleOptionChange('format', value)}
+              &gt;
+                &lt;Option value="paragraph"&gt;Paragraph&lt;/Option&gt;
+                &lt;Option value="bullets"&gt;Bullet Points&lt;/Option&gt;
+              &lt;/Select&gt;
+            &lt;/Form.Item&gt;
+          &lt;/React.Fragment&gt;
+        );
+        
+      case 'translate':
+        return (
+          &lt;React.Fragment&gt;
+            &lt;Form.Item label="Source Language"&gt;
+              &lt;Select
+                value={options.sourceLanguage || 'auto'}
+                onChange={value => handleOptionChange('sourceLanguage', value)}
+              &gt;
+                &lt;Option value="auto"&gt;Auto-detect&lt;/Option&gt;
+                &lt;Option value="en"&gt;English&lt;/Option&gt;
+                &lt;Option value="es"&gt;Spanish&lt;/Option&gt;
+                &lt;Option value="fr"&gt;French&lt;/Option&gt;
+                &lt;Option value="de"&gt;German&lt;/Option&gt;
+                &lt;Option value="it"&gt;Italian&lt;/Option&gt;
+                &lt;Option value="pt"&gt;Portuguese&lt;/Option&gt;
+                &lt;Option value="ru"&gt;Russian&lt;/Option&gt;
+                &lt;Option value="zh"&gt;Chinese&lt;/Option&gt;
+                &lt;Option value="ja"&gt;Japanese&lt;/Option&gt;
+                &lt;Option value="ko"&gt;Korean&lt;/Option&gt;
+              &lt;/Select&gt;
+            &lt;/Form.Item&gt;
+            
+            &lt;Form.Item label="Target Language"&gt;
+              &lt;Select
+                value={options.targetLanguage || 'en'}
+                onChange={value => handleOptionChange('targetLanguage', value)}
+              &gt;
+                &lt;Option value="en"&gt;English&lt;/Option&gt;
+                &lt;Option value="es"&gt;Spanish&lt;/Option&gt;
+                &lt;Option value="fr"&gt;French&lt;/Option&gt;
+                &lt;Option value="de"&gt;German&lt;/Option&gt;
+                &lt;Option value="it"&gt;Italian&lt;/Option&gt;
+                &lt;Option value="pt"&gt;Portuguese&lt;/Option&gt;
+                &lt;Option value="ru"&gt;Russian&lt;/Option&gt;
+                &lt;Option value="zh"&gt;Chinese&lt;/Option&gt;
+                &lt;Option value="ja"&gt;Japanese&lt;/Option&gt;
+                &lt;Option value="ko"&gt;Korean&lt;/Option&gt;
+              &lt;/Select&gt;
+            &lt;/Form.Item&gt;
+            
+            &lt;Form.Item label="Formality"&gt;
+              &lt;Select
+                value={options.formality || 'default'}
+                onChange={value => handleOptionChange('formality', value)}
+              &gt;
+                &lt;Option value="default"&gt;Default&lt;/Option&gt;
+                &lt;Option value="formal"&gt;Formal&lt;/Option&gt;
+                &lt;Option value="informal"&gt;Informal&lt;/Option&gt;
+              &lt;/Select&gt;
+            &lt;/Form.Item&gt;
+          &lt;/React.Fragment&gt;
+        );
+        
+      // Add more task-specific options as needed
+      
+      default:
+        return (
+          &lt;div className="no-options"&gt;
+            &lt;p&gt;No additional options available for this task.&lt;/p&gt;
+          &lt;/div&gt;
+        );
+    }
+  };
+  
+  return (
+    &lt;div className="options-panel"&gt;
+      &lt;Divider orientation="left"&gt;Processing Options&lt;/Divider&gt;
+      &lt;Form layout="vertical"&gt;
+        {renderTaskOptions()}
+      &lt;/Form&gt;
+    &lt;/div&gt;
+  );
+};</code></pre>
+        
+        <h4>4. ResultDisplay Component</h4>
+        <p>
+          This component renders the results of language processing in an appropriate format.
+        </p>
+        
+        <p>Example implementation:</p>
+        <pre><code class="language-typescript">// ResultDisplay.tsx
+import React from 'react';
+import { Tag, Table } from 'antd';
+import { ProcessingResult } from '../types/languageAI';
+
+interface ResultDisplayProps {
+  result: ProcessingResult;
+}
+
+const ResultDisplay: React.FC&lt;ResultDisplayProps&gt; = ({ result }) => {
+  const renderContent = () => {
+    switch (result.task) {
+      case 'generate':
+      case 'summarize':
+      case 'translate':
+      case 'grammar':
+      case 'qa':
+        return (
+          &lt;div className="text-result"&gt;
+            {result.output}
+          &lt;/div&gt;
+        );
+        
+      case 'sentiment':
+        const sentiment = JSON.parse(result.output);
+        return (
+          &lt;div className="sentiment-result"&gt;
+            &lt;div className="sentiment-score"&gt;
+              &lt;span className="label"&gt;Overall Sentiment:&lt;/span&gt;
+              &lt;Tag color={
+                sentiment.score > 0.5 ? 'green' : 
+                sentiment.score < -0.5 ? 'red' : 'orange'
+              }&gt;
+                {sentiment.label}
+              &lt;/Tag&gt;
+            &lt;/div&gt;
+            &lt;div className="sentiment-details"&gt;
+              &lt;div className="sentiment-item"&gt;
+                &lt;span className="label"&gt;Positive:&lt;/span&gt;
+                &lt;span className="value"&gt;{(sentiment.positive * 100).toFixed(1)}%&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div className="sentiment-item"&gt;
+                &lt;span className="label"&gt;Neutral:&lt;/span&gt;
+                &lt;span className="value"&gt;{(sentiment.neutral * 100).toFixed(1)}%&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div className="sentiment-item"&gt;
+                &lt;span className="label"&gt;Negative:&lt;/span&gt;
+                &lt;span className="value"&gt;{(sentiment.negative * 100).toFixed(1)}%&lt;/span&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        );
+        
+      case 'entities':
+        const entities = JSON.parse(result.output);
+        return (
+          &lt;div className="entities-result"&gt;
+            &lt;Table
+              dataSource={entities}
+              columns={[
+                {
+                  title: 'Entity',
+                  dataIndex: 'text',
+                  key: 'text',
+                },
+                {
+                  title: 'Type',
+                  dataIndex: 'type',
+                  key: 'type',
+                  render: (type) => (
+                    &lt;Tag color={
+                      type === 'PERSON' ? 'blue' :
+                      type === 'ORGANIZATION' ? 'purple' :
+                      type === 'LOCATION' ? 'green' :
+                      type === 'DATE' ? 'orange' :
+                      'default'
+                    }&gt;
+                      {type}
+                    &lt;/Tag&gt;
+                  ),
+                },
+                {
+                  title: 'Start',
+                  dataIndex: 'start',
+                  key: 'start',
+                },
+                {
+                  title: 'End',
+                  dataIndex: 'end',
+                  key: 'end',
+                },
+              ]}
+              pagination={false}
+              size="small"
+            /&gt;
+          &lt;/div&gt;
+        );
+        
+      case 'classify':
+        const categories = JSON.parse(result.output);
+        return (
+          &lt;div className="classify-result"&gt;
+            &lt;div className="top-category"&gt;
+              &lt;span className="label"&gt;Top Category:&lt;/span&gt;
+              &lt;Tag color="blue"&gt;{categories[0].label}&lt;/Tag&gt;
+              &lt;span className="confidence"&gt;
+                ({(categories[0].score * 100).toFixed(1)}%)
+              &lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div className="all-categories"&gt;
+              &lt;span className="label"&gt;All Categories:&lt;/span&gt;
+              &lt;div className="category-list"&gt;
+                {categories.map((category, index) => (
+                  &lt;div key={index} className="category-item"&gt;
+                    &lt;span className="category-name"&gt;{category.label}&lt;/span&gt;
+                    &lt;div 
+                      className="category-bar"
+                      style={{ width: `${category.score * 100}%` }}
+                    /&gt;
+                    &lt;span className="category-score"&gt;
+                      {(category.score * 100).toFixed(1)}%
+                    &lt;/span&gt;
+                  &lt;/div&gt;
+                ))}
+              &lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        );
+        
+      case 'keywords':
+        const keywords = JSON.parse(result.output);
+        return (
+          &lt;div className="keywords-result"&gt;
+            &lt;div className="keyword-list"&gt;
+              {keywords.map((keyword, index) => (
+                &lt;Tag key={index} color="blue"&gt;
+                  {keyword.text}
+                  {keyword.score && (
+                    &lt;span className="keyword-score"&gt;
+                      {' '}({(keyword.score * 100).toFixed(1)}%)
+                    &lt;/span&gt;
+                  )}
+                &lt;/Tag&gt;
+              ))}
+            &lt;/div&gt;
+          &lt;/div&gt;
+        );
+        
+      default:
+        return (
+          &lt;div className="text-result"&gt;
+            {result.output}
+          &lt;/div&gt;
+        );
+    }
+  };
+  
+  return (
+    &lt;div className="result-display"&gt;
+      {renderContent()}
+    &lt;/div&gt;
+  );
+};</code></pre>
+      </div>
+      
+      <h2>State Management</h2>
+      
+      <p>
+        The Language AI module uses Redux for state management, with a dedicated slice for language processing state.
+      </p>
+      
+      <div class="component-card">
+        <h3>Language AI State Slice</h3>
+        <pre><code class="language-typescript">// languageAISlice.ts
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { LanguageModel, ProcessingResult } from '../types/languageAI';
+
+interface LanguageAIState {
+  models: LanguageModel[];
+  activeModel: LanguageModel | null;
+  results: ProcessingResult[];
+  loading: boolean;
+  error: string | null;
+}
+
+const initialState: LanguageAIState = {
+  models: [],
+  activeModel: null,
+  results: [],
+  loading: false,
+  error: null
+};
+
+const languageAISlice = createSlice({
+  name: 'languageAI',
+  initialState,
+  reducers: {
+    setModels: (state, action: PayloadAction&lt;LanguageModel[]&gt;) => {
+      state.models = action.payload;
+    },
+    setActiveModel: (state, action: PayloadAction&lt;LanguageModel&gt;) => {
+      state.activeModel = action.payload;
+    },
+    addProcessingResult: (state, action: PayloadAction&lt;ProcessingResult&gt;) => {
+      state.results.unshift(action.payload); // Add to the beginning of the array
+      state.loading = false;
+    },
+    clearResults: (state) => {
+      state.results = [];
+    },
+    setLoading: (state, action: PayloadAction&lt;boolean&gt;) => {
+      state.loading = action.payload;
+    },
+    setError: (state, action: PayloadAction&lt;string | null&gt;) => {
+      state.error = action.payload;
+      state.loading = false;
+    }
+  }
+});
+
+export const {
+  setModels,
+  setActiveModel,
+  addProcessingResult,
+  clearResults,
+  setLoading,
+  setError
+} = languageAISlice.actions;
+
+export default languageAISlice.reducer;</code></pre>
+      </div>
+      
+      <h2>Backend Integration</h2>
+      
+      <p>
+        The Language AI frontend communicates with the backend through a set of API services. These services 
+        handle operations such as fetching available models and processing text.
+      </p>
+      
+      <div class="component-card">
+        <h3>Language AI Service</h3>
+        <pre><code class="language-typescript">// languageAIService.ts
+import axios from 'axios';
+import { API_BASE_URL } from '../config';
+import { LanguageModel, ProcessingResult, ProcessingTask } from '../types/languageAI';
+import { setLoading, setError } from '../store/languageAISlice';
+import { store } from '../store';
+
+const API_URL = `${API_BASE_URL}/language-ai`;
+
+export const fetchModels = async (): Promise&lt;LanguageModel[]&gt; => {
+  try {
+    const response = await axios.get(`${API_URL}/models`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching language models:', error);
+    throw error;
+  }
+};
+
+export const processText = async (params: {
+  text: string;
+  modelId: string;
+  task: ProcessingTask;
+  options?: any;
+}): Promise&lt;ProcessingResult&gt; => {
+  store.dispatch(setLoading(true));
+  
+  try {
+    const response = await axios.post(`${API_URL}/process`, params);
+    return response.data;
+  } catch (error) {
+    console.error('Error processing text:', error);
+    store.dispatch(setError(error.message || 'Failed to process text'));
+    throw error;
+  }
+};
+
+export const translateText = async (params: {
+  text: string;
+  modelId: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  options?: any;
+}): Promise&lt;ProcessingResult&gt; => {
+  store.dispatch(setLoading(true));
+  
+  try {
+    const response = await axios.post(`${API_URL}/translate`, params);
+    return response.data;
+  } catch (error) {
+    console.error('Error translating text:', error);
+    store.dispatch(setError(error.message || 'Failed to translate text'));
+    throw error;
+  }
+};
+
+export const summarizeText = async (params: {
+  text: string;
+  modelId: string;
+  length: 'short' | 'medium' | 'long';
+  format: 'paragraph' | 'bullets';
+  options?: any;
+}): Promise&lt;ProcessingResult&gt; => {
+  store.dispatch(setLoading(true));
+  
+  try {
+    const response = await axios.post(`${API_URL}/summarize`, params);
+    return response.data;
+  } catch (error) {
+    console.error('Error summarizing text:', error);
+    store.dispatch(setError(error.message || 'Failed to summarize text'));
+    throw error;
+  }
+};
+
+// Additional specialized endpoints for specific tasks
+export const analyzeEntities = async (params: {
+  text: string;
+  modelId: string;
+  options?: any;
+}): Promise&lt;ProcessingResult&gt; => {
+  store.dispatch(setLoading(true));
+  
+  try {
+    const response = await axios.post(`${API_URL}/entities`, params);
+    return response.data;
+  } catch (error) {
+    console.error('Error analyzing entities:', error);
+    store.dispatch(setError(error.message || 'Failed to analyze entities'));
+    throw error;
+  }
+};
+
+export const analyzeSentiment = async (params: {
+  text: string;
+  modelId: string;
+  options?: any;
+}): Promise&lt;ProcessingResult&gt; => {
+  store.dispatch(setLoading(true));
+  
+  try {
+    const response = await axios.post(`${API_URL}/sentiment`, params);
+    return response.data;
+  } catch (error) {
+    console.error('Error analyzing sentiment:', error);
+    store.dispatch(setError(error.message || 'Failed to analyze sentiment'));
+    throw error;
+  }
+};</code></pre>
+      </div>
+      
+      <h2>Types</h2>
+      
+      <p>
+        The Language AI module uses TypeScript interfaces to define the structure of models, processing tasks, and results.
+      </p>
+      
+      <div class="component-card">
+        <h3>Language AI Types</h3>
+        <pre><code class="language-typescript">// types/languageAI.ts
+export interface LanguageModel {
+  id: string;
+  name: string;
+  provider: string;
+  size: string;
+  description: string;
+  capabilities: string[];
+  supportedTasks: ProcessingTask[];
+}
+
+export type ProcessingTask = 
+  | 'generate'
+  | 'summarize'
+  | 'translate'
+  | 'sentiment'
+  | 'entities'
+  | 'classify'
+  | 'qa'
+  | 'grammar'
+  | 'keywords';
+
+export interface ProcessingResult {
+  id: string;
+  task: ProcessingTask;
+  input: string;
+  output: string;
+  modelId: string;
+  modelName: string;
+  timestamp: string;
+  metadata?: {
+    processingTime?: number;
+    tokenCount?: {
+      input: number;
+      output: number;
+    };
+    options?: any;
+  };
+}
+
+export interface ProcessingOptions {
+  // Common options
+  maxLength?: number;
+  temperature?: number;
+  topP?: number;
+  
+  // Translation options
+  sourceLanguage?: string;
+  targetLanguage?: string;
+  formality?: 'default' | 'formal' | 'informal';
+  
+  // Summarization options
+  length?: 'short' | 'medium' | 'long';
+  format?: 'paragraph' | 'bullets';
+  
+  // Entity recognition options
+  entityTypes?: string[];
+  
+  // Classification options
+  categories?: string[];
+  
+  // Additional task-specific options
+  [key: string]: any;
+}</code></pre>
+      </div>
+      
+      <h2>Model Integration</h2>
+      
+      <p>
+        The Language AI module integrates with various language models through a unified API. This allows the 
+        application to leverage different models for different tasks while providing a consistent interface.
+      </p>
+      
+      <div class="component-card">
+        <h3>Supported Models</h3>
+        <p>
+          The Language AI module supports integration with several language models, including:
+        </p>
+        <ul>
+          <li><strong>GPT-4</strong> - Advanced language model with strong capabilities across all tasks</li>
+          <li><strong>GPT-3.5</strong> - Balanced model with good performance and efficiency</li>
+          <li><strong>BERT</strong> - Specialized for understanding context and entity recognition</li>
+          <li><strong>T5</strong> - Optimized for translation and summarization tasks</li>
+          <li><strong>RoBERTa</strong> - Enhanced for sentiment analysis and classification</li>
+        </ul>
+        
+        <h3>Model Selection Strategy</h3>
+        <p>
+          The application uses a smart model selection strategy that considers:
+        </p>
+        <ul>
+          <li>The specific task being performed</li>
+          <li>The length and complexity of the input text</li>
+          <li>Performance requirements (speed vs. accuracy)</li>
+          <li>Cost considerations</li>
+        </ul>
+        
+        <p>
+          This allows the application to automatically suggest the most appropriate model for each task, 
+          while still giving users the flexibility to choose a different model if desired.
+        </p>
+      </div>
+      
+      <h2>Use Cases</h2>
+      
+      <p>
+        The Language AI module enables a wide range of use cases within the TuPhung Project:
+      </p>
+      
+      <div class="component-card">
+        <h3>Content Creation</h3>
+        <p>
+          Users can leverage the text generation capabilities to:
+        </p>
+        <ul>
+          <li>Draft emails and messages</li>
+          <li>Create documentation</li>
+          <li>Generate creative content</li>
+          <li>Produce reports and summaries</li>
+        </ul>
+        
+        <h3>Content Analysis</h3>
+        <p>
+          The analysis capabilities allow users to:
+        </p>
+        <ul>
+          <li>Extract key information from documents</li>
+          <li>Identify important entities and relationships</li>
+          <li>Analyze sentiment in customer feedback</li>
+          <li>Categorize and organize text data</li>
+        </ul>
+        
+        <h3>Language Support</h3>
+        <p>
+          The translation and language processing features enable:
+        </p>
+        <ul>
+          <li>Multilingual communication</li>
+          <li>Content localization</li>
+          <li>Grammar and style improvement</li>
+          <li>Cross-language research and analysis</li>
+        </ul>
+      </div>
+      
+      <h2>Performance Considerations</h2>
+      
+      <p>
+        The Language AI module is designed with performance in mind, addressing several key considerations:
+      </p>
+      
+      <div class="component-card">
+        <h3>Latency Management</h3>
+        <p>
+          To minimize perceived latency:
+        </p>
+        <ul>
+          <li>Requests are processed asynchronously</li>
+          <li>UI provides immediate feedback and loading indicators</li>
+          <li>Results are cached when appropriate</li>
+          <li>Streaming responses are used for longer outputs</li>
+        </ul>
+        
+        <h3>Resource Optimization</h3>
+        <p>
+          To optimize resource usage:
+        </p>
+        <ul>
+          <li>Input text is preprocessed to remove unnecessary content</li>
+          <li>Model selection considers the complexity of the task</li>
+          <li>Batch processing is used when appropriate</li>
+          <li>Results are compressed when transmitted</li>
+        </ul>
+        
+        <h3>Error Handling</h3>
+        <p>
+          Robust error handling ensures a good user experience:
+        </p>
+        <ul>
+          <li>Graceful degradation when models are unavailable</li>
+          <li>Automatic retry with fallback models</li>
+          <li>Clear error messages with suggested actions</li>
+          <li>Partial results are displayed when available</li>
+        </ul>
+      </div>
+      
+      <h2>Future Enhancements</h2>
+      
+      <p>
+        The Language AI module is continuously evolving. Planned future enhancements include:
+      </p>
+      
+      <div class="component-card">
+        <h3>Upcoming Features</h3>
+        <ul>
+          <li><strong>Custom Fine-tuning</strong> - Allow users to fine-tune models on their own data</li>
+          <li><strong>Multi-modal Processing</strong> - Extend capabilities to include image and audio inputs</li>
+          <li><strong>Advanced Customization</strong> - More granular control over model parameters</li>
+          <li><strong>Collaborative Editing</strong> - Real-time collaboration on AI-generated content</li>
+          <li><strong>Domain-specific Models</strong> - Specialized models for particular industries or use cases</li>
+          <li><strong>Offline Processing</strong> - Support for local model inference when appropriate</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+  
+  <script src="../../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script>
+    // Initialize syntax highlighting and mermaid diagrams
+    document.addEventListener('DOMContentLoaded', (event) => {
+      Prism.highlightAll();
+      mermaid.initialize({ startOnLoad: true });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontend Structure - TuPhung Project Documentation</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <!-- Mermaid for flowcharts -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"></script>
+  <!-- Prism for code highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+</head>
+<body>
+  <button class="menu-toggle">☰</button>
+  
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>TuPhung Project</h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Overview</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../../index.html" class="sidebar-subnav-link">Introduction</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../architecture.html" class="sidebar-subnav-link">Architecture</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../tech-stack.html" class="sidebar-subnav-link">Tech Stack</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Frontend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="structure.html" class="sidebar-subnav-link active">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="auth.html" class="sidebar-subnav-link">Authentication</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="chat.html" class="sidebar-subnav-link">Chat System</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="kanban.html" class="sidebar-subnav-link">Kanban Board</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="calendar.html" class="sidebar-subnav-link">Calendar</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="ai-assistants.html" class="sidebar-subnav-link">AI Assistants</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="language-ai.html" class="sidebar-subnav-link">Language AI</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="state-management.html" class="sidebar-subnav-link">State Management</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Backend</div>
+        <ul class="sidebar-subnav">
+          <li class="sidebar-subnav-item">
+            <a href="../backend/structure.html" class="sidebar-subnav-link">Project Structure</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/auth.html" class="sidebar-subnav-link">Authentication & Security</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/user-management.html" class="sidebar-subnav-link">User Management</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/database.html" class="sidebar-subnav-link">Database Design</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/api.html" class="sidebar-subnav-link">API Endpoints</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/websockets.html" class="sidebar-subnav-link">WebSockets</a>
+          </li>
+          <li class="sidebar-subnav-item">
+            <a href="../backend/speech-processing.html" class="sidebar-subnav-link">Speech Processing</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+  
+  <main class="main-content">
+    <header class="content-header">
+      <h1>Frontend Project Structure</h1>
+      <p>Detailed overview of the frontend project organization, architecture, and key components.</p>
+    </header>
+    
+    <section>
+      <h2>Project Overview</h2>
+      <p>
+        The frontend of the TuPhung Project is built with React 18 and TypeScript, using Vite as the build tool. 
+        The project follows a modular architecture with a clear separation of concerns, making it maintainable and scalable.
+      </p>
+      
+      <div class="component-card">
+        <h3>Directory Structure</h3>
+        <pre><code class="language-plaintext">study/typescript-react/
+├── node_modules/
+├── public/
+├── src/
+│   ├── assets/
+│   ├── components/
+│   ├── hooks/
+│   ├── pages/
+│   ├── services/
+│   ├── store/
+│   ├── styles/
+│   ├── types/
+│   ├── utils/
+│   ├── App.tsx
+│   ├── index.css
+│   ├── index.tsx
+│   └── main.tsx
+├── .gitignore
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── README.md</code></pre>
+      </div>
+      
+      <h2>Key Directories and Files</h2>
+      
+      <div class="component-card">
+        <h3>src/components/</h3>
+        <p>
+          Contains all reusable React components used throughout the application. Components are organized by feature 
+          and functionality.
+        </p>
+        <pre><code class="language-plaintext">src/components/
+├── AssistantAI.tsx
+├── ColumnKanban.tsx
+├── CustomWifiIcon.tsx
+├── DockMenu.tsx
+├── EmailOtpAuthComponent.tsx
+├── EmailVerificationComponent.tsx
+├── FlowDiagram.tsx
+├── ForgotPasswordComponent.tsx
+├── GradientButton.tsx
+├── GroupAvatar.tsx
+├── HeaderCustom.tsx
+├── LanguageAIComponent.tsx
+├── LanguageAIControls.tsx
+├── LanguageAIMessage.tsx
+├── LanguageAIRecorder.tsx
+├── LanguageAIWindow.tsx
+├── LoadingState.tsx
+├── LoginRegisterTitle.tsx
+├── MyInfo.tsx
+├── OAuth2RedirectHandler.tsx
+├── RecaptchaProvider.tsx
+├── ReCaptchaV3.tsx
+├── RegisterComponent.tsx
+├── ResetPasswordComponent.tsx
+├── ServiceStatusNotification.tsx
+├── ShineBorder.tsx
+├── Sidebar.tsx
+├── SparklesCore.tsx
+├── SparklesPreview.tsx
+├── SparklesText.tsx
+├── SplineScene.tsx
+├── TaskCardKanban.tsx
+├── TextShimer.tsx
+├── TinyMCEEditor.tsx
+├── TotpAuthComponent.tsx
+├── TotpDeviceComponent.tsx
+├── TotpResetAnalytics.tsx
+├── TotpResetRequestManager.tsx
+├── TotpSetupComponent.tsx
+└── VerificationCodeInput.tsx</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>src/pages/</h3>
+        <p>
+          Contains top-level page components that represent different routes in the application.
+        </p>
+        <pre><code class="language-plaintext">src/pages/
+├── AdminDashBoardPage.tsx
+├── AssistantAIPage.tsx
+├── AuthPage.tsx
+├── CalendarPage.tsx
+├── ChatPage.tsx
+├── HomePage.tsx
+├── KanbanPage.tsx
+├── LanguageAIPage.tsx
+├── PermissionsPage.tsx
+├── ProfilePage.tsx
+├── RolesPage.tsx
+├── SettingPage.tsx
+├── StatisticPage.tsx
+└── UserListPage.tsx</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>src/services/</h3>
+        <p>
+          Contains service modules that handle API communication with the backend.
+        </p>
+        <pre><code class="language-plaintext">src/services/
+├── authService.ts
+├── baseService.ts
+├── calendarService.ts
+├── chatService.ts
+├── kanbanService.ts
+├── languageService.ts
+├── permissionService.ts
+├── roleService.ts
+├── speechService.ts
+├── totpAdminService.ts
+├── totpService.ts
+├── userService.ts
+└── websocketService.ts</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>src/store/</h3>
+        <p>
+          Contains Redux store configuration, slices, and actions for state management.
+        </p>
+        <pre><code class="language-plaintext">src/store/
+├── assistantAISlice.ts
+├── authSlice.ts
+├── chatSlice.fix.ts
+├── chatSlice.ts
+├── index.ts
+├── kanbanSlice.ts
+├── languageSlice.ts
+├── resetActions.ts
+├── rootState.ts
+├── store.ts
+└── userSlice.ts</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>src/types/</h3>
+        <p>
+          Contains TypeScript type definitions and interfaces used throughout the application.
+        </p>
+        <pre><code class="language-plaintext">src/types/
+├── AntdTypes.d.ts
+├── ApiTypes.ts
+├── AssistantAITypes.ts
+├── AuthTypes.ts
+├── CalendarTypes.ts
+├── ChatTypes.ts
+├── index.ts
+├── KanbanTypes.ts
+├── LanguageAITypes.ts
+├── mediarecorder.d.ts
+├── MediaTypes.d.ts
+├── README.md
+├── RootStateTypes.ts
+└── UserTypes.ts</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>src/utils/</h3>
+        <p>
+          Contains utility functions and helper modules.
+        </p>
+        <pre><code class="language-plaintext">src/utils/
+├── authSetup.ts
+├── axios-customize.ts
+├── axiosSetup.ts
+├── constant.ts
+├── dateUtils.ts
+├── function.ts
+├── languageUtils.ts
+├── recaptchaUtils.ts
+├── TextUtils.ts
+├── tokenRefresh.ts
+└── validateInput.ts</code></pre>
+      </div>
+      
+      <h2>Application Structure</h2>
+      
+      <div class="diagram-container">
+        <div class="diagram-title">Frontend Application Structure</div>
+        <div class="mermaid">
+          graph TD
+            App[App.tsx] --> Router[React Router]
+            Router --> Pages[Page Components]
+            
+            Pages --> Auth[Authentication Pages]
+            Pages --> Home[Home Page]
+            Pages --> Admin[Admin Dashboard]
+            Pages --> User[User Management]
+            Pages --> Chat[Chat System]
+            Pages --> Kanban[Kanban Board]
+            Pages --> Calendar[Calendar]
+            Pages --> AI[AI Features]
+            
+            Auth --> Login[Login]
+            Auth --> Register[Registration]
+            Auth --> ForgotPassword[Forgot Password]
+            Auth --> ResetPassword[Reset Password]
+            Auth --> TOTP[TOTP Setup/Verification]
+            Auth --> OAuth[OAuth Integration]
+            
+            subgraph State Management
+              Redux[Redux Store]
+              Redux --> AuthState[Auth State]
+              Redux --> UserState[User State]
+              Redux --> ChatState[Chat State]
+              Redux --> KanbanState[Kanban State]
+              Redux --> CalendarState[Calendar State]
+              Redux --> AIState[AI State]
+            end
+            
+            subgraph API Communication
+              Services[API Services]
+              Services --> AuthService[Auth Service]
+              Services --> UserService[User Service]
+              Services --> ChatService[Chat Service]
+              Services --> KanbanService[Kanban Service]
+              Services --> CalendarService[Calendar Service]
+              Services --> AIService[AI Service]
+              Services --> WebSocketService[WebSocket Service]
+            end
+            
+            Pages --> Components[Shared Components]
+            Components --> UI[UI Components]
+            Components --> Forms[Form Components]
+            Components --> Modals[Modal Components]
+            
+            Pages --> Redux
+            Pages --> Services
+        </div>
+      </div>
+      
+      <h2>Key Configuration Files</h2>
+      
+      <div class="component-card">
+        <h3>package.json</h3>
+        <p>
+          Defines project dependencies, scripts, and configuration.
+        </p>
+        <pre><code class="language-json">{
+  "name": "typescript-react",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node copy-tinymce.cjs && vite",
+    "build": "node copy-tinymce.cjs && tsc --noEmit && vite build",
+    "build-deploy": "node copy-tinymce.cjs && tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "copy-tinymce": "node copy-tinymce.cjs"
+  },
+  "dependencies": {
+    "@ant-design/charts": "^2.2.6",
+    "@ant-design/plots": "^2.3.3",
+    "@antv/g6-extension-react": "^0.1.18",
+    "@antv/react-g": "^2.0.37",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.4.8",
+    "@mui/material": "^6.4.8",
+    "@novu/notification-center": "^2.0.0",
+    "@popperjs/core": "^2.11.8",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@react-oauth/google": "^0.12.1",
+    "@reduxjs/toolkit": "^2.5.1",
+    "@splinetool/react-spline": "^4.0.0",
+    "@splinetool/runtime": "^1.9.81",
+    "@stomp/stompjs": "^7.0.0",
+    "@tailwindcss/postcss": "^4.0.8",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@tinymce/tinymce-react": "^6.1.0",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.8.1",
+    "antd": "^5.24.1",
+    "axios": "1.7.9",
+    "buffer": "^6.0.3",
+    "class-variance-authority": "^0.7.1",
+    "dagre": "^0.8.5",
+    "element-plus": "^2.9.5",
+    "framer-motion": "^12.5.0",
+    "jwt-decode": "^4.0.0",
+    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
+    "mermaid": "^11.6.0",
+    "moment": "^2.30.1",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.3.1",
+    "react-big-calendar": "^1.17.1",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
+    "react-overlays": "^5.2.1",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.2.0",
+    "react-syntax-highlighter": "^15.6.1",
+    "reactflow": "^11.11.4",
+    "recharts": "^2.15.1",
+    "redux": "^5.0.1",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
+    "sockjs-client": "^1.6.1",
+    "stream-browserify": "^3.0.0",
+    "styled-components": "^6.1.15",
+    "tinymce": "^7.8.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@eslint/js": "^9.21.0",
+    "@tailwindcss/postcss7-compat": "^2.2.17",
+    "@types/lodash": "^4.17.15",
+    "@types/lodash-es": "^4.17.12",
+    "@types/react": "^18.3.18",
+    "@types/react-big-calendar": "^1.16.1",
+    "@types/react-dom": "^18.3.5",
+    "@types/sockjs-client": "^1.5.4",
+    "@vitejs/plugin-react-swc": "^3.8.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.21.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "fs-extra": "^11.3.0",
+    "globals": "^16.0.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.1",
+    "vite": "^6.1.1"
+  }
+}</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>vite.config.ts</h3>
+        <p>
+          Configures the Vite build tool for the project.
+        </p>
+        <pre><code class="language-typescript">import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react-swc';
+import path from 'path';
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true,
+      },
+    },
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['antd', '@ant-design/icons', '@emotion/react', '@emotion/styled'],
+          redux: ['redux', 'react-redux', '@reduxjs/toolkit'],
+        },
+      },
+    },
+  },
+});</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>tsconfig.json</h3>
+        <p>
+          Configures TypeScript compiler options for the project.
+        </p>
+        <pre><code class="language-json">{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}</code></pre>
+      </div>
+      
+      <h2>Main Application Entry Points</h2>
+      
+      <div class="component-card">
+        <h3>src/main.tsx</h3>
+        <p>
+          The main entry point of the application that renders the root React component.
+        </p>
+        <pre><code class="language-typescript">import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import { store } from './store/store';
+import './index.css';
+import { RecaptchaProvider } from './components/RecaptchaProvider';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <Provider store={store}>
+      <BrowserRouter>
+        <RecaptchaProvider>
+          <App />
+        </RecaptchaProvider>
+      </BrowserRouter>
+    </Provider>
+  </React.StrictMode>
+);</code></pre>
+      </div>
+      
+      <div class="component-card">
+        <h3>src/App.tsx</h3>
+        <p>
+          The root component that sets up routing and global application structure.
+        </p>
+        <pre><code class="language-typescript">import React, { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { ConfigProvider } from 'antd';
+import HomePage from './pages/HomePage';
+import AuthPage from './pages/AuthPage';
+import ProfilePage from './pages/ProfilePage';
+import UserListPage from './pages/UserListPage';
+import ChatPage from './pages/ChatPage';
+import KanbanPage from './pages/KanbanPage';
+import CalendarPage from './pages/CalendarPage';
+import SettingPage from './pages/SettingPage';
+import AdminDashBoardPage from './pages/AdminDashBoardPage';
+import RolesPage from './pages/RolesPage';
+import PermissionsPage from './pages/PermissionsPage';
+import StatisticPage from './pages/StatisticPage';
+import AssistantAIPage from './pages/AssistantAIPage';
+import LanguageAIPage from './pages/LanguageAIPage';
+import OAuth2RedirectHandler from './components/OAuth2RedirectHandler';
+import ForgotPasswordComponent from './components/ForgotPasswordComponent';
+import ResetPasswordComponent from './components/ResetPasswordComponent';
+import EmailVerificationComponent from './components/EmailVerificationComponent';
+import { RootState } from './store/rootState';
+import { setupTokenRefresh } from './utils/tokenRefresh';
+import { COLORS } from './utils/constant';
+
+const App: React.FC = () => {
+  const { isAuthenticated, token } = useSelector((state: RootState) => state.auth);
+  const location = useLocation();
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      setupTokenRefresh(token);
+    }
+    setIsInitialized(true);
+  }, [token]);
+
+  if (!isInitialized) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: COLORS.primary,
+        },
+      }}
+    >
+      <Routes>
+        <Route
+          path="/"
+          element={isAuthenticated ? <HomePage /> : <Navigate to="/login" state={{ from: location }} replace />}
+        />
+        <Route path="/login" element={!isAuthenticated ? <AuthPage /> : <Navigate to="/" replace />} />
+        <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
+        <Route path="/reset-password" element={<ResetPasswordComponent />} />
+        <Route path="/verify-email" element={<EmailVerificationComponent />} />
+        <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
+        
+        {/* Protected routes */}
+        {isAuthenticated && (
+          <>
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/users" element={<UserListPage />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/kanban" element={<KanbanPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/settings" element={<SettingPage />} />
+            <Route path="/admin" element={<AdminDashBoardPage />} />
+            <Route path="/roles" element={<RolesPage />} />
+            <Route path="/permissions" element={<PermissionsPage />} />
+            <Route path="/statistics" element={<StatisticPage />} />
+            <Route path="/assistant" element={<AssistantAIPage />} />
+            <Route path="/language" element={<LanguageAIPage />} />
+          </>
+        )}
+        
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ConfigProvider>
+  );
+};
+
+export default App;</code></pre>
+      </div>
+      
+      <h2>Development Workflow</h2>
+      
+      <div class="component-card">
+        <h3>Build Process</h3>
+        <p>
+          The project uses Vite for fast development and optimized production builds.
+        </p>
+        <ul>
+          <li><strong>Development:</strong> <code>npm run dev</code> - Starts the development server with hot module replacement</li>
+          <li><strong>Build:</strong> <code>npm run build</code> - Creates an optimized production build</li>
+          <li><strong>Preview:</strong> <code>npm run preview</code> - Previews the production build locally</li>
+        </ul>
+      </div>
+      
+      <div class="component-card">
+        <h3>Code Organization Principles</h3>
+        <ul>
+          <li><strong>Component-Based Architecture:</strong> UI is broken down into reusable components</li>
+          <li><strong>Type Safety:</strong> TypeScript is used throughout the project for type checking</li>
+          <li><strong>State Management:</strong> Redux is used for global state management</li>
+          <li><strong>API Communication:</strong> Axios is used for HTTP requests</li>
+          <li><strong>Styling:</strong> A combination of CSS modules, Ant Design, and TailwindCSS is used for styling</li>
+          <li><strong>Routing:</strong> React Router is used for client-side routing</li>
+        </ul>
+      </div>
+      
+      <h2>Related Documentation</h2>
+      <ul>
+        <li><a href="../architecture.html">Architecture Overview</a> - High-level architecture of the entire application</li>
+        <li><a href="auth.html">Authentication</a> - Details about the authentication system</li>
+        <li><a href="state-management.html">State Management</a> - Information about Redux state management</li>
+        <li><a href="../backend/structure.html">Backend Structure</a> - Structure of the backend application</li>
+      </ul>
+    </section>
+  </main>
+  
+  <script src="../../assets/script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+</body>
+</html>
