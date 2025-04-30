@@ -9,8 +9,8 @@ interface GroupAvatarProps {
 }
 
 const GroupAvatar: React.FC<GroupAvatarProps> = ({ contact, size = 40 }) => {
-  // If it's not a group or no members, show default avatar
-  if (!contact.isGroup || !contact.members || contact.members.length === 0) {
+  // If it's not a group, show default avatar
+  if (!contact.isGroup) {
     return (
       <Avatar
         icon={<UserOutlined />}
@@ -22,14 +22,251 @@ const GroupAvatar: React.FC<GroupAvatarProps> = ({ contact, size = 40 }) => {
     );
   }
 
-  // For groups with members, show multiple small avatars
-  // We'll show up to 4 members in a grid layout
-  const maxVisibleMembers = Math.min(4, contact.members.length);
-  const smallAvatarSize = size * 0.6; // Small avatars are 60% of the main size
+  // For groups, determine the number of members
+  let memberCount = 0;
 
-  // Calculate grid layout
-  const gridSize = maxVisibleMembers <= 1 ? 1 : 2; // 1x1 or 2x2 grid
-  const gridGap = 2; // Gap between avatars in pixels
+  // Check if the name contains the member count (e.g., "4 members")
+  const nameMatch = contact.name.match(/^(\d+)\s+members?$/);
+  if (nameMatch) {
+    memberCount = parseInt(nameMatch[1], 10);
+    console.log("Extracted member count from name:", memberCount);
+  }
+  // Fallback to checking the members array
+  else if (Array.isArray(contact.members)) {
+    memberCount = contact.members.length;
+    console.log("Using members array length:", memberCount);
+  }
+
+  // Limit visible members to 3 if there are 5 or more members, otherwise show up to 4
+  const maxVisibleMembers = memberCount >= 5 ? 3 : Math.min(4, memberCount);
+
+  // Component for 2 members side by side
+  const TwoAvatarRow = () => {
+    const avatarSize = size * 0.6;
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "4px",
+        }}
+      >
+        <Avatar
+          icon={<UserOutlined />}
+          size={avatarSize}
+          style={{
+            backgroundColor: getAvatarColor(0),
+            fontSize: avatarSize * 0.6,
+          }}
+        />
+        <Avatar
+          icon={<UserOutlined />}
+          size={avatarSize}
+          style={{
+            backgroundColor: getAvatarColor(1),
+            fontSize: avatarSize * 0.6,
+          }}
+        />
+      </div>
+    );
+  };
+
+  // Component for 3 members in a triangle
+  const ThreeAvatarTriangle = () => {
+    const avatarSize = size * 0.4;
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ marginBottom: -5 }}>
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(0),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "4px",
+          }}
+        >
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(1),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(2),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Component for 4 members in a grid
+  const FourAvatarGrid = () => {
+    const avatarSize = size * 0.4;
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-evenly",
+          alignItems: "center",
+          padding: "2px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-evenly",
+            width: "100%",
+          }}
+        >
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(0),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(1),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-evenly",
+            width: "100%",
+          }}
+        >
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(2),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(3),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Component for 3 avatars and a count indicator
+  const ThreeAvatarWithCount = () => {
+    const avatarSize = size * 0.4;
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-evenly",
+          alignItems: "center",
+          padding: "2px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-evenly",
+            width: "100%",
+          }}
+        >
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(0),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(1),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-evenly",
+            width: "100%",
+          }}
+        >
+          <Avatar
+            icon={<UserOutlined />}
+            size={avatarSize}
+            style={{
+              backgroundColor: getAvatarColor(2),
+              fontSize: avatarSize * 0.6,
+            }}
+          />
+          <div
+            style={{
+              width: avatarSize,
+              height: avatarSize,
+              backgroundColor: "#1890ff",
+              color: "white",
+              borderRadius: "50%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              fontSize: avatarSize * 0.5,
+              fontWeight: "bold",
+            }}
+          >
+            +{memberCount - 3}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -40,72 +277,31 @@ const GroupAvatar: React.FC<GroupAvatarProps> = ({ contact, size = 40 }) => {
         borderRadius: "50%",
         backgroundColor: "#f0f2f5",
         display: "flex",
-        flexWrap: "wrap",
         justifyContent: "center",
         alignItems: "center",
         overflow: "hidden",
+        boxSizing: "border-box",
       }}
     >
-      {/* If no members are available, show a team icon */}
       {maxVisibleMembers === 0 ? (
         <TeamOutlined style={{ fontSize: size * 0.6, color: "#1890ff" }} />
+      ) : maxVisibleMembers === 1 ? (
+        <Avatar
+          icon={<UserOutlined />}
+          size={size * 0.8}
+          style={{
+            backgroundColor: getAvatarColor(0),
+            fontSize: size * 0.48,
+          }}
+        />
+      ) : maxVisibleMembers === 2 ? (
+        <TwoAvatarRow />
+      ) : maxVisibleMembers === 3 && memberCount < 5 ? (
+        <ThreeAvatarTriangle />
+      ) : memberCount >= 5 ? (
+        <ThreeAvatarWithCount />
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-            gridTemplateRows: `repeat(${gridSize}, 1fr)`,
-            gap: `${gridGap}px`,
-            width: "100%",
-            height: "100%",
-            padding: "2px",
-          }}
-        >
-          {/* Render small avatars for each member */}
-          {Array.from({ length: maxVisibleMembers }).map((_, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Avatar
-                icon={<UserOutlined />}
-                size={smallAvatarSize}
-                style={{
-                  backgroundColor: getAvatarColor(index),
-                  fontSize: smallAvatarSize * 0.6,
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Show count indicator if there are more members than we're displaying */}
-      {contact.members.length > maxVisibleMembers && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            right: 0,
-            backgroundColor: "#1890ff",
-            color: "white",
-            borderRadius: "50%",
-            width: size * 0.4,
-            height: size * 0.4,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            fontSize: size * 0.2,
-            fontWeight: "bold",
-            border: "1px solid white",
-          }}
-        >
-          +{contact.members.length - maxVisibleMembers}
-        </div>
+        <FourAvatarGrid />
       )}
     </div>
   );
@@ -128,3 +324,4 @@ const getAvatarColor = (index: number): string => {
 };
 
 export default GroupAvatar;
+

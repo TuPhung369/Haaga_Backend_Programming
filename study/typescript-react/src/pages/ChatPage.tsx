@@ -3216,7 +3216,23 @@ const ChatPage: React.FC = () => {
                                     >
                                       {contact.group}
                                     </Tag>
-                                  ) : null}
+                                  ) : (
+                                    <Tag
+                                      color="default"
+                                      icon={<TagOutlined />}
+                                      style={{
+                                        fontSize: "10px",
+                                        lineHeight: "14px",
+                                        padding: "0 4px",
+                                        cursor: "pointer",
+                                        backgroundColor: "#f0f0f0",
+                                        borderStyle: "dashed",
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      Add Tag
+                                    </Tag>
+                                  )}
                                 </Dropdown>
                               )}
                             </div>
@@ -3248,8 +3264,23 @@ const ChatPage: React.FC = () => {
                             {contact.isGroup ? (
                               <>
                                 <TeamOutlined style={{ fontSize: "10px" }} />
-                                {contact.email}{" "}
-                                {/* This will show the member count */}
+                                {/* Extract the correct member count from the name or members array */}
+                                {(() => {
+                                  // Try to extract member count from the name (e.g., "4 members")
+                                  const nameMatch =
+                                    contact.name.match(/^(\d+)\s+members?$/);
+                                  if (nameMatch) {
+                                    return `${nameMatch[1]} members`;
+                                  }
+
+                                  // Fallback to members array if available
+                                  if (Array.isArray(contact.members)) {
+                                    return `${contact.members.length} members`;
+                                  }
+
+                                  // Use email as last resort
+                                  return contact.email;
+                                })()}
                               </>
                             ) : (
                               contact.email
