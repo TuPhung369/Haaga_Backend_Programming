@@ -6,10 +6,21 @@ const path = require("path");
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "Haaga Backend Programming",
-  tagline:
-    "Comprehensive documentation for the Haaga Backend Programming Project",
+  title: "Enterprise Nexus",
+  tagline: "Comprehensive documentation for the Enterprise Nexus Platform",
   favicon: "img/favicon.ico",
+
+  // Ensure proper mobile viewport settings
+  headTags: [
+    {
+      tagName: "meta",
+      attributes: {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
+      },
+    },
+  ],
 
   // Set the production url of your site here
   url: "https://TuPhung369.github.io",
@@ -79,10 +90,20 @@ const config = {
     ({
       // Replace with your project's social card
       image: "img/logo.svg",
+      // Configure Table of Contents to only show h2 headers
+      tableOfContents: {
+        minHeadingLevel: 2,
+        maxHeadingLevel: 2,
+      },
+      docs: {
+        sidebar: {
+          autoCollapseCategories: true,
+        },
+      },
       navbar: {
-        title: "Haaga Backend Programming",
+        title: "Enterprise Nexus",
         logo: {
-          alt: "Haaga Backend Programming Logo",
+          alt: "Enterprise Nexus Logo",
           src: "img/logo.svg",
         },
         items: [
@@ -124,10 +145,10 @@ const config = {
             ],
           },
           {
-            title: "Community",
+            title: "Video",
             items: [
               {
-                label: "GitHub Discussions",
+                label: "Project Video",
                 href: "https://github.com/TuPhung369/Haaga_Backend_Programming/discussions",
               },
             ],
@@ -139,10 +160,14 @@ const config = {
                 label: "GitHub",
                 href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
               },
+              {
+                label: "My CV",
+                href: "https://tuphung369.github.io/professional-cv/",
+              },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Haaga Backend Programming. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Enterprise Nexus. Built with Docusaurus.`,
       },
       prism: {
         theme: themes.github,

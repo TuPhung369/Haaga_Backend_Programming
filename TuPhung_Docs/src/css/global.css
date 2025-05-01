@@ -1,0 +1,71 @@
+/**
+ * Global CSS styles that apply to the entire site
+ */
+
+/* Ensure the entire page has the gradient background */
+html[data-theme='light'] {
+  background: linear-gradient(135deg, var(--gradient-light-start) 0%, var(--gradient-light-end) 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Ensure body takes full height */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure main wrapper takes full height */
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Ensure doc page container takes full height */
+.docPage_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-styles-module,
+.docPage_src-theme-DocPage-Layout-styles-module,
+div[class^="docPage_"] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 60px); /* Subtract header height */
+}
+
+/* Ensure doc main container takes full height */
+.docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Main-styles-module,
+.docMainContainer_src-theme-DocPage-Layout-Main-styles-module,
+div[class^="docMainContainer_"] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure main content column takes full height */
+.col.col--9,
+div[class*="docItemCol_"]:not([class*="docItemCol_3"]) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure article takes full height */
+article {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Add a full-page background overlay */
+.full-page-background-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--gradient-light-start) 0%, var(--gradient-light-end) 100%);
+  z-index: -10;
+  pointer-events: none;
+}

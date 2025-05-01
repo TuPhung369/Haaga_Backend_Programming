@@ -6,7 +6,7 @@ sidebar_position: 2
 
 ## Authentication Overview
 
-The TuPhung Project uses JWT (JSON Web Tokens) for authentication.
+The Enterprise Nexus Project uses JWT (JSON Web Tokens) for authentication.
 
 ## Authentication Flow
 
@@ -30,6 +30,7 @@ The TuPhung Project uses JWT (JSON Web Tokens) for authentication.
 ## OAuth2 Integration
 
 The system supports OAuth2 authentication with:
+
 - Google
 - GitHub
 - Microsoft
@@ -37,5 +38,7 @@ The system supports OAuth2 authentication with:
 ## Multi-Factor Authentication
 
 Optional MFA is available using:
+
 - Time-based One-Time Password (TOTP)
 - SMS verification
+

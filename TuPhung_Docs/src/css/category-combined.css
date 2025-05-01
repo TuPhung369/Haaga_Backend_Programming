@@ -1,0 +1,115 @@
+/**
+ * Combined CSS for category pages
+ * 
+ * This file combines all the CSS needed to ensure category pages
+ * display 2 items per row instead of the default 3 items.
+ */
+
+/* ===== GRID LAYOUT FIXES ===== */
+/* Make cards display 2 per row instead of 3 */
+.col.col--6,
+div[class*="col--6"],
+[class*="col--6"],
+.generatedIndexPage .row .col.col--4,
+.generatedIndexPage div[class*="col--4"],
+.generatedIndexPage .col--4,
+.row .col.col--4,
+div[class*="col--4"],
+.col--4,
+[class*="docCategoryGeneratedIndex"] .row .col,
+[class*="docCategoryGeneratedIndex"] .row .col.col--4,
+[class*="docCategoryGeneratedIndex"] div[class*="col--4"] {
+  --ifm-col-width: 50% !important;
+  flex-basis: 50% !important;
+  max-width: 50% !important;
+  width: 50% !important;
+  padding: 0.5rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Target the specific classes used in the generated HTML */
+.generatedIndexPage_vN6x .col.col--6 {
+  --ifm-col-width: 50% !important;
+  flex-basis: 50% !important;
+  max-width: 50% !important;
+  width: 50% !important;
+  padding: 0.5rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure the row displays correctly */
+.row,
+div[class*="row"],
+[class*="row"],
+.generatedIndexPage .row,
+.generated-index-page .row,
+.category-page .row,
+.category-wrapper .row,
+.category-container .row,
+[class*="category"] .row,
+[class*="docCategoryGeneratedIndex"] .row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  margin: 0 -0.5rem !important;
+  width: 100% !important;
+}
+
+/* ===== CARD STYLING ===== */
+/* Ensure cards have equal height and proper styling */
+.card,
+div[class*="card"],
+[class*="card"],
+.generatedIndexPage .card,
+article.card,
+.generatedIndexPage .card.padding--lg.cardContainer_fWXF {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+}
+
+/* Style card body and footer */
+.card__body,
+.generatedIndexPage .card__body {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.card__footer,
+.generatedIndexPage .card__footer {
+  margin-top: auto !important;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+/* Tablet view */
+@media (max-width: 996px) {
+  .col.col--6,
+  div[class*="col--6"],
+  [class*="col--6"],
+  .generatedIndexPage .row .col.col--4,
+  .row .col.col--4,
+  div[class*="col--4"],
+  .col--4 {
+    --ifm-col-width: 50% !important;
+    flex-basis: 50% !important;
+    max-width: 50% !important;
+    width: 50% !important;
+  }
+}
+
+/* Mobile view */
+@media (max-width: 576px) {
+  .col.col--6,
+  div[class*="col--6"],
+  [class*="col--6"],
+  .generatedIndexPage .row .col.col--4,
+  .row .col.col--4,
+  div[class*="col--4"],
+  .col--4 {
+    --ifm-col-width: 100% !important;
+    flex-basis: 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

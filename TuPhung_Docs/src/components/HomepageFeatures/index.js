@@ -8,8 +8,8 @@ const FeatureList = [
     Svg: require("@site/static/img/undraw_docusaurus_mountain.svg").default,
     description: (
       <>
-        TuPhung Project is designed to be easy to use and provides detailed
-        documentation for users.
+        Enterprise Nexus Project is designed to be easy to use and provides
+        detailed documentation for users.
       </>
     ),
   },
@@ -18,8 +18,8 @@ const FeatureList = [
     Svg: require("@site/static/img/undraw_docusaurus_tree.svg").default,
     description: (
       <>
-        TuPhung Project lets you focus on your documentation, while we take care
-        of the rest.
+        Enterprise Nexus Project lets you focus on your documentation, while we
+        take care of the rest.
       </>
     ),
   },
@@ -62,3 +62,4 @@ export default function HomepageFeatures() {
     </section>
   );
 }
+

@@ -1,12 +1,13 @@
-﻿﻿---
-sidebar_position: 1
+﻿﻿﻿---
+sidebar_position: 7
+description: "REST API Overview"
 ---
 
 # API Endpoints
 
 ## REST API Overview
 
-The TuPhung Project provides a comprehensive REST API for all functionality.
+The Enterprise Nexus Project provides a comprehensive REST API for all functionality.
 
 ## Authentication Endpoints
 

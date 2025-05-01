@@ -19,7 +19,7 @@ function HomepageHeader() {
             className="button button--secondary button--lg"
             to="/docs/intro"
           >
-            Get Started
+            Hack It If You Can!
           </Link>
         </div>
       </div>
@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <Layout
       title={`Welcome to ${siteConfig.title}`}
-      description="Documentation for the TuPhung Project"
+      description="Documentation for the Enterprise Nexus Project"
     >
       <HomepageHeader />
       <main>
@@ -41,3 +41,4 @@ export default function Home() {
     </Layout>
   );
 }
+

@@ -24,7 +24,7 @@ const sidebars = {
       link: {
         type: "generated-index",
         description:
-          "Documentation for the Frontend part of the TuPhung Project",
+          "Documentation for the Frontend part of the Enterprise Nexus Project",
       },
       items: [
         "frontend/structure",
@@ -33,9 +33,7 @@ const sidebars = {
         "frontend/user-management",
         "frontend/chat",
         "frontend/calendar",
-        "frontend/calendar-revised",
         "frontend/kanban",
-        "frontend/kanban-revised",
         "frontend/ai-assistants",
         "frontend/language-ai",
       ],
@@ -46,16 +44,24 @@ const sidebars = {
       link: {
         type: "generated-index",
         description:
-          "Documentation for the Backend part of the TuPhung Project",
+          "Documentation for the Backend part of the Enterprise Nexus Project",
       },
       items: [
         "backend/structure",
-        "backend/api",
+        {
+          type: "doc",
+          id: "backend/api",
+          label: "API",
+        },
         "backend/auth",
         "backend/database",
         "backend/user-management",
         "backend/websockets",
-        "backend/speech-processing",
+        {
+          type: "doc",
+          id: "backend/speech-processing",
+          label: "Speech Processing",
+        },
         "backend/exception-handling",
       ],
     },
@@ -64,3 +70,4 @@ const sidebars = {
 };
 
 export default sidebars;
+
