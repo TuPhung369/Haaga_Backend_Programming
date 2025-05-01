@@ -69,10 +69,9 @@ const config = {
       ({
         docs: {
           sidebarPath: path.resolve(__dirname, "./sidebars.js"),
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            "https://github.com/TuPhung369/Haaga_Backend_Programming/tree/main/TuPhung_Docs/",
+          // "Edit this page" links have been removed
+          // editUrl:
+          //   "https://github.com/TuPhung369/Haaga_Backend_Programming/tree/main/TuPhung_Docs/",
           remarkPlugins: [
             [require("@docusaurus/remark-plugin-npm2yarn"), { sync: true }],
           ],

@@ -110,7 +110,7 @@ function HomepageCTA() {
             to="https://github.com/TuPhung369/Haaga_Backend_Programming"
             style={{ marginLeft: "15px" }}
           >
-            GitHub
+            Discover on GitHub
           </Link>
         </div>
       </div>

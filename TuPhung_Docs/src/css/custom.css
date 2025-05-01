@@ -1060,3 +1060,8 @@ html[data-theme='dark'] .button.button--outline:hover {
   color: black !important;
   border-color: var(--ifm-color-primary);
 }
+
+/* Hide anchor links (hash symbols) next to headings */
+.hash-link {
+  display: none !important;
+}
