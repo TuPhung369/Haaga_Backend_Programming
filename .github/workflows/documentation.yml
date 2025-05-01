@@ -1,11 +1,12 @@
-name: Deploy Documentation
+# This workflow has been replaced by deploy-docusaurus.yml
+# Keeping this file for reference but it's no longer active
+
+name: Deploy Documentation (DEPRECATED)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'TuPhung_Docs/**'
+  # Disable this workflow by not triggering on any events
+  workflow_dispatch:
+    # Only manual trigger allowed
 
 jobs:
   deploy:
