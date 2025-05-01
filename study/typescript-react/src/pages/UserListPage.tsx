@@ -1000,7 +1000,7 @@ const UserListPage: React.FC<UserListPageProps> = () => {
         <Table.Column
           title="Permission"
           key="permissions"
-          width={280}
+          width={310}
           sorter={(a: User, b: User) => {
             const aPermissions = a.roles.flatMap(
               (role) => role.permissions || []

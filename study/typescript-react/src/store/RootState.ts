@@ -6,10 +6,16 @@ import kanbanReducer from "./kanbanSlice";
 // Import chatReducer after it's been defined to avoid circular dependency
 import type { ThunkAction, Action } from "@reduxjs/toolkit";
 import type { RootState } from "../types/RootStateTypes";
+import type { ChatState } from "../types/ChatTypes";
+
+// Re-export the RootState type
+export type { RootState } from "../types/RootStateTypes";
 
 // Forward declaration of chatReducer to avoid circular dependency
 // We'll import it after the store is created
-let chatReducer: any;
+// Using a mutable variable since it will be assigned later
+// eslint-disable-next-line prefer-const
+let chatReducer: typeof import("./chatSlice").default;
 
 // Create the store with properly typed reducers
 export const store = configureStore({
@@ -18,7 +24,7 @@ export const store = configureStore({
     user: userReducer,
     kanban: kanbanReducer,
     // Use a function to lazily get the chatReducer
-    chat: (state = null, action) => {
+    chat: (state: ChatState | undefined = undefined, action) => {
       // Once chatReducer is imported, use it
       if (chatReducer) {
         return chatReducer(state, action);
