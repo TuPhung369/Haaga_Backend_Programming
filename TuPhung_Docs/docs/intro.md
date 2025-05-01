@@ -156,6 +156,6 @@ study/
 Explore other sections of the documentation to learn more about the project:
 
 - [System Architecture](/docs/architecture)
-- [Frontend Documentation](/docs/frontend)
-- [Backend Documentation](/docs/backend)
+- [Frontend Documentation](/docs/frontend/structure)
+- [Backend Documentation](/docs/backend/structure)
 - [Deployment Guide](/docs/deployment)

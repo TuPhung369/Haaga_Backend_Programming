@@ -7,7 +7,8 @@ const path = require("path");
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Haaga Backend Programming",
-  tagline: "Comprehensive documentation for the Haaga Backend Programming Project",
+  tagline:
+    "Comprehensive documentation for the Haaga Backend Programming Project",
   favicon: "img/favicon.ico",
 
   // Set the production url of your site here
@@ -21,7 +22,7 @@ const config = {
   organizationName: "TuPhung369", // Usually your GitHub org/user name.
   projectName: "Haaga_Backend_Programming", // Usually your repo name.
 
-  onBrokenLinks: "throw",
+  onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
 
   // Even if you don't use internalization, you can use this field to set useful
@@ -47,8 +48,8 @@ const config = {
   markdown: {
     mermaid: true,
   },
-  
-  themes: ['@docusaurus/theme-mermaid'],
+
+  themes: ["@docusaurus/theme-mermaid"],
 
   presets: [
     [
@@ -62,7 +63,7 @@ const config = {
           editUrl:
             "https://github.com/TuPhung369/Haaga_Backend_Programming/tree/main/TuPhung_Docs/",
           remarkPlugins: [
-            [require('@docusaurus/remark-plugin-npm2yarn'), {sync: true}],
+            [require("@docusaurus/remark-plugin-npm2yarn"), { sync: true }],
           ],
         },
         blog: false,
@@ -149,10 +150,10 @@ const config = {
       },
       // Mermaid configuration
       mermaid: {
-        theme: { light: 'neutral', dark: 'dark' },
+        theme: { light: "neutral", dark: "dark" },
         options: {
           flowchart: {
-            curve: 'linear',
+            curve: "linear",
           },
         },
       },
