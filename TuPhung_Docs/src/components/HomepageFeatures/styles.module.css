@@ -143,6 +143,20 @@ html[data-theme='dark'] .techList li {
   .features, .techStack {
     padding: 3rem 0;
   }
+  
+  /* Ensure consistent padding on mobile */
+  .features .container,
+  .techStack .container {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+  
+  /* Fix column spacing on mobile */
+  .features .row,
+  .techStack .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
 }
 
 @media screen and (max-width: 768px) {

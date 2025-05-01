@@ -103,14 +103,14 @@ function HomepageCTA() {
         </p>
         <div className={styles.ctaButtons}>
           <Link className="button button--primary button--lg" to="/docs/intro">
-            View Documentation
+            Documentation
           </Link>
           <Link
             className="button button--outline button--lg"
             to="https://github.com/TuPhung369/Haaga_Backend_Programming"
             style={{ marginLeft: "15px" }}
           >
-            View on GitHub
+            GitHub
           </Link>
         </div>
       </div>

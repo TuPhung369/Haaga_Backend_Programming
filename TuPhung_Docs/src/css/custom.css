@@ -674,6 +674,25 @@ html[data-theme='light'] .footer .footer__link-item:hover {
   color: var(--ifm-color-primary) !important;
 }
 
+/* Fix footer padding on mobile */
+@media (max-width: 996px) {
+  .footer__col {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  .footer__items {
+    padding-left: 0 !important;
+  }
+  
+  .footer .container {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+}
+
 /* Add hover effects for cards and buttons in light mode */
 html[data-theme='light'] .card:hover,
 html[data-theme='light'] .pagination-nav__item:hover,
@@ -921,8 +940,8 @@ html[data-theme='light'] code:not([class^="language-"]) {
   /* Reset container width for mobile */
   .container {
     max-width: 100% !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
   }
 
   /* Adjust main content width for mobile */
@@ -1026,4 +1045,18 @@ html[data-theme='light'] code:not([class^="language-"]) {
     display: block;
     overflow-x: auto;
   }
+}
+
+/* Fix outline button hover styles for light mode */
+html[data-theme='light'] .button.button--outline:hover {
+  background-color: var(--ifm-color-primary);
+  color: white !important;
+  border-color: var(--ifm-color-primary);
+}
+
+/* Fix outline button hover styles for dark mode */
+html[data-theme='dark'] .button.button--outline:hover {
+  background-color: var(--ifm-color-primary);
+  color: black !important;
+  border-color: var(--ifm-color-primary);
 }
