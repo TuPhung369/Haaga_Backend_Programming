@@ -76,3 +76,11 @@ study/study/speechbrain/models/
 study/study/speechbrain/models/wav2vec2-finnish/
 ./backend-programming
 ./codes
+
+# Docusaurus specific
+.docusaurus/
+TuPhung_Docs/.docusaurus/
+TuPhung_Docs/build/
+TuPhung_Docs/node_modules/
+TuPhung_Docs/.cache-loader/
+TuPhung_Docs/.DS_Store
