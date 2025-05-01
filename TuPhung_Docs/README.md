@@ -41,13 +41,27 @@ The built files will be in the `build` directory.
 
 ## Deployment
 
-The documentation is automatically deployed to GitHub Pages when changes are pushed to the main branch. The deployment is handled by a GitHub Actions workflow.
+The documentation is automatically deployed to GitHub Pages when changes are pushed to the main branch. The deployment is handled by a GitHub Actions workflow defined in `.github/workflows/deploy-docusaurus.yml`.
 
-To manually deploy the documentation:
+### Automatic Deployment (GitHub Actions)
+
+The GitHub Actions workflow will:
+1. Trigger automatically when changes are pushed to the `main` branch in the `TuPhung_Docs` directory
+2. Set up Node.js and install dependencies
+3. Build the documentation
+4. Deploy the built files to the `gh-pages` branch
+
+You can also manually trigger the workflow from the Actions tab in the GitHub repository.
+
+### Manual Deployment
+
+To manually deploy the documentation from your local machine:
 
 ```bash
 npm run deploy
 ```
+
+This command will build the site and push to the `gh-pages` branch.
 
 ## Project Structure
 

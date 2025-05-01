@@ -1,0 +1,46 @@
+name: Deploy Docusaurus to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'TuPhung_Docs/**'
+  # Cho phép chạy workflow thủ công từ tab Actions trên GitHub
+  workflow_dispatch:
+
+# Quyền cần thiết để đẩy lên GitHub Pages
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: TuPhung_Docs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: TuPhung_Docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build website
+        run: npm run build
+
+      # Triển khai lên GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: TuPhung_Docs/build # Thư mục chứa các file đã build
+          branch: gh-pages # Tên nhánh để triển khai
+          clean: true # Xóa các file cũ trước khi triển khai
