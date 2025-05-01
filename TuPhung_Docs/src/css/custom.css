@@ -1,0 +1,307 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  
+  /* Custom sidebar width */
+  --doc-sidebar-width: 320px !important;
+  --doc-sidebar-hidden-width: 30px !important;
+  
+  /* Custom content width */
+  --ifm-container-width: 1400px;
+  --ifm-container-width-xl: 1500px;
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+.hero--primary {
+  --ifm-hero-background-color: var(--ifm-color-primary);
+  --ifm-hero-text-color: var(--ifm-font-color-base-inverse);
+}
+
+.hero {
+  padding: 4rem 2rem;
+}
+
+.hero__title {
+  font-size: 3rem;
+}
+
+.hero__subtitle {
+  font-size: 1.5rem;
+}
+
+.features {
+  display: flex;
+  align-items: center;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+.featureSvg {
+  height: 200px;
+  width: 200px;
+}
+
+.diagram-container {
+  margin: 2rem 0;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: var(--ifm-card-background-color);
+  box-shadow: var(--ifm-global-shadow-lw);
+}
+
+.diagram-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.component-card {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: var(--ifm-card-background-color);
+  box-shadow: var(--ifm-global-shadow-lw);
+}
+
+.component-card h3 {
+  margin-top: 0;
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+  padding-bottom: 0.5rem;
+}
+
+.component-card pre {
+  margin-bottom: 0;
+}
+
+table {
+  display: table;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+table th {
+  background-color: var(--ifm-table-head-background);
+}
+
+table th, table td {
+  padding: 0.75rem;
+  border: 1px solid var(--ifm-table-border-color);
+}
+
+/* Custom layout adjustments */
+.main-wrapper {
+  display: flex;
+  width: 100%;
+}
+
+/* Adjust sidebar width */
+.theme-doc-sidebar-container,
+div[class^="docSidebarContainer_"],
+aside[class^="docSidebarContainer_"],
+.docSidebarContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Sidebar-styles-module,
+.docSidebarContainer_src-theme-DocPage-Layout-Sidebar-styles-module {
+  width: var(--doc-sidebar-width) !important;
+  margin-right: 0 !important;
+  min-width: var(--doc-sidebar-width) !important;
+  max-width: var(--doc-sidebar-width) !important;
+}
+
+/* Make sidebar narrower */
+.theme-doc-sidebar-menu,
+.menu__list,
+nav[class^="menu_"] {
+  font-size: 0.9rem;
+  padding-right: 0.5rem !important;
+}
+
+/* Adjust sidebar items */
+.menu__link {
+  padding: 0.4rem 0.5rem !important;
+}
+
+/* Make sidebar category items more compact */
+.menu__list-item {
+  margin: 0.1rem 0 !important;
+}
+
+/* Adjust main content width and position */
+.docPage_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-styles-module,
+.docPage_src-theme-DocPage-Layout-styles-module,
+.docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-styles-module,
+.docMainContainer_src-theme-DocPage-Layout-styles-module,
+.docMainContainer_gHmX,
+.docPage_gVYs,
+.docPage_wAXP,
+.docMainContainer_TBSr,
+.docMainContainer_TBSr,
+.docPage_wAXP,
+.docPage_wAXP,
+.docMainContainer_TBSr,
+.docPage_node_modules-\@docusaurus-theme-classic-lib-next-theme-DocPage-styles-module,
+.docMainContainer_node_modules-\@docusaurus-theme-classic-lib-next-theme-DocPage-styles-module,
+div[class^="docMainContainer_"],
+div[class^="docPage_"] {
+  flex: 1;
+  max-width: calc(100% - var(--doc-sidebar-width)) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Fix the main content container */
+.docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Main-styles-module,
+.docMainContainer_src-theme-DocPage-Layout-Main-styles-module,
+div[class^="docMainContainer_"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Adjust main content column */
+.col.col--9,
+div[class*="docItemCol_"]:not([class*="docItemCol_3"]) {
+  flex-basis: 0;
+  flex-grow: 999;
+  min-width: 0;
+  max-width: none !important;
+  width: calc(100% - 350px) !important;
+  margin-right: 0 !important;
+}
+
+/* Make content container wider */
+.container {
+  max-width: var(--ifm-container-width) !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+@media (min-width: 1440px) {
+  .container {
+    max-width: var(--ifm-container-width-xl) !important;
+  }
+}
+
+/* Fix layout to ensure only 2 columns */
+.row .col {
+  padding: 0 !important;
+}
+
+/* Ensure the main content area takes all available space minus TOC */
+.row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  margin: 0 !important;
+  width: 100% !important;
+  justify-content: space-between !important;
+}
+
+/* Remove any extra spacing */
+.docusaurus-mt-lg {
+  margin-top: 0 !important;
+}
+
+/* Fix any potential overflow issues */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Adjust TOC (right sidebar) width */
+.table-of-contents,
+.tableOfContents_node_modules-\@docusaurus-theme-classic-lib-theme-TOC-styles-module,
+.tableOfContents_src-theme-TOC-styles-module,
+div[class^="tableOfContents_"] {
+  width: 350px !important;
+  font-size: 0.85rem;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  margin-right: 0 !important;
+  overflow-x: hidden !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  max-width: 350px !important;
+  box-sizing: border-box !important;
+}
+
+/* Adjust TOC container */
+.col.col--3,
+div[class*="docItemCol_3"] {
+  padding-left: 0.5rem !important;
+  padding-right: 0 !important;
+  max-width: 350px !important;
+  flex: 0 0 350px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Adjust TOC items */
+.table-of-contents li {
+  margin: 0.2rem 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.table-of-contents li a {
+  padding: 0.2rem 0 !important;
+  word-break: break-word;
+  white-space: normal !important;
+  display: inline-block !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  text-overflow: ellipsis !important;
+  box-sizing: border-box !important;
+}
+
+/* Make mermaid diagrams responsive and beautiful */
+.mermaid svg {
+  max-width: 100%;
+  height: auto !important;
+  margin: 1.5rem auto !important;
+  display: block !important;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .mermaid svg {
+  background-color: rgba(40, 42, 54, 0.8) !important;
+}
+
+/* Improve mermaid diagram text */
+.mermaid svg text {
+  font-family: var(--ifm-font-family-base) !important;
+}
+
+/* Improve code blocks */
+.prism-code {
+  font-size: 0.9rem !important;
+  max-height: 500px;
+}
