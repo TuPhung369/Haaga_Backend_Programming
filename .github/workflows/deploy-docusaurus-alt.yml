@@ -1,0 +1,67 @@
+name: Deploy Docusaurus to GitHub Pages (Alternative)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "TuPhung_Docs/**"
+  # Cho phép chạy workflow thủ công từ tab Actions trên GitHub
+  workflow_dispatch:
+
+# Quyền cần thiết để đẩy lên GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Cho phép một deployment đồng thời
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Build job
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: TuPhung_Docs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: npm
+          cache-dependency-path: TuPhung_Docs/package-lock.json
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: TuPhung_Docs/build
+
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
