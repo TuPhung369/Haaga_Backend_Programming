@@ -114,9 +114,21 @@ const config = {
             label: "Documentation",
           },
           {
+            type: "doc",
+            docId: "video/project-video",
+            label: "Video",
+            position: "left",
+          },
+          {
+            href: "https://tuphung369.github.io/professional-cv/",
+            label: "My CV",
+            position: "left",
+          },
+          {
             href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
-            label: "GitHub",
+            className: "header-github-link",
             position: "right",
+            "aria-label": "GitHub repository",
           },
         ],
       },
@@ -135,6 +147,15 @@ const config = {
                 to: "/docs/architecture",
               },
               {
+                label: "Deployment Guide",
+                to: "/docs/deployment",
+              },
+            ],
+          },
+          {
+            title: "Docs",
+            items: [
+              {
                 label: "Frontend",
                 to: "/docs/category/frontend",
               },
@@ -145,17 +166,12 @@ const config = {
             ],
           },
           {
-            title: "Video",
-            items: [
-              {
-                label: "Project Video",
-                href: "https://github.com/TuPhung369/Haaga_Backend_Programming/discussions",
-              },
-            ],
-          },
-          {
             title: "More",
             items: [
+              {
+                label: "Video",
+                to: "/docs/video/project-video",
+              },
               {
                 label: "GitHub",
                 href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
@@ -167,7 +183,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Enterprise Nexus. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Tu Phung`,
       },
       prism: {
         theme: themes.github,

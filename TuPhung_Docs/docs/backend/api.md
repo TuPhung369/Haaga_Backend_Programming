@@ -1,6 +1,5 @@
-﻿﻿﻿---
-sidebar_position: 7
-description: "REST API Overview"
+﻿﻿---
+sidebar_position: 9
 ---
 
 # API Endpoints

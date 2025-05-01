@@ -1,11 +1,153 @@
 .features {
   display: flex;
   align-items: center;
-  padding: 2rem 0;
+  padding: 4rem 0;
   width: 100%;
+}
+
+/* Light mode features section */
+html[data-theme='light'] .features {
+  background-color: var(--ifm-color-white);
+}
+
+/* Dark mode features section */
+html[data-theme='dark'] .features {
+  background-color: #151525;
+}
+
+.techStack {
+  display: flex;
+  align-items: center;
+  padding: 4rem 0;
+  width: 100%;
+}
+
+/* Light mode tech stack section */
+html[data-theme='light'] .techStack {
+  background-color: var(--ifm-color-emphasis-0);
+}
+
+/* Dark mode tech stack section */
+html[data-theme='dark'] .techStack {
+  background-color: #1a1a30;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .featureSvg {
   height: 200px;
   width: 200px;
+  margin-bottom: 1.5rem;
+  transition: transform 0.3s ease;
+}
+
+.featureSvg:hover {
+  transform: scale(1.05);
+}
+
+.sectionTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.sectionTitle h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--ifm-color-primary);
+}
+
+.sectionTitle p {
+  font-size: 1.2rem;
+  max-width: 700px;
+  margin: 0 auto;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.techStackCard {
+  padding: 2rem;
+  height: 100%;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+/* Light mode tech stack card */
+html[data-theme='light'] .techStackCard {
+  background-color: var(--ifm-color-white);
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode tech stack card */
+html[data-theme='dark'] .techStackCard {
+  background-color: #252542;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(123, 104, 238, 0.15);
+}
+
+/* Light mode tech stack card hover */
+html[data-theme='light'] .techStackCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark mode tech stack card hover */
+html[data-theme='dark'] .techStackCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(123, 104, 238, 0.3);
+  background-color: #2d2d52;
+}
+
+.techStackCard h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--ifm-color-primary);
+  text-align: center;
+}
+
+.techList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Light mode tech list items */
+html[data-theme='light'] .techList li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Dark mode tech list items */
+html[data-theme='dark'] .techList li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.techList li:last-child {
+  border-bottom: none;
+}
+
+@media screen and (max-width: 996px) {
+  .sectionTitle h2 {
+    font-size: 2rem;
+  }
+  
+  .sectionTitle p {
+    font-size: 1rem;
+  }
+  
+  .features, .techStack {
+    padding: 3rem 0;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .featureSvg {
+    height: 150px;
+    width: 150px;
+  }
 }

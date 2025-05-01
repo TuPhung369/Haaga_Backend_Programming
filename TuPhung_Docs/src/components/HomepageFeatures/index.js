@@ -4,34 +4,70 @@ import styles from "./styles.module.css";
 
 const FeatureList = [
   {
-    title: "Easy to Use",
+    title: "Multi-factor Authentication",
     Svg: require("@site/static/img/undraw_docusaurus_mountain.svg").default,
     description: (
       <>
-        Enterprise Nexus Project is designed to be easy to use and provides
-        detailed documentation for users.
+        Secure your enterprise with advanced authentication including TOTP with
+        replay protection and seamless OAuth2 integration with Google, Facebook,
+        and GitHub.
       </>
     ),
   },
   {
-    title: "Focus on What Matters",
+    title: "Kanban Task Management",
     Svg: require("@site/static/img/undraw_docusaurus_tree.svg").default,
     description: (
       <>
-        Enterprise Nexus Project lets you focus on your documentation, while we
-        take care of the rest.
+        Streamline project workflows with our intuitive Kanban board featuring
+        drag-and-drop functionality, task assignments, and real-time progress
+        tracking.
       </>
     ),
   },
   {
-    title: "Powered by Docusaurus",
+    title: "Language AI Development",
     Svg: require("@site/static/img/undraw_docusaurus_react.svg").default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Enhance communication skills across your organization with our advanced
+        speech recognition and processing tools powered by SpeechBrain
+        technology.
       </>
     ),
+  },
+];
+
+const TechStackList = [
+  {
+    title: "Modern Frontend",
+    items: [
+      "React 18",
+      "TypeScript",
+      "Redux Toolkit",
+      "Ant Design",
+      "TailwindCSS",
+    ],
+  },
+  {
+    title: "Robust Backend",
+    items: [
+      "Spring Boot",
+      "Spring Security",
+      "Spring Data JPA",
+      "JWT Authentication",
+      "WebSockets",
+    ],
+  },
+  {
+    title: "Advanced Technologies",
+    items: [
+      "SpeechBrain",
+      "Hibernate",
+      "PostgreSQL",
+      "Real-time Communication",
+      "AI Processing",
+    ],
   },
 ];
 
@@ -49,17 +85,58 @@ function Feature({ Svg, title, description }) {
   );
 }
 
+function TechStack({ title, items }) {
+  return (
+    <div className={clsx("col col--4")}>
+      <div className={styles.techStackCard}>
+        <h3>{title}</h3>
+        <ul className={styles.techList}>
+          {items.map((item, idx) => (
+            <li key={idx}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export default function HomepageFeatures() {
   return (
-    <section className={styles.features}>
-      <div className="container">
-        <div className="row">
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
-          ))}
+    <>
+      <section className={styles.features}>
+        <div className="container">
+          <div className={styles.sectionTitle}>
+            <h2>Key Features</h2>
+            <p>
+              Discover what makes Enterprise Nexus the ultimate solution for
+              modern enterprises
+            </p>
+          </div>
+          <div className="row">
+            {FeatureList.map((props, idx) => (
+              <Feature key={idx} {...props} />
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section className={styles.techStack}>
+        <div className="container">
+          <div className={styles.sectionTitle}>
+            <h2>Cutting-Edge Technology Stack</h2>
+            <p>
+              Built with the latest technologies to ensure performance,
+              security, and scalability
+            </p>
+          </div>
+          <div className="row">
+            {TechStackList.map((props, idx) => (
+              <TechStack key={idx} {...props} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 
