@@ -406,7 +406,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
 
   return (
     <Sider
-      width={250}
+      width={280}
       collapsible
       collapsed={collapsed}
       trigger={null}
@@ -426,7 +426,7 @@ const Sidebar: React.FC<SidebarProps> = ({ defaultSelectedKey }) => {
     >
       <div className={`sidebar-header${collapsed ? "-collapsed" : ""}`}>
         <div className={`sidebar-header-title${collapsed ? "-collapsed" : ""}`}>
-          TuPhung1787
+          Enterprise Nexus
         </div>
         <Button
           type="text"
