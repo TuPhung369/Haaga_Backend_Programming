@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 4
 sidebar_label: "Database Design"
 ---
@@ -62,10 +62,15 @@ flowchart TD
         F
     end
 
-    style A,G,H fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,E,F fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style C fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style D fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef primaryServices fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef dataStores fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef queryLayer fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef cacheLayer fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A,G,H primaryServices
+    class B,E,F dataStores
+    class C queryLayer
+    class D cacheLayer
 ```
 
 ### Data Synchronization Workflow
@@ -359,10 +364,15 @@ flowchart TD
     F --> H
     G --> H
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style C,D,E,F,G fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style H fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef inputQuery fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef analyzer fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef optimizationSteps fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef finalQuery fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A inputQuery
+    class B analyzer
+    class C,D,E,F,G optimizationSteps
+    class H finalQuery
 ```
 
 The system implements the following indexing strategies:

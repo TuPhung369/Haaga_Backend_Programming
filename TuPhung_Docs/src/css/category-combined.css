@@ -66,6 +66,19 @@ article.card,
   display: flex !important;
   flex-direction: column !important;
   margin: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s ease !important;
+  overflow: hidden !important;
+  border: 1px solid var(--ifm-color-emphasis-200) !important;
+}
+
+.card:hover,
+div[class*="card"]:hover,
+[class*="card"]:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  border-color: var(--ifm-color-primary-lighter) !important;
 }
 
 /* Style card body and footer */
@@ -74,11 +87,43 @@ article.card,
   flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
+  padding: 1.5rem !important;
+}
+
+.card__header {
+  padding: 1.5rem 1.5rem 0 !important;
 }
 
 .card__footer,
 .generatedIndexPage .card__footer {
   margin-top: auto !important;
+  padding: 0 1.5rem 1.5rem !important;
+  border-top: none !important;
+}
+
+/* Card title styling */
+.card__title {
+  font-size: 1.4rem !important;
+  margin-bottom: 0.75rem !important;
+  color: var(--ifm-color-primary-darker) !important;
+}
+
+/* Card description styling */
+.card__description {
+  font-size: 1rem !important;
+  color: var(--ifm-color-emphasis-700) !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.6 !important;
+}
+
+/* Category page header */
+.docCategoryGeneratedIndexHeading {
+  font-size: 2.5rem !important;
+  margin-bottom: 2rem !important;
+  color: var(--ifm-color-primary-darkest) !important;
+  text-align: center !important;
+  padding-bottom: 1rem !important;
+  border-bottom: 2px solid var(--ifm-color-primary-lighter) !important;
 }
 
 /* ===== RESPONSIVE ADJUSTMENTS ===== */

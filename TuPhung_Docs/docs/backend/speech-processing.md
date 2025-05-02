@@ -1,4 +1,4 @@
-﻿﻿---
+﻿﻿﻿﻿---
 sidebar_position: 7
 sidebar_label: "Speech Processing"
 ---
@@ -192,9 +192,13 @@ flowchart TD
     class DB data
 
     %% Styling for subgraphs
-    style AI_Models fill:#f9f9f9,stroke:#999,stroke-width:1px
-    style Speech_Functions fill:#f0f0f0,stroke:#999,stroke-width:1px
-    style Data_Processing fill:#fff0e0,stroke:#999,stroke-width:1px
+    classDef aiModelsSection fill:#f9f9f9,stroke:#999,stroke-width:1px
+    classDef speechFunctionsSection fill:#f0f0f0,stroke:#999,stroke-width:1px
+    classDef dataProcessingSection fill:#fff0e0,stroke:#999,stroke-width:1px
+    
+    class AI_Models aiModelsSection
+    class Speech_Functions speechFunctionsSection
+    class Data_Processing dataProcessingSection
 ```
 
 The SpeechBrain service integrates with the Spring Boot backend and manages multiple AI models for different speech processing tasks. The Whisper and Wav2Vec2 models handle speech-to-text conversion, while the TTS models provide text-to-speech capabilities. The service also performs language analysis on the processed text.
@@ -244,6 +248,12 @@ flowchart TD
     SaveToDatabase --> ReturnResult[Return Transcript]:::output
 
     %% Apply styles
+    classDef userAction fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef process fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef decision fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef storage fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef output fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    
     class Start,ValidateAudio userAction
     class DetectFormat,ConvertFormat,NormalizeAudio,SelectModel,DetectLanguage,ProcessAudio,WhisperProcess,Wav2Vec2Process,GenerateTranscript,AddTimestamps,FormatResult process
     class CheckLanguage,CheckCache,WhisperOrWav2Vec decision
@@ -286,6 +296,12 @@ flowchart TD
     SaveToCache --> ReturnAudio[Return Audio File]:::output
 
     %% Apply styles
+    classDef userAction fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef process fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef decision fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef storage fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef output fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    
     class Start,ValidateText userAction
     class ParseSSML,PrepareText,SelectVoice,GenerateAudio,Tacotron,HiFiGAN,PostProcess,FormatAudio process
     class CheckSSML,CheckCache decision
@@ -412,7 +428,7 @@ The system uses multiple models for speech-to-text conversion:
 
 ### Whisper Model
 
-- **Implementation**: Uses Systran's Faster Whisper implementation
+- **Implementation**: Uses syston's Faster Whisper implementation
 - **Models**: Large-v3 (primary) and Medium (fallback)
 - **Features**:
   - Multilingual support (80+ languages)

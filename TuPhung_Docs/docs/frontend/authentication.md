@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 3
 sidebar_label: "Authentication"
 ---
@@ -332,9 +332,13 @@ flowchart TD
     I --> P[RecaptchaV3]
     I --> Q[ShineButtonEffect]
 
-    style A,B,C,D fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style E,F,G,H,I,J,K,L,M,N fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style O,P,Q fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef primary fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef secondary fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef utility fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+
+    class A,B,C,D primary
+    class E,F,G,H,I,J,K,L,M,N secondary
+    class O,P,Q utility
 ```
 
 | Component              | Description                              | Features                                                     |
@@ -622,9 +626,13 @@ flowchart TD
     K --> O[API Call]
     N --> P[Redirect to Login]
 
-    style A,B,J,M fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style C,D,E,F,G,H,I,K,L fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style N,O,P fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef decision fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef process fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef action fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+
+    class A,B,J,M decision
+    class C,D,E,F,G,H,I,K,L process
+    class N,O,P action
 ```
 
 | Security Feature       | Implementation                        | Purpose                                                   |

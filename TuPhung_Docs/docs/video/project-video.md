@@ -21,8 +21,217 @@ const YouTubeAPIScript = () => (
 useEffect(() => {
 // Initialize variables
 let player;
-const videoItems = document.querySelectorAll('.video-item');
+let videoItems = document.querySelectorAll('.video-item');
 const currentVideoElement = document.getElementById('currentVideo');
+
+// Function to ensure video items are loaded
+const ensureVideoItemsLoaded = () => {
+console.log('Checking if video items are loaded...');
+videoItems = document.querySelectorAll('.video-item');
+console.log('Found video items:', videoItems.length);
+
+if (videoItems.length === 0) {
+console.log('No video items found, will try again in 500ms');
+setTimeout(ensureVideoItemsLoaded, 500);
+} else {
+console.log('Video items loaded, handling hash');
+// Delay a bit to make sure everything is ready
+setTimeout(() => {
+// Check if we have a hash in the URL
+if (window.location.hash) {
+console.log('Hash found in URL, handling it...');
+handleHashChange();
+} else {
+console.log('No hash in URL, using default video');
+}
+}, 500);
+}
+};
+
+// Call this function to ensure video items are loaded
+setTimeout(ensureVideoItemsLoaded, 1000);
+
+// Function to handle hash changes and select the appropriate video
+const handleHashChange = () => {
+// Check for hash in URL
+if (!window.location.hash) {
+console.log('No hash in URL');
+return;
+}
+
+const hash = window.location.hash.substring(1);
+console.log('Hash found in URL:', hash);
+
+// Check if hash is a number (index)
+const videoIndex = parseInt(hash, 10);
+console.log('Parsed video index:', videoIndex);
+
+if (!isNaN(videoIndex) && videoIndex >= 0 && videoIndex < videoItems.length) {
+console.log('Using index to select video:', videoIndex);
+
+// Get the video data directly from videoData
+console.log('Video data available:', videoData.videos.length);
+
+if (videoData.videos.length > videoIndex) {
+const video = videoData.videos[videoIndex];
+console.log('Selected video from data:', video);
+
+    // Find the corresponding video item in the DOM
+    const targetVideoItem = videoItems[videoIndex];
+
+    if (targetVideoItem) {
+      console.log('Found target video item in DOM');
+
+      // Manually update the player with the correct video and timestamp
+      if (player && player.loadVideoById) {
+        console.log('Updating player directly');
+
+        // Get video ID and start time
+        const videoId = video.id;
+        const startTime = video.startTime || 0;
+
+        console.log('Loading video ID:', videoId, 'with start time:', startTime);
+
+        // Load the video with the correct start time
+        player.loadVideoById({
+          'videoId': videoId,
+          'startSeconds': startTime,
+          'suggestedQuality': 'hd1080'
+        });
+
+        // Also seek to the timestamp to make sure it works
+        if (startTime > 0) {
+          setTimeout(() => {
+            player.seekTo(startTime, true);
+          }, 1000);
+        }
+
+        // Update the active class on the video items
+        videoItems.forEach(item => item.classList.remove('active'));
+        targetVideoItem.classList.add('active');
+
+        console.log('Video updated successfully');
+        return;
+      }
+    }
+
+}
+
+// Fallback to the old method if direct update fails
+console.log('Falling back to click method');
+const targetVideoItem = videoItems[videoIndex];
+if (targetVideoItem) {
+console.log('Clicking on target video item');
+targetVideoItem.click();
+} else {
+console.log('No target video item found for index:', videoIndex);
+}
+} else {
+// Try to match by title for backward compatibility
+console.log('Index not valid, trying to match by title');
+const titleWords = hash.split('-');
+let targetVideoItem = null;
+
+// Find the video item with title containing the hash words
+videoItems.forEach((item, idx) => {
+const title = item.getAttribute('data-video-title').toLowerCase();
+console.log(`Checking video ${idx}:`, title);
+const matchesAllWords = titleWords.every(word => title.includes(word));
+
+    if (matchesAllWords) {
+      console.log('Found matching video by title:', title);
+      targetVideoItem = item;
+    }
+
+});
+
+// Click on the found video item to play it
+if (targetVideoItem) {
+console.log('Clicking on target video item');
+targetVideoItem.click();
+} else {
+console.log('No target video item found for hash:', hash);
+console.log('Available video items:', videoItems.length);
+}
+}
+};
+
+// Handle video selection from dropdown
+const handleVideoSelected = (event) => {
+const { index } = event.detail;
+console.log('Video selected from dropdown:', index);
+
+if (index >= 0 && index < videoItems.length) {
+// Get the video data directly
+if (videoData.videos.length > index) {
+const video = videoData.videos[index];
+console.log('Selected video from data:', video);
+
+    // Manually update the player with the correct video and timestamp
+    if (player && player.loadVideoById) {
+      console.log('Updating player directly from dropdown event');
+
+      // Get video ID and start time
+      const videoId = video.id;
+      const startTime = video.startTime || 0;
+
+      console.log('Loading video ID:', videoId, 'with start time:', startTime);
+
+      // Load the video with the correct start time
+      player.loadVideoById({
+        'videoId': videoId,
+        'startSeconds': startTime,
+        'suggestedQuality': 'hd1080'
+      });
+
+      // Also seek to the timestamp to make sure it works
+      if (startTime > 0) {
+        setTimeout(() => {
+          player.seekTo(startTime, true);
+        }, 1000);
+      }
+
+      // Update the active class on the video items
+      videoItems.forEach(item => item.classList.remove('active'));
+      videoItems[index].classList.add('active');
+
+      // Update URL hash
+      window.history.replaceState(null, null, `#${index}`);
+
+      console.log('Video updated successfully from dropdown');
+      return;
+    }
+
+}
+
+// Fallback to click method
+console.log('Falling back to click method from dropdown');
+videoItems[index].click();
+} else {
+console.log('Invalid video index from dropdown:', index);
+}
+};
+
+// Listen for custom videoSelected event from the dropdown
+document.addEventListener('videoSelected', handleVideoSelected);
+
+// Note: We're now handling the hash in ensureVideoItemsLoaded function
+// so we don't need this separate timeout anymore
+// setTimeout(handleHashChange, 2000);
+
+// Also try again after player is ready
+const tryHandleHashAgain = () => {
+console.log('Trying to handle hash again...');
+if (window.location.hash) {
+handleHashChange();
+}
+};
+
+// Listen for hash changes
+window.addEventListener('hashchange', function() {
+console.log('Hash changed, handling it...');
+handleHashChange();
+});
 
     // Initialize YouTube player when API is ready
     if (typeof window !== 'undefined') {
@@ -65,6 +274,9 @@ const currentVideoElement = document.getElementById('currentVideo');
       function onPlayerReady(event) {
         // Set quality to highest available
         event.target.setPlaybackQuality('hd1080');
+
+        // Try to handle hash again after player is ready
+        setTimeout(tryHandleHashAgain, 500);
       }
 
       // When player state changes
@@ -97,27 +309,55 @@ const currentVideoElement = document.getElementById('currentVideo');
         const videoTitle = this.getAttribute('data-video-title');
         const videoDescription = this.getAttribute('data-video-description');
 
+        // Find the index of this video item
+        let videoIndex = -1;
+        videoItems.forEach((item, index) => {
+          if (item === this) {
+            videoIndex = index;
+          }
+        });
+
+        // Update URL hash with the index
+        if (videoIndex >= 0) {
+          window.history.replaceState(null, null, `#${videoIndex}`);
+        }
+
         // Update video if player is ready
         if (player && player.loadVideoById) {
+          console.log('Updating video with ID:', videoId);
+
           // Extract the base video ID without parameters
           const baseVideoId = videoId.split('?')[0];
+          console.log('Base video ID:', baseVideoId);
 
-          // Load the video with quality settings
-          player.loadVideoById({
-            'videoId': baseVideoId,
-            'suggestedQuality': 'hd1080'
-          });
-
-          // Apply any timestamp if present
+          // Check for timestamp in the video ID
+          let startTime = 0;
           if (videoId.includes('t=')) {
             const timeMatch = videoId.match(/t=(\d+)/);
             if (timeMatch && timeMatch[1]) {
-              const seconds = parseInt(timeMatch[1], 10);
-              player.seekTo(seconds, true);
+              startTime = parseInt(timeMatch[1], 10);
+              console.log('Found timestamp in video ID:', startTime);
             }
+          }
+
+          // Load the video with quality settings
+          console.log('Loading video with ID:', baseVideoId);
+          player.loadVideoById({
+            'videoId': baseVideoId,
+            'startSeconds': startTime,
+            'suggestedQuality': 'hd1080'
+          });
+
+          // Also seek to the timestamp to make sure it works
+          if (startTime > 0) {
+            console.log('Seeking to timestamp:', startTime);
+            setTimeout(() => {
+              player.seekTo(startTime, true);
+            }, 1000);
           }
         } else if (currentVideoElement) {
           // Fallback if player isn't ready
+          console.log('Player not ready, using fallback');
           currentVideoElement.src = `https://www.youtube.com/embed/${videoId}`;
         }
 
@@ -174,6 +414,21 @@ const currentVideoElement = document.getElementById('currentVideo');
       // Show feedback
       alert('Video URL copied to clipboard!');
     }
+
+    // Cleanup function to remove event listeners when component unmounts
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      document.removeEventListener('videoSelected', handleVideoSelected);
+
+      // Remove click event listeners from video items
+      videoItems.forEach(item => {
+        item.removeEventListener('click', function() {});
+        const shareButton = item.querySelector('.share-button');
+        if (shareButton) {
+          shareButton.removeEventListener('click', function() {});
+        }
+      });
+    };
 
 }, []);
 

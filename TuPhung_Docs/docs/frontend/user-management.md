@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 4
 sidebar_label: "User Management"
 ---
@@ -343,11 +343,17 @@ flowchart TD
 
     D --> S[ActivityItem]
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C,D fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style E,F,G,H,I,J fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style K,L,M,N,O,P,Q,S fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
-    style R fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainPage fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainSections fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef subSections fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef components fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef specialComponent fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+
+    class A mainPage
+    class B,C,D mainSections
+    class E,F,G,H,I,J subSections
+    class K,L,M,N,O,P,Q,S components
+    class R specialComponent
 ```
 
 | Component            | Description              | Features                                     |
@@ -391,10 +397,15 @@ flowchart TD
     Q --> R[RoleSelector]
     Q --> S[FormValidation]
 
-    style A,B fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style C,D,E,F fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style G,H,I,J,K,L,M,N fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style O,P,Q,R,S fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef pages fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef sections fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef controls fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef modals fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+
+    class A,B pages
+    class C,D,E,F sections
+    class G,H,I,J,K,L,M,N controls
+    class O,P,Q,R,S modals
 ```
 
 ## Component Implementations

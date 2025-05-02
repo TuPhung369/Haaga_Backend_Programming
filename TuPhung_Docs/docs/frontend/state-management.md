@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 2
 sidebar_label: "State Management"
 ---
@@ -29,10 +29,15 @@ flowchart TD
         G
     end
 
-    style A,G fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style D fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
-    style E,F fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef userInterface fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef actionLayer fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef middlewareLayer fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef stateLayer fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+
+    class A,G userInterface
+    class B,C actionLayer
+    class D middlewareLayer
+    class E,F stateLayer
 ```
 
 ### Async Action Workflow
@@ -235,10 +240,15 @@ flowchart TD
     E --> K["tasks: { id → task }"]
     F --> L["messages: { id → message }"]
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style D,E,F,G,H,I fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style J,K,L fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef rootState fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef stateSection fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef entityType fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef entityMap fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+
+    class A rootState
+    class B,C stateSection
+    class D,E,F,G,H,I entityType
+    class J,K,L entityMap
 ```
 
 ## Middleware Configuration
@@ -346,9 +356,13 @@ flowchart TD
     C --> H[Render UI]
     C --> I[Handle Local State]
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style D,E,F,G,H,I fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef architecture fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef componentType fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef responsibility fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+
+    class A architecture
+    class B,C componentType
+    class D,E,F,G,H,I responsibility
 ```
 
 | Pattern                      | Implementation                                            | Use Case                                               |

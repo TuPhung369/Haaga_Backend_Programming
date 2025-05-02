@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 6
 sidebar_label: "Kanban Board"
 ---
@@ -360,12 +360,19 @@ flowchart TD
     AF --> AI[CommentSection]
     AF --> AJ[ActivityLog]
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style D,E,F,M fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style G,H,I,J,K,L,N fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
-    style O,P,Q,U,AF fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
-    style R,S,T,V,W,X,AG,AH,AI,AJ fill:#607D8B,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainContainer fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef primarySections fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef secondarySections fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef components fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef modals fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef subComponents fill:#607D8B,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A mainContainer
+    class B,C primarySections
+    class D,E,F,M secondarySections
+    class G,H,I,J,K,L,N components
+    class O,P,Q,U,AF modals
+    class R,S,T,V,W,X,AG,AH,AI,AJ subComponents
 ```
 
 | Component | Description | Features |

@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 5
 sidebar_label: "User Management"
 ---
@@ -137,10 +137,15 @@ flowchart TD
     T --> K
     U --> K
     
-    style A,B,E fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style C,F,L,M,N fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style D fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
-    style G,H,I,J,O,P,Q,R,S,T,U,K fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef coreServices fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef dataStores fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef externalServices fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef components fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A,B,E coreServices
+    class C,F,L,M,N dataStores
+    class D externalServices
+    class G,H,I,J,O,P,Q,R,S,T,U,K components
 ```
 
 ## User Management Overview
@@ -223,8 +228,11 @@ flowchart LR
     E --> F[Welcome Tutorial]
     F --> G[Active User]
     
-    style A,B,C,D,E,F fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style G fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef onboardingSteps fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef finalState fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A,B,C,D,E,F onboardingSteps
+    class G finalState
 ```
 
 ## User Profile Management
@@ -324,9 +332,13 @@ flowchart TD
     E --> E2[Security Events]
     E --> E3[System Events]
     
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C,D,E,F fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style B1,B2,B3,B4,B5,C1,C2,C3,D1,D2,D3,E1,E2,E3 fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef dashboard fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainSections fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef subSections fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A dashboard
+    class B,C,D,E,F mainSections
+    class B1,B2,B3,B4,B5,C1,C2,C3,D1,D2,D3,E1,E2,E3 subSections
 ```
 
 ## Security and Password Management

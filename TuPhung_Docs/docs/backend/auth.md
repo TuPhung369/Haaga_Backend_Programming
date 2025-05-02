@@ -1,4 +1,4 @@
-﻿---
+﻿﻿﻿---
 sidebar_position: 3
 sidebar_label: "Authentication"
 ---
@@ -148,11 +148,17 @@ flowchart TD
     K --> L[Response Sanitization]
     L --> M[Response to Client]
     
-    style A,B,C fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style D,E,F,J,L fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style G,I fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style H fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
-    style K,M fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef coreServices fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef authComponents fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef securityLayers fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef dataStore fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef externalServices fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A,B,C coreServices
+    class D,E,F,J,L authComponents
+    class G,I securityLayers
+    class H dataStore
+    class K,M externalServices
 ```
 
 ### Security Features
@@ -191,10 +197,15 @@ flowchart TD
     
     J --> K[Access Granted]
     
-    style A,B,C,D fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style E,F,G,I fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style H fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
-    style J,K fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef requestSteps fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef authChecks fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef denied fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef granted fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A,B,C,D requestSteps
+    class E,F,G,I authChecks
+    class H denied
+    class J,K granted
 ```
 
 ## OAuth2 Integration
@@ -227,9 +238,13 @@ flowchart LR
     J --> K[OAuth2 User Mapper]
     K --> L[User Repository]
     
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,F,J fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style C,D,E,G,H,I,K,L fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainConfig fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef primaryComponents fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef subComponents fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A mainConfig
+    class B,F,J primaryComponents
+    class C,D,E,G,H,I,K,L subComponents
 ```
 
 ## Multi-Factor Authentication
@@ -328,9 +343,14 @@ flowchart TD
     L --> N[Lock Affected Account]
     L --> O[Escalate to Security Team]
     
-    style A,B,C,D fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style E,H fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style F,I,J fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style G,K,L,M,N,O fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef monitoringSteps fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef decisionPoints fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef normalActions fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef securityActions fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A,B,C,D monitoringSteps
+    class E,H decisionPoints
+    class F,I,J normalActions
+    class G,K,L,M,N,O securityActions
 ```
 

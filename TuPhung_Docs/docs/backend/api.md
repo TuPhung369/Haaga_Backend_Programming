@@ -1,4 +1,4 @@
-﻿﻿---
+﻿﻿﻿﻿---
 sidebar_position: 2
 sidebar_label: "API"
 ---
@@ -100,10 +100,15 @@ flowchart TD
     L --> M[Log Error]
     M --> N[Return Error Response]
 
-    style A,C fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,D fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style E,F,G,H,I,J,K fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
-    style L,M,N fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef entryPoints fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef middleware fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef processing fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef errorHandling fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A,C entryPoints
+    class B,D middleware
+    class E,F,G,H,I,J,K processing
+    class L,M,N errorHandling
 ```
 
 ## REST API Overview

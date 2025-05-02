@@ -107,15 +107,52 @@ const config = {
         },
         items: [
           {
-            type: "docSidebar",
-            sidebarId: "tutorialSidebar",
-            position: "left",
+            type: "dropdown",
             label: "Documentation",
+            position: "left",
+            items: [
+              {
+                type: "html",
+                value:
+                  '<a href="/Haaga_Backend_Programming/docs/intro" class="dropdown__link">Introduction</a>',
+              },
+              {
+                type: "html",
+                value:
+                  '<a href="/Haaga_Backend_Programming/docs/tech-stack" class="dropdown__link">Tech Stack</a>',
+              },
+              {
+                type: "html",
+                value:
+                  '<a href="/Haaga_Backend_Programming/docs/architecture" class="dropdown__link">Architecture</a>',
+              },
+              {
+                type: "html",
+                value:
+                  '<a href="/Haaga_Backend_Programming/docs/deployment" class="dropdown__link">Deployment</a>',
+              },
+
+              {
+                type: "html",
+                value:
+                  '<div class="dropdown-section-header">Main Categories</div>',
+                className: "dropdown-section",
+              },
+              {
+                type: "html",
+                value:
+                  '<a href="/Haaga_Backend_Programming/docs/category/frontend" class="dropdown__link">Frontend</a>',
+              },
+              {
+                type: "html",
+                value:
+                  '<a href="/Haaga_Backend_Programming/docs/category/backend" class="dropdown__link">Backend</a>',
+              },
+            ],
           },
           {
-            type: "doc",
-            docId: "video/project-video",
-            label: "Video",
+            href: "/Haaga_Backend_Programming/docs/video/project-video",
+            label: "Videos",
             position: "left",
           },
           {

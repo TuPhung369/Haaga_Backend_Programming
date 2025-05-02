@@ -6,5 +6,7 @@ module.exports = [
   "@docusaurus/theme-classic/lib/nprogress",
   "./css/global.css", // Global CSS styles
   "./css/custom.css",
-  "./css/category-combined.css", // Combined CSS for category pages
+  "./css/category-combined.css", // Combined CSS for category pages on click
+  "./js/dropdown-closer.js" // Dropdown menu closer script
 ];
+

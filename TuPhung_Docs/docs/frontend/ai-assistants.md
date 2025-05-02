@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 7
 sidebar_label: "AI Assistants"
 ---
@@ -350,11 +350,17 @@ flowchart TD
     R --> Y[CopyButton]
     R --> Z[RegenerateButton]
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style D,E,F,I,J,K fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style G,H,L,M,N,T,U fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
-    style O,P,Q,R,S,V,W,X,Y,Z fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainContainer fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef primarySections fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef secondarySections fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef components fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef messageElements fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A mainContainer
+    class B,C primarySections
+    class D,E,F,I,J,K secondarySections
+    class G,H,L,M,N,T,U components
+    class O,P,Q,R,S,V,W,X,Y,Z messageElements
 ```
 
 | Component | Description | Features |

@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 8
 sidebar_label: "Language AI"
 ---
@@ -389,11 +389,17 @@ flowchart TD
     K --> AE[AnalyzeButton]
     K --> AF[AnalysisResults]
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style D,E,F,G,H,I,J,K fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style L,M,N,O,S,T,U,V,W,X,Y,Z,AA,AB,AC,AD,AE,AF fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
-    style P,Q,R fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainContainer fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef primarySections fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef secondarySections fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef components fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef specialComponents fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A mainContainer
+    class B,C primarySections
+    class D,E,F,G,H,I,J,K secondarySections
+    class L,M,N,O,S,T,U,V,W,X,Y,Z,AA,AB,AC,AD,AE,AF components
+    class P,Q,R specialComponents
 ```
 
 | Component                 | Description                | Features                                                   |

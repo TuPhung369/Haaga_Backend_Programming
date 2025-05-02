@@ -206,6 +206,10 @@ Before deploying the application, ensure you have the following:
   - Spring Boot 3.0+
 - **Database**:
   - MySQL 8.0+
+- **Authentication & Security**:
+  - OAuth2 accounts (Google, GitHub, Facebook)
+  - reCAPTCHA API keys
+  - Novu account for notifications
 - **Containerization & Orchestration** (optional):
   - Docker 20.10+
   - Docker Compose 2.0+
@@ -213,6 +217,7 @@ Before deploying the application, ensure you have the following:
 - **Cloud Deployment** (optional):
   - AWS CLI 2.0+
   - AWS account with appropriate permissions
+  - Google Cloud SDK (for GCP deployment)
   - Terraform 1.0+ (for infrastructure as code)
 
 ## Deployment Workflows
@@ -328,17 +333,57 @@ sequenceDiagram
 3. Create a `.env` file with the following content:
 
    ```
-   VITE_API_URL=http://localhost:8080/api
-   VITE_WS_URL=ws://localhost:8080/ws
+   # OAuth2 client credentials
+   VITE_OAUTH2_CLIENT_ID=190027546115-2snu9aurj5mdsum5q1tj20s2fu009uqm.apps.googleusercontent.com
+   VITE_OAUTH2_CLIENT_SECRET=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
+
+   # GitHub
+   VITE_GITHUB_CLIENT_ID=Ov23liko5knZHVZo5TfZ
+   VITE_GITHUB_CLIENT_SECRET=02a9cb5205fea74dd215f381576ff181ccba42a6
+
+   # Facebook
+   VITE_FACEBOOK_CLIENT_ID=1580727122556367
+   VITE_FACEBOOK_CLIENT_SECRET=29f86e9b136d36687fd425d52d7d5dd1
+
+   VITE_API_BASE_URI=http://localhost:9095/identify_service
+   VITE_OAUTH2_REDIRECT_URI=http://localhost:9095/identify_service/oauth2/redirect
+   VITE_GITHUB_REDIRECT_URI=http://localhost:9095/identify_service/oauthGit/redirect
+   VITE_FACEBOOK_REDIRECT_URI=http://localhost:9095/identify_service/oauth2/facebook/redirect
+
+   VITE_BASE_URI=http://localhost:3000
+   VITE_CLIENT_REDIRECT_URI=http://localhost:3000/oauths/redirects
+   VITE_CLIENTGIT_REDIRECT_URI=http://localhost:3000/oauths/redirect
+   VITE_CLIENTFB_REDIRECT_URI=http://localhost:3000/oauths/redirect
+
+   # Google reCAPTCHA keys
+   VITE_RECAPTCHA_SITE_KEY_V3=6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
+   VITE_RECAPTCHA_SITE_KEY_V2=6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+
+   # Novu
+   VITE_NOVU_APP_ID=uWb0H0wlJgOP
+   VITE_NOVU_API_URL=https://api.novu.co
+   VITE_NOVU_API_KEY=6ac19261e2693610c6a548c4d8fc4a19
+   VITE_API_URL=http://localhost:9095/identify_service
    ```
 
-4. Start the development server:
+4. For development environment, you can also create a `.env.development` file:
+
+   ```
+   # Development environment configuration
+   VITE_API_BASE_URI=http://localhost:9095/identify_service
+   VITE_TOTP_ISSUER=Development Auth App
+   VITE_RECAPTCHA_SITE_KEY_V3=6LdummyDEVkeyXXXXXXXXXXXXXXXXfakedev123
+   VITE_RECAPTCHA_SITE_KEY_V2=6LdummyDEVkeyXXXXXXXXXXXXXXXXfakedev456
+   VITE_IS_DEVELOPMENT=true
+   ```
+
+5. Start the development server:
 
    ```powershell
    npm run dev
    ```
 
-5. The frontend will be available at `http://localhost:5173`
+6. The frontend will be available at `http://localhost:3000`
 
 ### Backend Setup
 
@@ -348,37 +393,54 @@ sequenceDiagram
    cd Haaga_Backend_Programming/study/study
    ```
 
-2. Create an `application-dev.yaml` file in the `src/main/resources` directory with the following content:
+2. The project already includes configuration files in the `src/main/resources` directory:
 
-   ```yaml
-   spring:
-     datasource:
-       url: jdbc:mysql://localhost:3306/tuphung
-       username: root
-       password: your_password
+   - `application.yaml`: Main configuration file
+   - `application-dev.yaml`: Development environment configuration
+   - `application-aws.yaml`: AWS deployment configuration
+   - `application-google.yaml`: Google Cloud deployment configuration
 
-     jpa:
-       hibernate:
-         ddl-auto: update
-       show-sql: true
-       properties:
-         hibernate:
-           format_sql: true
-           dialect: org.hibernate.dialect.MySQLDialect
+3. For local development, you'll need to set up environment variables. Create a `.env` file in the root directory with the following content:
 
-   jwt:
-     secret: your_jwt_secret_key
-     expiration: 86400000
+   ```
+   # Database Configuration
+   DB_URL_DEV=jdbc:mysql://localhost:3306/tuphung
+   DB_USERNAME_DEV=root
+   DB_PASSWORD_DEV=your_password
 
-   logging:
-     level:
-       root: INFO
-       com.database.study: DEBUG
-       org.springframework.web: INFO
-       org.hibernate: INFO
+   # OAuth2 Configuration
+   OAUTH2_CLIENT_ID=190027546115-2snu9aurj5mdsum5q1tj20s2fu009uqm.apps.googleusercontent.com
+   OAUTH2_CLIENT_SECRET=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
+   OAUTH2_REDIRECT_URI=http://localhost:9095/identify_service/oauth2/redirect
+
+   GITHUB_CLIENT_ID=Ov23liko5knZHVZo5TfZ
+   GITHUB_CLIENT_SECRET=02a9cb5205fea74dd215f381576ff181ccba42a6
+   GITHUB_REDIRECT_URI=http://localhost:9095/identify_service/oauthGit/redirect
+
+   FACEBOOK_CLIENT_ID=1580727122556367
+   FACEBOOK_CLIENT_SECRET=29f86e9b136d36687fd425d52d7d5dd1
+   FACEBOOK_REDIRECT_URI=http://localhost:9095/identify_service/oauth2/facebook/redirect
+
+   # Email Configuration
+   EMAIL_SERVER_HOST=smtp.gmail.com
+   EMAIL_SERVER_PORT=587
+   EMAIL_SERVER_USERNAME=your_email@gmail.com
+   EMAIL_SERVER_PASSWORD=your_app_password
+
+   # reCAPTCHA Configuration
+   RECAPTCHA_SECRET_V3=your_recaptcha_secret_v3
+   RECAPTCHA_SECRET_V2=your_recaptcha_secret_v2
+
+   # Novu Configuration
+   NOVU_API_KEY=6ac19261e2693610c6a548c4d8fc4a19
+   NOVU_APP_ID=uWb0H0wlJgOP
+   NOVU_BASE_URL=https://api.novu.co/v1
+
+   # Speech Service
+   SPEECH_SERVICE_URL=http://localhost:8008
    ```
 
-3. Set up the MySQL database:
+4. Set up the MySQL database:
 
    ```powershell
    # Create the database
@@ -388,21 +450,23 @@ sequenceDiagram
    # Create a new schema named 'tuphung'
    ```
 
-4. Build the application:
+5. Build the application:
 
    ```powershell
    mvn clean install -DskipTests
    ```
 
-5. Run the application:
+6. Run the application with the development profile:
 
    ```powershell
    mvn spring-boot:run -Dspring-boot.run.profiles=dev
    ```
 
-6. The backend API will be available at `http://localhost:8080/api`
+7. The backend API will be available at `http://localhost:9095/identify_service`
 
 ## Docker Deployment
+
+To containerize the application, you'll need to create Docker configuration files. Below is a guide on how to set up Docker for this project based on the actual configuration of your application.
 
 ### Containerization Architecture
 
@@ -418,10 +482,10 @@ flowchart TD
     %% Main components
     subgraph DockerEnvironment["Docker Environment"]
         subgraph Containers["Application Containers"]
-            FE[Frontend Container]:::container
-            BE[Backend Container]:::container
-            DB[Database Container]:::container
-            Cache[Redis Cache Container]:::container
+            FE[Frontend Container<br>Port: 3000]:::container
+            BE[Backend Container<br>Port: 9095]:::container
+            DB[MySQL Database<br>Port: 3306]:::container
+            Cache[Redis Cache<br>Port: 6379]:::container
         end
 
         subgraph Volumes["Persistent Volumes"]
@@ -437,10 +501,26 @@ flowchart TD
 
         subgraph Configs["Configuration"]
             EnvFiles[Environment Files]:::config
+            DockerComposeFile[docker-compose.yml]:::config
+            DockerfilesFE[Frontend Dockerfile]:::config
+            DockerfilesBE[Backend Dockerfile]:::config
             Secrets[Docker Secrets]:::config
             ComposeFile[Docker Compose File]:::config
         end
     end
+
+    %% Connections
+    FE --> FrontNet
+    BE --> BackNet
+    DB --> BackNet
+    Cache --> BackNet
+    FrontNet <--> BackNet
+
+    BE --> DBVol
+    DB --> DBVol
+    BE --> LogVol
+    FE --> ConfigVol
+    BE --> ConfigVol
 
     %% External connections
     Browser[Web Browser]:::external
@@ -468,7 +548,7 @@ flowchart TD
     class FE,BE,DB,Cache container
     class DBVol,LogVol,ConfigVol volume
     class FrontNet,BackNet network
-    class EnvFiles,Secrets,ComposeFile config
+    class EnvFiles,DockerComposeFile,DockerfilesFE,DockerfilesBE,Secrets,ComposeFile config
     class Browser,CI external
 
     %% Styling for subgraphs
@@ -478,6 +558,180 @@ flowchart TD
     style Networks fill:#fff8e1,stroke:#ddd,stroke-width:1px
     style Configs fill:#fce4ec,stroke:#ddd,stroke-width:1px
 ```
+
+### Docker Configuration Files
+
+#### 1. Frontend Dockerfile
+
+Create a `Dockerfile` in the `study/typescript-react` directory:
+
+```dockerfile
+FROM node:16-alpine as build
+
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+# Copy the build output
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port
+EXPOSE 3000
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+#### 2. Backend Dockerfile
+
+Create a `Dockerfile` in the `study/study` directory:
+
+```dockerfile
+FROM maven:3.8-openjdk-17 as build
+
+WORKDIR /app
+
+# Copy pom.xml
+COPY pom.xml .
+
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN mvn clean package -DskipTests
+
+# Production stage
+FROM openjdk:17-slim
+
+WORKDIR /app
+
+# Copy the built JAR file
+COPY --from=build /app/target/*.jar app.jar
+
+# Expose port
+EXPOSE 9095
+
+# Run the application with the dev profile by default
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=dev", "app.jar"]
+```
+
+#### 3. Docker Compose File
+
+Create a `docker-compose.yml` file in the root directory:
+
+```yaml
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: ./study/typescript-react
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URI=http://backend:9095/identify_service
+      - VITE_OAUTH2_REDIRECT_URI=http://backend:9095/identify_service/oauth2/redirect
+      - VITE_GITHUB_REDIRECT_URI=http://backend:9095/identify_service/oauthGit/redirect
+      - VITE_FACEBOOK_REDIRECT_URI=http://backend:9095/identify_service/oauth2/facebook/redirect
+    networks:
+      - frontend-network
+      - backend-network
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./study/study
+      dockerfile: Dockerfile
+    ports:
+      - "9095:9095"
+    environment:
+      - DB_URL_DEV=jdbc:mysql://database:3306/tuphung
+      - DB_USERNAME_DEV=root
+      - DB_PASSWORD_DEV=your_password
+      - OAUTH2_CLIENT_ID=${OAUTH2_CLIENT_ID}
+      - OAUTH2_CLIENT_SECRET=${OAUTH2_CLIENT_SECRET}
+      - OAUTH2_REDIRECT_URI=${OAUTH2_REDIRECT_URI}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_REDIRECT_URI=${GITHUB_REDIRECT_URI}
+      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
+      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
+      - FACEBOOK_REDIRECT_URI=${FACEBOOK_REDIRECT_URI}
+      - SPRING_PROFILES_ACTIVE=dev
+    networks:
+      - backend-network
+    depends_on:
+      - database
+      - redis
+    volumes:
+      - logs-volume:/app/logs
+
+  database:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=your_password
+      - MYSQL_DATABASE=tuphung
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - backend-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - backend-network
+
+networks:
+  frontend-network:
+  backend-network:
+
+volumes:
+  db-data:
+  logs-volume:
+  config-volume:
+```
+
+### Running with Docker Compose
+
+1. Create a `.env` file in the root directory with your OAuth2 credentials and other environment variables.
+
+2. Build and start the containers:
+
+   ```powershell
+   docker-compose up -d
+   ```
+
+3. Access the application:
+
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:9095/identify_service
+
+4. To stop the containers:
+
+   ```powershell
+   docker-compose down
+   ```
 
 ### Docker Deployment Workflow
 
@@ -549,21 +803,32 @@ sequenceDiagram
    version: "3.8"
 
    services:
-     postgres:
-       image: postgres:14-alpine
-       container_name: tuphung-postgres
+     mysql:
+       image: mysql:8.0
+       container_name: tuphung-mysql
        environment:
-         POSTGRES_DB: tuphung
-         POSTGRES_USER: postgres
-         POSTGRES_PASSWORD: postgres
+         MYSQL_DATABASE: tuphung
+         MYSQL_ROOT_PASSWORD: your_password
+         MYSQL_USER: tuphung
+         MYSQL_PASSWORD: your_password
        volumes:
-         - postgres-data:/var/lib/postgresql/data
+         - mysql-data:/var/lib/mysql
        ports:
-         - "5432:5432"
+         - "3306:3306"
        networks:
          - backend-network
        healthcheck:
-         test: ["CMD-SHELL", "pg_isready -U postgres"]
+         test:
+           [
+             "CMD",
+             "mysqladmin",
+             "ping",
+             "-h",
+             "localhost",
+             "-u",
+             "root",
+             "-p$$MYSQL_ROOT_PASSWORD",
+           ]
          interval: 10s
          timeout: 5s
          retries: 5
@@ -587,15 +852,15 @@ sequenceDiagram
          dockerfile: Dockerfile
        container_name: tuphung-backend
        depends_on:
-         postgres:
+         mysql:
            condition: service_healthy
          redis:
            condition: service_healthy
        environment:
          SPRING_PROFILES_ACTIVE: docker
-         SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tuphung
-         SPRING_DATASOURCE_USERNAME: postgres
-         SPRING_DATASOURCE_PASSWORD: postgres
+         SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/tuphung
+         SPRING_DATASOURCE_USERNAME: tuphung
+         SPRING_DATASOURCE_PASSWORD: your_password
          SPRING_REDIS_HOST: redis
          SPRING_REDIS_PORT: 6379
          JWT_SECRET: your_jwt_secret_key
@@ -636,7 +901,7 @@ sequenceDiagram
        driver: bridge
 
    volumes:
-     postgres-data:
+     mysql-data:
        driver: local
    ```
 
@@ -1055,12 +1320,12 @@ sequenceDiagram
      {
        "Namespace": "aws:elasticbeanstalk:application:environment",
        "OptionName": "SPRING_DATASOURCE_URL",
-       "Value": "jdbc:postgresql://your-rds-endpoint:5432/tuphung"
+       "Value": "jdbc:mysql://your-rds-endpoint:3306/tuphung"
      },
      {
        "Namespace": "aws:elasticbeanstalk:application:environment",
        "OptionName": "SPRING_DATASOURCE_USERNAME",
-       "Value": "postgres"
+       "Value": "admin"
      },
      {
        "Namespace": "aws:elasticbeanstalk:application:environment",
@@ -2499,7 +2764,7 @@ sequenceDiagram
    aws rds modify-db-instance `
      --db-instance-identifier tuphung-db `
      --backup-retention-period 14 `
-     --enable-cloudwatch-logs-exports '["postgresql","upgrade"]' `
+     --enable-cloudwatch-logs-exports '["error","general","slowquery","audit"]' `
      --apply-immediately
    ```
 
@@ -2513,8 +2778,8 @@ sequenceDiagram
    # Create backup directory
    New-Item -ItemType Directory -Force -Path $backupDir
 
-   # Backup database using pg_dump
-   pg_dump -h your-db-host -U postgres -d tuphung -F c -f "$backupDir\tuphung-db-$date.dump"
+   # Backup database using mysqldump
+   mysqldump -h your-db-host -u admin -p tuphung > "$backupDir\tuphung-db-$date.sql"
 
    # Compress backup
    Compress-Archive -Path $backupDir -DestinationPath "$backupDir.zip"

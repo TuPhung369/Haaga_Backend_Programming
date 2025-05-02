@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 9
 sidebar_label: "Chat System"
 ---
@@ -336,11 +336,17 @@ flowchart TD
     X --> Y[UserSelector]
     X --> Z[GroupChatForm]
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style D,E,F,G,I,J,K fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style H,L,M,R,S,T,U,X fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
-    style N,O,P,Q,V,W,Y,Z fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainContainer fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef primarySections fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef secondarySections fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef components fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef interactiveElements fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A mainContainer
+    class B,C primarySections
+    class D,E,F,G,I,J,K secondarySections
+    class H,L,M,R,S,T,U,X components
+    class N,O,P,Q,V,W,Y,Z interactiveElements
 ```
 
 | Component | Description | Features |

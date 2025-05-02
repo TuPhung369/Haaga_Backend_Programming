@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 5
 sidebar_label: "Calendar"
 ---
@@ -346,11 +346,17 @@ flowchart TD
     
     P & R & T & U --> Z[EventDetailPopover]
 
-    style A fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
-    style B,C,D fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
-    style E,F,G,H,I,J,K,L,M,N fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    style O,P,Q,R,S,T,U,V fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
-    style W,X,Y,Z fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainPage fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    classDef mainSections fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
+    classDef viewComponents fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    classDef interactiveElements fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
+    classDef formElements fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
+    
+    class A mainPage
+    class B,C,D mainSections
+    class E,F,G,H,I,J,K,L,M,N viewComponents
+    class O,P,Q,R,S,T,U,V interactiveElements
+    class W,X,Y,Z formElements
 ```
 
 | Component | Description | Features |

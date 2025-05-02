@@ -406,6 +406,154 @@ html[data-theme='dark'] .main-wrapper {
   flex-direction: column;
 }
 
+/* Dropdown menu styling */
+.dropdown__menu {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  padding: 0.75rem 0 !important;
+  min-width: 320px !important;
+  max-height: 80vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--ifm-color-primary-lighter) transparent !important;
+}
+
+.dropdown__menu::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.dropdown__menu::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.dropdown__menu::-webkit-scrollbar-thumb {
+  background-color: var(--ifm-color-primary-lighter) !important;
+  border-radius: 6px !important;
+}
+
+/* Dropdown section headers */
+.dropdown-section-header {
+  font-weight: 700 !important;
+  font-size: 1.1rem !important;
+  color: var(--ifm-color-primary) !important;
+  padding: 0.75rem 1rem 0.5rem !important;
+  margin-top: 0.5rem !important;
+  border-top: 1px solid var(--ifm-color-emphasis-200) !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  font-size: 0.9rem !important;
+}
+
+/* First section header doesn't need top border */
+.dropdown__menu .dropdown-section:first-of-type .dropdown-section-header {
+  border-top: none !important;
+  margin-top: 0 !important;
+}
+
+/* Style all links in dropdown menu */
+.dropdown__menu a.dropdown__link,
+.dropdown__menu a[href*="/docs/"] {
+  font-weight: 500 !important;
+  padding: 0.8rem 1rem !important;
+  background-color: transparent !important;
+  margin: 0.25rem 0.5rem !important;
+  border-radius: 8px !important;
+  border-left: 3px solid transparent !important;
+  display: block !important;
+  text-decoration: none !important;
+  color: var(--ifm-menu-color) !important;
+  transition: all 0.2s ease-in-out !important;
+  position: relative !important;
+}
+
+/* Unified hover style for all dropdown links */
+.dropdown__menu a.dropdown__link:hover,
+.dropdown__menu a[href*="/docs/"]:hover,
+.dropdown__menu a[href*="/category/"]:hover,
+.dropdown__menu a[href*="/video/"]:hover {
+  background-color: var(--ifm-color-emphasis-100) !important;
+  border-left: 3px solid var(--ifm-color-primary) !important;
+  padding-left: 1.25rem !important;
+  color: var(--ifm-color-primary-darkest) !important;
+  text-decoration: none !important;
+}
+
+/* Make Frontend and Backend links bold */
+.dropdown__menu a[href*="/category/"],
+.dropdown__menu a[href*="/video/project-video"] {
+  font-weight: 600 !important;
+}
+
+/* Style video dropdown links */
+.dropdown__menu a[href*="/video/project-video#"] {
+  font-weight: 500 !important;
+  padding-left: 1.2rem !important;
+  font-size: 0.95rem !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Add ripple effect for video links */
+.dropdown__menu a[href*="/video/project-video"] {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Dropdown item styling */
+.dropdown__link {
+  transition: all 0.2s ease-in-out !important;
+  padding: 0.6rem 1rem !important;
+  font-size: 0.95rem !important;
+  display: block !important;
+  text-decoration: none !important;
+  color: var(--ifm-menu-color) !important;
+  border-left: 3px solid transparent !important;
+}
+
+/* Dropdown item hover effect */
+.dropdown__link:hover {
+  background-color: var(--ifm-color-primary-lightest) !important;
+  color: var(--ifm-color-primary-darkest) !important;
+  border-left: 3px solid var(--ifm-color-primary) !important;
+  padding-left: 1.25rem !important;
+}
+
+/* Nested dropdown styling */
+.dropdown__menu .dropdown__menu {
+  position: absolute !important;
+  left: 100% !important;
+  top: 0 !important;
+  display: none !important;
+  margin-left: 0 !important;
+  min-width: 200px !important;
+}
+
+/* Show nested dropdown on hover */
+.dropdown__menu .dropdown__link--active,
+.dropdown__menu .dropdown__link:hover {
+  background-color: var(--ifm-color-primary-lightest) !important;
+}
+
+/* Dropdown with submenu indicator */
+.dropdown__menu .dropdown > .dropdown__link::after {
+  content: '▶' !important;
+  position: absolute !important;
+  right: 1rem !important;
+  font-size: 0.8rem !important;
+}
+
+/* Show nested dropdown on hover */
+.dropdown__menu .dropdown:hover > .dropdown__menu {
+  display: block !important;
+}
+
+/* Dropdown submenu item styling */
+.dropdown__menu .dropdown__menu .dropdown__link {
+  padding-left: 1rem !important;
+  font-size: 0.9rem !important;
+}
+
 /* Ensure doc page container extends fully */
 html[data-theme='light'] .docPage_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-styles-module,
 html[data-theme='light'] .docPage_src-theme-DocPage-Layout-styles-module,

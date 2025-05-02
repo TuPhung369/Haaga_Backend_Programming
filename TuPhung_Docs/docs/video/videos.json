@@ -3,61 +3,62 @@
     {
       "id": "bQ1s5zS-1f4",
       "title": "Introduction to Backend Programming",
-      "description": "Overview of the backend programming course and its objectives."
+      "description": "Overview of the backend programming course and its objectives.",
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Setting Up Development Environment",
       "description": "Step-by-step guide to setting up your development environment for backend programming.",
-      "startTime": 30
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "JavaScript Fundamentals",
       "description": "Essential JavaScript concepts for backend development.",
-      "startTime": 60
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Node.js Basics",
       "description": "Introduction to Node.js and its core features.",
-      "startTime": 90
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Express.js Framework",
       "description": "Building web applications with Express.js framework.",
-      "startTime": 120
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "RESTful API Design",
       "description": "Principles and best practices for designing RESTful APIs.",
-      "startTime": 150
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Database Integration",
       "description": "Connecting and working with databases in backend applications.",
-      "startTime": 180
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Authentication & Authorization",
       "description": "Implementing secure user authentication and authorization.",
-      "startTime": 210
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Error Handling & Logging",
       "description": "Effective strategies for error handling and logging in backend applications.",
-      "startTime": 240
+      "startTime": 0
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Deployment & DevOps",
       "description": "Deploying backend applications and introduction to DevOps practices.",
-      "startTime": 270
+      "startTime": 0
     }
   ]
 }
