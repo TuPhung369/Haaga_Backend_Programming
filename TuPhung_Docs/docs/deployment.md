@@ -334,16 +334,16 @@ sequenceDiagram
 
    ```
    # OAuth2 client credentials
-   VITE_OAUTH2_CLIENT_ID=190027546115-2snu9aurj5mdsum5q1tj20s2fu009uqm.apps.googleusercontent.com
-   VITE_OAUTH2_CLIENT_SECRET=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
+   VITE_OAUTH2_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   VITE_OAUTH2_CLIENT_SECRET=your-google-client-secret
 
    # GitHub
-   VITE_GITHUB_CLIENT_ID=Ov23liko5knZHVZo5TfZ
-   VITE_GITHUB_CLIENT_SECRET=02a9cb5205fea74dd215f381576ff181ccba42a6
+   VITE_GITHUB_CLIENT_ID=your-github-client-id
+   VITE_GITHUB_CLIENT_SECRET=your-github-client-secret
 
    # Facebook
-   VITE_FACEBOOK_CLIENT_ID=1580727122556367
-   VITE_FACEBOOK_CLIENT_SECRET=29f86e9b136d36687fd425d52d7d5dd1
+   VITE_FACEBOOK_CLIENT_ID=your-facebook-client-id
+   VITE_FACEBOOK_CLIENT_SECRET=your-facebook-client-secret
 
    VITE_API_BASE_URI=http://localhost:9095/identify_service
    VITE_OAUTH2_REDIRECT_URI=http://localhost:9095/identify_service/oauth2/redirect
@@ -409,16 +409,16 @@ sequenceDiagram
    DB_PASSWORD_DEV=your_password
 
    # OAuth2 Configuration
-   OAUTH2_CLIENT_ID=190027546115-2snu9aurj5mdsum5q1tj20s2fu009uqm.apps.googleusercontent.com
-   OAUTH2_CLIENT_SECRET=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
+   OAUTH2_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   OAUTH2_CLIENT_SECRET=your-google-client-secret
    OAUTH2_REDIRECT_URI=http://localhost:9095/identify_service/oauth2/redirect
 
-   GITHUB_CLIENT_ID=Ov23liko5knZHVZo5TfZ
-   GITHUB_CLIENT_SECRET=02a9cb5205fea74dd215f381576ff181ccba42a6
+   GITHUB_CLIENT_ID=your-github-client-id
+   GITHUB_CLIENT_SECRET=your-github-client-secret
    GITHUB_REDIRECT_URI=http://localhost:9095/identify_service/oauthGit/redirect
 
-   FACEBOOK_CLIENT_ID=1580727122556367
-   FACEBOOK_CLIENT_SECRET=29f86e9b136d36687fd425d52d7d5dd1
+   FACEBOOK_CLIENT_ID=your-facebook-client-id
+   FACEBOOK_CLIENT_SECRET=your-facebook-client-secret
    FACEBOOK_REDIRECT_URI=http://localhost:9095/identify_service/oauth2/facebook/redirect
 
    # Email Configuration
