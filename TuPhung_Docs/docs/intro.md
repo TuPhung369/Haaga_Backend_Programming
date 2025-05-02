@@ -509,70 +509,93 @@ study/
 
 Enterprise Nexus follows a strategic implementation approach:
 
+<div className="enhanced-gantt-chart">
+
 ```mermaid
+%%{
+  init: {
+    'theme': 'base',
+    'gantt': {
+      'barHeight': 40,
+      'fontSize': 12,
+      'titleFontSize': 28,
+      'sectionFontSize': 20,
+      'numberSectionStyles': 5,
+      'axisFormat': '%B',
+      'topPadding': 60,
+      'bottomPadding': 70,
+      'leftPadding': 75,
+      'rightPadding': 75,
+      'fontFamily': 'Arial, sans-serif',
+      'tickInterval': '1month',
+      'axisWidth': 100
+    }
+  }
+}%%
 gantt
     title Enterprise Nexus Implementation Roadmap
     dateFormat  YYYY-MM-DD
-    section Foundation
-    Core Architecture Setup           :done,    arch,    2023-01-01, 45d
-    Security Framework Implementation :done,    sec,     2023-02-15, 60d
-    Database Design & Implementation  :done,    db,      2023-03-01, 30d
 
-    section Frontend
-    UI Component Library              :done,    ui,      2023-03-15, 45d
-    State Management Implementation   :done,    state,   2023-04-01, 30d
-    Responsive Design                 :done,    resp,    2023-04-15, 30d
+    section Core Foundation
+    Project Setup & Planning     :done,     setup,   2025-01-01, 7d
+    Database Schema Design       :done,    schema,  2025-01-08, 10d
+    User Authentication (JWT)    :done,     auth,    2025-01-18, 14d
+    Role & Permission System      :active,   roles,   2025-02-01, 14d
+    Basic API Implementation     :active,   api,     2025-02-15, 14d
 
-    section Backend
-    API Development                   :done,    api,     2023-03-15, 60d
-    Authentication Services           :done,    auth,    2023-04-15, 45d
-    WebSocket Implementation          :done,    ws,      2023-05-01, 30d
+    section Productivity Tools
+    Social Login Integration     :         social,  2025-03-01, 7d
+    Kanban Board Development     :         kanban,  2025-03-08, 7d
+    Calendar Implementation      :         cal,     2025-03-16, 7d
+        
+    section Advanced Features
+    Assistant AI Implementation  :         ai,      2025-03-23, 10d
+    Language AI Integration      :         lang,    2025-04-03, 12d
+    Chat System                  :         chat,    2025-04-15, 10d
 
-    section AI Integration
-    Speech Processing Module          :active,  speech,  2023-06-01, 60d
-    Virtual Assistant Development     :active,  assist,  2023-07-01, 90d
-    Analytics Engine                  :         analy,   2023-08-15, 60d
-
-    section Deployment
-    Testing & QA                      :         test,    2023-10-15, 45d
-    Performance Optimization          :         perf,    2023-11-01, 30d
-    Production Deployment             :         deploy,  2023-12-01, 30d
+    section Documentation & Deployment
+    Documentation Writing        :active,   docs,    2025-04-25, 7d
+    Testing & QA                 :         test,    2025-05-05, 7d
+    Production Deployment        :         deploy,  2025-05-12, 3d
+    Post-Deployment Monitoring   :         monitor, 2025-05-15, 14d
 ```
+
+</div>
 
 ## Documentation Navigation
 
 <div className="navigation-cards">
-  <a href="/docs/architecture" className="navigation-card">
+  <a href="/Haaga_Backend_Programming/docs/architecture" className="navigation-card">
     <div className="navigation-card-icon">🏗️</div>
     <div className="navigation-card-title">System Architecture</div>
     <div className="navigation-card-description">Detailed component interactions and security model</div>
   </a>
   
-  <a href="/docs/frontend/structure" className="navigation-card">
+  <a href="/Haaga_Backend_Programming/docs/frontend/structure" className="navigation-card">
     <div className="navigation-card-icon">🖥️</div>
     <div className="navigation-card-title">Frontend Documentation</div>
     <div className="navigation-card-description">User interface and experience design</div>
   </a>
   
-  <a href="/docs/backend/structure" className="navigation-card">
+  <a href="/Haaga_Backend_Programming/docs/backend/structure" className="navigation-card">
     <div className="navigation-card-icon">⚙️</div>
     <div className="navigation-card-title">Backend Documentation</div>
     <div className="navigation-card-description">API design and business logic</div>
   </a>
   
-  <a href="/docs/deployment" className="navigation-card">
+  <a href="/Haaga_Backend_Programming/docs/deployment" className="navigation-card">
     <div className="navigation-card-icon">🚀</div>
     <div className="navigation-card-title">Deployment Guide</div>
     <div className="navigation-card-description">Installation and configuration instructions</div>
   </a>
   
-  <a href="/docs/security" className="navigation-card">
+  <a href="/Haaga_Backend_Programming/docs/backend/auth" className="navigation-card">
     <div className="navigation-card-icon">🔐</div>
     <div className="navigation-card-title">Security Features</div>
     <div className="navigation-card-description">In-depth explanation of security mechanisms</div>
   </a>
   
-  <a href="/docs/ai-features" className="navigation-card">
+  <a href="/Haaga_Backend_Programming/docs/frontend/ai-assistants" className="navigation-card">
     <div className="navigation-card-icon">🧠</div>
     <div className="navigation-card-title">AI Capabilities</div>
     <div className="navigation-card-description">How AI enhances workplace productivity</div>

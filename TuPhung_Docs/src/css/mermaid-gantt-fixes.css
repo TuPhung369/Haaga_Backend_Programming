@@ -1,0 +1,308 @@
+/**
+ * Mermaid Gantt Chart Enhancements
+ * 
+ * This file contains CSS fixes and enhancements for Mermaid Gantt charts
+ * to improve visibility and responsiveness, especially on mobile devices.
+ */
+
+/* Enhanced container for Gantt charts */
+.enhanced-gantt-chart {
+  position: relative;
+  margin: 3rem 0;
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--ifm-background-surface-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+/* Add subtle background pattern */
+.enhanced-gantt-chart::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  z-index: -1;
+}
+
+/* Increase the overall height of Gantt charts */
+.mermaid.gantt {
+  min-height: 600px !important;
+  height: auto !important;
+  margin: 1rem 0 !important;
+}
+
+/* Increase the height of each task row */
+.mermaid.gantt .task {
+  height: 40px !important;
+}
+
+/* Increase the height of section labels */
+.mermaid.gantt .section {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  padding: 10px 0 !important;
+}
+
+/* Make the title more prominent */
+.mermaid.gantt .titleText {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  fill: var(--ifm-color-primary-darker) !important;
+  dominant-baseline: hanging !important;
+}
+
+/* Improve task bar appearance */
+.mermaid.gantt .task0,
+.mermaid.gantt .task1,
+.mermaid.gantt .task2,
+.mermaid.gantt .task3,
+.mermaid.gantt .task4 {
+  stroke-width: 2px !important;
+}
+
+/* Enhance task text visibility */
+.mermaid.gantt .taskText {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* Improve grid lines */
+.mermaid.gantt .grid .tick line {
+  stroke: var(--ifm-color-emphasis-300) !important;
+  stroke-width: 1px !important;
+  opacity: 0.5 !important;
+}
+
+/* Enhance axis labels */
+.mermaid.gantt .tick text {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  fill: var(--ifm-color-emphasis-900) !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  text-anchor: middle !important;
+}
+
+/* Custom styles for Gantt chart sections */
+.mermaid.gantt .section0 { fill: rgba(102, 187, 106, 0.1) !important; }
+.mermaid.gantt .section1 { fill: rgba(33, 150, 243, 0.1) !important; }
+.mermaid.gantt .section2 { fill: rgba(156, 39, 176, 0.1) !important; }
+.mermaid.gantt .section3 { fill: rgba(255, 152, 0, 0.1) !important; }
+.mermaid.gantt .section4 { fill: rgba(200, 200, 200, 0.15) !important; }
+
+/* Custom styles for task status */
+.mermaid.gantt .done0,
+.mermaid.gantt .done1,
+.mermaid.gantt .done2,
+.mermaid.gantt .done3,
+.mermaid.gantt .done4 {
+  fill: rgba(76, 175, 80, 0.6) !important;
+  stroke: #388E3C !important;
+}
+
+.mermaid.gantt .active0,
+.mermaid.gantt .active1,
+.mermaid.gantt .active2,
+.mermaid.gantt .active3,
+.mermaid.gantt .active4 {
+  fill: rgba(33, 150, 243, 0.6) !important;
+  stroke: #1976D2 !important;
+}
+
+/* Task that are not done or active */
+.mermaid.gantt .task:not(.done):not(.active) rect {
+  fill: rgba(158, 158, 158, 0.6) !important;
+  stroke: #757575 !important;
+}
+
+/* Make Deployment section tasks lighter color */
+.mermaid.gantt .section4 .task rect {
+  fill: rgba(180, 180, 180, 0.5) !important;
+  stroke: rgba(150, 150, 150, 0.8) !important;
+}
+
+/* Make deploy tasks match Analytics Engine color */
+.mermaid.gantt .task.task4 rect,
+.mermaid.gantt [id*="deploy"] rect,
+.mermaid.gantt g[data-id*="deploy"] rect,
+.mermaid.gantt [id*="deployed"] rect,
+.mermaid.gantt g[data-id*="deployed"] rect {
+  fill: rgba(158, 158, 158, 0.6) !important;
+  stroke: #757575 !important;
+}
+
+/* Ensure text in task4 is visible */
+.mermaid.gantt .task.task4 .taskText,
+.mermaid.gantt [id*="deploy"] .taskText,
+.mermaid.gantt g[data-id*="deploy"] .taskText,
+.mermaid.gantt [id*="deployed"] .taskText,
+.mermaid.gantt g[data-id*="deployed"] .taskText {
+  font-weight: 700 !important;
+  text-shadow: 0 0 4px white, 0 0 4px white, 0 0 4px white, 0 0 4px white !important;
+}
+
+/* Ensure text in Deployment section is extra visible */
+.mermaid.gantt .section4 .taskText {
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  text-shadow: 0 0 4px white, 0 0 4px white, 0 0 4px white, 0 0 4px white !important;
+}
+
+/* Add a container for better scrolling on mobile */
+.mermaid-gantt-container {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+}
+
+/* Add custom scrollbar for better UX */
+.mermaid-gantt-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.mermaid-gantt-container::-webkit-scrollbar-track {
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 4px;
+}
+
+.mermaid-gantt-container::-webkit-scrollbar-thumb {
+  background: var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+}
+
+.mermaid-gantt-container::-webkit-scrollbar-thumb:hover {
+  background: var(--ifm-color-emphasis-400);
+}
+
+/* Gantt chart legend */
+.gantt-legend {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin: 1rem 0 2rem;
+  padding: 15px;
+  border-radius: 8px;
+  background: var(--ifm-background-surface-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.legend-color {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.legend-done {
+  background-color: rgba(76, 175, 80, 0.6);
+  border: 1px solid #388E3C;
+}
+
+.legend-active {
+  background-color: rgba(33, 150, 243, 0.6);
+  border: 1px solid #1976D2;
+}
+
+.legend-planned {
+  background-color: rgba(180, 180, 180, 0.5);
+  border: 1px solid rgba(150, 150, 150, 0.8);
+}
+
+.legend-label {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ifm-color-emphasis-800);
+  white-space: nowrap;
+}
+
+/* Zoom controls styling */
+.gantt-zoom-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
+.gantt-zoom-controls button {
+  padding: 5px 10px;
+  background: var(--ifm-color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background 0.2s ease;
+}
+
+.gantt-zoom-controls button:hover {
+  background: var(--ifm-color-primary-dark);
+}
+
+/* Fix for mobile display - prevent date overlap */
+@media (max-width: 768px) {
+  /* Rotate date labels to prevent overlap */
+  .mermaid.gantt .tick text {
+    text-anchor: end !important;
+    transform: rotate(-45deg) !important;
+    transform-origin: top right !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+  }
+  
+  /* Add more space for rotated labels */
+  .mermaid.gantt .axis {
+    transform: translateY(20px) !important;
+  }
+  
+  /* Adjust chart height for mobile */
+  .mermaid.gantt {
+    min-height: 700px !important;
+  }
+  
+  /* Make task text more visible on small screens */
+  .mermaid.gantt .taskText {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+  }
+  
+  /* Adjust legend for mobile */
+  .gantt-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+/* Fix for very small screens */
+@media (max-width: 480px) {
+  /* Further adjustments for tiny screens */
+  .mermaid.gantt .tick text {
+    font-size: 8px !important;
+    transform: rotate(-60deg) !important;
+  }
+  
+  /* Increase spacing between date labels */
+  .mermaid.gantt .tick:nth-child(odd) {
+    opacity: 0 !important; /* Hide every other label on very small screens */
+  }
+  
+  /* Adjust chart height for very small screens */
+  .mermaid.gantt {
+    min-height: 800px !important;
+  }
+}
