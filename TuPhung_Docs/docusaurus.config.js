@@ -151,8 +151,8 @@ const config = {
                 to: "/docs/architecture",
               },
               {
-                label: "Deployment Guide",
-                to: "/docs/deployment",
+                label: "Tech Stack",
+                to: "/docs/tech-stack",
               },
             ],
           },
@@ -166,6 +166,10 @@ const config = {
               {
                 label: "Backend",
                 to: "/docs/category/backend",
+              },
+              {
+                label: "Deployment Guide",
+                to: "/docs/deployment",
               },
             ],
           },

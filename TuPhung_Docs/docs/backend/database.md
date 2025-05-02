@@ -1,4 +1,4 @@
-﻿---
+﻿﻿---
 sidebar_position: 4
 sidebar_label: "Database Design"
 ---
@@ -97,7 +97,7 @@ sequenceDiagram
 
 ## Database Overview
 
-The Enterprise Nexus Project uses PostgreSQL as its primary database, with additional specialized data stores for specific use cases. The database architecture is designed for high performance, scalability, and data integrity.
+The Enterprise Nexus Project uses MySQL as its primary database, with additional specialized data stores for specific use cases. The database architecture is designed for high performance, scalability, and data integrity.
 
 ## Database Schema Design
 

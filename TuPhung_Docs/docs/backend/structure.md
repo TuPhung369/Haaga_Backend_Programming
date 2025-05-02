@@ -142,7 +142,7 @@ The application uses YAML configuration files for different environments:
 
 The database schema is defined in `schema.sql` and initial data is loaded from `data.sql`. The application supports:
 
-- PostgreSQL for production
+- MySQL for production
 - H2 in-memory database for development and testing
 
 ## Testing Structure
