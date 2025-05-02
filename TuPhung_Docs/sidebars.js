@@ -27,15 +27,51 @@ const sidebars = {
           "Documentation for the Frontend part of the Enterprise Nexus Project",
       },
       items: [
-        "frontend/structure",
-        "frontend/state-management",
-        "frontend/authentication",
-        "frontend/user-management",
-        "frontend/chat",
-        "frontend/calendar",
-        "frontend/kanban",
-        "frontend/ai-assistants",
-        "frontend/language-ai",
+        {
+          type: "doc",
+          id: "frontend/structure",
+          label: "Project Structure",
+        },
+        {
+          type: "doc",
+          id: "frontend/state-management",
+          label: "State Management",
+        },
+        {
+          type: "doc",
+          id: "frontend/authentication",
+          label: "Authentication",
+        },
+        {
+          type: "doc",
+          id: "frontend/user-management",
+          label: "User Management",
+        },
+        {
+          type: "doc",
+          id: "frontend/calendar",
+          label: "Calendar",
+        },
+        {
+          type: "doc",
+          id: "frontend/kanban",
+          label: "Kanban Board",
+        },
+        {
+          type: "doc",
+          id: "frontend/ai-assistants",
+          label: "AI Assistants",
+        },
+        {
+          type: "doc",
+          id: "frontend/language-ai",
+          label: "Language AI",
+        },
+        {
+          type: "doc",
+          id: "frontend/chat",
+          label: "Chat System",
+        },
       ],
     },
     {
@@ -47,22 +83,46 @@ const sidebars = {
           "Documentation for the Backend part of the Enterprise Nexus Project",
       },
       items: [
-        "backend/structure",
+        {
+          type: "doc",
+          id: "backend/structure",
+          label: "Project Structure",
+        },
         {
           type: "doc",
           id: "backend/api",
           label: "API",
         },
-        "backend/auth",
-        "backend/database",
-        "backend/user-management",
-        "backend/websockets",
+        {
+          type: "doc",
+          id: "backend/auth",
+          label: "Authentication",
+        },
+        {
+          type: "doc",
+          id: "backend/database",
+          label: "Database",
+        },
+        {
+          type: "doc",
+          id: "backend/user-management",
+          label: "User Management",
+        },
+        {
+          type: "doc",
+          id: "backend/websockets",
+          label: "WebSockets",
+        },
         {
           type: "doc",
           id: "backend/speech-processing",
           label: "Speech Processing",
         },
-        "backend/exception-handling",
+        {
+          type: "doc",
+          id: "backend/exception-handling",
+          label: "Exception Handling",
+        },
       ],
     },
     "deployment",
@@ -70,4 +130,5 @@ const sidebars = {
 };
 
 export default sidebars;
+
 

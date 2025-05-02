@@ -124,6 +124,11 @@ const config = {
             position: "left",
           },
           {
+            href: "https://www.linkedin.com/in/tuphung010787/",
+            label: "LinkedIn",
+            position: "left",
+          },
+          {
             href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
             className: "header-github-link",
             position: "right",
@@ -135,7 +140,7 @@ const config = {
         style: "dark",
         links: [
           {
-            title: "Docs",
+            title: "Documentation",
             items: [
               {
                 label: "Introduction",
@@ -152,7 +157,7 @@ const config = {
             ],
           },
           {
-            title: "Docs",
+            title: "Technical Guides",
             items: [
               {
                 label: "Frontend",
@@ -165,7 +170,7 @@ const config = {
             ],
           },
           {
-            title: "More",
+            title: "Project Resources",
             items: [
               {
                 label: "Video",
@@ -175,9 +180,18 @@ const config = {
                 label: "GitHub",
                 href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
               },
+            ],
+          },
+          {
+            title: "Connect With Me",
+            items: [
               {
                 label: "My CV",
                 href: "https://tuphung369.github.io/professional-cv/",
+              },
+              {
+                label: "LinkedIn",
+                href: "https://www.linkedin.com/in/tuphung010787/",
               },
             ],
           },

@@ -1,5 +1,6 @@
 ---
 sidebar_position: 6
+sidebar_label: "Deployment Guide"
 ---
 
 # Deployment Guide
@@ -630,3 +631,4 @@ jobs:
    ```
    0 2 * * * /path/to/backup-script.sh
    ```
+

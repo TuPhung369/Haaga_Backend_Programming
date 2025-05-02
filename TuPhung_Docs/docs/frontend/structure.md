@@ -1,12 +1,13 @@
 ---
 sidebar_position: 1
+sidebar_label: 'Project Structure'
 ---
 
 # Frontend Project Structure
 
 ## Overview
 
-The frontend component of the Haaga Backend Programming project is located in the `study/typescript-react` directory and is built with React, TypeScript, and Redux Toolkit. The application follows a modern component-based architecture with a focus on type safety, reusability, and maintainability.
+The frontend component of the Enterprise Nexus project is located in the `study/typescript-react` directory and is built with React, TypeScript, and Redux Toolkit. The application follows a modern component-based architecture with a focus on type safety, reusability, and maintainability.
 
 ## Main Directory Structure
 

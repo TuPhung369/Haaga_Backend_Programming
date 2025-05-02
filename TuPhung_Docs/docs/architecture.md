@@ -1,12 +1,13 @@
 ---
 sidebar_position: 3
+sidebar_label: "Architecture"
 ---
 
 # Architecture
 
 ## Architecture Overview
 
-The Haaga Backend Programming project follows a modern, scalable architecture that separates concerns between frontend and backend components while enabling real-time communication and integration with AI services. The system is designed to be modular, maintainable, and secure, demonstrating best practices in full-stack development.
+The Enterprise Nexus project follows a modern, scalable architecture that separates concerns between frontend and backend components while enabling real-time communication and integration with AI services. The system is designed to be modular, maintainable, and secure, demonstrating best practices in full-stack development.
 
 ## Key Architectural Components
 
@@ -46,10 +47,10 @@ The frontend communicates with the backend primarily through RESTful API endpoin
 ```mermaid
 sequenceDiagram
     %% Styling
-    participant Client as <strong style="font-size:14px">React Client</strong>
-    participant API as <strong style="font-size:14px">REST API</strong>
-    participant Service as <strong style="font-size:14px">Service Layer</strong>
-    participant DB as <strong style="font-size:14px">Database</strong>
+    participant Client as React Client
+    participant API as REST API
+    participant Service as Service Layer
+    participant DB as Database
 
     %% Color definitions
     rect rgb(240, 248, 255, 0.6)
@@ -81,10 +82,10 @@ Real-time features like chat and notifications use WebSockets for bidirectional 
 ```mermaid
 sequenceDiagram
     %% Styling
-    participant Client as <strong style="font-size:14px">React Client</strong>
-    participant WS as <strong style="font-size:14px">WebSocket Server</strong>
-    participant Service as <strong style="font-size:14px">Message Service</strong>
-    participant DB as <strong style="font-size:14px">Database</strong>
+    participant Client as React Client
+    participant WS as WebSocket Server
+    participant Service as Message Service
+    participant DB as Database
 
     %% Connection setup
     rect rgb(230, 255, 230, 0.6)
@@ -124,12 +125,12 @@ The system implements various data flows for different features:
 ```mermaid
 flowchart TD
     %% Styling
-    classDef userAction fill:#FFD700,stroke:#333,stroke-width:2px,color:#000,font-weight:bold,font-size:14px
-    classDef decision fill:#FF6347,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef error fill:#DC143C,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef process fill:#4169E1,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef success fill:#32CD32,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef token fill:#9370DB,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
+    classDef userAction fill:#FFD700,stroke:#333,stroke-width:2px,color:#000,font-weight:bold
+    classDef decision fill:#FF6347,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold
+    classDef error fill:#DC143C,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold
+    classDef process fill:#4169E1,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold
+    classDef success fill:#32CD32,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold
+    classDef token fill:#9370DB,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold
 
     %% Main Authentication Flow
     subgraph "Login Process"
@@ -164,11 +165,11 @@ flowchart TD
 ```mermaid
 flowchart TD
     %% Styling
-    classDef userAction fill:#FF9966,stroke:#333,stroke-width:2px,color:#000,font-weight:bold,font-size:14px
-    classDef frontend fill:#61DAFB,stroke:#333,stroke-width:2px,color:#000,font-weight:bold,font-size:14px
-    classDef backend fill:#6DB33F,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef ai fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef speech fill:#E91E63,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
+    classDef userAction fill:#FF9966,stroke:#333,stroke-width:2px,color:#000,font-weight:bold
+    classDef frontend fill:#61DAFB,stroke:#333,stroke-width:2px,color:#000,font-weight:bold
+    classDef backend fill:#6DB33F,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold
+    classDef ai fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold
+    classDef speech fill:#E91E63,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold
 
     %% Frontend Flow
     subgraph "Frontend"

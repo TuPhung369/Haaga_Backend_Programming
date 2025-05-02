@@ -1,12 +1,13 @@
 ---
 sidebar_position: 1
+sidebar_label: "Project Structure"
 ---
 
 # Backend Project Structure
 
 ## Overview
 
-The backend component of the Haaga Backend Programming project is located in the `study/study` directory and follows a standard Spring Boot project structure with additional components for speech processing. The application is organized using a layered architecture pattern that separates concerns and promotes maintainability.
+The backend component of the Enterprise Nexus project is located in the `study/study` directory and follows a standard Spring Boot project structure with additional components for speech processing. The application is organized using a layered architecture pattern that separates concerns and promotes maintainability.
 
 ## Main Directory Structure
 
@@ -16,7 +17,7 @@ study/study/
 │   ├── main/
 │   │   ├── java/
 │   │   │   └── com/
-│   │   │       └── haaga/
+│   │   │       └── study/
 │   │   │           ├── config/         # Configuration classes
 │   │   │           ├── controller/     # REST controllers
 │   │   │           ├── dto/            # Data Transfer Objects
@@ -152,3 +153,4 @@ The test directory mirrors the main source structure:
 - `service`: Business logic tests with Mockito
 - `repository`: Data access tests with test database
 - `security`: Authentication and authorization tests
+

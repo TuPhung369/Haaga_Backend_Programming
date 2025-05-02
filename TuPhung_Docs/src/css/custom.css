@@ -4,6 +4,46 @@
  * work well for content-centric websites.
  */
 
+/* Workflow Container Styles */
+.workflow-container {
+  margin: 0 0 2rem 0;
+  padding: 1.5rem;
+  background-color: var(--ifm-background-surface-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid var(--ifm-color-primary);
+}
+
+.workflow-header {
+  margin-bottom: 1.5rem;
+}
+
+.workflow-title {
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.workflow-title::before {
+  content: "⚙️";
+  margin-right: 0.5rem;
+  font-size: 1.4rem;
+}
+
+.workflow-description {
+  margin-bottom: 0.5rem;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 1rem;
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .workflow-container {
+  background-color: var(--ifm-card-background-color);
+}
+
 /* You can override the default Infima variables here. */
 :root {
   --ifm-color-primary: #4e57b9;
@@ -907,7 +947,6 @@ html[data-theme='light'] .mermaid svg {
 /* Improve code blocks */
 .prism-code {
   font-size: 0.9rem !important;
-  max-height: 500px;
   overflow-x: auto !important;
   border-radius: 8px !important;
 }
