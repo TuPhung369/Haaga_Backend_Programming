@@ -579,17 +579,6 @@ gantt
   </a>
 </div>
 
-<div className="cta-container">
-  <div className="cta-content">
-    <h3>Ready to Transform Your Enterprise?</h3>
-    <p>Discover how Enterprise Nexus can revolutionize your organization's productivity, security, and collaboration.</p>
-  </div>
-  <div className="cta-buttons">
-    <a href="/docs/getting-started" className="cta-button primary">Get Started</a>
-    <a href="/docs/demo" className="cta-button secondary">Request Demo</a>
-  </div>
-</div>
-
 <style>
 {`
   /* Banner styling */
