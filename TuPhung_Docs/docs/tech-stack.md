@@ -730,6 +730,22 @@ flowchart TD
     text-align: center;
   }
   
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .tech-stack-banner {
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+    
+    .tech-stack-banner-content h2 {
+      font-size: 1.6rem;
+    }
+    
+    .tech-stack-banner-content p {
+      font-size: 1rem;
+    }
+  }
+  
   .tech-stack-banner-content h2 {
     font-size: 1.8rem;
     font-weight: 600;
@@ -748,6 +764,13 @@ flowchart TD
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     margin-bottom: 40px;
+  }
+  
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .tech-stack-overview {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
   }
   
   .tech-stack-overview-item {
@@ -786,6 +809,26 @@ flowchart TD
     margin-bottom: 40px;
   }
   
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .tech-category {
+      margin-bottom: 30px;
+    }
+    
+    .tech-category-header {
+      margin-bottom: 15px;
+    }
+    
+    .tech-category-icon {
+      font-size: 1.8rem;
+      margin-right: 12px;
+    }
+    
+    .tech-category-title {
+      font-size: 1.4rem;
+    }
+  }
+  
   .tech-category-header {
     display: flex;
     align-items: center;
@@ -816,6 +859,13 @@ flowchart TD
     margin-bottom: 30px;
   }
   
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .tech-grid {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+  }
+  
   /* Card styling */
   .tech-card {
     background-color: #fff;
@@ -830,6 +880,33 @@ flowchart TD
     position: relative; /* For proper positioning */
     min-height: 240px; /* Ensure minimum height */
     border: 1px solid #f0f0f0;
+  }
+  
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .tech-card {
+      padding: 20px;
+      min-height: 220px;
+    }
+    
+    .tech-card-title {
+      font-size: 1.15rem;
+    }
+    
+    .tech-card-description {
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+    
+    .tech-card-feature {
+      font-size: 0.8rem;
+      padding: 5px 0;
+    }
+    
+    .tech-card-header-wrapper {
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+    }
   }
   
   html[data-theme='dark'] .tech-card {
@@ -946,6 +1023,31 @@ flowchart TD
     margin-top: 40px;
   }
   
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .tech-rationale {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    
+    .tech-rationale-item {
+      padding: 12px;
+    }
+    
+    .tech-rationale-icon {
+      font-size: 1.8rem;
+      margin-right: 12px;
+    }
+    
+    .tech-rationale-content h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+    
+    .tech-rationale-content p {
+      font-size: 0.85rem;
+    }
+  }
+  
   .tech-rationale-item {
     display: flex;
     align-items: flex-start;
@@ -998,6 +1100,72 @@ flowchart TD
   
   html[data-theme='dark'] .tech-rationale-content p {
     color: #b0b0b0;
+  }
+  
+  /* Tablet responsive adjustments */
+  @media (max-width: 996px) {
+    .tech-grid {
+      grid-template-columns: repeat(auto-fill, minmax(45%, 1fr));
+      gap: 20px;
+    }
+    
+    .tech-stack-overview {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    
+    .tech-rationale {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    
+    .tech-card {
+      padding: 20px;
+      min-height: 220px;
+    }
+    
+    .tech-stack-banner {
+      padding: 25px;
+    }
+    
+    .tech-stack-banner-content h2 {
+      font-size: 1.6rem;
+    }
+  }
+  
+  /* Mobile responsive adjustments */
+  @media (max-width: 576px) {
+    .tech-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .tech-stack-overview {
+      grid-template-columns: 1fr;
+    }
+    
+    .tech-card {
+      padding: 16px;
+    }
+    
+    .tech-stack-banner {
+      padding: 20px;
+    }
+    
+    .tech-stack-banner-content h2 {
+      font-size: 1.4rem;
+    }
+    
+    .tech-stack-banner-content p {
+      font-size: 0.9rem;
+    }
+    
+    .tech-category-title {
+      font-size: 1.3rem;
+    }
+    
+    .tech-category-icon {
+      font-size: 1.6rem;
+    }
   }
 `}
 </style>

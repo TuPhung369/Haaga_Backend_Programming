@@ -591,6 +591,18 @@ gantt
     text-align: center;
   }
   
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .intro-banner {
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+    
+    .intro-tagline h2 {
+      font-size: 1.6rem;
+    }
+  }
+  
   .intro-tagline h2 {
     font-size: 1.8rem;
     font-weight: 600;
@@ -628,12 +640,34 @@ gantt
     margin: 30px 0;
   }
   
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .intro-cards {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+  }
+  
   .intro-card {
     background-color: #f8f9fa;
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  /* Responsive adjustments for laptop screens */
+  @media (min-width: 997px) and (max-width: 1200px) {
+    .intro-card {
+      padding: 16px;
+    }
+    
+    .intro-card-title {
+      font-size: 1.15rem;
+    }
+    
+    .intro-card-description {
+      font-size: 0.9rem;
+    }
   }
   
   .intro-card:hover {
