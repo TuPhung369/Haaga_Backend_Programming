@@ -11,6 +11,6 @@ module.exports = [
   "./css/mermaid-gantt-fixes.css", // Fixes for Mermaid Gantt charts
   "./js/dropdown-closer.js", // Dropdown menu closer script
   "./js/frontend-category-enhancer.js", // Frontend category page enhancer
-  "./js/mermaid-gantt-enhancer.js" // Mermaid Gantt chart enhancer
+  "./js/mermaid-gantt-enhancer.js", // Mermaid Gantt chart enhancer
 ];
 

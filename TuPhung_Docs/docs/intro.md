@@ -58,8 +58,9 @@ graph LR
     %% Nodes
     V1[Intelligent Automation]:::vision
     V2[Seamless Integration]:::vision
-    V3[Adaptive Security]:::vision
     V4[Human-Centered Design]:::vision
+    V3[Adaptive Security]:::vision
+    
 
     O1[Operational Efficiency]:::outcome
     O2[Cross-functional Synergy]:::outcome
