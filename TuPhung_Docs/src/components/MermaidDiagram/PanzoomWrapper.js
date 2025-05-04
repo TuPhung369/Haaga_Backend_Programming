@@ -6,6 +6,23 @@ const PanzoomWrapper = ({ children }) => {
   const panzoomRef = useRef(null);
   const svgRef = useRef(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    // Check on initial load
+    checkIfMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkIfMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkIfMobile);
+  }, []);
 
   // Check initial theme and observe changes
   useEffect(() => {
@@ -133,94 +150,96 @@ const PanzoomWrapper = ({ children }) => {
   return (
     <div style={{ position: "relative" }}>
       <div ref={containerRef}>{children}</div>
-      <div
-        style={{
-          position: "absolute",
-          top: "15px",
-          right: "15px",
-          zIndex: 10,
-          display: "flex",
-          flexDirection: "row",
-          gap: "8px",
-          background: "transparent",
-        }}
-      >
-        <button
-          onClick={zoomIn}
-          className="panzoom-button"
-          title="Zoom In"
+      {!isMobile && (
+        <div
           style={{
-            width: "32px",
-            height: "32px",
+            position: "absolute",
+            top: "15px",
+            right: "15px",
+            zIndex: 10,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
+            flexDirection: "row",
+            gap: "8px",
             background: "transparent",
-            border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
-            borderRadius: "4px",
-            cursor: "pointer",
-            color: isDarkMode ? "#ffffff" : "#000000",
-            backdropFilter: "blur(2px)",
-            transition: "all 0.2s ease",
-            opacity: 0.7,
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
         >
-          ➕
-        </button>
-        <button
-          onClick={zoomOut}
-          className="panzoom-button"
-          title="Zoom Out"
-          style={{
-            width: "32px",
-            height: "32px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-            background: "transparent",
-            border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
-            borderRadius: "4px",
-            cursor: "pointer",
-            color: isDarkMode ? "#ffffff" : "#000000",
-            backdropFilter: "blur(2px)",
-            transition: "all 0.2s ease",
-            opacity: 0.7,
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
-        >
-          ➖
-        </button>
-        <button
-          onClick={resetZoom}
-          className="panzoom-button"
-          title="Reset"
-          style={{
-            width: "32px",
-            height: "32px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-            background: "transparent",
-            border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
-            borderRadius: "4px",
-            cursor: "pointer",
-            color: isDarkMode ? "#ffffff" : "#000000",
-            backdropFilter: "blur(2px)",
-            transition: "all 0.2s ease",
-            opacity: 0.7,
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
-        >
-          🔄
-        </button>
-      </div>
+          <button
+            onClick={zoomIn}
+            className="panzoom-button"
+            title="Zoom In"
+            style={{
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "14px",
+              background: "transparent",
+              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
+              borderRadius: "4px",
+              cursor: "pointer",
+              color: isDarkMode ? "#ffffff" : "#000000",
+              backdropFilter: "blur(2px)",
+              transition: "all 0.2s ease",
+              opacity: 0.7,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+          >
+            ➕
+          </button>
+          <button
+            onClick={zoomOut}
+            className="panzoom-button"
+            title="Zoom Out"
+            style={{
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "14px",
+              background: "transparent",
+              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
+              borderRadius: "4px",
+              cursor: "pointer",
+              color: isDarkMode ? "#ffffff" : "#000000",
+              backdropFilter: "blur(2px)",
+              transition: "all 0.2s ease",
+              opacity: 0.7,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+          >
+            ➖
+          </button>
+          <button
+            onClick={resetZoom}
+            className="panzoom-button"
+            title="Reset"
+            style={{
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "14px",
+              background: "transparent",
+              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
+              borderRadius: "4px",
+              cursor: "pointer",
+              color: isDarkMode ? "#ffffff" : "#000000",
+              backdropFilter: "blur(2px)",
+              transition: "all 0.2s ease",
+              opacity: 0.7,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+          >
+            🔄
+          </button>
+        </div>
+      )}
     </div>
   );
 };
