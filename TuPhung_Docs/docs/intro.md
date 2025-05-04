@@ -3,6 +3,8 @@ sidebar_position: 1
 sidebar_label: "Enterprise Nexus"
 ---
 
+import PanzoomWrapper from '../src/components/MermaidDiagram/PanzoomWrapper';
+
 # Enterprise Nexus
 
 <div className="intro-banner">
@@ -60,7 +62,7 @@ graph LR
     V2[Seamless Integration]:::vision
     V4[Human-Centered Design]:::vision
     V3[Adaptive Security]:::vision
-    
+
 
     O1[Operational Efficiency]:::outcome
     O2[Cross-functional Synergy]:::outcome
@@ -144,6 +146,9 @@ Enterprise Nexus delivers a comprehensive suite of capabilities designed to tran
 Enterprise Nexus is built on a modern, scalable architecture that leverages industry-leading technologies:
 
 ### System Architecture Diagram
+
+<PanzoomWrapper>
+<div id="system-architecture-diagram">
 
 ```mermaid
 flowchart TD
@@ -260,6 +265,9 @@ flowchart TD
     style AuthLayer fill:#E8EAF6,stroke:#9FA8DA,stroke-width:1px
     style DataLayer fill:#FFFDE7,stroke:#FFF176,stroke-width:1px
 ```
+
+</div>
+</PanzoomWrapper>
 
 ### Technology Stack
 
@@ -389,6 +397,9 @@ flowchart TD
 
 Enterprise Nexus implements a defense-in-depth security strategy with multiple layers of protection:
 
+<PanzoomWrapper>
+<div id="security-architecture-diagram">
+
 ```mermaid
 flowchart TD
     %% Styling
@@ -454,6 +465,9 @@ flowchart TD
     style IdentitySecurity fill:#F3E5F5,stroke:#E1BEE7,stroke-width:1px
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Key Security Features
 
 1. **Multi-layered Token Encryption** - Access and refresh tokens are encrypted twice with dynamically generated keys
@@ -510,12 +524,13 @@ study/
 
 Enterprise Nexus follows a strategic implementation approach:
 
-<div className="enhanced-gantt-chart">
+<PanzoomWrapper>
+<div id="implementation-roadmap-diagram">
 
 ```mermaid
 %%{
   init: {
-    'theme': 'base',
+    'theme': 'neutral',
     'gantt': {
       'barHeight': 40,
       'fontSize': 12,
@@ -548,7 +563,7 @@ gantt
     Social Login Integration     :         social,  2025-03-01, 7d
     Kanban Board Development     :         kanban,  2025-03-08, 7d
     Calendar Implementation      :         cal,     2025-03-16, 7d
-        
+
     section Advanced Features
     Assistant AI Implementation  :         ai,      2025-03-23, 10d
     Language AI Integration      :         lang,    2025-04-03, 12d
@@ -562,6 +577,7 @@ gantt
 ```
 
 </div>
+</PanzoomWrapper>
 
 ## Documentation Navigation
 

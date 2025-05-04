@@ -11,7 +11,7 @@ function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
   return (
     <header className={clsx("hero hero--primary", styles.heroBanner)}>
-      <div className="container">
+      <div className={clsx("container", styles.homeContainer)}>
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <p className={styles.heroDescription}>
@@ -20,10 +20,7 @@ function HomepageHeader() {
           tools, and enterprise-grade security.
         </p>
         <div className={styles.buttons}>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/intro"
-          >
+          <Link className={styles.primaryButton} to="/docs/intro">
             Explore Documentation
           </Link>
           <Link className={styles.demoButton} to="/docs/video/project-video">
@@ -38,10 +35,17 @@ function HomepageHeader() {
 function HomepageHighlights() {
   return (
     <section className={styles.highlights}>
-      <div className="container">
-        <div className="row">
-          <div className="col col--4">
+      <div className={clsx("container", styles.homeContainer)}>
+        <div className={styles.sectionTitle}>
+          <h2>Key Highlights</h2>
+          <p>Core capabilities that power our enterprise platform</p>
+        </div>
+        <div className={styles.highlightsGrid}>
+          <div className={styles.highlightCardContainer}>
             <div className={styles.highlightCard}>
+              <div className={styles.highlightCardIcon}>
+                <i className="fa fa-shield-alt"></i>
+              </div>
               <h3>Enterprise-Grade Security</h3>
               <p>
                 Multi-layered encryption with dynamically generated keys for
@@ -49,16 +53,22 @@ function HomepageHighlights() {
               </p>
             </div>
           </div>
-          <div className="col col--4">
+          <div className={styles.highlightCardContainer}>
             <div className={styles.highlightCard}>
+              <div className={styles.highlightCardIcon}>
+                <i className="fa fa-comments"></i>
+              </div>
               <h3>Real-time Collaboration</h3>
               <p>
                 WebSocket-based messaging system for instant team communication
               </p>
             </div>
           </div>
-          <div className="col col--4">
+          <div className={styles.highlightCardContainer}>
             <div className={styles.highlightCard}>
+              <div className={styles.highlightCardIcon}>
+                <i className="fa fa-robot"></i>
+              </div>
               <h3>AI Productivity Assistants</h3>
               <p>Intelligent virtual assistants to automate routine tasks</p>
             </div>
@@ -72,7 +82,7 @@ function HomepageHighlights() {
 function HomepageTestimonial() {
   return (
     <section className={styles.testimonial}>
-      <div className="container">
+      <div className={clsx("container", styles.homeContainer)}>
         <div className={styles.testimonialInner}>
           <h2>My Vision for Enterprise Solutions</h2>
           <blockquote>
@@ -95,7 +105,7 @@ function HomepageTestimonial() {
 function HomepageCTA() {
   return (
     <section className={styles.cta}>
-      <div className="container">
+      <div className={clsx("container", styles.homeContainer)}>
         <h2>Explore My Technical Expertise</h2>
         <p>
           Dive into the documentation to see how I've implemented advanced
@@ -108,7 +118,6 @@ function HomepageCTA() {
           <Link
             className="button button--outline button--lg"
             to="https://github.com/TuPhung369/Haaga_Backend_Programming"
-            style={{ marginLeft: "15px" }}
           >
             Discover on GitHub
           </Link>
@@ -125,13 +134,17 @@ export default function Home() {
       title={`Welcome to ${siteConfig.title}`}
       description="Enterprise Nexus - A cutting-edge enterprise management platform featuring advanced AI capabilities, real-time collaboration tools, and enterprise-grade security."
     >
-      <HomepageHeader />
-      <main>
-        <HomepageHighlights />
-        <HomepageFeatures />
-        <HomepageTestimonial />
-        <HomepageCTA />
-      </main>
+      <div className={styles.pageWrapper}>
+        <div className={styles.pageWrapper}>
+        <HomepageHeader />
+          <main>
+            <HomepageHighlights />
+            <HomepageFeatures />
+            <HomepageTestimonial />
+            <HomepageCTA />
+          </main>
+      </div>
+      </div>
     </Layout>
   );
 }

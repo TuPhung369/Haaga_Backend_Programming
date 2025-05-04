@@ -32,6 +32,8 @@ besser
 bobsmith
 browserslist
 Ceci
+CLIENTFB
+CLIENTGIT
 codesample
 contexte
 contexto
@@ -62,10 +64,12 @@ fflags
 ffprobe
 forecolor
 formatselect
+Fuoj
 genpts
 getcwd
 GLTF
 Glvbj
+googleusercontent
 gunicorn
 harjoittelemaan
 Harjoittelet
@@ -107,6 +111,7 @@ kuule
 kuullut
 ladata
 launchconfiguration
+Ldummy
 libopus
 libsndfile
 liian
@@ -127,6 +132,8 @@ modestbranding
 msword
 muuntaminen
 myöhemmin
+mysqladmin
+mysqldump
 NAQEBBQA
 nonbreaking
 nonheap
@@ -185,6 +192,7 @@ simulierte
 simuloitu
 sinua
 skulle
+slowquery
 Sprache
 språk
 ssml
@@ -195,6 +203,8 @@ suomea
 svar
 Systran
 Systran's
+TAAAAA
+TAAAAAGG
 Tämä
 Tarkista
 tarkistus
@@ -208,6 +218,7 @@ tunnistettu
 tunnistuksessa
 Txkm
 tyhjä
+UMIEGNQ
 UPRR
 usaría
 utiliserait
@@ -224,6 +235,7 @@ votre
 wordcount
 wordprocessingml
 würde
+Xfakedev
 Xkrq
 XVCJ
 Yritä

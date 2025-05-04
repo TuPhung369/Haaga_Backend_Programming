@@ -3,6 +3,10 @@
   align-items: center;
   padding: 4rem 0;
   width: 100%;
+  width: 100% !important;
+  max-width: var(--ifm-container-width) !important;
+  margin: 0 auto !important;
+  padding: 0 1rem !important;
 }
 
 /* Light mode features section */
@@ -20,6 +24,10 @@ html[data-theme='dark'] .features {
   align-items: center;
   padding: 4rem 0;
   width: 100%;
+  width: 100% !important;
+  max-width: var(--ifm-container-width) !important;
+  margin: 0 auto !important;
+  padding: 0 1rem !important;
 }
 
 /* Light mode tech stack section */
@@ -61,6 +69,32 @@ html[data-theme='dark'] .techStack {
   max-width: 700px;
   margin: 0 auto;
   color: var(--ifm-color-emphasis-700);
+}
+
+/* Home Container - Override global container styles */
+.homeContainer {
+  display: block !important;
+  width: 100% !important;
+  max-width: var(--ifm-container-width) !important;
+  margin: 0 auto !important;
+  padding: 0 1rem !important;
+  clear: both !important;
+}
+
+/* Home Row - Custom row for homepage */
+.homeRow {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Home Column - Custom column for homepage */
+.homeCol {
+  flex: 0 0 33.333333%;
+  max-width: 33.333333%;
+  padding: 0 1rem;
+  margin-bottom: 2rem;
 }
 
 .techStackCard {
@@ -152,10 +186,18 @@ html[data-theme='dark'] .techList li {
   }
   
   /* Fix column spacing on mobile */
-  .features .row,
-  .techStack .row {
+  .homeRow {
     margin-left: 0 !important;
     margin-right: 0 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+  }
+  
+  /* Adjust columns for tablet */
+  .homeCol {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
   }
 }
 
@@ -163,5 +205,11 @@ html[data-theme='dark'] .techList li {
   .featureSvg {
     height: 150px;
     width: 150px;
+  }
+  
+  /* Adjust columns for mobile */
+  .homeCol {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
   }
 }

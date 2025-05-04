@@ -3,6 +3,8 @@ sidebar_position: 3
 sidebar_label: "Architecture"
 ---
 
+import PanzoomWrapper from '../src/components/MermaidDiagram/PanzoomWrapper';
+
 # Architecture
 
 <div className="architecture-banner">
@@ -38,6 +40,9 @@ sidebar_label: "Architecture"
 ## System Architecture
 
 Enterprise Nexus implements a modern, layered architecture that ensures scalability, maintainability, and security:
+
+<PanzoomWrapper>
+<div id="layered-architecture-diagram">
 
 ```mermaid
 flowchart TD
@@ -123,6 +128,9 @@ flowchart TD
     style SecurityLayer fill:#FCE4EC,stroke:#F48FB1,stroke-width:1px
     style IntegrationLayer fill:#E8EAF6,stroke:#9FA8DA,stroke-width:1px
 ```
+
+</div>
+</PanzoomWrapper>
 
 <div className="architecture-category">
   <div className="architecture-category-header">
@@ -264,6 +272,9 @@ flowchart TD
 
 ### Authentication Flow
 
+<PanzoomWrapper>
+<div id="authentication-flow-diagram">
+
 ```mermaid
 sequenceDiagram
     %% Styling
@@ -299,7 +310,13 @@ sequenceDiagram
     note over Service,JWT: Token Generation
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Speech Processing Flow
+
+<PanzoomWrapper>
+<div id="speech-processing-flow-diagram">
 
 ```mermaid
 sequenceDiagram
@@ -340,7 +357,13 @@ sequenceDiagram
     note over Service,TTS: AI Processing
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Task Management Flow
+
+<PanzoomWrapper>
+<div id="task-management-flow-diagram">
 
 ```mermaid
 flowchart TD
@@ -372,6 +395,9 @@ flowchart TD
     class C,H,L storage
     class E notification
 ```
+
+</div>
+</PanzoomWrapper>
 
 <div className="architecture-category">
   <div className="architecture-category-header">

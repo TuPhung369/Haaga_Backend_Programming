@@ -3,6 +3,8 @@ sidebar_position: 6
 sidebar_label: "Deployment Guide"
 ---
 
+import PanzoomWrapper from '../src/components/MermaidDiagram/PanzoomWrapper';
+
 # Deployment Guide
 
 This guide provides comprehensive instructions for deploying the TuPhung Project across various environments, from local development to production cloud infrastructure.
@@ -10,6 +12,9 @@ This guide provides comprehensive instructions for deploying the TuPhung Project
 ## Deployment Architecture and Components
 
 ### System Architecture
+
+<PanzoomWrapper>
+<div id="deployment-system-architecture">
 
 ```mermaid
 classDiagram
@@ -110,7 +115,13 @@ classDiagram
     InfrastructureComponents *-- ContainerOrchestration
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Deployment Environments
+
+<PanzoomWrapper>
+<div id="deployment-environments-diagram">
 
 ```mermaid
 flowchart TD
@@ -192,6 +203,9 @@ flowchart TD
     style Production fill:#e0f0ff,stroke:#999,stroke-width:1px
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Prerequisites
 
 Before deploying the application, ensure you have the following:
@@ -223,6 +237,9 @@ Before deploying the application, ensure you have the following:
 ## Deployment Workflows
 
 ### Local Development Workflow
+
+<PanzoomWrapper>
+<div id="local-development-workflow-diagram">
 
 ```mermaid
 flowchart TD
@@ -264,7 +281,13 @@ flowchart TD
     class ParallelSetup decisionNode
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Deployment Sequence
+
+<PanzoomWrapper>
+<div id="deployment-sequence-diagram">
 
 ```mermaid
 sequenceDiagram
@@ -312,6 +335,9 @@ sequenceDiagram
         Dev->>Prod: Verify deployment
     end
 ```
+
+</div>
+</PanzoomWrapper>
 
 ## Local Development Environment
 
@@ -470,6 +496,9 @@ To containerize the application, you'll need to create Docker configuration file
 
 ### Containerization Architecture
 
+<PanzoomWrapper>
+<div id="containerization-architecture-diagram">
+
 ```mermaid
 flowchart TD
     %% Styling
@@ -558,6 +587,9 @@ flowchart TD
     style Networks fill:#fff8e1,stroke:#ddd,stroke-width:1px
     style Configs fill:#fce4ec,stroke:#ddd,stroke-width:1px
 ```
+
+</div>
+</PanzoomWrapper>
 
 ### Docker Configuration Files
 
@@ -735,6 +767,9 @@ volumes:
 
 ### Docker Deployment Workflow
 
+<PanzoomWrapper>
+<div id="docker-deployment-workflow-diagram">
+
 ```mermaid
 sequenceDiagram
     %% Participants
@@ -794,6 +829,9 @@ sequenceDiagram
         Docker->>Dev: Health status
     end
 ```
+
+</div>
+</PanzoomWrapper>
 
 ### Using Docker Compose
 
@@ -1088,6 +1126,9 @@ sequenceDiagram
 
 ### AWS Architecture
 
+<PanzoomWrapper>
+<div id="aws-architecture-diagram">
+
 ```mermaid
 flowchart TD
     %% Styling
@@ -1200,7 +1241,13 @@ flowchart TD
     style Monitoring fill:#F3F9E7,stroke:#ddd,stroke-width:1px
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### AWS Deployment Workflow
+
+<PanzoomWrapper>
+<div id="aws-deployment-workflow-diagram">
 
 ```mermaid
 sequenceDiagram
@@ -1262,6 +1309,9 @@ sequenceDiagram
         Dev->>Dev: Run integration tests
     end
 ```
+
+</div>
+</PanzoomWrapper>
 
 ### Backend Deployment to AWS Elastic Beanstalk
 

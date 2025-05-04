@@ -10,13 +10,21 @@ module.exports = function (context, options) {
             innerHTML: `
               /* Reset styles for plugin-bookmark to prevent overlap */
               #plugin-bookmark {
-                background: transparent !important;
-                background-color: transparent !important;
+                background: rgba(78, 87, 185, 0.0) !important;
+                background-color: rgba(78, 87, 185, 0.0) !important;
                 background-image: none !important;
-                border: none !important;
-                box-shadow: none !important;
+                border: 1px solid rgba(78, 87, 185, 1) !important;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                position: fixed !important;
+                right: 15px !important;
+                top: 75px !important;
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 50% !important;
+                overflow: hidden !important;
+                transition: all 0.3s ease !important;
               }
               
               /* Reset for all children of plugin-bookmark */
@@ -29,27 +37,30 @@ module.exports = function (context, options) {
               
               /* Override styles when active */
               #plugin-bookmark.active {
-                background: white !important;
-                background-color: white !important;
-                border: 1px solid #e0e0e0 !important;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-                right: 25px !important;
+                background: linear-gradient(to bottom, white, rgba(78, 87, 185, 0.8)) !important;
+                background-color: transparent !important;
+                border: 1px solid rgba(78, 87, 185, 0.5) !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+                right: 15px !important;
                 top: 75px !important;
+                width: 350px !important;
+                height: auto !important;
+                border-radius: 8px !important;
               }
               
               #plugin-bookmark.active > div {
-                background: white !important;
-                background-color: white !important;
+                background: transparent !important;
+                background-color: transparent !important;
               }
               
               #plugin-bookmark.active ul {
-                background: white !important;
-                background-color: white !important;
+                background: transparent !important;
+                background-color: transparent !important;
               }
               
               #plugin-bookmark.active a {
-                background: white !important;
-                background-color: white !important;
+                background: transparent !important;
+                background-color: transparent !important;
               }
               
               #plugin-bookmark.active a:hover {
@@ -203,7 +214,7 @@ module.exports = function (context, options) {
                   bookmarkContainer.innerHTML = 
                     '<div id="plugin-bookmark" style="' +
                       'position: fixed;' +
-                      'right: 25px;' +
+                      'right: 15px;' +
                       'top: 75px;' +
                       'width: 350px;' +
                       'background: transparent;' +
@@ -224,20 +235,27 @@ module.exports = function (context, options) {
                   titleContainer.innerHTML = 
                     '<div style="' +
                       'background: transparent;' +
-                      'padding: 8px 12px;' +
+                      'padding: 0;' +
                       'font-weight: bold;' +
                       'text-align: center;' +
                       'cursor: pointer;' +
                       'border: none;' +
-                      'border-radius: 8px;' +
+                      'border-radius: 50%;' +
+                      'width: 40px;' +
+                      'height: 40px;' +
+                      'display: flex;' +
+                      'align-items: center;' +
+                      'justify-content: center;' +
                     '">' +
-                      '<div style="' +
-                        'display: inline-block;' +
+                      '<div class="bookmark-title-content" style="' +
+                        'display: flex;' +
+                        'align-items: center;' +
+                        'justify-content: center;' +
                         'color: #4e57b9;' +
                         'font-weight: bold;' +
                         'font-size: 16px;' +
-                        'padding-left: 40px;' +
-                      '"><span style="margin-right: 5px; font-size: 1.1em;">&#9733;</span> Bookmark</div>' +
+                        'width: 100%;' +
+                      '"><span class="bookmark-icon" style="font-size: 30px; line-height: 30px;">&#9733;</span><span class="bookmark-text" style="margin-left: 5px; display: none;">Bookmark</span></div>' +
                     '</div>';
                   
                   const title = titleContainer.firstElementChild;
@@ -281,38 +299,58 @@ module.exports = function (context, options) {
                     
                     // Cập nhật bookmark
                     bookmark.setAttribute('style', 
-                      'position: fixed;' +
-                      'right: 25px;' +
-                      'top: 75px;' +
-                      'width: 350px;' +
-                      'background: white !important;' +
-                      'background-color: white !important;' +
-                      'border: 1px solid #e0e0e0;' +
-                      'border-radius: 8px;' +
-                      'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);' +
-                      'z-index: 9999;' +
-                      'overflow: hidden;' +
-                      'font-family: Arial, sans-serif;' +
-                      'display: flex;' +
-                      'flex-direction: column;' +
-                      'opacity: 1 !important;'
+                      'position: fixed !important;' +
+                      'right: 15px !important;' +
+                      'top: 75px !important;' +
+                      'width: 350px !important;' +
+                      'height: auto !important;' +
+                      'background: linear-gradient(to right, white, rgba(78, 87, 185, 0.8)) !important;' +
+                      'background-color: transparent !important;' +
+                      'border: 1px solid rgba(78, 87, 185, 0.5) !important;' +
+                      'border-radius: 8px !important;' +
+                      'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;' +
+                      'z-index: 9999 !important;' +
+                      'overflow: hidden !important;' +
+                      'font-family: Arial, sans-serif !important;' +
+                      'display: flex !important;' +
+                      'flex-direction: column !important;' +
+                      'opacity: 1 !important;' +
+                      'transition: all 0.3s ease !important;'
                     );
                     
                     // Cập nhật tiêu đề
                     title.setAttribute('style', 
-                      'background: white !important;' +
-                      'background-color: white !important;' +
-                      'padding: 8px 12px;' +
-                      'font-weight: bold;' +
-                      'text-align: center;' +
-                      'cursor: pointer;' +
-                      'border: none;' +
-                      'border-radius: 8px 8px 0 0;' +
-                      'opacity: 1 !important;'
+                      'background: transparent !important;' +
+                      'background-color: transparent !important;' +
+                      'padding: 8px 12px !important;' +
+                      'font-weight: bold !important;' +
+                      'text-align: left !important;' +
+                      'cursor: pointer !important;' +
+                      'border: none !important;' +
+                      'border-radius: 8px 8px 0 0 !important;' +
+                      'opacity: 1 !important;' +
+                      'width: auto !important;' +
+                      'height: auto !important;' +
+                      'display: block !important;'
                     );
                     
+                    // Hiển thị text "Bookmark" khi mở
+                    const bookmarkText = title.querySelector('.bookmark-text');
+                    if (bookmarkText) {
+                      bookmarkText.style.display = 'inline';
+                    }
+                    
                     // Cập nhật nội dung tiêu đề
-                    titleContent.style.paddingLeft = '40px';
+                    titleContent.setAttribute('style',
+                      'display: flex !important;' +
+                      'align-items: center !important;' +
+                      'color: #4e57b9 !important;' +
+                      'font-weight: bold !important;' +
+                      'font-size: 16px !important;' +
+                      'padding-left: 40px !important;' +
+                      'justify-content: flex-start !important;' +
+                      'width: 100% !important;'
+                    );
                     
                     // Cập nhật nội dung
                     content.setAttribute('style', 
@@ -321,8 +359,8 @@ module.exports = function (context, options) {
                       'max-height: 500px;' +
                       'height: auto;' +
                       'overflow-y: auto;' +
-                      'background-color: white !important;' +
-                      'background: white !important;' +
+                      'background-color: transparent !important;' +
+                      'background: transparent !important;' +
                       'border-top: 1px solid #eee;' +
                       'border-radius: 0 0 8px 8px;' +
                       'flex: 1;' +
@@ -337,53 +375,77 @@ module.exports = function (context, options) {
                     
                     // Đặt các thuộc tính trước khi ẩn
                     content.setAttribute('style', 
-                      'padding: 0;' +
-                      'max-height: 0;' +
-                      'height: 0;' +
-                      'min-height: 0;' +
-                      'overflow: hidden;' +
-                      'transition: all 0.3s ease;' +
-                      'background-color: transparent;' +
-                      'background: transparent;' +
-                      'background-image: none;' +
-                      'border: none;' +
-                      'border-top: 0;' +
-                      'border-radius: 0 0 8px 8px;' +
-                      'flex: 0;' +
-                      'display: none;'
+                      'padding: 0 !important;' +
+                      'max-height: 0 !important;' +
+                      'height: 0 !important;' +
+                      'min-height: 0 !important;' +
+                      'overflow: hidden !important;' +
+                      'transition: all 0.3s ease !important;' +
+                      'background-color: transparent !important;' +
+                      'background: transparent !important;' +
+                      'background-image: none !important;' +
+                      'border: none !important;' +
+                      'border-top: 0 !important;' +
+                      'border-radius: 0 0 8px 8px !important;' +
+                      'flex: 0 !important;' +
+                      'display: none !important;'
+                    );
+                    
+                    // Ẩn text "Bookmark" khi đóng
+                    const bookmarkText = title.querySelector('.bookmark-text');
+                    if (bookmarkText) {
+                      bookmarkText.style.display = 'none';
+                    }
+                    
+                    // Cập nhật nội dung tiêu đề để đảm bảo icon ở giữa
+                    titleContent.setAttribute('style',
+                      'display: flex !important;' +
+                      'align-items: center !important;' +
+                      'justify-content: center !important;' +
+                      'color: #4e57b9 !important;' +
+                      'font-weight: bold !important;' +
+                      'font-size: 16px !important;' +
+                      'width: 100% !important;' +
+                      'padding-left: 0 !important;'
                     );
                     
                     // Ẩn hoàn toàn sau một khoảng thời gian ngắn
                     setTimeout(function() {
-                      // Cập nhật bookmark
+                      // Cập nhật bookmark - chỉ hiển thị icon hình tròn
                       bookmark.setAttribute('style', 
-                        'position: fixed;' +
-                        'right: 25px;' +
-                        'top: 75px;' +
-                        'width: 350px;' +
-                        'background: transparent;' +
-                        'border: none;' +
-                        'border-radius: 8px;' +
-                        'z-index: 9999;' +
-                        'overflow: hidden;' +
-                        'font-family: Arial, sans-serif;' +
-                        'display: flex;' +
-                        'flex-direction: column;'
+                        'position: fixed !important;' +
+                        'right: 15px !important;' +
+                        'top: 75px !important;' +
+                        'width: 40px !important;' +
+                        'height: 40px !important;' +
+                        'background: rgba(78, 87, 185, 0.0) !important;' +
+                        'background-color: rgba(78, 87, 185, 0.0) !important;' +
+                        'border: 1px solid rgba(78, 87, 185, 1) !important;' +
+                        'box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;' +
+                        'border-radius: 50% !important;' +
+                        'z-index: 9999 !important;' +
+                        'overflow: hidden !important;' +
+                        'font-family: Arial, sans-serif !important;' +
+                        'display: flex !important;' +
+                        'flex-direction: column !important;' +
+                        'transition: all 0.3s ease !important;'
                       );
                       
-                      // Cập nhật tiêu đề
+                      // Cập nhật tiêu đề - chỉ hiển thị icon
                       title.setAttribute('style', 
-                        'background: transparent;' +
-                        'padding: 8px 12px;' +
-                        'font-weight: bold;' +
-                        'text-align: center;' +
-                        'cursor: pointer;' +
-                        'border: none;' +
-                        'border-radius: 8px;'
+                        'background: transparent !important;' +
+                        'padding: 0 !important;' +
+                        'font-weight: bold !important;' +
+                        'text-align: center !important;' +
+                        'cursor: pointer !important;' +
+                        'border: none !important;' +
+                        'border-radius: 50% !important;' +
+                        'width: 40px !important;' +
+                        'height: 40px !important;' +
+                        'display: flex !important;' +
+                        'align-items: center !important;' +
+                        'justify-content: center !important;'
                       );
-                      
-                      // Cập nhật nội dung tiêu đề
-                      titleContent.style.paddingLeft = '40px';
                     }, 300);
                   };
                   
@@ -435,8 +497,8 @@ module.exports = function (context, options) {
                         
                         // Thêm hiệu ứng hover với background opacity 0.5
                         link.addEventListener('mouseover', function() {
-                          this.style.backgroundColor = 'rgba(78, 87, 185, 0.5)';
-                          this.style.background = 'rgba(78, 87, 185, 0.5)';
+                          this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
+                          this.style.background = 'rgba(78, 87, 185, 0.6)';
                           this.style.color = '#ffffff';
                           this.style.opacity = '1';
                         });
@@ -449,9 +511,15 @@ module.exports = function (context, options) {
                         });
                         
                         // Thêm sự kiện click để đóng bookmark khi click vào link
-                        link.addEventListener('click', function() {
+                        link.addEventListener('click', function(e) {
+                          // Ngăn chặn sự kiện click lan ra document để tránh đóng bookmark ngay lập tức
+                          e.stopPropagation();
+                          
                           // Đóng bookmark sau khi click vào link
-                          setTimeout(closeBookmark, 100);
+                          setTimeout(function() {
+                            closeBookmark();
+                            isOpen = false;
+                          }, 100);
                         });
                         
                         item.appendChild(link);
@@ -465,68 +533,136 @@ module.exports = function (context, options) {
                   bookmark.appendChild(title);
                   bookmark.appendChild(content);
                   
-                  // Biến để theo dõi trạng thái hover
+                  // Biến để theo dõi trạng thái bookmark
+                  let isOpen = false;
+                  let hoverTimer = null;
+                  let leaveTimer = null;
                   let isHovering = false;
                   
-                  // Thêm sự kiện hover để mở bookmark
+                  // Sử dụng hover để mở bookmark với độ trễ để tránh mở/đóng liên tục
                   bookmark.addEventListener('mouseenter', function() {
                     isHovering = true;
-                    // Đảm bảo bookmark mở ngay cả khi mới tải trang
-                    setTimeout(function() {
-                      if (isHovering) { // Chỉ mở nếu vẫn đang hover
-                        openBookmark();
-                      }
-                    }, 50);
-                  });
-                  
-                  // Thêm sự kiện mouseleave để đóng bookmark khi di chuột ra ngoài
-                  bookmark.addEventListener('mouseleave', function() {
-                    isHovering = false;
-                    // Đợi một chút trước khi đóng để tránh đóng quá nhanh
-                    setTimeout(function() {
-                      if (!isHovering) { // Chỉ đóng nếu không còn hover
-                        closeBookmark();
-                      }
-                    }, 50);
-                  });
-                  
-                  // Thêm sự kiện click cho tiêu đề để đóng nội dung
-                  title.addEventListener('click', function() {
-                    if (content.style.maxHeight === '0px' || content.style.maxHeight === '') {
-                      openBookmark();
-                    } else {
-                      closeBookmark();
+                    
+                    // Xóa timer đóng nếu đang có
+                    if (leaveTimer) {
+                      clearTimeout(leaveTimer);
+                      leaveTimer = null;
+                    }
+                    
+                    // Đặt timer để mở bookmark sau một khoảng thời gian
+                    if (!isOpen && !hoverTimer) {
+                      hoverTimer = setTimeout(function() {
+                        if (isHovering) {
+                          openBookmark();
+                          isOpen = true;
+                        }
+                        hoverTimer = null;
+                      }, 300); // Độ trễ dài hơn để tránh mở khi di chuột qua nhanh
                     }
                   });
                   
+                  // Sự kiện mouseleave để đóng bookmark
+                  bookmark.addEventListener('mouseleave', function() {
+                    isHovering = false;
+                    
+                    // Xóa timer mở nếu đang có
+                    if (hoverTimer) {
+                      clearTimeout(hoverTimer);
+                      hoverTimer = null;
+                    }
+                    
+                    // Đặt timer để đóng bookmark sau một khoảng thời gian
+                    if (isOpen && !leaveTimer) {
+                      leaveTimer = setTimeout(function() {
+                        if (!isHovering) {
+                          closeBookmark();
+                          isOpen = false;
+                        }
+                        leaveTimer = null;
+                      }, 500); // Độ trễ dài hơn để tránh đóng quá nhanh
+                    }
+                  });
+                  
+                  // Thêm sự kiện click cho bookmark để toggle trạng thái
+                  bookmark.addEventListener('click', function(e) {
+                    // Chỉ xử lý click trên bookmark hoặc title, không xử lý click trên nội dung
+                    if (e.target === bookmark || e.target === title || e.target.closest('#plugin-bookmark > div:first-child') !== null) {
+                      if (!isOpen) {
+                        openBookmark();
+                        isOpen = true;
+                      } else {
+                        closeBookmark();
+                        isOpen = false;
+                      }
+                      
+                      // Xóa các timer nếu đang có
+                      if (hoverTimer) {
+                        clearTimeout(hoverTimer);
+                        hoverTimer = null;
+                      }
+                      if (leaveTimer) {
+                        clearTimeout(leaveTimer);
+                        leaveTimer = null;
+                      }
+                    }
+                  });
+                  
+                  // Không cần thêm sự kiện click cho tiêu đề vì đã xử lý ở bookmark click
+                  
                   // Đảm bảo trạng thái ban đầu là sạch - sử dụng setAttribute để đặt lại hoàn toàn
                   bookmark.setAttribute('style', 
-                    'position: fixed;' +
-                    'right: 25px;' +
-                    'top: 75px;' +
-                    'width: 350px;' +
-                    'background: transparent;' +
-                    'border: none;' +
-                    'border-radius: 8px;' +
-                    'z-index: 9999;' +
-                    'overflow: hidden;' +
-                    'font-family: Arial, sans-serif;' +
-                    'display: flex;' +
-                    'flex-direction: column;'
+                    'position: fixed !important;' +
+                    'right: 15px !important;' +
+                    'top: 75px !important;' +
+                    'width: 40px !important;' +
+                    'height: 40px !important;' +
+                    'background: rgba(78, 87, 185, 0.0) !important;' +
+                    'background-color: rgba(78, 87, 185, 0.0) !important;' +
+                    'border: 1px solid rgba(78, 87, 185, 1) !important;' +
+                    'box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;' +
+                    'border-radius: 50% !important;' +
+                    'z-index: 9999 !important;' +
+                    'overflow: hidden !important;' +
+                    'font-family: Arial, sans-serif !important;' +
+                    'display: flex !important;' +
+                    'flex-direction: column !important;' +
+                    'transition: all 0.3s ease !important;' +
+                    'cursor: pointer !important;'
                   );
                   
+                  // Đảm bảo tiêu đề hiển thị đúng ở trạng thái ban đầu
                   title.setAttribute('style', 
-                    'background: transparent;' +
-                    'padding: 8px 12px;' +
-                    'font-weight: bold;' +
-                    'text-align: center;' +
-                    'cursor: pointer;' +
-                    'border: none;' +
-                    'border-radius: 8px;'
+                    'background: transparent !important;' +
+                    'padding: 0 !important;' +
+                    'font-weight: bold !important;' +
+                    'text-align: center !important;' +
+                    'cursor: pointer !important;' +
+                    'border: none !important;' +
+                    'border-radius: 50% !important;' +
+                    'width: 40px !important;' +
+                    'height: 40px !important;' +
+                    'display: flex !important;' +
+                    'align-items: center !important;' +
+                    'justify-content: center !important;'
                   );
                   
-                  // Set initial padding for title content
-                  titleContent.style.paddingLeft = '40px';
+                  // Ẩn text "Bookmark" ở trạng thái ban đầu
+                  const bookmarkText = title.querySelector('.bookmark-text');
+                  if (bookmarkText) {
+                    bookmarkText.style.display = 'none';
+                  }
+                  
+                  // Đảm bảo icon ở giữa ở trạng thái ban đầu
+                  titleContent.setAttribute('style',
+                    'display: flex !important;' +
+                    'align-items: center !important;' +
+                    'justify-content: center !important;' +
+                    'color: #4e57b9 !important;' +
+                    'font-weight: bold !important;' +
+                    'font-size: 16px !important;' +
+                    'width: 100% !important;' +
+                    'padding-left: 0 !important;'
+                  );
                   
                   content.setAttribute('style', 
                     'padding: 0;' +

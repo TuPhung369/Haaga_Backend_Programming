@@ -1,0 +1,317 @@
+/**
+ * Mermaid diagram styles
+ * This file contains all styles related to mermaid diagrams
+ */
+
+/* Styles for mermaid wrapper */
+.mermaid-wrapper {
+  overflow-x: scroll !important; /* Force scroll instead of auto */
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-right: 20px !important;
+  display: block !important;
+  -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+  scrollbar-width: thin !important; /* For Firefox */
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05) !important; /* For Firefox */
+}
+
+/* Style scrollbars for better visibility */
+.mermaid-wrapper::-webkit-scrollbar {
+  height: 8px !important;
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.mermaid-wrapper::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 4px !important;
+}
+
+.mermaid-wrapper::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dark mode scrollbar */
+[data-theme='dark'] .mermaid-wrapper::-webkit-scrollbar {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme='dark'] .mermaid-wrapper::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme='dark'] .mermaid-wrapper::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Base styles for all mermaid diagrams */
+.mermaid {
+  overflow-x: visible !important; /* Let wrapper handle scrolling */
+  text-align: center !important;
+  margin: 1rem 0 !important;
+  display: inline-block !important; /* Important for proper width calculation */
+  width: auto !important;
+  max-width: none !important; /* Allow content to determine width */
+  min-width: 600px !important; /* Ensure minimum width for content */
+  position: relative !important;
+}
+
+/* Ensure SVG inside mermaid has consistent size */
+.mermaid svg {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Fix for specific flowchart diagrams */
+[id^="flowchart-"] {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: auto !important;
+  overflow-x: auto !important;
+}
+
+/* Fix for mermaid diagrams on large screens */
+@media (max-width: 1440px) {
+  .mermaid {
+    min-width: 600px !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+}
+
+/* Workflow container mermaid styles */
+.workflow-container .mermaid {
+  overflow-x: auto !important;
+  text-align: center !important;
+  margin: 1rem 0 !important;
+  width: auto !important;
+  min-width: 600px !important;
+  max-width: 100% !important;
+  position: relative !important;
+  padding-right: 20px !important;
+}
+
+/* Fix for specific flowchart diagrams in workflow container */
+.workflow-container [id^="flowchart-"] {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 600px !important;
+  overflow-x: auto !important;
+}
+
+/* Ensure SVG inside workflow container mermaid has consistent size */
+.workflow-container .mermaid svg {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Ensure all elements inside mermaid diagrams are visible */
+.mermaid g,
+.mermaid path,
+.mermaid rect,
+.mermaid circle,
+.mermaid ellipse,
+.mermaid polygon,
+.mermaid text {
+  overflow: visible !important;
+}
+
+/* Small and Medium screen adjustments for mermaid diagrams */
+@media (min-width: 320px) and (max-width: 996px) {
+  /* Make all mermaid diagrams scrollable regardless of container - EXACT COPY FROM MOBILE */
+  .mermaid-wrapper {
+    overflow-x: scroll !important; /* Force scroll instead of auto */
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-right: 20px !important;
+    display: block !important;
+    -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+    scrollbar-width: thin !important; /* For Firefox */
+    scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05) !important; /* For Firefox */
+    
+    /* Force horizontal scrollbar to appear */
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+  }
+  
+  .mermaid {
+    overflow-x: visible !important; /* Let wrapper handle scrolling */
+    text-align: center !important;
+    margin: 1rem 0 !important;
+    display: inline-block !important; /* Important for proper width calculation */
+    width: auto !important;
+    max-width: none !important; /* Allow content to determine width */
+    min-width: 600px !important; /* Ensure minimum width for content */
+    position: relative !important;
+    padding-right: 20px !important;
+  }
+  
+  /* Fix for specific flowchart diagrams */
+  [id^="flowchart-"] {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 600px !important;
+    overflow-x: auto !important;
+  }
+  
+  /* Ensure SVG inside mermaid has consistent size */
+  .mermaid svg {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Special handling for mermaid diagrams in workflow container */
+  .workflow-container .mermaid-wrapper {
+    overflow-x: scroll !important; /* Force scroll instead of auto */
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-right: 20px !important;
+    display: block !important;
+    -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+    scrollbar-width: thin !important; /* For Firefox */
+    scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05) !important; /* For Firefox */
+    
+    /* Force horizontal scrollbar to appear */
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+  }
+  
+  .workflow-container .mermaid {
+    overflow-x: visible !important; /* Let wrapper handle scrolling */
+    text-align: center !important;
+    margin: 1rem 0 !important;
+    display: inline-block !important; /* Important for proper width calculation */
+    width: auto !important;
+    max-width: none !important; /* Allow content to determine width */
+    min-width: 600px !important; /* Ensure minimum width for content */
+    position: relative !important;
+    padding-right: 20px !important;
+  }
+  
+  /* Ensure SVG inside workflow container mermaid has consistent size */
+  .workflow-container .mermaid svg {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
+
+/* Small screen specific adjustments for mermaid diagrams */
+@media (min-width: 320px) and (max-width: 576px) {
+  /* Make all mermaid diagrams scrollable with minimal margins */
+  .mermaid-wrapper {
+    max-width: calc(100vw - 10px) !important;
+    width: calc(100vw - 10px) !important;
+    padding-right: 10px !important;
+  }
+  
+  /* Special handling for mermaid diagrams in workflow container */
+  .workflow-container .mermaid-wrapper {
+    max-width: calc(100vw - 10px) !important;
+    width: calc(100vw - 10px) !important;
+    padding-right: 10px !important;
+  }
+}
+
+/* Mobile screen adjustments for mermaid diagrams */
+@media (max-width: 768px) {
+  /* Fix mermaid diagrams on mobile */
+  .mermaid-wrapper {
+    overflow-x: scroll !important; /* Force scroll instead of auto */
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-right: 20px !important;
+    display: block !important;
+    -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+    scrollbar-width: thin !important; /* For Firefox */
+    scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05) !important; /* For Firefox */
+    
+    /* Force horizontal scrollbar to appear */
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+  }
+  
+  .mermaid {
+    overflow-x: visible !important; /* Let wrapper handle scrolling */
+    text-align: center !important;
+    margin: 1rem 0 !important;
+    display: inline-block !important; /* Important for proper width calculation */
+    width: auto !important;
+    max-width: none !important; /* Allow content to determine width */
+    min-width: 600px !important; /* Ensure minimum width for content */
+    position: relative !important;
+    padding-right: 20px !important;
+  }
+  
+  /* Ensure SVG inside mermaid has consistent size on mobile */
+  .mermaid svg {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Ensure all elements inside mermaid diagrams are visible */
+  .mermaid g,
+  .mermaid path,
+  .mermaid rect,
+  .mermaid circle,
+  .mermaid ellipse,
+  .mermaid polygon,
+  .mermaid text {
+    overflow: visible !important;
+  }
+  
+  /* Fix mermaid diagrams in workflow container on mobile */
+  .workflow-container .mermaid-wrapper {
+    overflow-x: scroll !important; /* Force scroll instead of auto */
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-right: 20px !important;
+    display: block !important;
+    -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+    scrollbar-width: thin !important; /* For Firefox */
+    scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05) !important; /* For Firefox */
+    
+    /* Force horizontal scrollbar to appear */
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+  }
+  
+  .workflow-container .mermaid {
+    overflow-x: visible !important; /* Let wrapper handle scrolling */
+    text-align: center !important;
+    margin: 1rem 0 !important;
+    display: inline-block !important; /* Important for proper width calculation */
+    width: auto !important;
+    max-width: none !important; /* Allow content to determine width */
+    min-width: 600px !important; /* Ensure minimum width for content */
+    position: relative !important;
+    padding-right: 20px !important;
+  }
+  
+  /* Ensure SVG inside workflow container mermaid has consistent size on mobile */
+  .workflow-container .mermaid svg {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

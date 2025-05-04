@@ -73,7 +73,7 @@ const TechStackList = [
 
 function Feature({ Svg, title, description }) {
   return (
-    <div className={clsx("col col--4")}>
+    <div className={styles.homeCol}>
       <div className="text--center">
         <Svg className={styles.featureSvg} role="img" />
       </div>
@@ -87,7 +87,7 @@ function Feature({ Svg, title, description }) {
 
 function TechStack({ title, items }) {
   return (
-    <div className={clsx("col col--4")}>
+    <div className={styles.homeCol}>
       <div className={styles.techStackCard}>
         <h3>{title}</h3>
         <ul className={styles.techList}>
@@ -104,7 +104,7 @@ export default function HomepageFeatures() {
   return (
     <>
       <section className={styles.features}>
-        <div className="container">
+        <div className={styles.homeContainer}>
           <div className={styles.sectionTitle}>
             <h2>Key Features</h2>
             <p>
@@ -112,7 +112,7 @@ export default function HomepageFeatures() {
               modern enterprises
             </p>
           </div>
-          <div className="row">
+          <div className={styles.homeRow}>
             {FeatureList.map((props, idx) => (
               <Feature key={idx} {...props} />
             ))}
@@ -121,7 +121,7 @@ export default function HomepageFeatures() {
       </section>
 
       <section className={styles.techStack}>
-        <div className="container">
+        <div className={styles.homeContainer}>
           <div className={styles.sectionTitle}>
             <h2>Cutting-Edge Technology Stack</h2>
             <p>
@@ -129,7 +129,7 @@ export default function HomepageFeatures() {
               security, and scalability
             </p>
           </div>
-          <div className="row">
+          <div className={styles.homeRow}>
             {TechStackList.map((props, idx) => (
               <TechStack key={idx} {...props} />
             ))}

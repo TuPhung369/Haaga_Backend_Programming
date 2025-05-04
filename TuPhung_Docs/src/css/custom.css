@@ -4,6 +4,9 @@
  * work well for content-centric websites.
  */
 
+/* Import mermaid styles */
+@import './mermaid.css';
+
 /* Workflow Container Styles */
 .workflow-container {
   margin: 0 0 2rem 0;
@@ -12,6 +15,15 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-left: 4px solid var(--ifm-color-primary);
+  position: relative;
+}
+
+
+
+/* Ensure code blocks in workflow container are properly styled */
+.workflow-container pre {
+  margin-bottom: 1rem;
+  overflow-x: auto;
 }
 
 .workflow-header {
@@ -42,6 +54,245 @@
 /* Dark mode adjustments */
 [data-theme='dark'] .workflow-container {
   background-color: var(--ifm-card-background-color);
+}
+
+/* Small and Medium screen adjustments for workflow container and other wide content */
+@media (min-width: 320px) and (max-width: 996px) {
+  /* Reduce container padding for medium screens */
+  .container,
+  div.container,
+  main.container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    max-width: calc(100vw - 20px) !important;
+    width: calc(100vw - 20px) !important;
+  }
+  
+  /* Target specific combination of padding classes for medium screens */
+  .padding-top--md.padding-bottom--lg,
+  div.padding-top--md.padding-bottom--lg,
+  section.padding-top--md.padding-bottom--lg,
+  .container.padding-top--md.padding-bottom--lg {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+  /* Make entire workflow container scrollable - EXACT COPY FROM MOBILE SETTINGS */
+  .workflow-container {
+    padding: 1rem !important;
+    margin: 0 0 1.5rem 0 !important;
+    max-width: calc(100vw - 20px) !important; /* Reduced from 40px to 20px */
+    width: calc(100vw - 20px) !important; /* Reduced from 40px to 20px */
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: relative !important;
+  }
+  
+  /* Add indicator for scrollable content */
+  .workflow-container::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 15px !important;
+    background: linear-gradient(to right, transparent, var(--ifm-background-surface-color));
+    pointer-events: none;
+    opacity: 0.8;
+    z-index: 1;
+  }
+  
+  /* Make all code blocks scrollable */
+  pre, pre code, .markdown pre, .markdown code {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+    white-space: pre !important;
+  }
+  
+  /* Ensure markdown content can scroll horizontally when needed */
+  .markdown {
+    overflow-x: visible !important;
+  }
+  
+  /* Make markdown code blocks scrollable */
+  .markdown pre {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+    position: relative !important;
+  }
+  
+  /* Make all tables scrollable */
+  table {
+    display: block !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Make all SVG elements scrollable */
+  svg {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+  }
+  
+  /* Ensure article content can handle wide elements */
+  article {
+    overflow-x: visible !important;
+  }
+  
+  /* Handle wide elements in article */
+  article > div {
+    overflow-x: visible !important;
+  }
+  
+  /* Make all wide elements in article scrollable */
+  article pre,
+  article table,
+  article .prism-code,
+  article > div > div {
+    max-width: calc(100vw - 20px) !important; /* Reduced from 40px to 20px */
+    overflow-x: auto !important;
+  }
+  
+  /* Ensure code blocks in article are properly styled */
+  article pre {
+    white-space: pre !important;
+  }
+  
+  /* Fix for mermaid diagrams and other content */
+  .workflow-container > * {
+    white-space: normal !important;
+    min-width: 600px !important;
+  }
+  
+  /* Adjust workflow title and description */
+  .workflow-title {
+    font-size: 1.1rem !important;
+    white-space: normal !important;
+  }
+  
+  .workflow-description {
+    font-size: 0.9rem !important;
+    white-space: normal !important;
+  }
+  
+  .workflow-container pre,
+  .workflow-container code,
+  .workflow-container .prism-code {
+    font-size: 0.85rem !important;
+    max-width: 100% !important;
+  }
+  
+  /* Ensure images don't overflow */
+  .workflow-container img {
+    max-width: 100% !important;
+    display: inline-block !important;
+    width: auto !important;
+  }
+  
+  /* Ensure tables can be scrolled */
+  .workflow-container table {
+    font-size: 0.85rem !important;
+  }
+  
+  .workflow-container table th,
+  .workflow-container table td {
+    padding: 0.5rem !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Small screen specific adjustments */
+@media (min-width: 320px) and (max-width: 576px) {
+  .workflow-container {
+    max-width: calc(100vw - 10px) !important; /* Even smaller margin for very small screens */
+    width: calc(100vw - 10px) !important;
+    padding: 0.75rem !important;
+  }
+  
+  /* Make all wide elements in article even narrower */
+  article pre,
+  article table,
+  article .prism-code,
+  article > div > div {
+    max-width: calc(100vw - 10px) !important;
+  }
+  
+  /* Reduce container padding for small screens */
+  .container,
+  div.container,
+  main.container {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+    max-width: calc(100vw - 10px) !important;
+    width: calc(100vw - 10px) !important;
+  }
+  
+  /* Target specific combination of padding classes for small screens */
+  .padding-top--md.padding-bottom--lg,
+  div.padding-top--md.padding-bottom--lg,
+  section.padding-top--md.padding-bottom--lg,
+  .container.padding-top--md.padding-bottom--lg {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+}
+
+/* Mobile screen adjustments for workflow container */
+@media (max-width: 768px) {
+  .workflow-container {
+    padding: 1rem !important;
+    margin: 0 0 1.5rem 0 !important;
+    max-width: calc(100vw - 40px) !important;
+    width: calc(100vw - 40px) !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Adjust gradient indicator for mobile */
+  .workflow-container::after {
+    width: 15px !important;
+  }
+  
+  .workflow-title {
+    font-size: 1.1rem !important;
+    white-space: normal !important;
+  }
+  
+  .workflow-description {
+    font-size: 0.9rem !important;
+    white-space: normal !important;
+  }
+  
+  .workflow-container pre,
+  .workflow-container code,
+  .workflow-container .prism-code {
+    font-size: 0.85rem !important;
+    max-width: 100% !important;
+  }
+  
+  /* Ensure images fit on mobile */
+  .workflow-container img {
+    max-width: 100% !important;
+    display: inline-block !important;
+    width: auto !important;
+  }
+  
+  /* Ensure tables can be scrolled on mobile */
+  .workflow-container table {
+    font-size: 0.85rem !important;
+  }
+  
+  .workflow-container table th,
+  .workflow-container table td {
+    padding: 0.5rem !important;
+    min-width: 100px !important;
+  }
 }
 
 /* You can override the default Infima variables here. */
@@ -187,6 +438,10 @@ table th, table td {
   width: 100%;
   min-height: 100vh;
   flex-direction: column;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  align-items: center !important;
 }
 
 /* Adjust sidebar width */
@@ -249,9 +504,12 @@ nav[class^="menu_"] {
 div[class^="docMainContainer_"],
 div[class^="docPage_"] {
   flex: 1;
-  max-width: calc(100% - var(--doc-sidebar-width));
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  max-width: calc(100vw - var(--doc-sidebar-width)) !important; /* Use viewport width minus sidebar */
+  width: calc(100vw - var(--doc-sidebar-width)) !important; /* Use viewport width minus sidebar */
+  padding: 0 !important; /* No padding */
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
 }
 
 @media (max-width: 996px) {
@@ -271,8 +529,8 @@ div[class^="docPage_"] {
   .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-next-theme-DocPage-styles-module,
   div[class^="docMainContainer_"],
   div[class^="docPage_"] {
-    max-width: 100% !important;
-    width: 100% !important;
+    max-width: calc(100vw - 30px) !important;
+    width: calc(100vw - 30px) !important;
   }
 }
 
@@ -280,56 +538,411 @@ div[class^="docPage_"] {
 .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Main-styles-module,
 .docMainContainer_src-theme-DocPage-Layout-Main-styles-module,
 div[class^="docMainContainer_"] {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: calc(100vw - var(--doc-sidebar-width)) !important;
+  max-width: calc(100vw - var(--doc-sidebar-width)) !important;
   min-height: 100vh !important;
   height: auto !important;
   display: flex !important;
   flex-direction: column !important;
 }
 
-/* Adjust main content column to use full width */
+/* Adjust main content column to use width relative to viewport minus sidebar */
 .col.col--9,
 div[class*="docItemCol_"]:not([class*="docItemCol_3"]) {
   flex-basis: 0;
   flex-grow: 999;
   min-width: 0;
-  max-width: 100% !important;
-  width: 100% !important; /* Use full width since TOC is now floating */
-  margin-right: 0 !important;
+  max-width: calc(100vw - var(--doc-sidebar-width)) !important; /* Use viewport width minus sidebar */
+  width: calc(100vw - var(--doc-sidebar-width)) !important; /* Use viewport width minus sidebar */
+  margin-left: auto !important;
+  margin-right: auto !important;
   min-height: calc(100vh - 60px); /* Subtract header height */
   height: auto !important; /* Ensure height expands with content */
-  padding-right: 40px !important; /* Add some padding for the TOC tab */
+  padding: 0 !important; /* No padding */
+  box-sizing: border-box !important;
+  overflow-x: hidden !important; /* Hide horizontal overflow */
 }
 
+/* Fix any container between column and article */
+div[class*="docItemCol_"] > div {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: calc(100vw - var(--doc-sidebar-width)) !important;
+  max-width: calc(100vw - var(--doc-sidebar-width)) !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important; /* Prevent overflow */
+  overflow-x: hidden !important; /* Hide horizontal overflow */
+}
+
+
+/* Medium screens adjustments */
 @media (max-width: 996px) {
+  /* Override sidebar width for medium screens */
+  :root {
+    --doc-sidebar-width: 0px; /* Remove sidebar from width calculations */
+  }
+  
+  /* Fix the main content container for medium screens */
+  .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Main-styles-module,
+  .docMainContainer_src-theme-DocPage-Layout-Main-styles-module,
+  div[class^="docMainContainer_"] {
+    width: calc(100vw - 30px) !important;
+    max-width: calc(100vw - 30px) !important;
+  }
+  
+  /* Fix any container between column and article for medium screens */
+  div[class*="docItemCol_"] > div {
+    width: calc(100vw - 30px) !important;
+    max-width: calc(100vw - 30px) !important;
+  }
+
   .col.col--9,
   div[class*="docItemCol_"]:not([class*="docItemCol_3"]) {
-    width: 100% !important;
-    max-width: 100% !important;
-    flex-basis: 100% !important;
+    width: calc(100vw - 30px) !important;
+    max-width: calc(100vw - 30px) !important; /* Use viewport width minus padding/margin */
+    flex-basis: calc(100vw - 30px) !important;
+  }
+  
+  /* Fix main container width */
+  .docPage_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-styles-module,
+  .docPage_src-theme-DocPage-Layout-styles-module,
+  .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-styles-module,
+  .docMainContainer_src-theme-DocPage-Layout-styles-module,
+  .docMainContainer_gHmX,
+  .docPage_gVYs,
+  .docPage_wAXP,
+  .docMainContainer_TBSr,
+  .docMainContainer_TBSr,
+  .docPage_wAXP,
+  .docPage_wAXP,
+  .docMainContainer_TBSr,
+  .docPage_node_modules-\@docusaurus-theme-classic-lib-next-theme-DocPage-styles-module,
+  .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-next-theme-DocPage-styles-module,
+  div[class^="docMainContainer_"],
+  div[class^="docPage_"] {
+    max-width: calc(100vw - 30px) !important;
+    width: calc(100vw - 30px) !important;
+  }
+  
+  /* Override article width for medium screens - no sidebar */
+  article {
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    width: calc(100vw - 40px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
+    min-width: 0 !important;
+    max-width: calc(100vw - 40px) !important; /* Use viewport width minus all spacing */
+  }
+  
+  /* Adjust padding when sidebar is hidden */
+  .padding-top--md {
+    padding-top: 10px !important;
+  }
+  
+  .padding-bottom--lg {
+    padding-bottom: 10px !important;
+  }
+  
+  /* Adjust container padding */
+  .container {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+  
+  /* Target Docusaurus main container classes */
+  .main-wrapper [class*="docMainContainer_"] {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    width: calc(100vw - 20px) !important; /* 100vw - (padding-left + padding-right) */
+    max-width: calc(100vw - 20px) !important;
+  }
+  
+  /* Target content container */
+  .container-fluid {
+    padding: 10px !important;
+  }
+  
+  /* Adjust container for medium screens */
+  .container {
+    max-width: calc(100vw - 20px) !important; /* 100vw - (padding-left + padding-right) */
+    width: calc(100vw - 20px) !important; /* 100vw - (padding-left + padding-right) */
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  
+  /* Target main content padding */
+  main {
+    padding: 10px !important;
+  }
+  
+  /* Target specific combination of padding classes */
+  .padding-top--md.padding-bottom--lg,
+  div.padding-top--md.padding-bottom--lg,
+  section.padding-top--md.padding-bottom--lg {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
   }
 }
 
-/* Make content container wider */
+/* Make content container wider with balanced margins using relative formula */
 .container {
-  max-width: var(--ifm-container-width) !important;
-  padding-left: 2rem !important;
-  padding-right: 2rem !important;
+  max-width: calc(100vw - var(--doc-sidebar-width)) !important; /* Relative to viewport minus sidebar */
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: calc(100vw - var(--doc-sidebar-width)) !important; /* Relative to viewport minus sidebar */
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  justify-content: center !important;
 }
 
-/* Add more padding to main content */
+/* Override container width for medium screens - no sidebar */
+@media (max-width: 996px) {
+  .container {
+    max-width: calc(100vw - 30px) !important; /* 100vw - padding */
+    width: calc(100vw - 30px) !important; /* 100vw - padding */
+  }
+}
+
+/* Add equal padding to main content with relative width formula */
 article {
-  padding-left: 1.5rem !important;
-  padding-right: 1.5rem !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
   min-height: 100% !important;
   height: auto !important;
   flex-grow: 1 !important;
+  max-width: calc(100vw - var(--doc-sidebar-width) - 40px) !important; /* Use viewport width minus sidebar and spacing */
+  margin-left: 10px !important;
+  margin-right: 10px !important;
+  box-sizing: border-box !important;
+  width: calc(100vw - var(--doc-sidebar-width) - 40px) !important; /* Use viewport width minus sidebar and spacing */
+  min-width: 0 !important; /* Prevent overflow */
 }
 
+/* Override article width for medium screens - no sidebar */
+@media (max-width: 996px) {
+  article {
+    max-width: calc(100vw - 40px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
+    width: calc(100vw - 40px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
+  }
+}
+
+/* Mobile adjustments for article */
+@media (max-width: 768px) {
+  article {
+    margin-left: 5px !important;
+    margin-right: 5px !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+    width: calc(100vw - 20px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
+    min-width: 0 !important;
+    max-width: calc(100vw - 20px) !important; /* Use viewport width minus all spacing */
+  }
+  
+  /* Adjust padding on mobile */
+  .padding-top--md {
+    padding-top: 5px !important;
+  }
+  
+  .padding-bottom--lg {
+    padding-bottom: 5px !important;
+  }
+  
+  /* Adjust container padding for mobile */
+  .container {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+    max-width: calc(100vw - 10px) !important; /* 100vw - (padding-left + padding-right) */
+    width: calc(100vw - 10px) !important; /* 100vw - (padding-left + padding-right) */
+  }
+  
+  /* Target main content padding for mobile */
+  main {
+    padding: 5px !important;
+  }
+  
+  /* Target Docusaurus main container classes for mobile */
+  .main-wrapper [class*="docMainContainer_"] {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    width: calc(100vw - 10px) !important; /* 100vw - (padding-left + padding-right) */
+    max-width: calc(100vw - 10px) !important;
+  }
+  
+  /* Target content container for mobile */
+  .container-fluid {
+    padding: 5px !important;
+  }
+  
+  /* Target specific combination of padding classes for mobile */
+  .padding-top--md.padding-bottom--lg,
+  div.padding-top--md.padding-bottom--lg,
+  section.padding-top--md.padding-bottom--lg {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+  }
+  
+  /* Adjust pagination for mobile */
+  .pagination-nav {
+    margin-left: 5px !important;
+    margin-right: 5px !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+    width: calc(100vw - 20px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
+    min-width: 0 !important;
+    max-width: calc(100vw - 20px) !important; /* Use viewport width minus all spacing */
+  }
+}
+  
+@media (max-width: 768px) {
+  /* Adjust all containers with padding classes for mobile */
+  [class*="padding-"] {
+    padding: 5px !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 996px) {
+  /* Adjust all containers with padding classes for medium screens */
+  [class*="padding-"] {
+    padding: 10px !important;
+  }
+}
+  
+  /* Target specific Docusaurus padding classes */
+  .docusaurus-mt-lg {
+    margin-top: 5px !important;
+  }
+
+/* Ensure pagination nav aligns with content using relative formula */
+.pagination-nav {
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  width: calc(100vw - var(--doc-sidebar-width) - 40px) !important; /* Use viewport width minus sidebar and spacing */
+  max-width: calc(100vw - var(--doc-sidebar-width) - 40px) !important; /* Use viewport width minus sidebar and spacing */
+  margin-left: 10px !important;
+  margin-right: 10px !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important; /* Prevent overflow */
+}
+
+/* Medium screen adjustments for pagination nav */
+@media (max-width: 996px) {
+  .pagination-nav {
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    width: calc(100vw - 40px) !important; /* Match article width on medium screens */
+    min-width: 0 !important;
+    max-width: calc(100vw - 40px) !important; /* Match article width on medium screens */
+  }
+}
+
+/* Mobile adjustments for pagination nav */
+@media (max-width: 768px) {
+  .pagination-nav {
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    width: calc(100vw - 40px) !important; /* Match article width on mobile */
+    min-width: 0 !important;
+    max-width: calc(100vw - 40px) !important; /* Match article width on mobile */
+  }
+}
+
+/* Style pagination links to match content width */
+.pagination-nav__link {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+@media (max-width: 996px) {
+  .pagination-nav__link {
+    padding: 0.4rem !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .pagination-nav__link {
+    padding: 0.25rem !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+/* Ensure previous pagination link has proper padding */
+.pagination-nav__link--prev {
+  text-align: left !important;
+  padding-left: 20px !important;
+  padding-right: 10px !important;
+}
+
+/* Ensure next pagination link aligns with right content edge */
+.pagination-nav__link--next {
+  text-align: right !important;
+  padding-right: 20px !important;
+  padding-left: 10px !important;
+}
+
+/* Adjust pagination links on medium screens */
+@media (max-width: 996px) {
+  .pagination-nav__link--prev {
+    padding-left: 15px !important;
+    padding-right: 10px !important;
+    margin-right: 5px !important;
+  }
+  
+  .pagination-nav__link--next {
+    padding-right: 15px !important;
+    padding-left: 10px !important;
+    margin-left: 5px !important;
+  }
+}
+
+/* Adjust pagination links on small screens */
+@media (max-width: 768px) {
+  .pagination-nav__link--prev {
+    padding-left: 10px !important;
+    padding-right: 5px !important;
+    margin-right: 5px !important;
+  }
+  
+  .pagination-nav__link--next {
+    padding-right: 10px !important;
+    padding-left: 5px !important;
+    margin-left: 5px !important;
+  }
+}
+
+/* Ensure pagination items have proper spacing */
+.pagination-nav__item {
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: stretch !important;
+  flex: 1 !important;
+}
+
+/* For very large screens, limit width for better readability but keep centered */
 @media (min-width: 1440px) {
   .container {
-    max-width: var(--ifm-container-width-xl) !important;
+    max-width: 100% !important; /* Use full width */
+  }
+  
+  article, .pagination-nav {
+    max-width: 1600px !important; /* Limit width for better readability */
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
 }
 
@@ -342,9 +955,13 @@ article {
 .row {
   display: flex !important;
   flex-wrap: nowrap !important;
-  margin: 0 !important;
+  margin: 0 auto !important;
   width: 100% !important;
-  justify-content: space-between !important;
+  max-width: 100% !important; /* No max width limit */
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  align-items: flex-start !important;
 }
 
 /* Remove any extra spacing */
@@ -354,7 +971,8 @@ article {
 
 /* Fix any potential overflow issues */
 html, body {
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
 }
 
 /* Add gradient background for light mode */
@@ -863,6 +1481,39 @@ html[data-theme='light'] .footer .footer__link-item:hover {
   color: var(--ifm-color-primary) !important;
 }
 
+/* Fix footer layout and structure */
+.footer {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Fix footer row layout */
+.footer .row {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  margin: 0;
+}
+
+/* Fix footer copyright position */
+.footer__copyright {
+  text-align: center;
+  width: 100%;
+  display: block;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  clear: both;
+}
+
+/* Fix footer container to ensure proper layout */
+.footer .container {
+  display: block !important; /* Override flex display */
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 2rem 1rem !important;
+}
+
 /* Fix footer padding on mobile */
 @media (max-width: 996px) {
   .footer__col {
@@ -1037,7 +1688,6 @@ html[data-theme='dark'] .table-of-contents li a.table-of-contents__link--active 
 
 /* Fix TOC height issues */
 .theme-doc-toc-desktop,
-div[class*="docItemContainer_"] > div,
 div[class*="docItemCol_"] > div,
 .col--3 > div {
   height: auto !important;
