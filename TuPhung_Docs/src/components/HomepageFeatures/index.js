@@ -1,11 +1,47 @@
-import React from "react";
+import React, { useState } from "react";
 import clsx from "clsx";
 import styles from "./styles.module.css";
+
+// Import icons from react-icons
+import {
+  FaShieldAlt,
+  FaGoogle,
+  FaFacebook,
+  FaGithub,
+  FaLock,
+  FaTasks,
+  FaChartLine,
+  FaUsers,
+  FaExchangeAlt,
+  FaMicrophone,
+  FaBrain,
+  FaRobot,
+  FaLanguage,
+  FaComments,
+} from "react-icons/fa";
+import {
+  SiReact,
+  SiTypescript,
+  SiRedux,
+  SiAntdesign,
+  SiTailwindcss,
+  SiSpring,
+  SiSpringboot,
+  SiJsonwebtokens,
+  SiSocketdotio, // Changed from SiWebsocket which doesn't exist
+  SiPostgresql,
+  SiHibernate,
+  SiOpenai,
+} from "react-icons/si";
+import { BsKanban, BsArrowsMove } from "react-icons/bs";
+import { IoIosRocket } from "react-icons/io";
+import { MdSecurity, MdUpdate } from "react-icons/md";
+import { GiArtificialIntelligence } from "react-icons/gi";
 
 const FeatureList = [
   {
     title: "Multi-factor Authentication",
-    Svg: require("@site/static/img/undraw_docusaurus_mountain.svg").default,
+    FeatureIcon: (props) => <FaShieldAlt {...props} />,
     description: (
       <>
         Secure your enterprise with advanced authentication including TOTP with
@@ -13,10 +49,18 @@ const FeatureList = [
         and GitHub.
       </>
     ),
+    icons: [
+      { icon: <FaShieldAlt size={24} />, label: "Advanced Security" },
+      { icon: <FaGoogle size={24} />, label: "Google OAuth" },
+      { icon: <FaFacebook size={24} />, label: "Facebook Login" },
+      { icon: <FaGithub size={24} />, label: "GitHub Integration" },
+      { icon: <FaLock size={24} />, label: "TOTP Protection" },
+    ],
+    color: "#4285F4",
   },
   {
     title: "Kanban Task Management",
-    Svg: require("@site/static/img/undraw_docusaurus_tree.svg").default,
+    FeatureIcon: (props) => <BsKanban {...props} />,
     description: (
       <>
         Streamline project workflows with our intuitive Kanban board featuring
@@ -24,10 +68,18 @@ const FeatureList = [
         tracking.
       </>
     ),
+    icons: [
+      { icon: <BsKanban size={24} />, label: "Kanban Boards" },
+      { icon: <BsArrowsMove size={24} />, label: "Drag & Drop" },
+      { icon: <FaTasks size={24} />, label: "Task Management" },
+      { icon: <FaUsers size={24} />, label: "Team Assignments" },
+      { icon: <FaChartLine size={24} />, label: "Progress Tracking" },
+    ],
+    color: "#34A853",
   },
   {
     title: "Language AI Development",
-    Svg: require("@site/static/img/undraw_docusaurus_react.svg").default,
+    FeatureIcon: (props) => <FaBrain {...props} />,
     description: (
       <>
         Enhance communication skills across your organization with our advanced
@@ -35,6 +87,14 @@ const FeatureList = [
         technology.
       </>
     ),
+    icons: [
+      { icon: <FaMicrophone size={24} />, label: "Speech Recognition" },
+      { icon: <FaBrain size={24} />, label: "SpeechBrain" },
+      { icon: <FaLanguage size={24} />, label: "Language Processing" },
+      { icon: <FaRobot size={24} />, label: "AI Models" },
+      { icon: <FaComments size={24} />, label: "Communication Tools" },
+    ],
+    color: "#FBBC05",
   },
 ];
 
@@ -42,57 +102,119 @@ const TechStackList = [
   {
     title: "Modern Frontend",
     items: [
-      "React 18",
-      "TypeScript",
-      "Redux Toolkit",
-      "Ant Design",
-      "TailwindCSS",
+      { icon: <SiReact size={20} color="#61DAFB" />, name: "React 18" },
+      { icon: <SiTypescript size={20} color="#3178C6" />, name: "TypeScript" },
+      { icon: <SiRedux size={20} color="#764ABC" />, name: "Redux Toolkit" },
+      { icon: <SiAntdesign size={20} color="#0170FE" />, name: "Ant Design" },
+      {
+        icon: <SiTailwindcss size={20} color="#06B6D4" />,
+        name: "TailwindCSS",
+      },
     ],
+    color: "#61DAFB",
+    gradient: "linear-gradient(135deg, #61DAFB20 0%, #3178C620 100%)",
   },
   {
     title: "Robust Backend",
     items: [
-      "Spring Boot",
-      "Spring Security",
-      "Spring Data JPA",
-      "JWT Authentication",
-      "WebSockets",
+      { icon: <SiSpringboot size={20} color="#6DB33F" />, name: "Spring Boot" },
+      { icon: <SiSpring size={20} color="#6DB33F" />, name: "Spring Security" },
+      { icon: <SiSpring size={20} color="#6DB33F" />, name: "Spring Data JPA" },
+      {
+        icon: <SiJsonwebtokens size={20} color="#000000" />,
+        name: "JWT Authentication",
+      },
+      { icon: <SiSocketdotio size={20} color="#010101" />, name: "WebSockets" },
     ],
+    color: "#6DB33F",
+    gradient: "linear-gradient(135deg, #6DB33F20 0%, #00000020 100%)",
   },
   {
     title: "Advanced Technologies",
     items: [
-      "SpeechBrain",
-      "Hibernate",
-      "PostgreSQL",
-      "Real-time Communication",
-      "AI Processing",
+      { icon: <FaBrain size={20} color="#FF5A5F" />, name: "SpeechBrain" },
+      { icon: <SiHibernate size={20} color="#59666C" />, name: "Hibernate" },
+      { icon: <SiPostgresql size={20} color="#336791" />, name: "PostgreSQL" },
+      {
+        icon: <MdUpdate size={20} color="#FF9900" />,
+        name: "Real-time Communication",
+      },
+      {
+        icon: <GiArtificialIntelligence size={20} color="#00C7B7" />,
+        name: "AI Processing",
+      },
     ],
+    color: "#FF5A5F",
+    gradient: "linear-gradient(135deg, #FF5A5F20 0%, #00C7B720 100%)",
   },
 ];
 
-function Feature({ Svg, title, description }) {
+function Feature({ FeatureIcon, title, description, icons, color }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className={styles.homeCol}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <h3>{title}</h3>
-        <p>{description}</p>
+    <div
+      className={styles.homeCol}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div
+        className={styles.featureCard}
+        style={{
+          borderColor: isHovered ? color : "transparent",
+          boxShadow: isHovered ? `0 10px 30px ${color}20` : "",
+        }}
+      >
+        <div className="text--center padding-horiz--md">
+          <h3 style={{ color: color }}>{title}</h3>
+
+          {/* Biểu tượng chính ở giữa */}
+          <div className={styles.featureSvg}>
+            <FeatureIcon size={120} color={color} />
+          </div>
+
+          <p>{description}</p>
+
+          <div className={styles.featureIconsContainer}>
+            {icons.map((iconItem, idx) => (
+              <div key={idx} className={styles.featureIconItem}>
+                <div className={styles.featureIcon} style={{ color: color }}>
+                  {iconItem.icon}
+                </div>
+                <div className={styles.featureIconLabel}>{iconItem.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function TechStack({ title, items }) {
+function TechStack({ title, items, color, gradient }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className={styles.homeCol}>
-      <div className={styles.techStackCard}>
-        <h3>{title}</h3>
+    <div
+      className={styles.homeCol}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div
+        className={styles.techStackCard}
+        style={{
+          borderColor: isHovered ? color : "transparent",
+          background: isHovered ? gradient : "",
+          transform: isHovered ? "translateY(-10px)" : "",
+        }}
+      >
+        <h3 style={{ color: color }}>{title}</h3>
         <ul className={styles.techList}>
           {items.map((item, idx) => (
-            <li key={idx}>{item}</li>
+            <li key={idx} className={styles.techItem}>
+              <div className={styles.techIcon}>{item.icon}</div>
+              <div className={styles.techName}>{item.name}</div>
+            </li>
           ))}
         </ul>
       </div>
@@ -111,6 +233,7 @@ export default function HomepageFeatures() {
               Discover what makes Enterprise Nexus the ultimate solution for
               modern enterprises
             </p>
+            <div className={styles.titleUnderline}></div>
           </div>
           <div className={styles.homeRow}>
             {FeatureList.map((props, idx) => (
@@ -128,6 +251,7 @@ export default function HomepageFeatures() {
               Built with the latest technologies to ensure performance,
               security, and scalability
             </p>
+            <div className={styles.titleUnderline}></div>
           </div>
           <div className={styles.homeRow}>
             {TechStackList.map((props, idx) => (

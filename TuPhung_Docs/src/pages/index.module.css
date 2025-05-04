@@ -95,7 +95,8 @@ html[data-theme='dark'] .heroBanner::before {
   z-index: 2;
 }
 
-.heroBanner .hero__subtitle {
+/* Target hero__subtitle class directly */
+:global(.hero__subtitle) {
   font-size: 1.5rem;
   font-weight: 500;
   margin-bottom: 1.5rem;
@@ -231,20 +232,32 @@ html[data-theme='dark'] .heroBanner::before {
 
 .demoButtonIcon {
   margin-right: 10px;
-  font-size: 1rem;
-  background: white;
-  color: #2941ab;
+  position: relative;
   width: 24px;
   height: 24px;
   border-radius: 50%;
+  background: white;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
 }
 
+.demoButtonIcon::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 0 5px 8px;
+  border-color: transparent transparent transparent #2941ab;
+  position: relative;
+  left: 1px; /* Slight adjustment for visual centering */
+}
+
 .demoButton:hover .demoButtonIcon {
   transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 /* Add subtle animation */
@@ -390,9 +403,9 @@ html[data-theme='dark'] .highlightCard {
 
 /* Card Icon */
 .highlightCardIcon {
-  width: 70px;
-  height: 70px;
-  border-radius: 20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -402,6 +415,8 @@ html[data-theme='dark'] .highlightCard {
   background: linear-gradient(135deg, var(--ifm-color-primary-lightest), var(--ifm-color-primary));
   color: white;
   box-shadow: 0 10px 20px rgba(41, 65, 171, 0.2);
+  position: relative;
+  overflow: hidden;
 }
 
 html[data-theme='dark'] .highlightCardIcon {
@@ -473,6 +488,7 @@ html[data-theme='dark'] .testimonial {
   margin: 0 auto;
   text-align: center;
   position: relative;
+  overflow: hidden; /* Ensure any overflowing content is hidden */
 }
 
 /* Override container flex for testimonial section */
@@ -537,6 +553,7 @@ html[data-theme='dark'] .testimonial {
   border-radius: 16px;
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   z-index: 1;
+  overflow: visible; /* Allow the quotation marks to be visible outside */
 }
 
 /* Light mode blockquote styling */
@@ -563,18 +580,19 @@ html[data-theme='dark'] .testimonialInner blockquote {
   opacity: 0.3;
   font-size: 8rem;
   line-height: 1;
+  z-index: -1; /* Ensure it doesn't interfere with text */
 }
 
 .testimonialInner blockquote::before {
   content: '"';
-  top: -20px;
-  left: 10px;
+  top: -0.2em; /* Relative to font size */
+  left: 0.1em; /* Relative to font size */
 }
 
 .testimonialInner blockquote::after {
   content: '"';
-  bottom: -80px;
-  right: 10px;
+  bottom: -0.7em; /* Adjusted up by ~10px (from -0.8em) */
+  right: 0.1em; /* Relative to font size */
 }
 
 .testimonialAuthor {
@@ -963,9 +981,24 @@ html[data-theme='light'] .ctaButtons .button--outline {
     padding: 1.2rem;
   }
   
+  /* Font size adjustment for quotes on smaller screens */
   .testimonialInner blockquote::before,
   .testimonialInner blockquote::after {
-    font-size: 4rem;
+    font-size: 5rem;
+  }
+}
+
+/* Extra small devices (phones, 480px and down) */
+@media screen and (max-width: 480px) {
+  .testimonialInner blockquote {
+    padding: 1.2rem 1.5rem; /* Reduced horizontal padding */
+    margin-bottom: 2.5rem; /* Increased bottom margin to accommodate the quote mark */
+  }
+  
+  /* Smaller font size for quotation marks on smallest screens */
+  .testimonialInner blockquote::before,
+  .testimonialInner blockquote::after {
+    font-size: 3.5rem;
   }
   
   /* Button responsive adjustments */
