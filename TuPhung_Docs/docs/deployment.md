@@ -3,7 +3,7 @@ sidebar_position: 6
 sidebar_label: "Deployment Guide"
 ---
 
-import PanzoomWrapper from '../src/components/MermaidDiagram/PanzoomWrapper';
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 
 # Deployment Guide
 
@@ -1576,6 +1576,8 @@ sequenceDiagram
 
 ### Documentation Deployment Architecture
 
+<PanzoomWrapper>
+<div id="documentation-deployment-diagram">
 ```mermaid
 flowchart TD
     %% Styling
@@ -1652,10 +1654,16 @@ flowchart TD
     style BuildProcess fill:#E8F5E9,stroke:#ddd,stroke-width:1px
     style Deployment fill:#FFF8E1,stroke:#ddd,stroke-width:1px
     style Hosting fill:#FCE4EC,stroke:#ddd,stroke-width:1px
-```
+
+````
+
+</div>
+</PanzoomWrapper>
 
 ### Documentation Deployment Workflow
 
+<PanzoomWrapper>
+<div id="documentation-deployment-workflow">
 ```mermaid
 sequenceDiagram
     %% Participants
@@ -1698,7 +1706,10 @@ sequenceDiagram
         DNS->>GHPages: Route to GitHub Pages
         GHPages->>Visitor: Serve documentation
     end
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ### GitHub Pages Deployment
 
@@ -1915,6 +1926,8 @@ To deploy the documentation to GitHub Pages:
 
 ### CI/CD Architecture
 
+<PanzoomWrapper>
+<div id="ci-cd-diagram">
 ```mermaid
 flowchart TD
     %% Styling
@@ -1994,7 +2007,11 @@ flowchart TD
     style TestPhase fill:#FFF8E1,stroke:#ddd,stroke-width:1px
     style DeployPhase fill:#FFEBEE,stroke:#ddd,stroke-width:1px
     style MonitorPhase fill:#F3E5F5,stroke:#ddd,stroke-width:1px
-```
+
+````
+
+</div>
+</PanzoomWrapper>
 
 ### GitHub Actions Workflow
 
@@ -2232,12 +2249,14 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         if: always()
-```
+````
 
 ## Monitoring and Logging
 
 ### Monitoring Architecture
 
+<PanzoomWrapper>
+<div id="monitoring-diagram">
 ```mermaid
 flowchart TD
     %% Styling
@@ -2324,10 +2343,15 @@ flowchart TD
     style AlertingSystem fill:#FFF8E1,stroke:#ddd,stroke-width:1px
     style Visualization fill:#FFEBEE,stroke:#ddd,stroke-width:1px
     style TracingSystem fill:#F3E5F5,stroke:#ddd,stroke-width:1px
-```
+
+````
+</div>
+</PanzoomWrapper>
 
 ### Monitoring Workflow
 
+<PanzoomWrapper>
+<div id="monitoring-workflow-diagram">
 ```mermaid
 sequenceDiagram
     %% Participants
@@ -2384,7 +2408,10 @@ sequenceDiagram
         Team->>Team: Analyze data
         Team->>Team: Generate report
     end
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ### AWS CloudWatch Setup
 
@@ -2641,6 +2668,8 @@ sequenceDiagram
 
 ### Backup and Recovery Architecture
 
+<PanzoomWrapper>
+<div id="backup-and-recovery-architecture-diagram">
 ```mermaid
 flowchart TD
     %% Styling
@@ -2721,10 +2750,15 @@ flowchart TD
     style RecoveryProcess fill:#FFF8E1,stroke:#ddd,stroke-width:1px
     style BackupTesting fill:#FFEBEE,stroke:#ddd,stroke-width:1px
     style BackupPolicies fill:#F3E5F5,stroke:#ddd,stroke-width:1px
-```
+
+````
+</div>
+</PanzoomWrapper>
 
 ### Backup and Recovery Workflow
 
+<PanzoomWrapper>
+<div id="backup-and-recovery-workflow-diagram">
 ```mermaid
 sequenceDiagram
     %% Participants
@@ -2780,7 +2814,10 @@ sequenceDiagram
         Admin->>App: Perform application tests
         Admin->>DRP: Confirm recovery success
     end
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ### Database Backup
 

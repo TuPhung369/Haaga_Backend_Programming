@@ -3,7 +3,7 @@ sidebar_position: 5
 sidebar_label: "User Management"
 ---
 
-import PanzoomWrapper from '../../src/components/MermaidDiagram/PanzoomWrapper';
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 
 # User Management
 
@@ -11,6 +11,8 @@ import PanzoomWrapper from '../../src/components/MermaidDiagram/PanzoomWrapper';
 
 ### User Lifecycle Workflow
 
+<PanzoomWrapper>
+<div id="user-lifecycle-workflow">
 ```mermaid
 stateDiagram-v2
     [*] --> Registered: Registration
@@ -49,10 +51,15 @@ stateDiagram-v2
         Temporary access restriction
         due to security concerns
     end note
-```
+
+````
+
+</div>
+</PanzoomWrapper>
 
 ### User Registration Workflow
-
+<PanzoomWrapper>
+<div id="user-registration-workflow">
 ```mermaid
 sequenceDiagram
     participant User as User
@@ -97,9 +104,15 @@ sequenceDiagram
         Auth-->>API: Verification Successful
         API-->>User: Account Verified
     end
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ### Role-Based Access Control Workflow
+
+<PanzoomWrapper>
+<div id="role-based-access-control-workflow">
 
 ```mermaid
 flowchart TD
@@ -150,6 +163,9 @@ flowchart TD
     class G,H,I,J,O,P,Q,R,S,T,U,K components
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## User Management Overview
 
 The Enterprise Nexus Project implements a comprehensive user management system that handles the complete lifecycle of users within the application. The system provides secure authentication, role-based access control, profile management, and administrative capabilities.
@@ -167,6 +183,8 @@ The system implements a hierarchical role-based access control system with the f
 
 ### Permission Hierarchy
 
+<PanzoomWrapper>
+<div id="permission-hierarchy-diagram">
 ```mermaid
 classDiagram
     class Role {
@@ -204,7 +222,11 @@ classDiagram
     Role "1" *-- "many" Permission : contains
     Permission -- PermissionType : has
     Permission -- ResourceType : applies to
-```
+
+````
+
+</div>
+</PanzoomWrapper>
 
 ## User Registration and Onboarding
 
@@ -221,6 +243,9 @@ Users can register through multiple channels:
 
 ### User Onboarding Process
 
+<PanzoomWrapper>
+<div id="onboarding-process-diagram">
+
 ```mermaid
 flowchart LR
     A[Registration] --> B[Email Verification]
@@ -235,7 +260,10 @@ flowchart LR
 
     class A,B,C,D,E,F onboardingSteps
     class G finalState
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ## User Profile Management
 
@@ -253,6 +281,9 @@ User profiles are comprehensive and include:
 | Activity History  | Recent actions and interactions      | System-tracked |
 
 ### Profile Update Workflow
+
+<PanzoomWrapper>
+<div id="profile-update-workflow">
 
 ```mermaid
 sequenceDiagram
@@ -290,6 +321,9 @@ sequenceDiagram
     API-->>Client: Update Success
     Client-->>User: Profile Updated Confirmation
 ```
+
+</div>
+</PanzoomWrapper>
 
 ## User Administration
 
@@ -355,6 +389,8 @@ The system enforces comprehensive password security:
 
 ### Password Reset Workflow
 
+<PanzoomWrapper>
+<div id="password-reset-workflow">
 ```mermaid
 sequenceDiagram
     participant User as User
@@ -398,5 +434,10 @@ sequenceDiagram
         API-->>Client: Reset Confirmation
         Client-->>User: Password Reset Complete
     end
+
+```
+
+</div>
+</PanzoomWrapper>
 ```
 

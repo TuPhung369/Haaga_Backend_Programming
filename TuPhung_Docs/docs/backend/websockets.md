@@ -3,11 +3,16 @@ sidebar_position: 6
 sidebar_label: "WebSockets"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # WebSockets
 
 ## WebSocket Architecture and Workflows
 
 ### Connection Establishment Workflow
+
+<PanzoomWrapper>
+<div id="websocket_connection_workflow" >
 
 ```mermaid
 sequenceDiagram
@@ -37,7 +42,13 @@ sequenceDiagram
     Note over Client,Service: Connection Established
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Message Publishing Workflow
+
+<PanzoomWrapper>
+<div id="websocket_message_publishing_workflow" >
 
 ```mermaid
 sequenceDiagram
@@ -59,7 +70,13 @@ sequenceDiagram
     Note over Client,DB: Message Delivered to All Subscribers
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Notification Workflow
+
+<PanzoomWrapper>
+<div id="websocket_notification_workflow" >
 
 ```mermaid
 flowchart TD
@@ -93,6 +110,9 @@ flowchart TD
     class K,L,M deliveryActions
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## WebSocket Overview
 
 The Enterprise Nexus Project uses WebSockets for real-time communication, enabling instant updates and notifications across the application. This bidirectional communication channel allows for efficient real-time features like chat, notifications, and collaborative editing.
@@ -119,6 +139,9 @@ The system supports various message types, each with specific handling logic:
 | Collaboration Events | Real-time collaborative actions       | Kanban board updates, document editing |
 
 ### Message Processing Workflow
+
+<PanzoomWrapper>
+<div id="websocket_message_processing_workflow" >
 
 ```mermaid
 flowchart LR
@@ -156,6 +179,9 @@ flowchart LR
     class L,M,N publishers
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## WebSocket Security Architecture
 
 WebSocket connections are secured with multiple layers of protection:
@@ -172,6 +198,9 @@ WebSocket connections are secured with multiple layers of protection:
 | Message Validation  | Schema validation         | Prevent malformed messages  |
 
 ### Security Workflow
+
+<PanzoomWrapper>
+<div id="websocket_security_workflow" >
 
 ```mermaid
 flowchart TD
@@ -209,6 +238,9 @@ flowchart TD
     class K,Q successes
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Subscription Topics and Routing
 
 Clients can subscribe to various topics, each serving a specific purpose in the application:
@@ -225,6 +257,9 @@ Clients can subscribe to various topics, each serving a specific purpose in the 
 | `/topic/announcements`          | System-wide announcements         | All authenticated users          |
 
 ### Topic Subscription Workflow
+
+<PanzoomWrapper>
+<div id="websocket_topic_subscription_workflow" >
 
 ```mermaid
 sequenceDiagram
@@ -257,6 +292,9 @@ sequenceDiagram
     end
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Message Format and Validation
 
 WebSocket messages use a consistent JSON format with strict validation:
@@ -287,6 +325,9 @@ WebSocket messages use a consistent JSON format with strict validation:
 
 ### Message Validation Workflow
 
+<PanzoomWrapper>
+<div id="websocket_message_validation_workflow" >
+
 ```mermaid
 flowchart TD
     A[Message Received] --> B[Schema Validation]
@@ -314,6 +355,9 @@ flowchart TD
     class I success
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Error Handling and Recovery
 
 The WebSocket implementation includes robust error handling and recovery mechanisms:
@@ -328,6 +372,9 @@ The WebSocket implementation includes robust error handling and recovery mechani
 | Server Errors             | Graceful degradation                            | Error notification with tracking ID   |
 
 ### Reconnection Workflow
+
+<PanzoomWrapper>
+<div id="websocket_reconnection_workflow" >
 
 ```mermaid
 sequenceDiagram
@@ -362,4 +409,7 @@ sequenceDiagram
     Server-->>Client: Subscriptions Restored
     Server-->>Client: Missed Messages Delivered
 ```
+
+</div>
+</PanzoomWrapper>
 

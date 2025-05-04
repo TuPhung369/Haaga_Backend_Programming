@@ -2,12 +2,15 @@
 sidebar_position: 7
 sidebar_label: "AI Assistants"
 ---
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 
 # AI Assistants
 
 ## AI Assistants Architecture and Workflows
 
 ### AI Assistants System Architecture
+<PanzoomWrapper>
+<div id="ai-assistants-system-architecture" >
 
 ```mermaid
 classDiagram
@@ -126,10 +129,14 @@ classDiagram
     Conversation *-- Message
     Message *-- Feedback
 ```
+</div>
+</PanzoomWrapper>
 
 ### AI Assistants Workflow
 
 This diagram illustrates how AI assistants process user requests and integrate with other system components.
+<PanzoomWrapper>
+<div id="ai-assistants-workflow">
 
 ```mermaid
 flowchart TD
@@ -212,8 +219,13 @@ flowchart TD
     SystemAction -->|Notification| SendNotification[Send Notification]:::apiCall
     SystemAction -->|Data Change| UpdateData[Update Application Data]:::apiCall
 ```
+</div>
+</PanzoomWrapper>
 
 ### Conversation Sequence Diagram
+
+<PanzoomWrapper>
+<div id="conversation-sequence-diagram" >
 
 ```mermaid
 sequenceDiagram
@@ -271,7 +283,13 @@ sequenceDiagram
     Context-->>UI: Update Feedback UI
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Assistant State Diagram
+
+<PanzoomWrapper>
+<div id="assistant-state-diagram">
 
 ```mermaid
 stateDiagram-v2
@@ -308,10 +326,15 @@ stateDiagram-v2
         ContextBuilding --> ResponseGeneration
     }
 ```
+</div>
+</PanzoomWrapper>
 
 ## User Interface Components
 
 ### AI Assistant Interface Architecture
+
+<PanzoomWrapper>
+<div id="ai-assistant-interface-architecture">
 
 ```mermaid
 flowchart TD
@@ -362,6 +385,8 @@ flowchart TD
     class G,H,L,M,N,T,U components
     class O,P,Q,R,S,V,W,X,Y,Z messageElements
 ```
+</div>
+</PanzoomWrapper>
 
 | Component | Description | Features |
 | --------- | ----------- | -------- |

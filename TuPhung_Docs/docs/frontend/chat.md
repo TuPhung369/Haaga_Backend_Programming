@@ -3,11 +3,16 @@ sidebar_position: 9
 sidebar_label: "Chat System"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Chat System
 
 ## Chat System Architecture and Workflows
 
 ### Chat System Architecture
+
+<PanzoomWrapper>
+<div id="chat-system-architecture">
 
 ```mermaid
 classDiagram
@@ -121,9 +126,15 @@ classDiagram
     ChatContext --> WebSocketManager : uses
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Chat System Workflow
 
 This diagram illustrates the real-time chat system flow, from message creation to delivery and storage.
+
+<PanzoomWrapper>
+<div id="chat-workflow">
 
 ```mermaid
 flowchart TD
@@ -256,7 +267,13 @@ sequenceDiagram
     end
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Chat State Diagram
+
+<PanzoomWrapper>
+<div id="chat-state-diagram">
 
 ```mermaid
 stateDiagram-v2
@@ -297,9 +314,15 @@ stateDiagram-v2
     }
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## User Interface Components
 
 ### Chat Interface Architecture
+
+<PanzoomWrapper>
+<div id="chat-interface-architecture">
 
 ```mermaid
 flowchart TD
@@ -348,6 +371,9 @@ flowchart TD
     class H,L,M,R,S,T,U,X components
     class N,O,P,Q,V,W,Y,Z interactiveElements
 ```
+
+</div>
+</PanzoomWrapper>
 
 | Component | Description | Features |
 | --------- | ----------- | -------- |

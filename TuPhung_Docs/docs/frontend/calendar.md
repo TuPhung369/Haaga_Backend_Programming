@@ -3,11 +3,16 @@ sidebar_position: 5
 sidebar_label: "Calendar"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Calendar
 
 ## Calendar Architecture and Workflows
 
 ### Calendar System Architecture
+
+<PanzoomWrapper>
+<div id="calendar-system-architecture">
 
 ```mermaid
 classDiagram
@@ -121,9 +126,15 @@ classDiagram
     Event *-- RecurrenceRule
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Calendar Workflow
 
 This diagram illustrates the calendar system workflow, including event creation, viewing, and management.
+
+<PanzoomWrapper>
+<div id="calendar-workflow">
 
 ```mermaid
 flowchart TD
@@ -200,7 +211,13 @@ flowchart TD
     SendReminders --> ShowNotification[Show Notification]:::uiComponent
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Event Creation Sequence
+
+<PanzoomWrapper>
+<div id="event-creation-sequence">
 
 ```mermaid
 sequenceDiagram
@@ -251,7 +268,13 @@ sequenceDiagram
     end
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Calendar State Diagram
+
+<PanzoomWrapper>
+<div id="calendar-state-diagram">
 
 ```mermaid
 stateDiagram-v2
@@ -305,9 +328,15 @@ stateDiagram-v2
     }
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## User Interface Components
 
 ### Calendar Interface Architecture
+
+<PanzoomWrapper>
+<div id="calendar-interface-architecture">
 
 ```mermaid
 flowchart TD
@@ -358,6 +387,9 @@ flowchart TD
     class O,P,Q,R,S,T,U,V interactiveElements
     class W,X,Y,Z formElements
 ```
+
+</div>
+</PanzoomWrapper>
 
 | Component | Description | Features |
 | --------- | ----------- | -------- |

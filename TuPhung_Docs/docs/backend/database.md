@@ -3,11 +3,16 @@ sidebar_position: 4
 sidebar_label: "Database Design"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Database Design
 
 ## Database Architecture and Workflows
 
 ### Data Access Workflow
+
+<PanzoomWrapper>
+<div id="data-access-workflow">
 
 ```mermaid
 sequenceDiagram
@@ -38,10 +43,16 @@ sequenceDiagram
         Service-->>API: Process Response
         API-->>Client: Return Response
     end
+
 ```
+
+</div>
+</PanzoomWrapper>
 
 ### Database Transaction Workflow
 
+<PanzoomWrapper>
+<div id="database-transaction-workflow-diagram">
 ```mermaid
 flowchart TD
     A[Service Method] --> B[Begin Transaction]
@@ -66,15 +77,21 @@ flowchart TD
     classDef dataStores fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
     classDef queryLayer fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
     classDef cacheLayer fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
-    
+
     class A,G,H primaryServices
     class B,E,F dataStores
     class C queryLayer
     class D cacheLayer
-```
+
+````
+
+</div>
+</PanzoomWrapper>
 
 ### Data Synchronization Workflow
 
+<PanzoomWrapper>
+<div id="data-synchronization-workflow-diagram">
 ```mermaid
 sequenceDiagram
     participant Service as Service
@@ -98,7 +115,11 @@ sequenceDiagram
     end
 
     Worker-->>Queue: Acknowledge Event
-```
+
+````
+
+</div>
+</PanzoomWrapper>
 
 ## Database Overview
 
@@ -107,6 +128,9 @@ The Enterprise Nexus Project uses MySQL as its primary database, with additional
 ## Database Schema Design
 
 ### Entity Relationship Diagram
+
+<PanzoomWrapper>
+<div id="entity-relationship-diagram">
 
 ```mermaid
 erDiagram
@@ -296,6 +320,9 @@ erDiagram
     USERS ||--o{ SPEECH_RECORDS : "creates"
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Database Implementation
 
 ### Key Tables and Relationships
@@ -348,6 +375,8 @@ The database schema is organized into functional modules:
 
 ### Database Indexing Strategy
 
+<PanzoomWrapper>
+<div id="database-indexing-strategy">
 ```mermaid
 flowchart TD
     A[Database Table] --> B{Access Pattern}
@@ -368,12 +397,16 @@ flowchart TD
     classDef analyzer fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
     classDef optimizationSteps fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
     classDef finalQuery fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
-    
+
     class A inputQuery
     class B analyzer
     class C,D,E,F,G optimizationSteps
     class H finalQuery
-```
+
+````
+
+</div>
+</PanzoomWrapper>
 
 The system implements the following indexing strategies:
 
@@ -388,6 +421,9 @@ The system implements the following indexing strategies:
 ## Data Access Patterns
 
 ### Repository Layer Implementation
+
+<PanzoomWrapper>
+<div id="repository-layer-implementation">
 
 ```mermaid
 classDiagram
@@ -421,7 +457,10 @@ classDiagram
     CrudRepository <|-- UserRepository
     CrudRepository <|-- MessageRepository
     CrudRepository <|-- TaskRepository
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ### Query Optimization Techniques
 

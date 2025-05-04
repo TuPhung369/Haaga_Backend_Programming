@@ -3,12 +3,16 @@ sidebar_position: 2
 sidebar_label: "API"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # API Architecture and Endpoints
 
 ## API Architecture and Workflows
 
 ### API Request Processing Workflow
 
+<PanzoomWrapper>
+<div id="api-request-processing-diagram">
 ```mermaid
 sequenceDiagram
     participant Client as Client
@@ -46,10 +50,14 @@ sequenceDiagram
             Gateway-->>Client: Final Response
         end
     end
-```
+
+````
+</div>
+</PanzoomWrapper>
 
 ### API Resource Lifecycle
-
+<PanzoomWrapper>
+<div id="api-resource-lifecycle-diagram">
 ```mermaid
 stateDiagram-v2
     [*] --> Created: POST Request
@@ -71,10 +79,15 @@ stateDiagram-v2
         [*] --> FullUpdate: PUT Request
         [*] --> PartialUpdate: PATCH Request
     }
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ### API Error Handling Workflow
 
+<PanzoomWrapper>
+<div id="api-error-handling-diagram">
 ```mermaid
 flowchart TD
     A[API Request] --> B{Error Occurs?}
@@ -104,12 +117,15 @@ flowchart TD
     classDef middleware fill:#FF9800,stroke:#333,stroke-width:1px,color:#fff
     classDef processing fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
     classDef errorHandling fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
-    
+
     class A,C entryPoints
     class B,D middleware
     class E,F,G,H,I,J,K processing
     class L,M,N errorHandling
-```
+
+````
+</div>
+</PanzoomWrapper>
 
 ## REST API Overview
 
@@ -211,6 +227,8 @@ All API responses follow a consistent format with appropriate HTTP status codes 
 
 ### Standard Response Format
 
+<PanzoomWrapper>
+<div id="standard-response-format">
 ```mermaid
 classDiagram
     class SuccessResponse {
@@ -243,6 +261,8 @@ classDiagram
     ErrorResponse --|> BaseResponse
     PaginatedResponse --|> SuccessResponse
 ```
+</div>
+</PanzoomWrapper>
 
 ### Example Responses
 
@@ -447,4 +467,6 @@ classDiagram
   "timestamp": "2023-05-15T10:30:45Z"
 }
 ```
+
+````
 

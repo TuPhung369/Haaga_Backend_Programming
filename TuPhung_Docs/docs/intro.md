@@ -3,7 +3,7 @@ sidebar_position: 1
 sidebar_label: "Enterprise Nexus"
 ---
 
-import PanzoomWrapper from '../src/components/MermaidDiagram/PanzoomWrapper';
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 
 # Enterprise Nexus
 

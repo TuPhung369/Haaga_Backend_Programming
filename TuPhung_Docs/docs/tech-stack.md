@@ -3,6 +3,8 @@ sidebar_position: 2
 sidebar_label: "Technology Stack"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Technology Stack
 
 <div className="tech-stack-banner">
@@ -39,6 +41,8 @@ sidebar_label: "Technology Stack"
 
 Enterprise Nexus implements a modern, layered architecture that ensures scalability, maintainability, and security:
 
+<PanzoomWrapper>
+<div id="tech-stack-diagram">
 ```mermaid
 flowchart TD
     %% Styling
@@ -134,8 +138,10 @@ flowchart TD
     style DataLayer fill:#FFFDE7,stroke:#FFF176,stroke-width:1px
     style DevOpsLayer fill:#E8EAF6,stroke:#9FA8DA,stroke-width:1px
     style TestingLayer fill:#EFEBE9,stroke:#D7CCC8,stroke-width:1px
-```
 
+```
+</div>
+</PanzoomWrapper>
 ## Frontend Technologies
 
 <div className="tech-category">
@@ -158,7 +164,7 @@ flowchart TD
         <span className="tech-card-feature">Suspense</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://upload.wikimedia.org/wikipedia/commons/4/4c/Typescript_logo_2020.svg" alt="TypeScript" className="tech-card-icon" />
@@ -173,7 +179,7 @@ flowchart TD
         <span className="tech-card-feature">Interface Support</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://vitejs.dev/logo.svg" alt="Vite" className="tech-card-icon" />
@@ -211,7 +217,7 @@ flowchart TD
         <span className="tech-card-feature">RTK Query</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://redux-toolkit.js.org/img/redux.svg" alt="Redux Persist" className="tech-card-icon" />
@@ -249,7 +255,7 @@ flowchart TD
         <div className="tech-card-feature">TypeScript Support</div>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">🎨</div>
@@ -264,7 +270,7 @@ flowchart TD
         <div className="tech-card-feature">Design System</div>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">📦</div>
@@ -302,7 +308,7 @@ flowchart TD
         <span className="tech-card-feature">Request Cancellation</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">🔌</div>
@@ -317,7 +323,7 @@ flowchart TD
         <span className="tech-card-feature">Cross-Browser Support</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">📨</div>
@@ -357,7 +363,7 @@ flowchart TD
         <span className="tech-card-feature">Production-ready Features</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">🌐</div>
@@ -372,7 +378,7 @@ flowchart TD
         <span className="tech-card-feature">Content Negotiation</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">⚡</div>
@@ -410,7 +416,7 @@ flowchart TD
         <span className="tech-card-feature">CSRF Protection</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://jwt.io/img/pic_logo.svg" alt="JWT" className="tech-card-icon" />
@@ -425,7 +431,7 @@ flowchart TD
         <span className="tech-card-feature">Claim-based Authorization</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://oauth.net/images/oauth-logo-square.png" alt="OAuth2" className="tech-card-icon" />
@@ -440,7 +446,7 @@ flowchart TD
         <span className="tech-card-feature">Client Credentials Flow</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">🔑</div>
@@ -478,7 +484,7 @@ flowchart TD
         <span className="tech-card-feature">Pagination & Sorting</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://hibernate.org/images/hibernate-logo.svg" alt="Hibernate" className="tech-card-icon" />
@@ -493,7 +499,7 @@ flowchart TD
         <span className="tech-card-feature">Caching</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://www.mysql.com/common/logos/logo-mysql-170x115.png" alt="MySQL" className="tech-card-icon" />
@@ -508,7 +514,7 @@ flowchart TD
         <span className="tech-card-feature">Full-Text Search</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">🔄</div>
@@ -548,7 +554,7 @@ flowchart TD
         <span className="tech-card-feature">Speech Enhancement</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">🎤</div>
@@ -563,7 +569,7 @@ flowchart TD
         <span className="tech-card-feature">Transcription & Translation</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://huggingface.co/front/assets/huggingface_logo.svg" alt="Wav2Vec2" className="tech-card-icon" />
@@ -578,7 +584,7 @@ flowchart TD
         <span className="tech-card-feature">Contextual Representations</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">🔊</div>
@@ -618,7 +624,7 @@ flowchart TD
         <span className="tech-card-feature">Reproducible Builds</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Actions" className="tech-card-icon" />
@@ -633,7 +639,7 @@ flowchart TD
         <span className="tech-card-feature">Matrix Builds</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <img src="https://maven.apache.org/images/maven-logo-black-on-white.png" alt="Maven" className="tech-card-icon" />
@@ -648,7 +654,7 @@ flowchart TD
         <span className="tech-card-feature">Project Object Model</span>
       </div>
     </div>
-    
+
     <div className="tech-card">
       <div className="tech-card-header-wrapper">
         <div className="emoji-icon">📦</div>
@@ -676,7 +682,7 @@ flowchart TD
       <p>Our technology stack prioritizes battle-tested frameworks and libraries with proven track records in enterprise environments. Spring Boot and React provide robust foundations with extensive community support and regular security updates.</p>
     </div>
   </div>
-  
+
   <div className="tech-rationale-item">
     <div className="tech-rationale-icon">🔍</div>
     <div className="tech-rationale-content">
@@ -684,7 +690,7 @@ flowchart TD
       <p>TypeScript and modern tooling like Vite enhance developer productivity through static typing, fast feedback loops, and comprehensive IDE support. This leads to fewer bugs, better code quality, and faster development cycles.</p>
     </div>
   </div>
-  
+
   <div className="tech-rationale-item">
     <div className="tech-rationale-icon">📈</div>
     <div className="tech-rationale-content">
@@ -692,7 +698,7 @@ flowchart TD
       <p>Our architecture is designed for horizontal scalability with stateless components, efficient caching strategies, and optimized database access patterns. Technologies like WebSockets enable real-time features without sacrificing performance.</p>
     </div>
   </div>
-  
+
   <div className="tech-rationale-item">
     <div className="tech-rationale-icon">🔒</div>
     <div className="tech-rationale-content">
@@ -700,7 +706,7 @@ flowchart TD
       <p>Security is integrated at every layer with Spring Security, multi-factor authentication, and encrypted communication channels. Our token-based authentication system implements industry best practices for secure user sessions.</p>
     </div>
   </div>
-  
+
   <div className="tech-rationale-item">
     <div className="tech-rationale-icon">🧩</div>
     <div className="tech-rationale-content">
@@ -708,7 +714,7 @@ flowchart TD
       <p>Component-based design principles are applied throughout the stack, enabling independent development, testing, and deployment of features. This modularity supports team collaboration and simplifies maintenance.</p>
     </div>
   </div>
-  
+
   <div className="tech-rationale-item">
     <div className="tech-rationale-icon">🔮</div>
     <div className="tech-rationale-content">
@@ -729,35 +735,35 @@ flowchart TD
     color: white;
     text-align: center;
   }
-  
+
   /* Responsive adjustments for laptop screens */
   @media (min-width: 997px) and (max-width: 1200px) {
     .tech-stack-banner {
       padding: 25px;
       margin-bottom: 25px;
     }
-    
+
     .tech-stack-banner-content h2 {
       font-size: 1.6rem;
     }
-    
+
     .tech-stack-banner-content p {
       font-size: 1rem;
     }
   }
-  
+
   .tech-stack-banner-content h2 {
     font-size: 1.8rem;
     font-weight: 600;
     margin: 0 0 10px 0;
   }
-  
+
   .tech-stack-banner-content p {
     font-size: 1.1rem;
     margin: 0;
     opacity: 0.9;
   }
-  
+
   /* Overview styling */
   .tech-stack-overview {
     display: grid;
@@ -765,14 +771,14 @@ flowchart TD
     gap: 20px;
     margin-bottom: 40px;
   }
-  
+
   /* Responsive adjustments for laptop screens */
   @media (min-width: 997px) and (max-width: 1200px) {
     .tech-stack-overview {
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     }
   }
-  
+
   .tech-stack-overview-item {
     background-color: #f8f9fa;
     border-radius: 8px;
@@ -781,76 +787,76 @@ flowchart TD
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
-  
+
   .tech-stack-overview-item:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
   }
-  
+
   .tech-stack-overview-icon {
     font-size: 2.5rem;
     margin-bottom: 10px;
   }
-  
+
   .tech-stack-overview-count {
     font-size: 2rem;
     font-weight: 700;
     color: #4285f4;
     margin-bottom: 5px;
   }
-  
+
   .tech-stack-overview-label {
     font-size: 1rem;
     color: #5f6368;
   }
-  
+
   /* Category styling */
   .tech-category {
     margin-bottom: 40px;
   }
-  
+
   /* Responsive adjustments for laptop screens */
   @media (min-width: 997px) and (max-width: 1200px) {
     .tech-category {
       margin-bottom: 30px;
     }
-    
+
     .tech-category-header {
       margin-bottom: 15px;
     }
-    
+
     .tech-category-icon {
       font-size: 1.8rem;
       margin-right: 12px;
     }
-    
+
     .tech-category-title {
       font-size: 1.4rem;
     }
   }
-  
+
   .tech-category-header {
     display: flex;
     align-items: center;
     margin-bottom: 20px;
   }
-  
+
   .tech-category-icon {
     font-size: 2rem;
     margin-right: 15px;
   }
-  
+
   .tech-category-title {
     font-size: 1.5rem;
     font-weight: 600;
     color: #202124;
   }
-  
+
   /* Dark mode styles for headers */
   html[data-theme='dark'] .tech-category-title {
     color: #e3e3e3;
   }
-  
+
   /* Grid styling */
   .tech-grid {
     display: grid;
@@ -858,14 +864,14 @@ flowchart TD
     gap: 25px;
     margin-bottom: 30px;
   }
-  
+
   /* Responsive adjustments for laptop screens */
   @media (min-width: 997px) and (max-width: 1200px) {
     .tech-grid {
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     }
   }
-  
+
   /* Card styling */
   .tech-card {
     background-color: #fff;
@@ -881,46 +887,46 @@ flowchart TD
     min-height: 240px; /* Ensure minimum height */
     border: 1px solid #f0f0f0;
   }
-  
+
   /* Responsive adjustments for laptop screens */
   @media (min-width: 997px) and (max-width: 1200px) {
     .tech-card {
       padding: 20px;
       min-height: 220px;
     }
-    
+
     .tech-card-title {
       font-size: 1.15rem;
     }
-    
+
     .tech-card-description {
       font-size: 0.9rem;
       margin-bottom: 15px;
     }
-    
+
     .tech-card-feature {
       font-size: 0.8rem;
       padding: 5px 0;
     }
-    
+
     .tech-card-header-wrapper {
       margin-bottom: 15px;
       padding-bottom: 10px;
     }
   }
-  
+
   html[data-theme='dark'] .tech-card {
     background-color: #1e1e1e;
     border: 1px solid #333;
     box-shadow: 0 3px 8px rgba(0,0,0,0.2);
   }
-  
+
   .tech-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.12);
     border-color: #e0e0e0;
   }
-  
+
   .tech-card-header-wrapper {
     display: grid;
     grid-template-columns: 50px 1fr;
@@ -932,11 +938,11 @@ flowchart TD
     width: 100%;
     overflow: visible;
   }
-  
+
   html[data-theme='dark'] .tech-card-header-wrapper {
     border-bottom: 1px solid #333;
   }
-  
+
   .tech-card-icon {
     width: 40px;
     height: 40px;
@@ -946,7 +952,7 @@ flowchart TD
     object-fit: contain;
     grid-column: 1;
   }
-  
+
   .tech-card-title {
     font-size: 1.25rem;
     font-weight: 600;
@@ -956,7 +962,7 @@ flowchart TD
     padding: 0;
     grid-column: 2;
   }
-  
+
   .tech-card-description {
     font-size: 0.95rem;
     color: #5f6368;
@@ -967,16 +973,16 @@ flowchart TD
     line-height: 1.5;
     letter-spacing: 0.01em;
   }
-  
+
   /* Dark mode styles for card text */
   html[data-theme='dark'] .tech-card-title {
     color: #e3e3e3;
   }
-  
+
   html[data-theme='dark'] .tech-card-description {
     color: #b0b0b0;
   }
-  
+
   .tech-card-features {
     display: flex;
     flex-direction: column;
@@ -985,11 +991,11 @@ flowchart TD
     border-top: 1px dashed #e0e0e0;
     padding-top: 12px;
   }
-  
+
   html[data-theme='dark'] .tech-card-features {
     border-top: 1px dashed #333;
   }
-  
+
   .tech-card-feature {
     font-size: 0.85rem;
     color: #5f6368;
@@ -998,23 +1004,23 @@ flowchart TD
     padding: 6px 0;
     border-bottom: 1px solid #f5f5f5;
   }
-  
+
   html[data-theme='dark'] .tech-card-feature {
     color: #a0a0a0;
     border-bottom: 1px solid #2d2d2d;
   }
-  
+
   .tech-card-feature:before {
     content: "✓";
     color: #4CAF50;
     margin-right: 8px;
     font-weight: bold;
   }
-  
+
   .tech-card-feature:last-child {
     border-bottom: none;
   }
-  
+
   /* Rationale styling */
   .tech-rationale {
     display: grid;
@@ -1022,32 +1028,32 @@ flowchart TD
     gap: 30px;
     margin-top: 40px;
   }
-  
+
   /* Responsive adjustments for laptop screens */
   @media (min-width: 997px) and (max-width: 1200px) {
     .tech-rationale {
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     }
-    
+
     .tech-rationale-item {
       padding: 12px;
     }
-    
+
     .tech-rationale-icon {
       font-size: 1.8rem;
       margin-right: 12px;
     }
-    
+
     .tech-rationale-content h3 {
       font-size: 1.1rem;
       margin-bottom: 8px;
     }
-    
+
     .tech-rationale-content p {
       font-size: 0.85rem;
     }
   }
-  
+
   .tech-rationale-item {
     display: flex;
     align-items: flex-start;
@@ -1057,116 +1063,118 @@ flowchart TD
     border: 1px solid #f0f0f0;
     transition: all 0.3s ease;
   }
-  
+
   html[data-theme='dark'] .tech-rationale-item {
     background-color: #1e1e1e;
     border: 1px solid #333;
   }
-  
+
   .tech-rationale-item:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
   }
-  
+
   html[data-theme='dark'] .tech-rationale-item:hover {
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
   }
-  
+
   .tech-rationale-icon {
     font-size: 2rem;
     margin-right: 15px;
     min-width: 40px;
     text-align: center;
   }
-  
+
   .tech-rationale-content h3 {
     margin-top: 0;
     margin-bottom: 10px;
     font-size: 1.2rem;
     color: #202124;
   }
-  
+
   .tech-rationale-content p {
     margin: 0;
     font-size: 0.9rem;
     color: #5f6368;
     line-height: 1.5;
   }
-  
+
   /* Dark mode styles for rationale section */
   html[data-theme='dark'] .tech-rationale-content h3 {
     color: #e3e3e3;
   }
-  
+
   html[data-theme='dark'] .tech-rationale-content p {
     color: #b0b0b0;
   }
-  
+
   /* Tablet responsive adjustments */
   @media (max-width: 996px) {
     .tech-grid {
       grid-template-columns: repeat(auto-fill, minmax(45%, 1fr));
       gap: 20px;
     }
-    
+
     .tech-stack-overview {
       grid-template-columns: repeat(2, 1fr);
       gap: 15px;
     }
-    
+
     .tech-rationale {
       grid-template-columns: 1fr;
       gap: 20px;
     }
-    
+
     .tech-card {
       padding: 20px;
       min-height: 220px;
     }
-    
+
     .tech-stack-banner {
       padding: 25px;
     }
-    
+
     .tech-stack-banner-content h2 {
       font-size: 1.6rem;
     }
   }
-  
+
   /* Mobile responsive adjustments */
   @media (max-width: 576px) {
     .tech-grid {
       grid-template-columns: 1fr;
     }
-    
+
     .tech-stack-overview {
       grid-template-columns: 1fr;
     }
-    
+
     .tech-card {
       padding: 16px;
     }
-    
+
     .tech-stack-banner {
       padding: 20px;
     }
-    
+
     .tech-stack-banner-content h2 {
       font-size: 1.4rem;
     }
-    
+
     .tech-stack-banner-content p {
       font-size: 0.9rem;
     }
-    
+
     .tech-category-title {
       font-size: 1.3rem;
     }
-    
+
     .tech-category-icon {
       font-size: 1.6rem;
     }
   }
 `}
 </style>
+
+```
 

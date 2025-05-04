@@ -3,6 +3,8 @@ sidebar_position: 1
 sidebar_label: "Project Structure"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Backend Project Structure
 
 ## Overview
@@ -10,6 +12,9 @@ sidebar_label: "Project Structure"
 The backend component of the Enterprise Nexus project is located in the `study/study` directory and follows a standard Spring Boot project structure with additional components for speech processing. The application is organized using a layered architecture pattern that separates concerns and promotes maintainability.
 
 ## Architecture Diagram
+
+<PanzoomWrapper>
+<div id="backend-architecture-diagram">
 
 ```mermaid
 classDiagram
@@ -60,6 +65,9 @@ classDiagram
     InfrastructureLayer --> ExternalIntegration
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Main Directory Structure
 
 ```
@@ -109,6 +117,9 @@ study/study/
 
 ## Request Flow
 
+<PanzoomWrapper>
+<div id="request-flow-diagram">
+
 ```mermaid
 flowchart TD
     %% Define node styles
@@ -148,6 +159,9 @@ flowchart TD
     P --> H
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Key Components
 
 ### Controllers
@@ -166,6 +180,8 @@ Controllers handle HTTP requests and define the API endpoints. They are organize
 
 ### Service Layer Architecture
 
+<PanzoomWrapper>
+<div id="service-layer-diagram">
 ```mermaid
 classDiagram
     class BaseService {
@@ -213,9 +229,14 @@ classDiagram
     BaseService <|-- UserService
     BaseService <|-- KanbanService
     BaseService <|-- LanguageService
-```
+
+````
+</div>
+</PanzoomWrapper>
 
 ### Entity Relationship Diagram
+<PanzoomWrapper>
+<div id="entity-relationship-diagram">
 
 ```mermaid
 erDiagram
@@ -321,7 +342,10 @@ erDiagram
 
     USER ||--o{ CALENDAR_EVENT : creates
     USER ||--o{ LANGUAGE_MESSAGE : creates
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ### Security Implementation
 
@@ -377,6 +401,9 @@ public class SecurityConfig {
 
 The SpeechBrain module provides AI-powered speech processing through a Python service that integrates with the Java backend:
 
+<PanzoomWrapper>
+<div id="speechbrain-integration-diagram">
+
 ```mermaid
 sequenceDiagram
     participant Client
@@ -398,6 +425,9 @@ sequenceDiagram
     PythonService-->>JavaBackend: Audio file URL
     JavaBackend-->>Client: Audio URL response
 ```
+
+</div>
+</PanzoomWrapper>
 
 #### Python Service Implementation
 
@@ -721,6 +751,9 @@ The application uses Maven for build management and can be deployed to various e
 
 ### Deployment Workflow
 
+<PanzoomWrapper>
+<div id="deployment-workflow-diagram">
+
 ```mermaid
 flowchart TD
     A["Source Code"] --> B["Maven Build"]
@@ -753,4 +786,7 @@ flowchart TD
     class M monitor
     class E,L error
 ```
+
+</div>
+</PanzoomWrapper>
 

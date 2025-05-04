@@ -3,12 +3,16 @@ sidebar_position: 3
 sidebar_label: "Authentication"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Authentication & Security
 
 ## Authentication Architecture and Workflows
 
 ### JWT Authentication Workflow
 
+<PanzoomWrapper>
+<div id="jwt-authentication-workflow-diagram">
 ```mermaid
 sequenceDiagram
     participant Client as Client
@@ -49,9 +53,13 @@ sequenceDiagram
         API-->>Client: Protected Resource
     end
 ```
+</div>
+</PanzoomWrapper>
 
 ### Token Refresh Workflow
 
+<PanzoomWrapper>
+<div id="token-refresh-workflow">
 ```mermaid
 sequenceDiagram
     participant Client as Client
@@ -78,9 +86,13 @@ sequenceDiagram
         API-->>Client: 200 OK + New Access Token
     end
 ```
+</div>
+</PanzoomWrapper>
 
 ### OAuth2 Authentication Workflow
 
+<PanzoomWrapper>
+<div id="oauth2-authentication-workflow">
 ```mermaid
 sequenceDiagram
     participant Client as Client
@@ -118,6 +130,8 @@ sequenceDiagram
         API-->>Client: 200 OK + Tokens
     end
 ```
+</div>
+</PanzoomWrapper>
 
 ## Authentication Overview
 
@@ -127,6 +141,8 @@ The Enterprise Nexus Project implements a comprehensive authentication system us
 
 ### Security Layers and Components
 
+<PanzoomWrapper>
+<div id="security-layers-and-components">
 ```mermaid
 flowchart TD
     A[Client Request] --> B[TLS/HTTPS Encryption]
@@ -160,22 +176,26 @@ flowchart TD
     class H dataStore
     class K,M externalServices
 ```
+</div>
+</PanzoomWrapper>
 
 ### Security Features
 
-| Security Feature | Implementation | Purpose |
-|------------------|----------------|---------|
-| Password Security | BCrypt hashing with salt | Protect user credentials |
-| Access Control | Role-based + Permission-based | Limit access to authorized users |
-| Transport Security | TLS 1.3 with strong ciphers | Secure data in transit |
-| CSRF Protection | Double-submit cookie pattern | Prevent cross-site request forgery |
-| XSS Protection | Output encoding + Content-Security-Policy | Prevent cross-site scripting |
-| Rate Limiting | IP-based + User-based throttling | Prevent brute force attacks |
-| Input Validation | Server-side validation with strict schemas | Prevent injection attacks |
-| Audit Logging | Comprehensive security event logging | Track security events |
+| Security Feature   | Implementation                             | Purpose                            |
+| ------------------ | ------------------------------------------ | ---------------------------------- |
+| Password Security  | BCrypt hashing with salt                   | Protect user credentials           |
+| Access Control     | Role-based + Permission-based              | Limit access to authorized users   |
+| Transport Security | TLS 1.3 with strong ciphers                | Secure data in transit             |
+| CSRF Protection    | Double-submit cookie pattern               | Prevent cross-site request forgery |
+| XSS Protection     | Output encoding + Content-Security-Policy  | Prevent cross-site scripting       |
+| Rate Limiting      | IP-based + User-based throttling           | Prevent brute force attacks        |
+| Input Validation   | Server-side validation with strict schemas | Prevent injection attacks          |
+| Audit Logging      | Comprehensive security event logging       | Track security events              |
 
 ### Authorization Workflow
 
+<PanzoomWrapper>
+<div id="authorization-workflow">
 ```mermaid
 flowchart TD
     A[Authenticated Request] --> B[Extract User Claims]
@@ -207,6 +227,8 @@ flowchart TD
     class H denied
     class J,K granted
 ```
+</div>
+</PanzoomWrapper>
 
 ## OAuth2 Integration
 
@@ -214,14 +236,16 @@ The system supports OAuth2 authentication with multiple providers, allowing user
 
 ### Supported OAuth2 Providers
 
-| Provider | Scope | User Data Retrieved |
-|----------|-------|---------------------|
-| Google | email, profile | Email, Name, Profile Picture |
-| GitHub | user:email, read:user | Email, Username, Avatar |
-| Microsoft | User.Read | Email, Display Name, Profile |
+| Provider  | Scope                 | User Data Retrieved          |
+| --------- | --------------------- | ---------------------------- |
+| Google    | email, profile        | Email, Name, Profile Picture |
+| GitHub    | user:email, read:user | Email, Username, Avatar      |
+| Microsoft | User.Read             | Email, Display Name, Profile |
 
 ### OAuth2 Configuration
 
+<PanzoomWrapper>
+<div id="oauth2-configuration-diagram">
 ```mermaid
 flowchart LR
     A[OAuth2 Configuration] --> B[Client Registration]
@@ -246,6 +270,8 @@ flowchart LR
     class B,F,J primaryComponents
     class C,D,E,G,H,I,K,L subComponents
 ```
+</div>
+</PanzoomWrapper>
 
 ## Multi-Factor Authentication
 
@@ -253,6 +279,8 @@ The system implements multi-factor authentication (MFA) to provide an additional
 
 ### MFA Workflow
 
+<PanzoomWrapper>
+<div id="mfa-workflow-diagram">
 ```mermaid
 sequenceDiagram
     participant User as User
@@ -309,13 +337,15 @@ sequenceDiagram
         end
     end
 ```
+</div>
+</PanzoomWrapper>
 
 ### MFA Methods
 
-| Method | Implementation | User Experience |
-|--------|----------------|-----------------|
-| TOTP | RFC 6238 compliant | User generates code from authenticator app |
-| SMS | One-time codes sent via SMS | User receives code via text message |
+| Method | Implementation              | User Experience                            |
+| ------ | --------------------------- | ------------------------------------------ |
+| TOTP   | RFC 6238 compliant          | User generates code from authenticator app |
+| SMS    | One-time codes sent via SMS | User receives code via text message        |
 
 ## Security Monitoring and Incident Response
 
@@ -323,6 +353,8 @@ The system includes comprehensive security monitoring and incident response capa
 
 ### Security Monitoring Workflow
 
+<PanzoomWrapper>
+<div id="security-monitoring-workflow-diagram">
 ```mermaid
 flowchart TD
     A[Security Events] --> B[Event Collection]
@@ -353,4 +385,6 @@ flowchart TD
     class F,I,J normalActions
     class G,K,L,M,N,O securityActions
 ```
+</div>
+</PanzoomWrapper>
 

@@ -3,11 +3,16 @@ sidebar_position: 2
 sidebar_label: "State Management"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # State Management
 
 ## State Management Architecture and Workflows
 
 ### Redux Data Flow
+
+<PanzoomWrapper>
+<div id="redux-data-flow" >
 
 ```mermaid
 flowchart TD
@@ -40,7 +45,13 @@ flowchart TD
     class E,F stateLayer
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Async Action Workflow
+
+<PanzoomWrapper>
+<div id="async-action-workflow" >
 
 ```mermaid
 sequenceDiagram
@@ -76,7 +87,13 @@ sequenceDiagram
     Store-->>Component: State Updated (final)
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### State Slice Architecture
+
+<PanzoomWrapper>
+<div id="state-slice-architecture">
 
 ```mermaid
 classDiagram
@@ -143,6 +160,9 @@ classDiagram
     ReduxStore *-- CalendarState
     ReduxStore *-- UIState
 ```
+
+</div>
+</PanzoomWrapper>
 
 ## State Management Overview
 
@@ -223,6 +243,9 @@ The Redux store is organized into domain-specific slices, each responsible for a
 
 ### Normalized State Shape
 
+<PanzoomWrapper>
+<div id="normalized-state-shape">
+
 ```mermaid
 flowchart TD
     A[Normalized State] --> B[Entities]
@@ -250,6 +273,9 @@ flowchart TD
     class D,E,F,G,H,I entityType
     class J,K,L entityMap
 ```
+
+</div>
+</PanzoomWrapper>
 
 ## Middleware Configuration
 
@@ -343,6 +369,9 @@ The application implements several architectural patterns to enhance maintainabi
 
 ### Component State Management Patterns
 
+<PanzoomWrapper>
+<div id="component-state-management-patterns">
+
 ```mermaid
 flowchart TD
     A[Component Architecture] --> B[Container Components]
@@ -364,6 +393,9 @@ flowchart TD
     class B,C componentType
     class D,E,F,G,H,I responsibility
 ```
+
+</div>
+</PanzoomWrapper>
 
 | Pattern                      | Implementation                                            | Use Case                                               |
 | ---------------------------- | --------------------------------------------------------- | ------------------------------------------------------ |

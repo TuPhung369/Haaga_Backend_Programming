@@ -3,7 +3,7 @@ sidebar_position: 3
 sidebar_label: "Architecture"
 ---
 
-import PanzoomWrapper from '../src/components/MermaidDiagram/PanzoomWrapper';
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 
 # Architecture
 

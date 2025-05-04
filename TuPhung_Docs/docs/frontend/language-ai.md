@@ -2,12 +2,16 @@
 sidebar_position: 8
 sidebar_label: "Language AI"
 ---
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 
 # Language AI
 
 ## Language AI Architecture and Workflows
 
 ### Language AI System Architecture
+
+<PanzoomWrapper>
+<div id="language-ai-system-architecture">
 
 ```mermaid
 classDiagram
@@ -128,9 +132,15 @@ classDiagram
     LanguageContext --> LanguageService : uses
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Language AI Workflow
 
 This diagram illustrates the Language AI processing flow, including speech recognition, natural language processing, and text-to-speech conversion, with different paths for English and other languages.
+
+<PanzoomWrapper>
+<div id="language-ai-workflow">
 
 ```mermaid
 flowchart TD
@@ -239,7 +249,13 @@ flowchart TD
     ErrorCheck -->|No| ContinueProcess[Continue Process]:::aiProcess
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Speech Recognition Sequence
+
+<PanzoomWrapper>
+<div id="speech-recognition-sequence">
 
 ```mermaid
 sequenceDiagram
@@ -304,7 +320,13 @@ sequenceDiagram
     end
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Translation Sequence
+
+<PanzoomWrapper>
+<div id="translation-sequence">
 
 ```mermaid
 sequenceDiagram
@@ -344,9 +366,15 @@ sequenceDiagram
     API->>DB: Store feedback
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## User Interface Components
 
 ### Language AI Interface Architecture
+
+<PanzoomWrapper>
+<div id="language-ai-interface-architecture">
 
 ```mermaid
 flowchart TD
@@ -401,6 +429,9 @@ flowchart TD
     class L,M,N,O,S,T,U,V,W,X,Y,Z,AA,AB,AC,AD,AE,AF components
     class P,Q,R specialComponents
 ```
+
+</div>
+</PanzoomWrapper>
 
 | Component                 | Description                | Features                                                   |
 | ------------------------- | -------------------------- | ---------------------------------------------------------- |

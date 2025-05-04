@@ -3,11 +3,16 @@ sidebar_position: 3
 sidebar_label: "Authentication"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Authentication
 
 ## Authentication Architecture and Workflows
 
 ### Authentication System Architecture
+
+<PanzoomWrapper>
+<div id="authentication-system-architecture">
 
 ```mermaid
 classDiagram
@@ -87,9 +92,15 @@ classDiagram
     AuthGuard --> TokenService : uses
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Authentication Workflow
 
 This diagram illustrates the complete authentication flow, from user login/registration to token management.
+
+<PanzoomWrapper>
+<div id="authentication-workflow">
 
 ```mermaid
 flowchart TD
@@ -163,7 +174,13 @@ flowchart TD
     ProcessToken --> AuthSuccess
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Multi-Factor Authentication Workflow
+
+<PanzoomWrapper>
+<div id="multi-factor-authentication-workflow">
 
 ```mermaid
 sequenceDiagram
@@ -225,7 +242,13 @@ sequenceDiagram
     end
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Password Reset Workflow
+
+<PanzoomWrapper>
+<div id="password-reset-workflow">
 
 ```mermaid
 sequenceDiagram
@@ -264,7 +287,13 @@ sequenceDiagram
     end
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### TOTP Setup Workflow
+
+<PanzoomWrapper>
+<div id="totp-setup-workflow">
 
 ```mermaid
 sequenceDiagram
@@ -300,6 +329,9 @@ sequenceDiagram
     end
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Authentication Components and Features
 
 ### Interactive Authentication UI Components
@@ -307,6 +339,9 @@ sequenceDiagram
 The Enterprise Nexus frontend implements a modern, secure authentication system with an engaging user interface that combines functionality with visual appeal:
 
 #### Login Component Architecture
+
+<PanzoomWrapper>
+<div id="login-component-architecture">
 
 ```mermaid
 flowchart TD
@@ -340,6 +375,9 @@ flowchart TD
     class E,F,G,H,I,J,K,L,M,N secondary
     class O,P,Q utility
 ```
+
+</div>
+</PanzoomWrapper>
 
 | Component              | Description                              | Features                                                     |
 | ---------------------- | ---------------------------------------- | ------------------------------------------------------------ |
@@ -598,6 +636,9 @@ export const SparklesCore: React.FC<SparklesCoreProps> = ({
 
 The Enterprise Nexus frontend implements a comprehensive security architecture to protect user authentication and session management:
 
+<PanzoomWrapper>
+<div id="token-management-security">
+
 ```mermaid
 flowchart TD
     A[Authentication Flow] --> B{Token Storage Strategy}
@@ -634,6 +675,9 @@ flowchart TD
     class C,D,E,F,G,H,I,K,L process
     class N,O,P action
 ```
+
+</div>
+</PanzoomWrapper>
 
 | Security Feature       | Implementation                        | Purpose                                                   |
 | ---------------------- | ------------------------------------- | --------------------------------------------------------- |

@@ -3,11 +3,16 @@ sidebar_position: 4
 sidebar_label: "User Management"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # User Management
 
 ## User Management Architecture and Workflows
 
 ### User Management System Architecture
+
+<PanzoomWrapper>
+<div id="user-management-system-architecture" >
 
 ```mermaid
 classDiagram
@@ -90,10 +95,15 @@ classDiagram
     UserContext --> UserService : uses
     User *-- UserSettings
 ```
+</div>
+</PanzoomWrapper>
 
 ### User Lifecycle Workflow
 
 This diagram illustrates the user management processes, including profile management and administrative functions.
+
+<PanzoomWrapper>
+<div id="user-lifecycle-workflow" >
 
 ```mermaid
 flowchart TD
@@ -163,7 +173,13 @@ flowchart TD
     UpdateUserDB --> RefreshUI[Refresh UI with Updated Data]:::uiComponent
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### User State Diagram
+
+<PanzoomWrapper>
+<div id="user-state-diagram" >
 
 ```mermaid
 stateDiagram-v2
@@ -194,7 +210,12 @@ stateDiagram-v2
     }
 ```
 
+</div>
+</PanzoomWrapper>
 ### Profile Update Workflow
+
+<PanzoomWrapper>
+<div id="profile-update-workflow" >
 
 ```mermaid
 sequenceDiagram
@@ -247,8 +268,13 @@ sequenceDiagram
         end
     end
 ```
+</div>
+</PanzoomWrapper>
 
 ### Admin User Management Workflow
+
+<PanzoomWrapper>
+<div id="admin-user-management-workflow" >
 
 ```mermaid
 sequenceDiagram
@@ -312,10 +338,15 @@ sequenceDiagram
         UI-->>Admin: Update User List
     end
 ```
+</div>
+</PanzoomWrapper>
 
 ## User Interface Components
 
 ### Profile Component Architecture
+
+<PanzoomWrapper>
+<div id="profile-component-architecture" >
 
 ```mermaid
 flowchart TD
@@ -355,6 +386,8 @@ flowchart TD
     class K,L,M,N,O,P,Q,S components
     class R specialComponent
 ```
+</div>
+</PanzoomWrapper>
 
 | Component            | Description              | Features                                     |
 | -------------------- | ------------------------ | -------------------------------------------- |
@@ -368,6 +401,9 @@ flowchart TD
 | **ActivityFeed**     | User activity history    | Timeline of recent actions and events        |
 
 ### Admin User Management Interface
+
+<PanzoomWrapper>
+<div id="admin-user-management-interface" >
 
 ```mermaid
 flowchart TD
@@ -407,6 +443,8 @@ flowchart TD
     class G,H,I,J,K,L,M,N controls
     class O,P,Q,R,S modals
 ```
+</div>
+</PanzoomWrapper>
 
 ## Component Implementations
 

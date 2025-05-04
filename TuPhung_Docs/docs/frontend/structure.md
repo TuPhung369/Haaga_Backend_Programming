@@ -3,6 +3,8 @@ sidebar_position: 1
 sidebar_label: "Project Structure"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Frontend Project Structure
 
 ## Overview
@@ -10,6 +12,9 @@ sidebar_label: "Project Structure"
 The frontend component of the Enterprise Nexus project is located in the `study/typescript-react` directory and is built with React, TypeScript, and Redux Toolkit. The application follows a modern component-based architecture with a focus on type safety, reusability, and maintainability.
 
 ## Architecture Diagram
+
+<PanzoomWrapper>
+<div id="architecture-diagram" >
 
 ```mermaid
 classDiagram
@@ -82,6 +87,9 @@ classDiagram
     Hooks --> Services : calls
     Hooks --> Store : accesses
 ```
+
+</div>
+</PanzoomWrapper>
 
 ## Main Directory Structure
 
@@ -173,6 +181,9 @@ study/typescript-react/
 
 ## Application Flow
 
+<PanzoomWrapper>
+<div id="application-flow" >
+
 ```mermaid
 flowchart TD
     %% Define node styles
@@ -211,6 +222,9 @@ flowchart TD
     S --> O
 ```
 
+</div>
+</PanzoomWrapper>
+
 ## Key Components
 
 ### Core Components
@@ -229,6 +243,9 @@ The application includes various reusable components organized by functionality:
 | **UI Enhancement**  | Visual improvements          | `SparklesCore`, `ShineBorder`, `LoadingState`, `ThemeSwitcher`        |
 
 ### Feature Component Architecture
+
+<PanzoomWrapper>
+<div id="feature-component-architecture" >
 
 ```mermaid
 flowchart TD
@@ -256,6 +273,9 @@ flowchart TD
     class B,C,D layers
     class E,F,G,H,I,J,K,L,M details
 ```
+
+</div>
+</PanzoomWrapper>
 
 ### Pages
 
@@ -286,6 +306,9 @@ The application is organized into page components that serve specific user needs
   - `SettingPage`: Application configuration
 
 ### Services Architecture
+
+<PanzoomWrapper>
+<div id="services-architecture" >
 
 ```mermaid
 classDiagram
@@ -344,9 +367,15 @@ classDiagram
     BaseService <|-- WebSocketService
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### State Management Architecture and Workflows
 
 The application uses Redux Toolkit for centralized state management with a well-defined architecture:
+
+<PanzoomWrapper>
+<div id="state-management-architecture-and-workflows" >
 
 ```mermaid
 flowchart TD
@@ -373,7 +402,13 @@ flowchart TD
     class I,J,K apiFlow
 ```
 
+</div>
+</PanzoomWrapper>
+
 #### Redux Data Flow
+
+<PanzoomWrapper>
+<div id="redux-data-flow" >
 
 ```mermaid
 flowchart LR
@@ -396,6 +431,9 @@ flowchart LR
     class F state
     class G ui
 ```
+
+</div>
+</PanzoomWrapper>
 
 #### Redux Slice Implementation
 
@@ -571,6 +609,9 @@ The application uses Vite for fast development and optimized production builds:
 
 ### Development Workflow
 
+<PanzoomWrapper>
+<div id="development-workflow" >
+
 ```mermaid
 flowchart LR
     A["Code Changes"] --> B["Vite Dev Server"]
@@ -597,6 +638,9 @@ flowchart LR
     class E,F,G,H tsCompiler
     class I,J linting
 ```
+
+</div>
+</PanzoomWrapper>
 
 ### Build Configuration
 

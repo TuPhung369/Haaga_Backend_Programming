@@ -3,12 +3,16 @@ sidebar_position: 8
 sidebar_label: "Exception Handling"
 ---
 
+import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
+
 # Exception Handling
 
 ## Exception Handling Architecture and Components
 
 ### System Architecture
 
+<PanzoomWrapper>
+<div id="exception-handling-architecture-diagram">
 ```mermaid
 classDiagram
     class ExceptionHandlingModule {
@@ -120,10 +124,15 @@ classDiagram
     AppException <|-- ValidationException
     AppException <|-- SecurityException
     ErrorCodeRegistry --> ErrorCodeDefinition : contains
-```
+
+````
+
+</div>
+</PanzoomWrapper>
 
 ### Exception Hierarchy
-
+<PanzoomWrapper>
+<div id="exception-hierarchy-diagram">
 ```mermaid
 classDiagram
     class RuntimeException {
@@ -208,12 +217,17 @@ classDiagram
     SecurityException <|-- InvalidTokenException
     AppException <|-- BusinessException
     AppException <|-- ExternalServiceException
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ## Exception Handling Workflows
 
 ### Main Exception Handling Flow
 
+<PanzoomWrapper>
+<div id="main-exception-handling-flow-diagram">
 ```mermaid
 flowchart TD
     %% Main components
@@ -255,9 +269,14 @@ flowchart TD
     class C,H decision
     class P endpoint
     class F,G,I,J,K,L,M,N error
-```
+
+````
+</div>
+</PanzoomWrapper>
 
 ### Validation Exception Flow
+<PanzoomWrapper>
+<div id="validation-exception-flow-diagram">
 
 ```mermaid
 flowchart TD
@@ -298,9 +317,15 @@ flowchart TD
     class D,N decision
     class F,L endpoint
     class G,H,O,P,Q,R error
-```
+````
+
+</div>
+</PanzoomWrapper>
 
 ### Security Exception Flow
+
+<PanzoomWrapper>
+<div id="security-exception-flow-diagram">
 
 ```mermaid
 flowchart TD
@@ -351,7 +376,13 @@ flowchart TD
     class D,E,F,G,L,M,N,O,U,V,W,X error
 ```
 
+</div>
+</PanzoomWrapper>
+
 ### Exception Handling Sequence
+
+<PanzoomWrapper>
+<div id="exception-handling-sequence-diagram">
 
 ```mermaid
 sequenceDiagram
@@ -442,6 +473,9 @@ sequenceDiagram
         deactivate ExHandler
     end
 ```
+
+</div>
+</PanzoomWrapper>
 
 ## Exception Handling Overview
 
