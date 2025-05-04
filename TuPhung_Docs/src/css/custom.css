@@ -821,37 +821,41 @@ article {
 .pagination-nav {
   padding-left: 10px !important;
   padding-right: 10px !important;
-  width: calc(100vw - var(--doc-sidebar-width) - 40px) !important; /* Use viewport width minus sidebar and spacing */
-  max-width: calc(100vw - var(--doc-sidebar-width) - 40px) !important; /* Use viewport width minus sidebar and spacing */
-  margin-left: 10px !important;
-  margin-right: 10px !important;
+  width: 100% !important; /* Use full width of parent container */
+  max-width: 100% !important; /* Limit to parent container width */
+  margin-left: auto !important;
+  margin-right: auto !important;
   box-sizing: border-box !important;
   min-width: 0 !important; /* Prevent overflow */
+  overflow: hidden !important; /* Prevent content from overflowing */
 }
 
 /* Medium screen adjustments for pagination nav */
 @media (max-width: 996px) {
   .pagination-nav {
-    margin-left: 10px !important;
-    margin-right: 10px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     padding-left: 10px !important;
     padding-right: 10px !important;
-    width: calc(100vw - 40px) !important; /* Match article width on medium screens */
+    width: 100% !important; /* Use full width of parent container */
     min-width: 0 !important;
-    max-width: calc(100vw - 40px) !important; /* Match article width on medium screens */
+    max-width: 100% !important; /* Limit to parent container width */
+    overflow: hidden !important; /* Prevent content from overflowing */
   }
 }
 
 /* Mobile adjustments for pagination nav */
 @media (max-width: 768px) {
   .pagination-nav {
-    margin-left: 10px !important;
-    margin-right: 10px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     padding-left: 10px !important;
     padding-right: 10px !important;
-    width: calc(100vw - 40px) !important; /* Match article width on mobile */
+    width: 100% !important; /* Use full width of parent container */
     min-width: 0 !important;
-    max-width: calc(100vw - 40px) !important; /* Match article width on mobile */
+    max-width: 100% !important; /* Limit to parent container width */
+    overflow: hidden !important; /* Prevent content from overflowing */
+    margin-bottom: 20px !important; /* Add space before footer */
   }
 }
 
@@ -944,6 +948,16 @@ article {
     margin-left: auto !important;
     margin-right: auto !important;
   }
+  
+  /* Ensure generatedIndexPage uses full width */
+  .generatedIndexPage_vN6x, [class*="generatedIndexPage"] {
+    width: 100% !important;
+    max-width: var(--ifm-container-width) !important; /* Use theme variable */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 
 /* Fix layout to ensure only 2 columns */
@@ -958,8 +972,22 @@ article {
   margin: 0 auto !important;
   width: 100% !important;
   max-width: 100% !important; /* No max width limit */
-  justify-content: center !important;
   box-sizing: border-box !important;
+}
+
+/* Fix container width issues */
+.container {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix width for category pages */
+.container.padding-top--md.padding-bottom--lg {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  justify-content: center !important;
   padding: 0 !important;
   align-items: flex-start !important;
 }
@@ -1392,6 +1420,137 @@ html[data-theme='light'] .alert {
   backdrop-filter: blur(5px);
   border: 1px solid rgba(179, 186, 253, 0.5);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Fix for category index cards to have equal height */
+.generatedIndexPage article .card,
+.docCategoryGeneratedIndex article .card,
+div[class*="generatedIndexPage"] article .card,
+div[class*="docCategoryGeneratedIndex"] article .card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Force equal height for cards in the same row */
+.generatedIndexPage .row,
+.docCategoryGeneratedIndex .row,
+div[class*="generatedIndexPage"] .row,
+div[class*="docCategoryGeneratedIndex"] .row,
+div[class*="generatedIndexPage"] div[class*="row"],
+div[class*="docCategoryGeneratedIndex"] div[class*="row"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.generatedIndexPage article .card .cardContainer,
+.docCategoryGeneratedIndex article .card .cardContainer,
+div[class*="generatedIndexPage"] article .card .cardContainer,
+div[class*="docCategoryGeneratedIndex"] article .card .cardContainer,
+.generatedIndexPage article .card div[class*="cardContainer"],
+.docCategoryGeneratedIndex article .card div[class*="cardContainer"],
+div[class*="generatedIndexPage"] article .card div[class*="cardContainer"],
+div[class*="docCategoryGeneratedIndex"] article .card div[class*="cardContainer"] {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+/* Ensure card title and description have consistent height */
+.generatedIndexPage article .card .cardContainer h2,
+.docCategoryGeneratedIndex article .card .cardContainer h2,
+div[class*="generatedIndexPage"] article .card .cardContainer h2,
+div[class*="docCategoryGeneratedIndex"] article .card .cardContainer h2,
+.generatedIndexPage article .card div[class*="cardContainer"] h2,
+.docCategoryGeneratedIndex article .card div[class*="cardContainer"] h2,
+div[class*="generatedIndexPage"] article .card div[class*="cardContainer"] h2,
+div[class*="docCategoryGeneratedIndex"] article .card div[class*="cardContainer"] h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.generatedIndexPage article .card .cardContainer p,
+.docCategoryGeneratedIndex article .card .cardContainer p,
+div[class*="generatedIndexPage"] article .card .cardContainer p,
+div[class*="docCategoryGeneratedIndex"] article .card .cardContainer p,
+.generatedIndexPage article .card div[class*="cardContainer"] p,
+.docCategoryGeneratedIndex article .card div[class*="cardContainer"] p,
+div[class*="generatedIndexPage"] article .card div[class*="cardContainer"] p,
+div[class*="docCategoryGeneratedIndex"] article .card div[class*="cardContainer"] p {
+  flex-grow: 1;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  max-height: 3em !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Force all cards to have exactly the same height */
+div[class*="generatedIndexPage"] article .card,
+div[class*="docCategoryGeneratedIndex"] article .card {
+  height: 138.196px !important;
+  max-height: 138.196px !important;
+  overflow: hidden !important;
+}
+
+/* Force card containers to have consistent height */
+div[class*="generatedIndexPage"] article .card div[class*="cardContainer"],
+div[class*="docCategoryGeneratedIndex"] article .card div[class*="cardContainer"] {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Force card titles to have consistent height */
+div[class*="generatedIndexPage"] article .card div[class*="cardContainer"] h2,
+div[class*="docCategoryGeneratedIndex"] article .card div[class*="cardContainer"] h2 {
+  font-size: 1.2rem !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0.5rem !important;
+  margin-top: 0 !important;
+  height: auto !important;
+}
+
+/* Specific fix for language-ai card (position 2 row 4) */
+div[class*="generatedIndexPage"] article a[href*="language-ai"],
+div[class*="docCategoryGeneratedIndex"] article a[href*="language-ai"] {
+  height: 138.196px !important;
+  max-height: 138.196px !important;
+}
+
+div[class*="generatedIndexPage"] article a[href*="language-ai"] .card,
+div[class*="docCategoryGeneratedIndex"] article a[href*="language-ai"] .card {
+  height: 138.196px !important;
+  max-height: 138.196px !important;
+  overflow: hidden !important;
+}
+
+div[class*="generatedIndexPage"] article a[href*="language-ai"] .card div[class*="cardContainer"],
+div[class*="docCategoryGeneratedIndex"] article a[href*="language-ai"] .card div[class*="cardContainer"] {
+  height: 100% !important;
+  max-height: 138.196px !important;
+  overflow: hidden !important;
+}
+
+div[class*="generatedIndexPage"] article a[href*="language-ai"] .card div[class*="cardContainer"] p,
+div[class*="docCategoryGeneratedIndex"] article a[href*="language-ai"] .card div[class*="cardContainer"] p {
+  max-height: 3em !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+
+/* Force all cards in the 4th row to have the same height */
+div[class*="generatedIndexPage"] article:nth-child(n+7):nth-child(-n+9) .card,
+div[class*="docCategoryGeneratedIndex"] article:nth-child(n+7):nth-child(-n+9) .card {
+  height: 138.196px !important;
+  max-height: 138.196px !important;
+  overflow: hidden !important;
 }
 
 /* Make table of contents transparent for both light and dark modes */

@@ -6,8 +6,6 @@ module.exports = [
   "@docusaurus/theme-classic/lib/nprogress",
   "./css/global.css", // Global CSS styles
   "./css/custom.css",
-  "./css/category-combined.css", // Combined CSS for category pages on click
-  "./css/frontend-category.css", // Special styling for frontend category
   "./css/mermaid-gantt-fixes.css", // Fixes for Mermaid Gantt charts
   "./js/dropdown-closer.js", // Dropdown menu closer script
   "./js/frontend-category-enhancer.js", // Frontend category page enhancer

@@ -63,7 +63,10 @@ const config = {
   themes: ["@docusaurus/theme-mermaid"],
 
   // Custom plugins
-  plugins: [path.resolve(__dirname, "./src/plugins/bookmark-plugin.js")],
+  plugins: [
+    path.resolve(__dirname, "./src/plugins/bookmark-plugin.js"),
+    path.resolve(__dirname, "./src/plugins/category-css-plugin.js")
+  ],
 
   presets: [
     [
