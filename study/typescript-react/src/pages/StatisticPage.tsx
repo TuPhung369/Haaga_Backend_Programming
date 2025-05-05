@@ -525,17 +525,24 @@ const StatisticPage = () => {
       color: {
         range: COLORS,
       },
+      y: {
+        nice: true,
+        tickCount: 5,
+        formatter: (value: number) => `${value}%`,
+      },
     },
     style: {
       fill: (datum: PercentChart, index: number) =>
         COLORS[(index + 6) % COLORS.length],
     },
     label: {
-      formatter: (datum: PercentChart) => {
-        if (datum.value === undefined || datum.value === null) {
-          return "N/A"; // Return a fallback value if the value is undefined or null
+      // Use text property instead of formatter for Ant Design Charts v2
+      text: (datum: PercentChart) => {
+        // Check if datum exists and has a value property
+        if (datum && typeof datum.value === "number") {
+          return `${datum.value.toFixed(1)}%`;
         }
-        return `${datum.value.toFixed(1)}%`;
+        return "N/A"; // Return a fallback value if the value is undefined or null
       },
       style: {
         textAlign: "center",
@@ -558,6 +565,8 @@ const StatisticPage = () => {
         labelFill: COLORS[13],
         labelFontSize: 12,
         labelFontWeight: "bold",
+        labelFormatter: (value: number) => `${value}%`,
+        title: "Percentage (%)",
       },
     },
     legend: {
@@ -586,7 +595,7 @@ const StatisticPage = () => {
         },
         {
           channel: "y",
-          name: "Total",
+          name: "Percentage", // Changed from "Total" to show percentage
           field: "value",
           color: COLORS[2],
           valueFormatter: (value: number) => `${value.toFixed(1)}%`,
