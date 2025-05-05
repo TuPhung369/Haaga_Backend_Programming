@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import dayjs from "dayjs";
 import {
   getAllUsers,
   getMyInfo,
@@ -19,6 +20,7 @@ import {
   Input,
   Select,
   notification,
+  DatePicker,
 } from "antd";
 import {
   UserAddOutlined,
@@ -264,6 +266,7 @@ const UserListPage: React.FC<UserListPageProps> = () => {
 
   // Thêm state để lưu token reCAPTCHA
   const [recaptchaToken, setRecaptchaToken] = useState<string>("");
+  const [dobValue, setDobValue] = useState<any>(null);
   const recaptchaRef =
     useRef<import("../components/ReCaptchaV3").ReCaptchaV3Ref>(null);
 
@@ -483,6 +486,29 @@ const UserListPage: React.FC<UserListPageProps> = () => {
       setIsModeIdUpdate(true);
       setSelectedUserId(id);
       setIsModalVisible(true);
+
+      // Convert date of birth to dayjs object for DatePicker
+      let dateValue = null;
+      if (user.dob) {
+        if (Array.isArray(user.dob)) {
+          // If dob is an array [year, month, day]
+          if (user.dob.length >= 3) {
+            // Create date string in YYYY-MM-DD format
+            const dateStr = `${user.dob[0]}-${String(user.dob[1]).padStart(
+              2,
+              "0"
+            )}-${String(user.dob[2]).padStart(2, "0")}`;
+            dateValue = dayjs(dateStr);
+          }
+        } else {
+          // If dob is already a string
+          dateValue = dayjs(user.dob);
+        }
+      }
+
+      // Set the state for the DatePicker
+      setDobValue(dateValue);
+
       // Chỉ đặt trường currentPassword nếu không phải admin hoặc manager
       // Định nghĩa kiểu dữ liệu cụ thể thay vì dùng any
       const formValues: Record<string, string | string[] | undefined> = {
@@ -490,7 +516,7 @@ const UserListPage: React.FC<UserListPageProps> = () => {
         password: "",
         firstname: user.firstname || "",
         lastname: user.lastname || "",
-        dob: user.dob || "",
+        dob: "", // We'll handle this separately with the DatePicker
         email: user.email || "",
         roles: user.roles?.map((role) => role.name) || [],
       };
@@ -509,6 +535,8 @@ const UserListPage: React.FC<UserListPageProps> = () => {
   const showModalNew = () => {
     setIsModalVisible(true);
     setIsModeNew(true);
+    // Reset the date of birth state
+    setDobValue(null);
     form.setFieldsValue({
       username: "",
       password: "",
@@ -523,12 +551,26 @@ const UserListPage: React.FC<UserListPageProps> = () => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+
+      // Format date of birth from DatePicker
+      let formattedDob = "";
+      if (dobValue && dayjs.isDayjs(dobValue)) {
+        // Format as array [year, month, day] to match the existing data structure
+        const year = dobValue.year();
+        const month = dobValue.month() + 1; // dayjs months are 0-indexed
+        const day = dobValue.date();
+
+        formattedDob = `${year}-${String(month).padStart(2, "0")}-${String(
+          day
+        ).padStart(2, "0")}`;
+      }
+
       const errors = validateInput({
         username: values.username,
         password: values.password,
         firstname: values.firstname,
         lastname: values.lastname,
-        dob: values.dob,
+        dob: formattedDob,
         email: values.email,
       });
 
@@ -576,9 +618,18 @@ const UserListPage: React.FC<UserListPageProps> = () => {
       }
 
       try {
+        // Create a copy of values and update the dob field with the formatted date
+        const updatedValues = {
+          ...values,
+          dob:
+            dobValue && dayjs.isDayjs(dobValue)
+              ? [dobValue.year(), dobValue.month() + 1, dobValue.date()]
+              : values.dob,
+        };
+
         if (isModeNew) {
           if (token) {
-            await createUser(values, token);
+            await createUser(updatedValues, token);
           } else {
             throw new Error("Token is null");
           }
@@ -594,7 +645,7 @@ const UserListPage: React.FC<UserListPageProps> = () => {
             // Nếu là admin hoặc manager, không cần gửi currentPassword
             if (isAdmin || isManager) {
               // Tạo bản sao của values và loại bỏ trường currentPassword nếu có
-              const userValues = { ...values };
+              const userValues = { ...updatedValues };
               delete userValues.currentPassword;
               await updateUser(
                 selectedUserId,
@@ -604,7 +655,12 @@ const UserListPage: React.FC<UserListPageProps> = () => {
               );
             } else {
               // Người dùng thường cập nhật, cần gửi currentPassword
-              await updateUser(selectedUserId, values, token, recaptchaToken);
+              await updateUser(
+                selectedUserId,
+                updatedValues,
+                token,
+                recaptchaToken
+              );
             }
           }
           setNotificationMessage({
@@ -645,6 +701,8 @@ const UserListPage: React.FC<UserListPageProps> = () => {
     setIsModalVisible(false);
     setIsModeNew(false);
     setIsModeIdUpdate(false);
+    // Reset the date of birth state
+    setDobValue(null);
   };
 
   const getAvailableRoles = () => {
@@ -862,16 +920,23 @@ const UserListPage: React.FC<UserListPageProps> = () => {
             <Input />
           </Form.Item>
           <Form.Item
-            name="dob"
-            label="DoB (YYYY-MM-DD)"
+            label="Date of Birth"
             rules={[
               {
                 required: true,
-                message: "Please input the date of birth!",
+                message: "Please select your date of birth!",
               },
             ]}
           >
-            <Input />
+            <DatePicker
+              style={{ width: "100%" }}
+              placeholder="Select date of birth"
+              format="YYYY-MM-DD"
+              value={dobValue}
+              onChange={(date) => {
+                setDobValue(date);
+              }}
+            />
           </Form.Item>
           <Form.Item
             name="roles"

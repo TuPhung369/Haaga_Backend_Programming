@@ -13,8 +13,10 @@ import {
   Typography,
   Result,
   Skeleton,
-  Tooltip
+  Tooltip,
+  DatePicker,
 } from "antd";
+import dayjs from "dayjs";
 import {
   EditOutlined,
   MailOutlined,
@@ -24,14 +26,14 @@ import {
   UserOutlined,
   DownOutlined,
   RightOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { useSelector, useDispatch } from "react-redux";
 import {
   invalidateUserInfo,
   setAllUsers,
   setUserInfo,
-  setRoles
+  setRoles,
 } from "../store/userSlice";
 import { getAllRoles } from "../services/roleService";
 import { getMyInfo, updateMyInfo } from "../services/userService";
@@ -39,7 +41,7 @@ import { handleServiceError } from "../services/baseService";
 import {
   verifyEmailChange,
   requestEmailChangeCode,
-  verifyPasswordChange
+  verifyPasswordChange,
 } from "../services/authService";
 import validateInput from "../utils/validateInput";
 import { AxiosError } from "axios";
@@ -327,7 +329,7 @@ const PermissionsCard = ({ userInfo }) => {
         userInfo.roles.flatMap(
           (role) => role.permissions?.map((perm) => perm.name) || []
         )
-      )
+      ),
     ]
       .map((permName) => {
         const perm = userInfo.roles
@@ -420,6 +422,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [isTotpVerification, setIsTotpVerification] = useState(false);
   const [totpCode, setTotpCode] = useState("");
+  const [dobValue, setDobValue] = useState<any>(null);
 
   // Redux
   const { token, loginSocial, isAuthenticated } = useSelector(
@@ -430,7 +433,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     roles,
     allUsers,
     isUserInfoInvalidated,
-    isRolesInvalidated
+    isRolesInvalidated,
   } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
@@ -449,8 +452,8 @@ const MyInfo: React.FC<MyInfoProps> = () => {
           permissions: role.permissions?.map((permission) => ({
             name: permission.name,
             description: permission.description,
-            color: permission.color
-          }))
+            color: permission.color,
+          })),
         }));
         dispatch(setRoles(allRolesData));
       } else {
@@ -468,7 +471,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
       setNotificationMessage({
         type: "error",
         message: "Fetch Failed",
-        description: "Error fetching all roles. Please try again later."
+        description: "Error fetching all roles. Please try again later.",
       });
     }
   }, [token, dispatch, isRolesInvalidated, roles]);
@@ -477,7 +480,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     (type: "success" | "error", message: string, description: string) => {
       api[type]({
         message,
-        description
+        description,
       });
     },
     [api]
@@ -562,14 +565,36 @@ const MyInfo: React.FC<MyInfoProps> = () => {
   const showModalUpdate = () => {
     if (userInfo) {
       setIsModalVisible(true);
+
+      // Convert date string or array to dayjs object for DatePicker
+      let dateValue = null;
+      if (userInfo.dob) {
+        if (Array.isArray(userInfo.dob)) {
+          // If dob is an array [year, month, day]
+          if (userInfo.dob.length >= 3) {
+            // Create date string in YYYY-MM-DD format
+            const dateStr = `${userInfo.dob[0]}-${String(
+              userInfo.dob[1]
+            ).padStart(2, "0")}-${String(userInfo.dob[2]).padStart(2, "0")}`;
+            dateValue = dayjs(dateStr);
+          }
+        } else {
+          // If dob is already a string
+          dateValue = dayjs(userInfo.dob);
+        }
+      }
+
+      // Set the state for the DatePicker
+      setDobValue(dateValue);
+
       form.setFieldsValue({
         username: userInfo.username || "",
         password: "",
         firstname: userInfo.firstname || "",
         lastname: userInfo.lastname || "",
-        dob: userInfo.dob || "",
+        dob: dobValue,
         email: userInfo.email || "",
-        roles: userInfo.roles?.map((role) => role.name) || []
+        roles: userInfo.roles?.map((role) => role.name) || [],
       });
     }
   };
@@ -589,7 +614,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         setNotificationMessage({
           type: "error",
           message: "Authentication Error",
-          description: "You are not authenticated. Please log in again."
+          description: "You are not authenticated. Please log in again.",
         });
         return;
       }
@@ -603,7 +628,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
 
       const values = await emailChangeForm.validateFields([
         "newEmail",
-        "currentPassword"
+        "currentPassword",
       ]);
       setIsRequestingCode(true);
       setVerificationError(false);
@@ -614,8 +639,8 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         emailChangeForm.setFields([
           {
             name: "newEmail",
-            errors: [errors.email]
-          }
+            errors: [errors.email],
+          },
         ]);
         setIsRequestingCode(false);
         return;
@@ -627,14 +652,14 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         currentEmail: userInfo?.email || "",
         newEmail: values.newEmail,
         password: values.currentPassword,
-        token
+        token,
       });
 
       setCodeSent(true);
       setNotificationMessage({
         type: "success",
         message: "Verification Code Sent",
-        description: `A verification code has been sent to ${values.newEmail}`
+        description: `A verification code has been sent to ${values.newEmail}`,
       });
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
@@ -643,7 +668,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         message: "Error",
         description:
           axiosError.response?.data?.message ||
-          "Failed to send verification code"
+          "Failed to send verification code",
       });
     } finally {
       setIsRequestingCode(false);
@@ -654,7 +679,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     try {
       const values = await emailChangeForm.validateFields([
         "newEmail",
-        "currentPassword"
+        "currentPassword",
       ]);
 
       setIsRequestingCode(true);
@@ -663,13 +688,13 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         currentEmail: userInfo?.email || "",
         newEmail: values.newEmail,
         password: values.currentPassword,
-        token: token!
+        token: token!,
       });
 
       setNotificationMessage({
         type: "success",
         message: "Verification Code Resent",
-        description: `A new verification code has been sent to ${values.newEmail}`
+        description: `A new verification code has been sent to ${values.newEmail}`,
       });
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
@@ -678,7 +703,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         message: "Error",
         description:
           axiosError.response?.data?.message ||
-          "Failed to resend verification code"
+          "Failed to resend verification code",
       });
     } finally {
       setIsRequestingCode(false);
@@ -693,7 +718,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
           setNotificationMessage({
             type: "error",
             message: "Invalid Code",
-            description: "Please enter the 6-digit TOTP code"
+            description: "Please enter the 6-digit TOTP code",
           });
           return;
         }
@@ -713,14 +738,14 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             newEmail: values.newEmail,
             verificationCode: totpCode,
             token: token!,
-            useTotp: userInfo?.totpSecurity?.enabled || false
+            useTotp: userInfo?.totpSecurity?.enabled || false,
           });
 
           if (userInfo && userInfo.id) {
             // Create updated user info with new email (ensuring all required User properties)
             const updatedUserInfo: User = {
               ...userInfo,
-              email: values.newEmail
+              email: values.newEmail,
             };
 
             // Directly update the user info in Redux store
@@ -732,7 +757,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                 if (user.id === userInfo.id) {
                   return {
                     ...user,
-                    email: values.newEmail
+                    email: values.newEmail,
                   };
                 }
                 return user;
@@ -752,7 +777,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
           setNotificationMessage({
             type: "success",
             message: "Email Updated",
-            description: "Your email has been successfully updated."
+            description: "Your email has been successfully updated.",
           });
 
           // Delay closing the modal to show success state
@@ -773,7 +798,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
               type: "error",
               message: "Verification Code Expired",
               description:
-                "Your verification code has expired or been invalidated. Please request a new code."
+                "Your verification code has expired or been invalidated. Please request a new code.",
             });
             // Reset the verification state to allow requesting a new code
             setTimeout(() => {
@@ -786,7 +811,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
               type: "error",
               message: "Verification Failed",
               description:
-                axiosError.response?.data?.message || "Failed to verify code"
+                axiosError.response?.data?.message || "Failed to verify code",
             });
           }
           setIsVerifying(false);
@@ -802,7 +827,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
           newEmail: values.newEmail,
           verificationCode,
           token: token!,
-          useTotp: userInfo?.totpSecurity?.enabled || false
+          useTotp: userInfo?.totpSecurity?.enabled || false,
         });
 
         console.log("Email successfully updated to:", values.newEmail);
@@ -817,7 +842,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         type: "error",
         message: "Verification Failed",
         description:
-          axiosError.response?.data?.message || "Failed to verify code"
+          axiosError.response?.data?.message || "Failed to verify code",
       });
     }
   };
@@ -837,7 +862,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         setNotificationMessage({
           type: "error",
           message: "Authentication Error",
-          description: "You are not authenticated. Please log in again."
+          description: "You are not authenticated. Please log in again.",
         });
         return;
       }
@@ -852,15 +877,15 @@ const MyInfo: React.FC<MyInfoProps> = () => {
       const values = await passwordChangeForm.validateFields([
         "currentPassword",
         "newPassword",
-        "confirmPassword"
+        "confirmPassword",
       ]);
 
       if (values.newPassword !== values.confirmPassword) {
         passwordChangeForm.setFields([
           {
             name: "confirmPassword",
-            errors: ["Passwords do not match"]
-          }
+            errors: ["Passwords do not match"],
+          },
         ]);
         return;
       }
@@ -875,14 +900,14 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         currentEmail: userInfo?.email || "",
         newEmail: userInfo?.email || "", // Using the same email, just for password change
         password: values.currentPassword,
-        token
+        token,
       });
 
       setCodeSent(true);
       setNotificationMessage({
         type: "success",
         message: "Verification Code Sent",
-        description: `A verification code has been sent to ${userInfo?.email}`
+        description: `A verification code has been sent to ${userInfo?.email}`,
       });
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
@@ -891,7 +916,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         message: "Error",
         description:
           axiosError.response?.data?.message ||
-          "Failed to send verification code"
+          "Failed to send verification code",
       });
     } finally {
       setIsRequestingCode(false);
@@ -902,7 +927,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
     try {
       const values = await passwordChangeForm.validateFields([
         "currentPassword",
-        "newPassword"
+        "newPassword",
       ]);
 
       setIsRequestingCode(true);
@@ -911,13 +936,13 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         currentEmail: userInfo?.email || "",
         newEmail: userInfo?.email || "", // Using the same email for password change
         password: values.currentPassword,
-        token: token!
+        token: token!,
       });
 
       setNotificationMessage({
         type: "success",
         message: "Verification Code Resent",
-        description: `A new verification code has been sent to ${userInfo?.email}`
+        description: `A new verification code has been sent to ${userInfo?.email}`,
       });
     } catch (error) {
       const axiosError = error as AxiosError<ExtendApiError>;
@@ -926,7 +951,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         message: "Error",
         description:
           axiosError.response?.data?.message ||
-          "Failed to resend verification code"
+          "Failed to resend verification code",
       });
     } finally {
       setIsRequestingCode(false);
@@ -941,7 +966,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
           setNotificationMessage({
             type: "error",
             message: "Invalid Code",
-            description: "Please enter the 6-digit TOTP code"
+            description: "Please enter the 6-digit TOTP code",
           });
           return;
         }
@@ -960,13 +985,13 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             newPassword: values.newPassword,
             verificationCode: totpCode,
             token: token!,
-            useTotp: userInfo?.totpSecurity?.enabled || false
+            useTotp: userInfo?.totpSecurity?.enabled || false,
           });
 
           setNotificationMessage({
             type: "success",
             message: "Password Updated",
-            description: "Your password has been successfully updated."
+            description: "Your password has been successfully updated.",
           });
 
           // Close modal and update info
@@ -987,7 +1012,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
               type: "error",
               message: "Verification Code Expired",
               description:
-                "Your verification code has expired or been invalidated. Please request a new code."
+                "Your verification code has expired or been invalidated. Please request a new code.",
             });
             // Reset the verification state to allow requesting a new code
             setTimeout(() => {
@@ -999,7 +1024,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
               type: "error",
               message: "Verification Failed",
               description:
-                axiosError.response?.data?.message || "Failed to verify code"
+                axiosError.response?.data?.message || "Failed to verify code",
             });
           }
           setIsVerifying(false);
@@ -1010,7 +1035,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
           setNotificationMessage({
             type: "error",
             message: "Invalid Code",
-            description: "Please enter the 6-digit verification code"
+            description: "Please enter the 6-digit verification code",
           });
           return;
         }
@@ -1029,13 +1054,13 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             newPassword: values.newPassword,
             verificationCode,
             token: token!,
-            useTotp: userInfo?.totpSecurity?.enabled || false
+            useTotp: userInfo?.totpSecurity?.enabled || false,
           });
 
           setNotificationMessage({
             type: "success",
             message: "Password Updated",
-            description: "Your password has been successfully updated."
+            description: "Your password has been successfully updated.",
           });
 
           // Close modal and update info
@@ -1056,7 +1081,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
               type: "error",
               message: "Verification Code Expired",
               description:
-                "Your verification code has expired or been invalidated. Please request a new code."
+                "Your verification code has expired or been invalidated. Please request a new code.",
             });
             // Reset the verification state to allow requesting a new code
             setTimeout(() => {
@@ -1068,7 +1093,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
               type: "error",
               message: "Verification Failed",
               description:
-                axiosError.response?.data?.message || "Failed to verify code"
+                axiosError.response?.data?.message || "Failed to verify code",
             });
           }
         }
@@ -1080,7 +1105,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         type: "error",
         message: "Verification Failed",
         description:
-          axiosError.response?.data?.message || "Failed to verify code"
+          axiosError.response?.data?.message || "Failed to verify code",
       });
     } finally {
       setTimeout(() => {
@@ -1098,18 +1123,32 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         setNotificationMessage({
           type: "error",
           message: "Password Required",
-          description: "Current password is required to update profile."
+          description: "Current password is required to update profile.",
         });
         return;
       }
 
       setIsUpdatingInfo(true);
 
+      // Format date of birth from DatePicker
+      let formattedDob = null;
+      if (dobValue && dayjs.isDayjs(dobValue)) {
+        // Format as YYYY-MM-DD string or array based on API requirements
+        // Using array format [year, month, day] to match the existing data structure
+        const year = dobValue.year();
+        const month = dobValue.month() + 1; // dayjs months are 0-indexed
+        const day = dobValue.date();
+
+        formattedDob = [year, month, day];
+      }
+
       // Prepare data for update
       const updateValues = {
         ...values,
         // Don't send empty password
-        password: values.password || undefined
+        password: values.password || undefined,
+        // Use formatted date of birth
+        dob: formattedDob,
       };
 
       if (!token) {
@@ -1137,7 +1176,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
       setNotificationMessage({
         type: "success",
         message: "Success",
-        description: "User information updated successfully."
+        description: "User information updated successfully.",
       });
 
       // Delay closing the modal to show success state
@@ -1156,7 +1195,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
         message: "Error",
         description:
           axiosError.response?.data?.message ||
-          "An error occurred while updating the user."
+          "An error occurred while updating the user.",
       });
       setIsUpdatingInfo(false);
     }
@@ -1164,6 +1203,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
 
   const handleCancel = () => {
     setIsModalVisible(false);
+    setDobValue(null);
   };
 
   const handleEmailChangeCancel = () => {
@@ -1259,7 +1299,10 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             name="currentPassword"
             label="Current Password"
             rules={[
-              { required: true, message: "Please input your current password!" }
+              {
+                required: true,
+                message: "Please input your current password!",
+              },
             ]}
           >
             <div style={{ display: "flex", alignItems: "center" }}>
@@ -1312,7 +1355,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             name="firstname"
             label="First Name"
             rules={[
-              { required: true, message: "Please input the first name!" }
+              { required: true, message: "Please input the first name!" },
             ]}
           >
             <Input />
@@ -1325,13 +1368,21 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             <Input />
           </Form.Item>
           <Form.Item
-            name="dob"
-            label="Date of Birth (YYYY-MM-DD)"
+            label="Date of Birth"
             rules={[
-              { required: true, message: "Please input the date of birth!" }
+              { required: true, message: "Please select your date of birth!" },
             ]}
           >
-            <Input />
+            <DatePicker
+              style={{ width: "100%" }}
+              placeholder="Select date of birth"
+              format="YYYY-MM-DD"
+              value={dobValue}
+              onChange={(date) => {
+                setDobValue(date);
+                form.setFieldsValue({ dob: date });
+              }}
+            />
           </Form.Item>
           <Form.Item
             name="roles"
@@ -1378,9 +1429,9 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             rules={[
               {
                 required: true,
-                message: "Please enter your new email address"
+                message: "Please enter your new email address",
               },
-              { type: "email", message: "Please enter a valid email address" }
+              { type: "email", message: "Please enter a valid email address" },
             ]}
           >
             <Input
@@ -1394,7 +1445,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             name="currentPassword"
             label="Current Password"
             rules={[
-              { required: true, message: "Please enter your current password" }
+              { required: true, message: "Please enter your current password" },
             ]}
           >
             <Input.Password
@@ -1439,9 +1490,9 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please enter your TOTP code"
+                        message: "Please enter your TOTP code",
                       },
-                      { len: 6, message: "TOTP code must be 6 digits" }
+                      { len: 6, message: "TOTP code must be 6 digits" },
                     ]}
                   >
                     <Input
@@ -1522,7 +1573,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
             name="currentPassword"
             label="Current Password"
             rules={[
-              { required: true, message: "Please enter your current password" }
+              { required: true, message: "Please enter your current password" },
             ]}
           >
             <Input.Password
@@ -1564,8 +1615,8 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                 pattern:
                   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+{};:,<.>])[A-Za-z\d!@#$%^&*()\-_=+{};:,<.>]{8,}$/,
                 message:
-                  "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
-              }
+                  "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+              },
             ]}
             hasFeedback
           >
@@ -1601,7 +1652,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                             height: "4px",
                             backgroundColor: i <= strength ? color : "#f0f0f0",
                             marginRight: i < 6 ? "2px" : 0,
-                            borderRadius: "2px"
+                            borderRadius: "2px",
                           }}
                         />
                       );
@@ -1626,8 +1677,8 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                   return Promise.reject(
                     new Error("The two passwords do not match")
                   );
-                }
-              })
+                },
+              }),
             ]}
           >
             <Input.Password
@@ -1672,9 +1723,9 @@ const MyInfo: React.FC<MyInfoProps> = () => {
                     rules={[
                       {
                         required: true,
-                        message: "Please enter your TOTP code"
+                        message: "Please enter your TOTP code",
                       },
-                      { len: 6, message: "TOTP code must be 6 digits" }
+                      { len: 6, message: "TOTP code must be 6 digits" },
                     ]}
                   >
                     <Input
@@ -1741,5 +1792,4 @@ const MyInfo: React.FC<MyInfoProps> = () => {
 };
 
 export default MyInfo;
-
 
