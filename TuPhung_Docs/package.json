@@ -34,5 +34,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0"
+  },
+  "devDependencies": {
+    "mini-css-extract-plugin": "^2.9.2"
   }
 }
