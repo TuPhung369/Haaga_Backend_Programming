@@ -80,16 +80,12 @@ const PanzoomWrapper = ({ children }) => {
     // Store Panzoom instance
     panzoomRef.current = panzoom;
 
-    // Add wheel event listener
-    const wheelHandler = (event) => {
-      panzoom.zoomWithWheel(event);
-    };
-    svgElem.addEventListener("wheel", wheelHandler);
+    // Không thêm wheel event listener để vô hiệu hóa zoom bằng chuột
+    // Chỉ sử dụng các nút zoom thay vì wheel
 
-    console.log("PanzoomWrapper: Initialized successfully");
-
-    // Store wheel handler for cleanup
-    svgElem.__wheelHandler = wheelHandler;
+    console.log(
+      "PanzoomWrapper: Initialized successfully (mouse wheel zoom disabled)"
+    );
 
     return true;
   };
@@ -123,13 +119,6 @@ const PanzoomWrapper = ({ children }) => {
     // Cleanup
     return () => {
       themeObserver.disconnect();
-      if (svgRef.current && svgRef.current.__wheelHandler) {
-        svgRef.current.removeEventListener(
-          "wheel",
-          svgRef.current.__wheelHandler
-        );
-        delete svgRef.current.__wheelHandler;
-      }
       if (panzoomRef.current) {
         panzoomRef.current.destroy();
         panzoomRef.current = null;
