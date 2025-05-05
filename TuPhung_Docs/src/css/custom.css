@@ -16,6 +16,9 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-left: 4px solid var(--ifm-color-primary);
   position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 
@@ -312,8 +315,8 @@
   --doc-sidebar-hidden-width: 30px;
   
   /* Custom content width */
-  --ifm-container-width: 1400px;
-  --ifm-container-width-xl: 1500px;
+  --ifm-container-width: 100%;
+  --ifm-container-width-xl: 100%;
   
   /* Mobile sidebar width */
   --doc-sidebar-width-mobile: 100%;
@@ -438,10 +441,11 @@ table th, table td {
   width: 100%;
   min-height: 100vh;
   flex-direction: column;
-  margin: 0 auto !important;
+  margin: 0 !important;
   padding: 0 !important;
   box-sizing: border-box !important;
   align-items: center !important;
+  overflow-x: hidden !important; /* Prevent horizontal scrolling */
 }
 
 /* Adjust sidebar width */
@@ -451,9 +455,11 @@ aside[class^="docSidebarContainer_"],
 .docSidebarContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Sidebar-styles-module,
 .docSidebarContainer_src-theme-DocPage-Layout-Sidebar-styles-module {
   width: var(--doc-sidebar-width);
-  margin-right: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
   min-width: var(--doc-sidebar-width);
   max-width: var(--doc-sidebar-width);
+  box-sizing: border-box !important;
 }
 
 @media (max-width: 996px) {
@@ -462,9 +468,12 @@ aside[class^="docSidebarContainer_"],
   aside[class^="docSidebarContainer_"],
   .docSidebarContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Sidebar-styles-module,
   .docSidebarContainer_src-theme-DocPage-Layout-Sidebar-styles-module {
-    width: var(--doc-sidebar-width-mobile) !important;
-    min-width: auto !important;
-    max-width: 100% !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
   }
 }
 
@@ -506,10 +515,10 @@ div[class^="docPage_"] {
   flex: 1;
   max-width: calc(100vw - var(--doc-sidebar-width)) !important; /* Use viewport width minus sidebar */
   width: calc(100vw - var(--doc-sidebar-width)) !important; /* Use viewport width minus sidebar */
-  padding: 0 !important; /* No padding */
-  margin-left: auto !important;
-  margin-right: auto !important;
+  padding: 20px !important; /* Single padding for all content */
+  margin: 0 !important;
   box-sizing: border-box !important;
+  overflow-x: hidden !important;
 }
 
 @media (max-width: 996px) {
@@ -529,8 +538,9 @@ div[class^="docPage_"] {
   .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-next-theme-DocPage-styles-module,
   div[class^="docMainContainer_"],
   div[class^="docPage_"] {
-    max-width: calc(100vw - 30px) !important;
-    width: calc(100vw - 30px) !important;
+    max-width: 100vw !important;
+    width: 100vw !important;
+    padding: 10px !important;
   }
 }
 
@@ -544,6 +554,10 @@ div[class^="docMainContainer_"] {
   height: auto !important;
   display: flex !important;
   flex-direction: column !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
 }
 
 /* Adjust main content column to use width relative to viewport minus sidebar */
@@ -552,10 +566,9 @@ div[class*="docItemCol_"]:not([class*="docItemCol_3"]) {
   flex-basis: 0;
   flex-grow: 999;
   min-width: 0;
-  max-width: calc(100vw - var(--doc-sidebar-width)) !important; /* Use viewport width minus sidebar */
-  width: calc(100vw - var(--doc-sidebar-width)) !important; /* Use viewport width minus sidebar */
-  margin-left: auto !important;
-  margin-right: auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
   min-height: calc(100vh - 60px); /* Subtract header height */
   height: auto !important; /* Ensure height expands with content */
   padding: 0 !important; /* No padding */
@@ -567,8 +580,8 @@ div[class*="docItemCol_"]:not([class*="docItemCol_3"]) {
 div[class*="docItemCol_"] > div {
   padding: 0 !important;
   margin: 0 !important;
-  width: calc(100vw - var(--doc-sidebar-width)) !important;
-  max-width: calc(100vw - var(--doc-sidebar-width)) !important;
+  width: 100% !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
   min-width: 0 !important; /* Prevent overflow */
   overflow-x: hidden !important; /* Hide horizontal overflow */
@@ -586,21 +599,26 @@ div[class*="docItemCol_"] > div {
   .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Main-styles-module,
   .docMainContainer_src-theme-DocPage-Layout-Main-styles-module,
   div[class^="docMainContainer_"] {
-    width: calc(100vw - 30px) !important;
-    max-width: calc(100vw - 30px) !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    padding: 10px !important;
   }
   
   /* Fix any container between column and article for medium screens */
   div[class*="docItemCol_"] > div {
-    width: calc(100vw - 30px) !important;
-    max-width: calc(100vw - 30px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .col.col--9,
   div[class*="docItemCol_"]:not([class*="docItemCol_3"]) {
-    width: calc(100vw - 30px) !important;
-    max-width: calc(100vw - 30px) !important; /* Use viewport width minus padding/margin */
-    flex-basis: calc(100vw - 30px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-basis: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
   
   /* Fix main container width */
@@ -620,211 +638,194 @@ div[class*="docItemCol_"] > div {
   .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-next-theme-DocPage-styles-module,
   div[class^="docMainContainer_"],
   div[class^="docPage_"] {
-    max-width: calc(100vw - 30px) !important;
-    width: calc(100vw - 30px) !important;
+    max-width: 100vw !important;
+    width: 100vw !important;
+    padding: 10px !important;
+    margin: 0 !important;
   }
   
   /* Override article width for medium screens - no sidebar */
   article {
-    margin-left: 10px !important;
-    margin-right: 10px !important;
-    padding-left: 10px !important;
-    padding-right: 10px !important;
-    width: calc(100vw - 40px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
     min-width: 0 !important;
-    max-width: calc(100vw - 40px) !important; /* Use viewport width minus all spacing */
+    max-width: 100% !important;
   }
   
-  /* Adjust padding when sidebar is hidden */
-  .padding-top--md {
-    padding-top: 10px !important;
-  }
-  
-  .padding-bottom--lg {
-    padding-bottom: 10px !important;
+  /* Reset all padding classes */
+  .padding-top--md,
+  .padding-bottom--lg,
+  .padding-hor--md,
+  .padding-ver--md,
+  .padding--md,
+  .padding--lg,
+  .padding--xl {
+    padding: 0 !important;
   }
   
   /* Adjust container padding */
   .container {
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
   }
   
   /* Target Docusaurus main container classes */
   .main-wrapper [class*="docMainContainer_"] {
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
-    width: calc(100vw - 20px) !important; /* 100vw - (padding-left + padding-right) */
-    max-width: calc(100vw - 20px) !important;
+    padding: 10px !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
   }
   
   /* Target content container */
   .container-fluid {
-    padding: 10px !important;
-  }
-  
-  /* Adjust container for medium screens */
-  .container {
-    max-width: calc(100vw - 20px) !important; /* 100vw - (padding-left + padding-right) */
-    width: calc(100vw - 20px) !important; /* 100vw - (padding-left + padding-right) */
-    padding-left: 10px !important;
-    padding-right: 10px !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
   
   /* Target main content padding */
   main {
-    padding: 10px !important;
-  }
-  
-  /* Target specific combination of padding classes */
-  .padding-top--md.padding-bottom--lg,
-  div.padding-top--md.padding-bottom--lg,
-  section.padding-top--md.padding-bottom--lg {
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
+    padding: 0 !important;
   }
 }
 
 /* Make content container wider with balanced margins using relative formula */
 .container {
   max-width: calc(100vw - var(--doc-sidebar-width)) !important; /* Relative to viewport minus sidebar */
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  padding: 0 !important;
   width: calc(100vw - var(--doc-sidebar-width)) !important; /* Relative to viewport minus sidebar */
-  margin-left: auto !important;
-  margin-right: auto !important;
+  margin: 0 !important;
   box-sizing: border-box !important;
   display: flex !important;
   justify-content: center !important;
+  overflow-x: hidden !important;
 }
 
 /* Override container width for medium screens - no sidebar */
 @media (max-width: 996px) {
   .container {
-    max-width: calc(100vw - 30px) !important; /* 100vw - padding */
-    width: calc(100vw - 30px) !important; /* 100vw - padding */
+    max-width: 100vw !important;
+    width: 100vw !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }
 
 /* Add equal padding to main content with relative width formula */
 article {
-  padding-left: 10px !important;
-  padding-right: 10px !important;
+  padding: 0 !important;
   min-height: 100% !important;
   height: auto !important;
   flex-grow: 1 !important;
-  max-width: calc(100vw - var(--doc-sidebar-width) - 40px) !important; /* Use viewport width minus sidebar and spacing */
-  margin-left: 10px !important;
-  margin-right: 10px !important;
+  max-width: 100% !important;
+  margin: 0 !important;
   box-sizing: border-box !important;
-  width: calc(100vw - var(--doc-sidebar-width) - 40px) !important; /* Use viewport width minus sidebar and spacing */
+  width: 100% !important;
   min-width: 0 !important; /* Prevent overflow */
+  overflow-x: hidden !important;
 }
 
 /* Override article width for medium screens - no sidebar */
 @media (max-width: 996px) {
   article {
-    max-width: calc(100vw - 40px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
-    width: calc(100vw - 40px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }
 
 /* Mobile adjustments for article */
 @media (max-width: 768px) {
   article {
-    margin-left: 5px !important;
-    margin-right: 5px !important;
-    padding-left: 5px !important;
-    padding-right: 5px !important;
-    width: calc(100vw - 20px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
     min-width: 0 !important;
-    max-width: calc(100vw - 20px) !important; /* Use viewport width minus all spacing */
+    max-width: 100% !important;
   }
   
-  /* Adjust padding on mobile */
-  .padding-top--md {
-    padding-top: 5px !important;
-  }
-  
-  .padding-bottom--lg {
-    padding-bottom: 5px !important;
+  /* Reset all padding classes on mobile */
+  .padding-top--md,
+  .padding-bottom--lg,
+  .padding-hor--md,
+  .padding-ver--md,
+  .padding--md,
+  .padding--lg,
+  .padding--xl {
+    padding: 0 !important;
   }
   
   /* Adjust container padding for mobile */
   .container {
-    padding-top: 5px !important;
-    padding-bottom: 5px !important;
-    padding-left: 5px !important;
-    padding-right: 5px !important;
-    max-width: calc(100vw - 10px) !important; /* 100vw - (padding-left + padding-right) */
-    width: calc(100vw - 10px) !important; /* 100vw - (padding-left + padding-right) */
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: 100vw !important;
   }
   
   /* Target main content padding for mobile */
   main {
-    padding: 5px !important;
+    padding: 0 !important;
   }
   
   /* Target Docusaurus main container classes for mobile */
   .main-wrapper [class*="docMainContainer_"] {
-    padding-top: 5px !important;
-    padding-bottom: 5px !important;
-    width: calc(100vw - 10px) !important; /* 100vw - (padding-left + padding-right) */
-    max-width: calc(100vw - 10px) !important;
+    padding: 5px !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
   }
   
   /* Target content container for mobile */
   .container-fluid {
-    padding: 5px !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
   
   /* Target specific combination of padding classes for mobile */
   .padding-top--md.padding-bottom--lg,
   div.padding-top--md.padding-bottom--lg,
   section.padding-top--md.padding-bottom--lg {
-    padding-top: 5px !important;
-    padding-bottom: 5px !important;
+    padding: 0 !important;
   }
   
   /* Adjust pagination for mobile */
   .pagination-nav {
-    margin-left: 5px !important;
-    margin-right: 5px !important;
-    padding-left: 5px !important;
-    padding-right: 5px !important;
-    width: calc(100vw - 20px) !important; /* 100vw - (margin-left + margin-right + padding-left + padding-right) */
-    min-width: 0 !important;
-    max-width: calc(100vw - 20px) !important; /* Use viewport width minus all spacing */
-  }
-}
-  
-@media (max-width: 768px) {
-  /* Adjust all containers with padding classes for mobile */
-  [class*="padding-"] {
+    margin: 0 !important;
     padding: 5px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* Reset all padding classes */
+  [class*="padding-"] {
+    padding: 0 !important;
   }
 }
 
 @media (min-width: 769px) and (max-width: 996px) {
   /* Adjust all containers with padding classes for medium screens */
   [class*="padding-"] {
-    padding: 10px !important;
+    padding: 0 !important;
   }
 }
   
-  /* Target specific Docusaurus padding classes */
-  .docusaurus-mt-lg {
-    margin-top: 5px !important;
-  }
+/* Target specific Docusaurus padding classes */
+.docusaurus-mt-lg {
+  margin-top: 0 !important;
+}
 
 /* Ensure pagination nav aligns with content using relative formula */
 .pagination-nav {
-  padding-left: 10px !important;
-  padding-right: 10px !important;
+  padding: 0 !important;
   width: 100% !important; /* Use full width of parent container */
   max-width: 100% !important; /* Limit to parent container width */
-  margin-left: auto !important;
-  margin-right: auto !important;
+  margin: 0 !important;
   box-sizing: border-box !important;
   min-width: 0 !important; /* Prevent overflow */
   overflow: hidden !important; /* Prevent content from overflowing */
@@ -856,6 +857,81 @@ article {
     max-width: 100% !important; /* Limit to parent container width */
     overflow: hidden !important; /* Prevent content from overflowing */
     margin-bottom: 20px !important; /* Add space before footer */
+  }
+}
+
+/* Large screen adjustments */
+@media (min-width: 1440px) {
+  /* Ensure content doesn't get too wide on large screens */
+  .container,
+  div.container,
+  main.container {
+    max-width: calc(100vw - var(--doc-sidebar-width)) !important;
+    width: calc(100vw - var(--doc-sidebar-width)) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Ensure article content doesn't get too wide */
+  article {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Ensure main content container doesn't get too wide */
+  .docMainContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocPage-Layout-Main-styles-module,
+  .docMainContainer_src-theme-DocPage-Layout-Main-styles-module,
+  div[class^="docMainContainer_"] {
+    max-width: calc(100vw - var(--doc-sidebar-width)) !important;
+    width: calc(100vw - var(--doc-sidebar-width)) !important;
+    padding: 20px !important;
+    margin: 0 !important;
+  }
+  
+  /* Ensure main content column doesn't get too wide */
+  .col.col--9,
+  div[class*="docItemCol_"]:not([class*="docItemCol_3"]) {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Ensure content containers don't get too wide */
+  div[class*="docItemCol_"] > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Override any max-width on content elements */
+  .markdown,
+  .markdown > div,
+  .markdown > p,
+  .markdown > pre,
+  .markdown > ul,
+  .markdown > ol,
+  .markdown > table,
+  .markdown > blockquote,
+  .markdown > div > div,
+  .markdown > div > p,
+  .markdown > div > pre,
+  .markdown > div > ul,
+  .markdown > div > ol,
+  .markdown > div > table,
+  .markdown > div > blockquote {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  /* Ensure workflow containers use full width */
+  .workflow-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
