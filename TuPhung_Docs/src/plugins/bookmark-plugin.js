@@ -332,7 +332,7 @@ module.exports = function (context, options) {
                       'top: 75px !important;' +
                       'width: 350px !important;' +
                       'height: auto !important;' +
-                      'background: linear-gradient(to right, white, rgba(78, 87, 185, 0.8)) !important;' +
+                      'background: linear-gradient(135deg, white, rgba(78, 87, 185, 0.8)) !important;' +
                       'background-color: transparent !important;' +
                       'border: 1px solid rgba(78, 87, 185, 0.5) !important;' +
                       'border-radius: 8px !important;' +

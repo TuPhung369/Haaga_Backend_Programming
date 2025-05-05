@@ -45,6 +45,11 @@ const PanzoomWrapper = ({ children }) => {
   }, []);
 
   const initializePanzoom = () => {
+    // Skip initialization on mobile devices as they have native touch zoom
+    if (isMobile) {
+      return false;
+    }
+
     const elem = containerRef.current;
     if (!elem) {
       console.error("PanzoomWrapper: Container element not found");
@@ -57,7 +62,7 @@ const PanzoomWrapper = ({ children }) => {
       return false;
     }
 
-    // Avoid re-initializing if the SVG hasn’t changed
+    // Avoid re-initializing if the SVG hasn't changed
     if (svgRef.current === svgElem && panzoomRef.current) {
       return true;
     }
@@ -90,14 +95,17 @@ const PanzoomWrapper = ({ children }) => {
   };
 
   useEffect(() => {
-    // Initial attempt to initialize Panzoom
+    // Initial attempt to initialize Panzoom (will be skipped on mobile)
     if (!initializePanzoom()) {
-      const interval = setInterval(() => {
-        if (initializePanzoom()) {
-          clearInterval(interval);
-        }
-      }, 100);
-      setTimeout(() => clearInterval(interval), 5000);
+      // Only attempt to initialize on non-mobile devices
+      if (!isMobile) {
+        const interval = setInterval(() => {
+          if (initializePanzoom()) {
+            clearInterval(interval);
+          }
+        }, 100);
+        setTimeout(() => clearInterval(interval), 5000);
+      }
     }
 
     // Listen for theme changes
@@ -127,7 +135,7 @@ const PanzoomWrapper = ({ children }) => {
         panzoomRef.current = null;
       }
     };
-  }, []);
+  }, [isMobile]);
 
   const zoomIn = () => {
     if (panzoomRef.current) {
@@ -158,15 +166,15 @@ const PanzoomWrapper = ({ children }) => {
             position: "absolute",
             top: "0px",
             right: "5px",
-            left: "auto", // Đảm bảo không bị đặt ở bên trái
+            left: "auto", // Ensure it's not placed on the left
             zIndex: 10,
             display: "flex",
             flexDirection: "row",
             gap: "8px",
             background: "transparent",
-            transform: "none", // Đảm bảo không bị transform
-            margin: 0, // Đảm bảo không có margin
-            padding: 0, // Đảm bảo không có padding
+            transform: "none", // Ensure no transform is applied
+            margin: 0, // Ensure no margin
+            padding: 0, // Ensure no padding
           }}
         >
           <button
