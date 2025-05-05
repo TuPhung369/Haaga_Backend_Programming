@@ -148,19 +148,25 @@ const PanzoomWrapper = ({ children }) => {
   };
 
   return (
-    <div style={{ position: "relative" }}>
-      <div ref={containerRef}>{children}</div>
+    <div style={{ position: "relative", width: "100%", overflow: "visible" }}>
+      <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
+        {children}
+      </div>
       {!isMobile && (
         <div
           style={{
             position: "absolute",
-            top: "15px",
-            right: "15px",
+            top: "0px",
+            right: "5px",
+            left: "auto", // Đảm bảo không bị đặt ở bên trái
             zIndex: 10,
             display: "flex",
             flexDirection: "row",
             gap: "8px",
             background: "transparent",
+            transform: "none", // Đảm bảo không bị transform
+            margin: 0, // Đảm bảo không có margin
+            padding: 0, // Đảm bảo không có padding
           }}
         >
           <button
