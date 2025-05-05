@@ -94,4 +94,9 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
        @Modifying
        @Query("DELETE FROM ChatMessage m WHERE m.group.id = :groupId")
        void deleteByGroupId(@Param("groupId") UUID groupId);
+       
+       // Delete all messages where the user is either the sender or receiver
+       @Modifying
+       @Query("DELETE FROM ChatMessage m WHERE m.sender.id = :userId OR m.receiver.id = :userId")
+       void deleteByUserIdAsSenderOrReceiver(@Param("userId") UUID userId);
 }

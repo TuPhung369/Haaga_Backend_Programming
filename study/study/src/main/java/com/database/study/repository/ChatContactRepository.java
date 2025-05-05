@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -57,4 +58,13 @@ public interface ChatContactRepository extends JpaRepository<ChatContact, UUID> 
     @Query("SELECT u FROM User u WHERE u.id != :userId AND " +
            "u.id NOT IN (SELECT c.contact.id FROM ChatContact c WHERE c.user.id = :userId)")
     List<User> findNonContacts(@Param("userId") UUID userId);
+    
+    /**
+     * Delete all chat contacts where the user is either the owner or the contact
+     * 
+     * @param userId The ID of the user whose contacts to delete
+     */
+    @Modifying
+    @Query("DELETE FROM ChatContact c WHERE c.user.id = :userId OR c.contact.id = :userId")
+    void deleteByUserIdOrContactId(@Param("userId") UUID userId);
 }

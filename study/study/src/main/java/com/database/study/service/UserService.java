@@ -1,39 +1,43 @@
 package com.database.study.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.database.study.dto.request.UserCreationRequest;
+import com.database.study.dto.request.UserUpdateRequest;
+import com.database.study.dto.response.UserResponse;
+import com.database.study.entity.ChatGroup;
+import com.database.study.entity.Role;
 import com.database.study.entity.User;
+import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
 import com.database.study.exception.ErrorCode;
-import com.database.study.repository.UserRepository;
-import com.database.study.entity.Role;
-import com.database.study.enums.ENUMS;
-import com.database.study.repository.RoleRepository;
-import com.database.study.repository.TotpSecretRepository;
+import com.database.study.mapper.UserMapper;
+import com.database.study.repository.ActiveTokenRepository;
+import com.database.study.repository.ChatContactRepository;
+import com.database.study.repository.ChatGroupRepository;
+import com.database.study.repository.ChatMessageRepository;
+import com.database.study.repository.EmailVerificationTokenRepository;
 import com.database.study.repository.EventRepository;
 import com.database.study.repository.KanbanBoardRepository;
-import com.database.study.repository.EmailVerificationTokenRepository;
-import com.database.study.repository.ActiveTokenRepository;
+import com.database.study.repository.RoleRepository;
+import com.database.study.repository.TotpSecretRepository;
+import com.database.study.repository.UserRepository;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-
-import com.database.study.dto.request.UserCreationRequest;
-import com.database.study.dto.request.UserUpdateRequest;
-import com.database.study.dto.response.UserResponse;
-import com.database.study.mapper.UserMapper;
-
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +55,9 @@ public class UserService {
   ActiveTokenRepository invalidatedTokenRepository;
   TotpService totpService;
   TotpSecretRepository totpSecretRepository;
+  ChatContactRepository chatContactRepository;
+  ChatMessageRepository chatMessageRepository;
+  ChatGroupRepository chatGroupRepository;
 
   // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
   // match EXACTLY the permission name or ROLE_ADMIN also)
@@ -130,7 +137,7 @@ public class UserService {
         });
 
     userMapper.updateUser(existingUser, request);
-    
+
     // Only update password if a new one is provided
     if (request.isPasswordBeingUpdated()) {
       existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -183,7 +190,7 @@ public class UserService {
         log.warn("Current password is required when changing password for user: {}", existingUser.getUsername());
         throw new AppException(ErrorCode.CURRENT_PASSWORD_REQUIRED);
       }
-      
+
       if (!passwordEncoder.matches(request.getCurrentPassword(), existingUser.getPassword())) {
         log.warn("Invalid current password for user: {}", existingUser.getUsername());
         throw new AppException(ErrorCode.INVALID_CREDENTIALS);
@@ -239,6 +246,68 @@ public class UserService {
         log.error("Error deleting invalidated tokens for user: {}", username, e);
       }
 
+      try {
+        // Delete chat messages
+        chatMessageRepository.deleteByUserIdAsSenderOrReceiver(userId);
+        log.info("Deleted chat messages for user: {}", username);
+      } catch (Exception e) {
+        log.error("Error deleting chat messages for user: {}", username, e);
+        throw e; // Re-throw this exception as it's critical for deletion
+      }
+
+      try {
+        // Handle chat groups
+        // 1. Get groups created by this user
+        List<ChatGroup> createdGroups = chatGroupRepository.findGroupsCreatedByUser(userId);
+
+        // 2. Delete messages in these groups
+        for (ChatGroup group : createdGroups) {
+          try {
+            chatMessageRepository.deleteByGroupId(group.getId());
+            log.info("Deleted messages for group: {}", group.getId());
+          } catch (Exception e) {
+            log.error("Error deleting messages for group: {}", group.getId(), e);
+          }
+        }
+
+        // 3. Delete the groups created by this user
+        for (ChatGroup group : createdGroups) {
+          try {
+            chatGroupRepository.delete(group);
+            log.info("Deleted group: {}", group.getId());
+          } catch (Exception e) {
+            log.error("Error deleting group: {}", group.getId(), e);
+          }
+        }
+
+        // 4. Remove user from all other groups
+        List<ChatGroup> memberGroups = chatGroupRepository.findGroupsWhereUserIsMember(userId);
+        User userEntity = userRepository.findById(userId).get(); // We already checked existence above
+
+        for (ChatGroup group : memberGroups) {
+          try {
+            group.getMembers().remove(userEntity);
+            chatGroupRepository.save(group);
+            log.info("Removed user from group: {}", group.getId());
+          } catch (Exception e) {
+            log.error("Error removing user from group: {}", group.getId(), e);
+          }
+        }
+        log.info("Removed user from all chat groups: {}", username);
+      } catch (Exception e) {
+        log.error("Error handling chat groups for user: {}", username, e);
+        throw e; // Re-throw this exception as it's critical for deletion
+      }
+
+      try {
+        // Delete chat contacts
+        chatContactRepository.deleteByUserIdOrContactId(userId);
+        log.info("Deleted chat contacts for user: {}", username);
+      } catch (Exception e) {
+        log.error("Error deleting chat contacts for user: {}", username, e);
+        throw e; // Re-throw this exception as it's critical for deletion
+      }
+
       // Delete user relationships
       userRepository.deleteUserRolesByUserId(userId);
       eventRepository.deleteByUserId(userId);
@@ -267,6 +336,7 @@ public class UserService {
 
   /**
    * Update user status (online, away, busy, offline)
+   * 
    * @param userId User ID
    * @param status New status
    * @return Updated user information
@@ -278,11 +348,11 @@ public class UserService {
           log.error("User with ID {} not found", userId);
           throw new AppException(ErrorCode.USER_NOT_FOUND);
         });
-    
+
     // Update user status
     user.setUserStatus(status);
     User updatedUser = userRepository.save(user);
-    
+
     log.info("Updated status for user {} to {}", user.getUsername(), status);
     return userMapper.toUserResponse(updatedUser);
   }
