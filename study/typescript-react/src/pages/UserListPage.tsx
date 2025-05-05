@@ -266,7 +266,7 @@ const UserListPage: React.FC<UserListPageProps> = () => {
 
   // Thêm state để lưu token reCAPTCHA
   const [recaptchaToken, setRecaptchaToken] = useState<string>("");
-  const [dobValue, setDobValue] = useState<any>(null);
+  const [dobValue, setDobValue] = useState<dayjs.Dayjs | null>(null);
   const recaptchaRef =
     useRef<import("../components/ReCaptchaV3").ReCaptchaV3Ref>(null);
 
@@ -488,7 +488,7 @@ const UserListPage: React.FC<UserListPageProps> = () => {
       setIsModalVisible(true);
 
       // Convert date of birth to dayjs object for DatePicker
-      let dateValue = null;
+      let dateValue: dayjs.Dayjs | null = null;
       if (user.dob) {
         if (Array.isArray(user.dob)) {
           // If dob is an array [year, month, day]

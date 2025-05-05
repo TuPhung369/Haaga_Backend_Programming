@@ -422,7 +422,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [isTotpVerification, setIsTotpVerification] = useState(false);
   const [totpCode, setTotpCode] = useState("");
-  const [dobValue, setDobValue] = useState<any>(null);
+  const [dobValue, setDobValue] = useState<dayjs.Dayjs | null>(null);
 
   // Redux
   const { token, loginSocial, isAuthenticated } = useSelector(
@@ -567,7 +567,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
       setIsModalVisible(true);
 
       // Convert date string or array to dayjs object for DatePicker
-      let dateValue = null;
+      let dateValue: dayjs.Dayjs | null = null;
       if (userInfo.dob) {
         if (Array.isArray(userInfo.dob)) {
           // If dob is an array [year, month, day]
@@ -1131,7 +1131,7 @@ const MyInfo: React.FC<MyInfoProps> = () => {
       setIsUpdatingInfo(true);
 
       // Format date of birth from DatePicker
-      let formattedDob = null;
+      let formattedDob: number[] | null = null;
       if (dobValue && dayjs.isDayjs(dobValue)) {
         // Format as YYYY-MM-DD string or array based on API requirements
         // Using array format [year, month, day] to match the existing data structure
