@@ -241,8 +241,8 @@ console.log('Found video list container and video data, rendering items');
 
     // Create video items
     videoData.videos.forEach((video, index) => {
-      // Construct video ID with timestamp if needed
-      const videoIdWithParams = video.startTime ? `${video.id}?t=${video.startTime}` : video.id;
+      // Use video ID directly
+      const videoIdWithParams = video.id;
 
       // Create video item element
       const videoItem = document.createElement('div');
@@ -260,22 +260,33 @@ console.log('Found video list container and video data, rendering items');
       thumbnailImg.alt = `${video.title} Thumbnail`;
       thumbnailDiv.appendChild(thumbnailImg);
 
-      // Add timestamp overlay if needed
-      if (video.startTime) {
-        const timestampOverlay = document.createElement('div');
-        timestampOverlay.className = 'video-timestamp-overlay';
-        timestampOverlay.textContent = `${Math.floor(video.startTime / 60)}:${(video.startTime % 60).toString().padStart(2, '0')}`;
-        thumbnailDiv.appendChild(timestampOverlay);
+      // Removed timestamp overlay - not needed
+
+      // Add duration overlay
+      if (video.duration) {
+        const durationOverlay = document.createElement('div');
+        // Simple duration overlay
+        durationOverlay.className = 'video-duration-overlay';
+        durationOverlay.textContent = video.duration;
+        thumbnailDiv.appendChild(durationOverlay);
       }
 
       // Create info div
       const infoDiv = document.createElement('div');
       infoDiv.className = 'video-info';
 
-      const timestampDiv = document.createElement('div');
-      timestampDiv.className = 'video-timestamp';
-      timestampDiv.textContent = video.title;
-      infoDiv.appendChild(timestampDiv);
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'video-timestamp';
+      titleDiv.textContent = video.title;
+      infoDiv.appendChild(titleDiv);
+
+      // Add description
+      const descriptionDiv = document.createElement('div');
+      descriptionDiv.className = 'video-description';
+      descriptionDiv.textContent = video.description;
+      infoDiv.appendChild(descriptionDiv);
+
+      // Duration is now displayed in the thumbnail overlay
 
       // Create share button
       const shareButton = document.createElement('button');
@@ -337,25 +348,17 @@ console.log('Selected video from data:', video);
       if (player && player.loadVideoById) {
         console.log('Updating player directly');
 
-        // Get video ID and start time
+        // Get video ID
         const videoId = video.id;
-        const startTime = video.startTime || 0;
 
-        console.log('Loading video ID:', videoId, 'with start time:', startTime);
+        console.log('Loading video ID:', videoId);
 
-        // Load the video with the correct start time
+        // Load the video
         player.loadVideoById({
           'videoId': videoId,
-          'startSeconds': startTime,
+          'startSeconds': 0,
           'suggestedQuality': 'hd1080'
         });
-
-        // Also seek to the timestamp to make sure it works
-        if (startTime > 0) {
-          setTimeout(() => {
-            player.seekTo(startTime, true);
-          }, 1000);
-        }
 
         // Update the active class on the video items
         videoItems.forEach(item => item.classList.remove('active'));
@@ -422,25 +425,17 @@ console.log('Selected video from data:', video);
     if (player && player.loadVideoById) {
       console.log('Updating player directly from dropdown event');
 
-      // Get video ID and start time
+      // Get video ID
       const videoId = video.id;
-      const startTime = video.startTime || 0;
 
-      console.log('Loading video ID:', videoId, 'with start time:', startTime);
+      console.log('Loading video ID:', videoId);
 
-      // Load the video with the correct start time
+      // Load the video
       player.loadVideoById({
         'videoId': videoId,
-        'startSeconds': startTime,
+        'startSeconds': 0,
         'suggestedQuality': 'hd1080'
       });
-
-      // Also seek to the timestamp to make sure it works
-      if (startTime > 0) {
-        setTimeout(() => {
-          player.seekTo(startTime, true);
-        }, 1000);
-      }
 
       // Update the active class on the video items
       videoItems.forEach(item => item.classList.remove('active'));
@@ -589,29 +584,12 @@ handleHashChange();
           const baseVideoId = videoId.split('?')[0];
           console.log('Base video ID:', baseVideoId);
 
-          // Check for timestamp in the video ID
-          let startTime = 0;
-          if (videoId.includes('t=')) {
-            const timeMatch = videoId.match(/t=(\d+)/);
-            if (timeMatch && timeMatch[1]) {
-              startTime = parseInt(timeMatch[1], 10);
-              console.log('Found timestamp in video ID:', startTime);
-            }
-          }
           console.log('Loading video with ID:', baseVideoId);
           player.loadVideoById({
             'videoId': baseVideoId,
-            'startSeconds': startTime,
+            'startSeconds': 0,
             'suggestedQuality': 'hd1080'
           });
-
-          // Also seek to the timestamp to make sure it works
-          if (startTime > 0) {
-            console.log('Seeking to timestamp:', startTime);
-            setTimeout(() => {
-              player.seekTo(startTime, true);
-            }, 1000);
-          }
         } else if (currentVideoElement) {
           // Fallback if player isn't ready
           console.log('Player not ready, using fallback');
@@ -721,7 +699,7 @@ container.style.setProperty('width', '100vw', 'important');
 });
 
     // Calculate the video player width (window width - video list width - padding)
-    const videoPlayerWidth = windowWidth - 400 - 74; // 400px for video list, 74px for reduced padding and gap
+    const videoPlayerWidth = windowWidth - 400 - 55; // 400px for video list, 55px for reduced padding and gap
 
     // Force the video player to take the correct width
     const videoPlayer = document.querySelector('.video-player');
@@ -760,7 +738,7 @@ container.style.setProperty('width', '100vw', 'important');
       videoContainer.style.display = 'flex';
       videoContainer.style.flexDirection = 'row';
       videoContainer.style.flexWrap = 'nowrap';
-      videoContainer.style.gap = '34px';
+      videoContainer.style.gap = '15px';
       videoContainer.style.marginLeft = '0';
       videoContainer.style.paddingLeft = '20px';
       console.log('Set video container width to 100%');
@@ -877,7 +855,7 @@ return (
 <>
 <YouTubeAPIScript />
 
-  <div className="video-container" style={{display: 'flex', flexDirection: 'row', gap: '34px', width: '100vw', maxWidth: '100vw', position: 'relative', zIndex: 1, padding: '20px', marginLeft: 0, justifyContent: 'flex-start'}} id="videoMainContainer">
+  <div className="video-container" style={{display: 'flex', flexDirection: 'row', gap: '15px', width: '100vw', maxWidth: '100vw', position: 'relative', zIndex: 1, padding: '20px', marginLeft: 0, justifyContent: 'flex-start'}} id="videoMainContainer">
     <script dangerouslySetInnerHTML={{__html: `
       // Function to fix container margins
       function fixContainerMargins() {
@@ -1257,7 +1235,7 @@ color: #1c1e21 !important;
 .video-container {
 display: flex !important;
 flex-direction: row !important;
-gap: 34px !important;
+gap: 15px !important;
 margin: 0 !important;
 width: 100vw !important;
 padding: 20px 20px 20px 20px !important; /_ Reduced left padding _/
@@ -1280,10 +1258,10 @@ z-index: 1 !important;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
           background-color: #000 !important;
           max-width: none !important;
-          width: calc(100vw - 400px - 74px) !important; /* 400px for video-list, 74px for padding and gap */
+          width: calc(100vw - 400px - 55px) !important; /* 400px for video-list, 55px for padding and gap */
           height: calc(100vh - var(--ifm-navbar-height) - 40px) !important;
           box-sizing: border-box !important;
-          flex-basis: calc(100vw - 400px - 74px) !important;
+          flex-basis: calc(100vw - 400px - 55px) !important;
           margin-left: 0 !important;
         }
 
@@ -1326,9 +1304,9 @@ z-index: 1 !important;
 
         .video-item {
           display: flex;
-          margin-bottom: 12px;
+          margin-bottom: 6px;
           cursor: pointer;
-          padding: 10px;
+          padding: 6px 10px;
           border-radius: 8px;
           transition: background 0.1s ease;
           background: transparent;
@@ -1382,10 +1360,10 @@ z-index: 1 !important;
         }
 
         .video-thumbnail {
-          width: 168px;
-          height: 94px;
+          width: 150px;
+          height: 84px;
           background-color: #000;
-          margin-right: 12px;
+          margin-right: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1395,7 +1373,9 @@ z-index: 1 !important;
           flex-shrink: 0;
         }
 
-        .video-timestamp-overlay {
+        /* Removed timestamp overlay */
+
+        .video-duration-overlay {
           position: absolute;
           bottom: 4px;
           right: 4px;
@@ -1407,6 +1387,8 @@ z-index: 1 !important;
           font-family: 'Roboto', sans-serif;
           font-weight: 500;
         }
+
+        /* Removed with-timestamp class */
 
         .video-thumbnail img {
           width: 100%;
@@ -1422,6 +1404,7 @@ z-index: 1 !important;
         .video-info {
           flex: 1;
           display: flex;
+          flex-direction: column;
           align-items: flex-start;
           justify-content: flex-start;
           padding-top: 2px;
@@ -1429,14 +1412,16 @@ z-index: 1 !important;
 
         .video-timestamp {
           font-weight: 500;
-          font-size: 16px;
+          font-size: 14px;
           color: var(--video-text-color);
           background-color: transparent;
           padding: 0;
           border-radius: 0;
-          display: inline-block;
+          display: block;
+          width: 100%;
           font-family: 'Roboto', Arial, sans-serif;
           line-height: 1.4;
+          margin-bottom: 2px;
           overflow: hidden;
           text-overflow: ellipsis;
           display: -webkit-box;
@@ -1449,13 +1434,37 @@ z-index: 1 !important;
           font-weight: 700;
         }
 
+        .video-description {
+          font-size: 11px;
+          line-height: 1.2;
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          color: var(--ifm-color-emphasis-700);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          font-family: 'Roboto', Arial, sans-serif;
+        }
+
+        .video-duration {
+          font-size: 11px;
+          line-height: 1.2;
+          color: var(--ifm-color-emphasis-600);
+          font-weight: 400;
+          margin-top: 2px;
+          font-family: 'Roboto', Arial, sans-serif;
+        }
+
         /* Add a new media query for large screens */
         @media (min-width: 1400px) {
           .video-player {
-            width: calc(100vw - 400px - 114px) !important; /* 400px for video-list, 114px for padding and gap */
-            min-width: calc(100vw - 400px - 114px) !important;
-            max-width: calc(100vw - 400px - 114px) !important;
-            flex-basis: calc(100vw - 400px - 114px) !important;
+            width: calc(100vw - 400px - 95px) !important; /* 400px for video-list, 95px for padding and gap */
+            min-width: calc(100vw - 400px - 95px) !important;
+            max-width: calc(100vw - 400px - 95px) !important;
+            flex-basis: calc(100vw - 400px - 95px) !important;
           }
 
           .video-container {
@@ -1467,7 +1476,7 @@ z-index: 1 !important;
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
-            gap: 34px !important;
+            gap: 15px !important;
           }
 
           .video-list {
@@ -1535,7 +1544,7 @@ z-index: 1 !important;
           }
 
           .video-item {
-            margin-bottom: 12px;
+            margin-bottom: 6px;
           }
 
           .video-thumbnail {
@@ -1595,7 +1604,7 @@ z-index: 1 !important;
         #videoMainContainer {
           display: flex !important;
           flex-direction: row !important;
-          gap: 34px !important;
+          gap: 15px !important;
           margin: 0 !important;
           width: 100vw !important;
           max-width: 100vw !important;
@@ -1709,8 +1718,8 @@ z-index: 1 !important;
       }}>
       {videoData && videoData.videos && videoData.videos.length > 0 ? (
         videoData.videos.map((video, index) => {
-          // Construct video ID with timestamp if needed
-          const videoIdWithParams = video.startTime ? `${video.id}?t=${video.startTime}` : video.id;
+          // Use video ID directly
+          const videoIdWithParams = video.id;
 
           return (
             <div
@@ -1725,12 +1734,15 @@ z-index: 1 !important;
                   src={`https://img.youtube.com/vi/${video.id}/mqdefault.jpg`}
                   alt={`${video.title} Thumbnail`}
                 />
-                {video.startTime && (
-                  <div className="video-timestamp-overlay">{Math.floor(video.startTime / 60)}:{(video.startTime % 60).toString().padStart(2, '0')}</div>
+                {video.duration && (
+                  <div className="video-duration-overlay">
+                    {video.duration}
+                  </div>
                 )}
               </div>
               <div className="video-info">
                 <div className="video-timestamp">{video.title}</div>
+                <div className="video-description">{video.description}</div>
               </div>
               <button className="share-button" title="Share this video">
                 <i className="fas fa-share-alt"></i> Share

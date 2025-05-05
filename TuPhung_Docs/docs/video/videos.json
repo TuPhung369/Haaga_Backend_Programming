@@ -4,61 +4,61 @@
       "id": "22IxZbZhPbA",
       "title": "Introduction to Enterprise Nexus",
       "description": "Overview of the Project Enterprise Nexus",
-      "startTime": 0
+      "duration": "7:18"
     },
     {
       "id": "ief07LcvrKM",
       "title": "Login Page",
       "description": "Testing the login page functionality.",
-      "startTime": 0
+      "duration": "7:46"
     },
     {
       "id": "zk4wO9gs4IA",
       "title": "Home Page",
       "description": "Testing the home page functionality.",
-      "startTime": 0
+      "duration": "4:07"
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Node.js Basics",
       "description": "Introduction to Node.js and its core features.",
-      "startTime": 0
+      "duration": "10:15"
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Express.js Framework",
       "description": "Building web applications with Express.js framework.",
-      "startTime": 0
+      "duration": "8:30"
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "RESTful API Design",
       "description": "Principles and best practices for designing RESTful APIs.",
-      "startTime": 0
+      "duration": "12:45"
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Database Integration",
       "description": "Connecting and working with databases in backend applications.",
-      "startTime": 0
+      "duration": "9:20"
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Authentication & Authorization",
       "description": "Implementing secure user authentication and authorization.",
-      "startTime": 0
+      "duration": "11:05"
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Error Handling & Logging",
       "description": "Effective strategies for error handling and logging in backend applications.",
-      "startTime": 0
+      "duration": "7:15"
     },
     {
       "id": "bQ1s5zS-1f4",
       "title": "Deployment & DevOps",
       "description": "Deploying backend applications and introduction to DevOps practices.",
-      "startTime": 0
+      "duration": "14:30"
     }
   ]
 }
