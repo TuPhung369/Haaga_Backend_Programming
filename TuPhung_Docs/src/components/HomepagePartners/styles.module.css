@@ -1,0 +1,194 @@
+.partnersSection {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 5rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Light mode partners section */
+html[data-theme='light'] .partnersSection {
+  background-color: #f8f9fc;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode partners section */
+html[data-theme='dark'] .partnersSection {
+  background-color: #0f1225;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Home Container - Override global container styles */
+.homeContainer {
+  display: block !important;
+  width: 100% !important;
+  max-width: var(--ifm-container-width) !important;
+  margin: 0 auto !important;
+  padding: 0 1rem !important;
+  clear: both !important;
+  box-sizing: border-box;
+}
+
+.sectionTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.sectionTitle h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--ifm-color-primary);
+  position: relative;
+  display: inline-block;
+}
+
+.sectionTitle p {
+  font-size: 1.2rem;
+  max-width: 700px;
+  margin: 0 auto 1.5rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.titleUnderline {
+  height: 4px;
+  width: 80px;
+  background: linear-gradient(90deg, var(--ifm-color-primary) 0%, var(--ifm-color-primary-dark) 100%);
+  margin: 0 auto;
+  border-radius: 2px;
+  position: relative;
+}
+
+.titleUnderline::before,
+.titleUnderline::after {
+  content: '';
+  position: absolute;
+  height: 4px;
+  width: 20px;
+  background: var(--ifm-color-primary-lighter);
+  border-radius: 2px;
+  top: 0;
+}
+
+.titleUnderline::before {
+  left: -30px;
+}
+
+.titleUnderline::after {
+  right: -30px;
+}
+
+.partnersGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.partnerCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+/* Light mode partner card */
+html[data-theme='light'] .partnerCard {
+  background-color: white;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode partner card */
+html[data-theme='dark'] .partnerCard {
+  background-color: #1e1e38;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.partnerCard:hover {
+  transform: translateY(-10px);
+}
+
+/* Light mode partner card hover */
+html[data-theme='light'] .partnerCard:hover {
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode partner card hover */
+html[data-theme='dark'] .partnerCard:hover {
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.partnerLogo {
+  height: 64px;
+  width: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  color: var(--ifm-color-primary);
+}
+
+.partnerCard:hover .partnerLogo {
+  transform: scale(1.1);
+  color: var(--ifm-color-primary-dark);
+}
+
+.partnerName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ifm-color-emphasis-900);
+  margin-bottom: 0.25rem;
+}
+
+.partnerCategory {
+  font-size: 0.8rem;
+  color: var(--ifm-color-primary);
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.1);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+@media screen and (max-width: 996px) {
+  .partnersGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .sectionTitle h2 {
+    font-size: 2rem;
+  }
+  
+  .sectionTitle p {
+    font-size: 1rem;
+  }
+  
+  .partnersSection {
+    padding: 4rem 0;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .partnersGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .partnersGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .partnersSection {
+    padding: 3rem 0;
+  }
+}
