@@ -53,6 +53,34 @@ module.exports = function (context, options) {
                 background-color: transparent !important;
               }
               
+              /* Style for bookmark title when active */
+              #plugin-bookmark.active .bookmark-title-content {
+                background: rgba(78, 87, 185, 1) !important;
+                background-color: rgba(78, 87, 185, 1) !important;
+                color: white !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                border-radius: 8px 8px 0 0 !important;
+                padding: 8px 0 !important;
+                text-align: center !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-icon,
+              #plugin-bookmark.active .bookmark-text {
+                color: white !important;
+                display: inline-block !important;
+                vertical-align: middle !important;
+                font-size: 16px !important;
+                line-height: 16px !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-text {
+                display: inline-block !important;
+                margin-left: 5px !important;
+              }
+              
               #plugin-bookmark.active ul {
                 background: transparent !important;
                 background-color: transparent !important;
@@ -255,7 +283,7 @@ module.exports = function (context, options) {
                         'font-weight: bold;' +
                         'font-size: 16px;' +
                         'width: 100%;' +
-                      '"><span class="bookmark-icon" style="font-size: 30px; line-height: 30px;">&#9733;</span><span class="bookmark-text" style="margin-left: 5px; display: none;">Bookmark</span></div>' +
+                      '"><span class="bookmark-icon" style="font-size: 30px; line-height: 30px; display: inline-block; vertical-align: middle;">&#9733;</span><span class="bookmark-text" style="margin-left: 5px; display: none; vertical-align: middle;">Bookmark</span></div>' +
                     '</div>';
                   
                   const title = titleContainer.firstElementChild;
@@ -337,19 +365,39 @@ module.exports = function (context, options) {
                     // Hiển thị text "Bookmark" khi mở
                     const bookmarkText = title.querySelector('.bookmark-text');
                     if (bookmarkText) {
-                      bookmarkText.style.display = 'inline';
+                      bookmarkText.style.display = 'inline-block';
+                      bookmarkText.style.verticalAlign = 'middle';
+                    }
+                    
+                    // Điều chỉnh kích thước icon khi active
+                    const bookmarkIcon = title.querySelector('.bookmark-icon');
+                    if (bookmarkIcon) {
+                      bookmarkIcon.style.fontSize = '16px';
+                      bookmarkIcon.style.lineHeight = '16px';
+                    }
+                    
+                    // Đảm bảo title content được căn giữa
+                    const titleContent = title.querySelector('.bookmark-title-content');
+                    if (titleContent) {
+                      titleContent.style.display = 'flex';
+                      titleContent.style.alignItems = 'center';
+                      titleContent.style.justifyContent = 'center';
+                      titleContent.style.padding = '8px 0';
                     }
                     
                     // Cập nhật nội dung tiêu đề
                     titleContent.setAttribute('style',
                       'display: flex !important;' +
                       'align-items: center !important;' +
-                      'color: #4e57b9 !important;' +
+                      'justify-content: center !important;' +
+                      'color: white !important;' +
                       'font-weight: bold !important;' +
                       'font-size: 16px !important;' +
-                      'padding-left: 40px !important;' +
-                      'justify-content: flex-start !important;' +
-                      'width: 100% !important;'
+                      'width: 100% !important;' +
+                      'background: rgba(78, 87, 185, 1) !important;' +
+                      'border-radius: 8px 8px 0 0 !important;' +
+                      'padding: 8px 0 !important;' +
+                      'text-align: center !important;'
                     );
                     
                     // Cập nhật nội dung
@@ -395,6 +443,13 @@ module.exports = function (context, options) {
                     const bookmarkText = title.querySelector('.bookmark-text');
                     if (bookmarkText) {
                       bookmarkText.style.display = 'none';
+                    }
+                    
+                    // Khôi phục kích thước icon khi không active
+                    const bookmarkIcon = title.querySelector('.bookmark-icon');
+                    if (bookmarkIcon) {
+                      bookmarkIcon.style.fontSize = '30px';
+                      bookmarkIcon.style.lineHeight = '30px';
                     }
                     
                     // Cập nhật nội dung tiêu đề để đảm bảo icon ở giữa
