@@ -142,15 +142,13 @@ export default function Home() {
       description="Enterprise Nexus - A cutting-edge enterprise management platform featuring advanced AI capabilities, real-time collaboration tools, and enterprise-grade security."
     >
       <div className={styles.pageWrapper}>
-        <div className={styles.pageWrapper}>
         <HomepageHeader />
-          <main>
-            <HomepageHighlights />
+        <main>
+         HomepageHeader()
             <HomepageFeatures />
-            <HomepageTestimonial />
-            <HomepageCTA />
-          </main>
-      </div>
+        <HomepageTestimonial />
+          <HomepageCTA />
+        </main>
       </div>
     </Layout>
   );

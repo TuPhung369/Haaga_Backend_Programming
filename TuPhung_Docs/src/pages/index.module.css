@@ -9,10 +9,13 @@
   flex-direction: column;
   width: 100%;
   overflow: hidden;
+  align-items: center;
 }
 
 .pageWrapper main {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
 }
 
@@ -24,6 +27,7 @@
   margin: 0 auto !important;
   padding: 0 1rem !important;
   clear: both !important;
+  box-sizing: border-box;
 }
 
 /* Modern Hero Banner with Overlay */
@@ -35,6 +39,9 @@
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 /* Hero Banner Background Overlay */
@@ -78,6 +85,7 @@ html[data-theme='dark'] .heroBanner::before {
   max-width: var(--ifm-container-width) !important;
   margin: 0 auto !important;
   padding: 0 1rem !important;
+  box-sizing: border-box;
 }
 
 .heroBanner h1 {
@@ -288,7 +296,8 @@ html[data-theme='dark'] .heroBanner::before {
   padding: 6rem 0;
   position: relative;
   overflow: hidden;
-  display: block;
+  display: flex;
+  justify-content: center;
   width: 100%;
   clear: both;
 }
@@ -356,6 +365,7 @@ html[data-theme='dark'] .highlights {
   margin: 0 auto !important;
   padding: 0 1rem !important;
   clear: both;
+  box-sizing: border-box;
 }
 
 /* Highlight Card Container */
@@ -469,6 +479,9 @@ html[data-theme='dark'] .highlightCardIcon {
   padding: 7rem 0;
   position: relative;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 /* Light mode testimonial section */
@@ -494,6 +507,11 @@ html[data-theme='dark'] .testimonial {
 /* Override container flex for testimonial section */
 .testimonial .container {
   display: block !important;
+  width: 100% !important;
+  max-width: var(--ifm-container-width) !important;
+  margin: 0 auto !important;
+  padding: 0 1rem !important;
+  box-sizing: border-box;
 }
 
 .testimonialInner::before {
@@ -633,6 +651,9 @@ html[data-theme='dark'] .testimonialAuthor {
   text-align: center;
   position: relative;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 /* Light mode CTA section */
@@ -677,6 +698,11 @@ html[data-theme='dark'] .cta {
   position: relative;
   z-index: 1;
   display: block !important;
+  width: 100% !important;
+  max-width: var(--ifm-container-width) !important;
+  margin: 0 auto !important;
+  padding: 0 1rem !important;
+  box-sizing: border-box;
 }
 
 .cta h2 {

@@ -1,12 +1,9 @@
 .features {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 4rem 0;
   width: 100%;
-  width: 100% !important;
-  max-width: var(--ifm-container-width) !important;
-  margin: 0 auto !important;
-  padding: 0 1rem !important;
 }
 
 /* Light mode features section */
@@ -22,12 +19,9 @@ html[data-theme='dark'] .features {
 .techStack {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 4rem 0;
   width: 100%;
-  width: 100% !important;
-  max-width: var(--ifm-container-width) !important;
-  margin: 0 auto !important;
-  padding: 0 1rem !important;
 }
 
 /* Light mode tech stack section */
@@ -197,6 +191,7 @@ html[data-theme='dark'] .featureIcon {
   margin: 0 auto !important;
   padding: 0 1rem !important;
   clear: both !important;
+  box-sizing: border-box;
 }
 
 /* Home Row - Custom row for homepage */
