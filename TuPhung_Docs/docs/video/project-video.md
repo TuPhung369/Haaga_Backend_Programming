@@ -501,13 +501,18 @@ handleHashChange();
         }
 
         const containerWidth = playerContainer.offsetWidth;
+        // Calculate height based on 16:9 aspect ratio
         const containerHeight = containerWidth * 0.5625; // 16:9 aspect ratio
+
+        // Set minimum height for mobile devices
+        const minHeight = window.innerWidth <= 480 ? 250 : 300;
+        const finalHeight = Math.max(containerHeight, minHeight);
 
         // Get first video ID from the JSON data
         const firstVideoId = videoData.videos[0].id;
 
         player = new window.YT.Player('currentVideo', {
-          height: containerHeight,
+          height: finalHeight,
           width: containerWidth,
           videoId: firstVideoId,
           playerVars: {
@@ -531,6 +536,20 @@ handleHashChange();
 
         // Try to handle hash again after player is ready
         setTimeout(tryHandleHashAgain, 500);
+
+        // Add resize handler to maintain aspect ratio on orientation change
+        window.addEventListener('resize', function() {
+          const playerContainer = document.getElementById('currentVideo');
+          if (playerContainer && player) {
+            const containerWidth = playerContainer.offsetWidth;
+            const containerHeight = containerWidth * 0.5625; // 16:9 aspect ratio
+            const minHeight = window.innerWidth <= 480 ? 250 : 300;
+            const finalHeight = Math.max(containerHeight, minHeight);
+
+            // Update player size
+            player.setSize(containerWidth, finalHeight);
+          }
+        });
       }
 
       // When player state changes
@@ -1642,7 +1661,8 @@ z-index: 1 !important;
             max-width: 100% !important;
             display: block !important;
             visibility: visible !important;
-            min-height: 250px !important;
+            min-height: 300px !important; /* Increased height for better mobile viewing */
+            height: 56.25vw !important; /* 16:9 aspect ratio based on viewport width */
           }
 
           .video-player {
@@ -1650,7 +1670,8 @@ z-index: 1 !important;
             visibility: visible !important;
             opacity: 1 !important;
             width: 100% !important;
-            min-height: 250px !important;
+            min-height: 300px !important; /* Increased height for better mobile viewing */
+            height: 56.25vw !important; /* 16:9 aspect ratio based on viewport width */
           }
 
           #videoList {
@@ -1672,13 +1693,24 @@ z-index: 1 !important;
             flex-direction: column !important;
             gap: 10px !important;
           }
+        }
+
+        /* Specific styles for iPhone 15 Pro Max and similar devices */
+        @media only screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3),
+               only screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3),
+               only screen and (min-width: 420px) and (max-width: 440px) and (min-height: 920px) {
+          #videoMainContainer {
+            flex-direction: column !important;
+            gap: 10px !important;
+          }
 
           #currentVideoContainer {
             width: 100% !important;
             max-width: 100% !important;
             display: block !important;
             visibility: visible !important;
-            min-height: 200px !important;
+            min-height: 250px !important; /* Increased minimum height */
+            height: 56.25vw !important; /* Maintain 16:9 aspect ratio */
             margin-bottom: 10px !important;
           }
 
@@ -1687,14 +1719,15 @@ z-index: 1 !important;
             visibility: visible !important;
             opacity: 1 !important;
             width: 100% !important;
-            min-height: 200px !important;
-            height: auto !important;
+            min-height: 250px !important; /* Increased minimum height */
+            height: 56.25vw !important; /* Maintain 16:9 aspect ratio */
           }
 
           #currentVideo {
             display: block !important;
             visibility: visible !important;
-            min-height: 200px !important;
+            min-height: 250px !important; /* Increased minimum height */
+            height: 56.25vw !important; /* Maintain 16:9 aspect ratio */
           }
 
           #videoList {

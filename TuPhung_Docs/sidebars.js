@@ -72,6 +72,11 @@ const sidebars = {
           id: "frontend/chat",
           label: "Chat System",
         },
+        {
+          type: "doc",
+          id: "frontend/ui-gallery-viewer",
+          label: "UI Gallery Viewer",
+        },
       ],
     },
     {
@@ -130,5 +135,4 @@ const sidebars = {
 };
 
 export default sidebars;
-
 

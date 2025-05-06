@@ -2803,6 +2803,7 @@ html[data-theme='dark'] .theme-doc-sidebar-container {
   font-size: 2.2rem !important;
   border-bottom: 1px solid var(--ifm-toc-border-color) !important;
   padding-bottom: 0.5rem !important;
+  margin-top: 0 !important;
 }
 
 .markdown h2 {

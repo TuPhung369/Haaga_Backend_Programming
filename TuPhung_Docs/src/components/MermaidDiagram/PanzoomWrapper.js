@@ -84,7 +84,7 @@ const PanzoomWrapper = ({ children }) => {
     // Chỉ sử dụng các nút zoom thay vì wheel
 
     console.log(
-      "PanzoomWrapper: Initialized successfully (mouse wheel zoom disabled)"
+      "PanzoomWrapper: Initialized successfully (mouse wheel zoom and panning disabled)"
     );
 
     return true;

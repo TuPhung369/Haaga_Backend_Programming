@@ -12,19 +12,19 @@ const securityFeatures = [
   },
   {
     name: "Refresh Token Rotation",
-    logo: "�",
+    logo: "🔄",
     description:
       "Automatic rotation of refresh tokens with limited lifetime to prevent token theft",
   },
   {
     name: "XSS Protection",
-    logo: "�️",
+    logo: "🛡️",
     description:
       "Implementation of HttpOnly cookies and Content-Security-Policy headers to prevent cross-site scripting",
   },
   {
     name: "CSRF Prevention",
-    logo: "�",
+    logo: "🚫",
     description:
       "Double-submit cookie pattern and SameSite cookie attributes to mitigate CSRF attacks",
   },

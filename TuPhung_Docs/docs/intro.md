@@ -531,49 +531,62 @@ Enterprise Nexus follows a strategic implementation approach:
 %%{
   init: {
     'theme': 'neutral',
-    'gantt': {
-      'barHeight': 40,
-      'fontSize': 12,
-      'titleFontSize': 28,
-      'sectionFontSize': 20,
-      'numberSectionStyles': 5,
-      'axisFormat': '%B',
-      'topPadding': 60,
-      'bottomPadding': 70,
-      'leftPadding': 75,
-      'rightPadding': 75,
+    'themeVariables': {
+      'primaryColor': '#E8F0FE',
+      'primaryTextColor': '#000000',
+      'primaryBorderColor': '#BBDEFB',
+      'lineColor': '#2196F3',
+      'secondaryColor': '#F5F5F5',
+      'tertiaryColor': '#FFFFFF',
+      'fontSize': '20px',
       'fontFamily': 'Arial, sans-serif',
-      'tickInterval': '1month',
-      'axisWidth': 100
+      'taskTextColor': '#000000',
+      'taskTextDarkColor': '#000000',
+      'taskTextOutsideColor': '#000000',
+      'taskTextLightColor': '#000000',
+      'sectionTextColor': '#000000',
+      'fontWeight': 'bold',
+      'sectionFontSize': '28px',
+      'sectionFontWeight': 'bold',
+      'sectionBackgroundColor': '#FFFFFF',
+      'sectionBackgroundDarkColor': '#FFFFFF',
+      'sectionBorderWidth': '2px',
+      'sectionBorderColor': '#BBDEFB',
+      'sectionBorderRadius': '10px',
+      'sectionPadding': '10px',
+      'sectionMargin': '10px',
+      'sectionTitleColor': '#000000',
+      'sectionTitleDarkColor': '#000000',
+      'sectionTitleLightColor': '#000000',
+      'sectionTitleFontSize': '28px',
     }
   }
 }%%
-gantt
+timeline
     title Enterprise Nexus Implementation Roadmap
-    dateFormat  YYYY-MM-DD
 
     section Core Foundation
-    Project Setup & Planning     :done,     setup,   2025-01-01, 7d
-    Database Schema Design       :done,    schema,  2025-01-08, 10d
-    User Authentication (JWT)    :done,     auth,    2025-01-18, 14d
-    Role & Permission System      :active,   roles,   2025-02-01, 14d
-    Basic API Implementation     :active,   api,     2025-02-15, 14d
+      Project Setup & Planning : 2025-01-01 : 2025-01-07 : done
+      Database Schema Design : 2025-01-08 : 2025-01-17 : done
+      User Authentication (JWT) : 2025-01-18 : 2025-01-31 : done
+      Role & Permission System : 2025-02-01 : 2025-02-14 : active
+      Basic API Implementation : 2025-02-15 : 2025-02-28 : active
 
     section Productivity Tools
-    Social Login Integration     :         social,  2025-03-01, 7d
-    Kanban Board Development     :         kanban,  2025-03-08, 7d
-    Calendar Implementation      :         cal,     2025-03-16, 7d
+      Social Login Integration : 2025-03-01 : 2025-03-07
+      Kanban Board Development : 2025-03-08 : 2025-03-15
+      Calendar Implementation : 2025-03-16 : 2025-03-22
 
     section Advanced Features
-    Assistant AI Implementation  :         ai,      2025-03-23, 10d
-    Language AI Integration      :         lang,    2025-04-03, 12d
-    Chat System                  :         chat,    2025-04-15, 10d
+      Assistant AI Implementation : 2025-03-23 : 2025-04-02
+      Language AI Integration : 2025-04-03 : 2025-04-14
+      Chat System : 2025-04-15 : 2025-04-24
 
     section Documentation & Deployment
-    Documentation Writing        :active,   docs,    2025-04-25, 7d
-    Testing & QA                 :         test,    2025-05-05, 7d
-    Production Deployment        :         deploy,  2025-05-12, 3d
-    Post-Deployment Monitoring   :         monitor, 2025-05-15, 14d
+      Documentation Writing : 2025-04-25 : 2025-05-04 : active
+      Testing & QA : 2025-05-05 : 2025-05-11
+      Production Deployment : 2025-05-12 : 2025-05-14
+      Post-Deployment Monitoring : 2025-05-15 : 2025-05-28
 ```
 
 </div>

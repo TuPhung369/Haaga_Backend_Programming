@@ -168,6 +168,7 @@
     min-width: auto !important;
     height: auto !important;
     overflow: visible !important;
+    touch-action: pan-y !important; /* Allow vertical scrolling but disable horizontal drag */
   }
   
   /* Special handling for mermaid diagrams in workflow container */
@@ -206,6 +207,7 @@
     min-width: auto !important;
     height: auto !important;
     overflow: visible !important;
+    touch-action: pan-y !important; /* Allow vertical scrolling but disable horizontal drag */
   }
 }
 
@@ -228,6 +230,11 @@
 
 /* Mobile screen adjustments for mermaid diagrams */
 @media (max-width: 768px) {
+  /* Disable dragging on all SVG elements on mobile */
+  svg, svg * {
+    touch-action: pan-y !important; /* Allow vertical scrolling but disable horizontal drag */
+    user-select: none !important; /* Prevent text selection which can trigger drag */
+  }
   /* Fix mermaid diagrams on mobile */
   .mermaid-wrapper {
     overflow-x: scroll !important; /* Force scroll instead of auto */
@@ -264,6 +271,7 @@
     min-width: auto !important;
     height: auto !important;
     overflow: visible !important;
+    touch-action: pan-y !important; /* Allow vertical scrolling but disable horizontal drag */
   }
   
   /* Ensure all elements inside mermaid diagrams are visible */
@@ -275,6 +283,7 @@
   .mermaid polygon,
   .mermaid text {
     overflow: visible !important;
+    touch-action: pan-y !important; /* Allow vertical scrolling but disable horizontal drag */
   }
   
   /* Fix mermaid diagrams in workflow container on mobile */
@@ -313,5 +322,6 @@
     min-width: auto !important;
     height: auto !important;
     overflow: visible !important;
+    touch-action: pan-y !important; /* Allow vertical scrolling but disable horizontal drag */
   }
 }

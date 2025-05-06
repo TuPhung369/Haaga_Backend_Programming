@@ -232,6 +232,11 @@ All API responses follow a consistent format with appropriate HTTP status codes 
 <div id="standard-response-format">
 ```mermaid
 classDiagram
+    class BaseResponse {
+        +int code
+        +String message
+    }
+
     class SuccessResponse {
         +int code
         +String message

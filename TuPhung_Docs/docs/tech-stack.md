@@ -46,6 +46,36 @@ div.tech-icon {
   line-height: 1.2; /* Tighter line height */
   grid-column: 2; /* Place in second column of grid */
 }
+
+/* Styling for tech-card-feature */
+.tech-card-feature {
+  display: inline-block;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin: 4px 4px 4px 0;
+  font-size: 0.85rem;
+  color: #333;
+  font-weight: 500;
+}
+
+/* Styling for tech-card-features container */
+.tech-card-features {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Ensure consistent styling for features in lists */
+ul.tech-card-features {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+}
+
+ul.tech-card-features li {
+  margin-bottom: 6px;
+}
 `}
 </style>
 
@@ -592,11 +622,11 @@ flowchart TD
       <div className="tech-card-description">
         PyTorch-based speech toolkit for speech recognition, speaker identification, and speech enhancement with pre-trained models.
       </div>
-      <div className="tech-card-features">
-        <span className="tech-card-feature">ASR Models</span>
-        <span className="tech-card-feature">Speaker Recognition</span>
-        <span className="tech-card-feature">Speech Enhancement</span>
-      </div>
+      <ul className="tech-card-features">
+        <li><span className="tech-card-feature">ASR Models</span></li>
+        <li><span className="tech-card-feature">Speaker Recognition</span></li>
+        <li><span className="tech-card-feature">Speech Enhancement</span></li>
+      </ul>
     </div>
 
     <div className="tech-card">
@@ -607,11 +637,11 @@ flowchart TD
       <div className="tech-card-description">
         OpenAI's automatic speech recognition system trained on diverse audio with multilingual capabilities and robust performance.
       </div>
-      <div className="tech-card-features">
-        <span className="tech-card-feature">Multilingual Support</span>
-        <span className="tech-card-feature">Robust to Noise</span>
-        <span className="tech-card-feature">Timestamp Generation</span>
-      </div>
+      <ul className="tech-card-features">
+        <li><span className="tech-card-feature">Multilingual Support</span></li>
+        <li><span className="tech-card-feature">Robust to Noise</span></li>
+        <li><span className="tech-card-feature">Timestamp Generation</span></li>
+      </ul>
     </div>
 
     <div className="tech-card">
@@ -622,11 +652,11 @@ flowchart TD
       <div className="tech-card-description">
         Self-supervised learning framework for speech recognition that learns from unlabeled audio data with fine-tuning capabilities.
       </div>
-      <div className="tech-card-features">
-        <span className="tech-card-feature">Self-supervised Learning</span>
-        <span className="tech-card-feature">Contextual Representations</span>
-        <span className="tech-card-feature">Fine-tuning</span>
-      </div>
+      <ul className="tech-card-features">
+        <li><span className="tech-card-feature">Self-supervised Learning</span></li>
+        <li><span className="tech-card-feature">Contextual Representations</span></li>
+        <li><span className="tech-card-feature">Fine-tuning</span></li>
+      </ul>
     </div>
   </div>
 </div>
@@ -645,11 +675,11 @@ flowchart TD
       <div className="tech-card-description">
         Neural text-to-speech synthesis system that converts text to natural-sounding speech with prosody and emotion control.
       </div>
-      <div className="tech-card-features">
-        <span className="tech-card-feature">Natural Prosody</span>
-        <span className="tech-card-feature">Voice Customization</span>
-        <span className="tech-card-feature">SSML Support</span>
-      </div>
+      <ul className="tech-card-features">
+        <li><span className="tech-card-feature">Natural Prosody</span></li>
+        <li><span className="tech-card-feature">Voice Customization</span></li>
+        <li><span className="tech-card-feature">SSML Support</span></li>
+      </ul>
     </div>
   </div>
 </div>
@@ -670,11 +700,11 @@ flowchart TD
       <div className="tech-card-description">
         Containerization platform that packages applications and dependencies into isolated containers for consistent deployment.
       </div>
-      <div className="tech-card-features">
-        <span className="tech-card-feature">Containerization</span>
-        <span className="tech-card-feature">Docker Compose</span>
-        <span className="tech-card-feature">Multi-stage Builds</span>
-      </div>
+      <ul className="tech-card-features">
+        <li><span className="tech-card-feature">Containerization</span></li>
+        <li><span className="tech-card-feature">Docker Compose</span></li>
+        <li><span className="tech-card-feature">Multi-stage Builds</span></li>
+      </ul>
     </div>
 
     <div className="tech-card">
@@ -685,11 +715,11 @@ flowchart TD
       <div className="tech-card-description">
         CI/CD platform integrated with GitHub that automates build, test, and deployment workflows with event-driven triggers.
       </div>
-      <div className="tech-card-features">
-        <span className="tech-card-feature">Workflow Automation</span>
-        <span className="tech-card-feature">Matrix Builds</span>
-        <span className="tech-card-feature">Artifact Management</span>
-      </div>
+      <ul className="tech-card-features">
+        <li><span className="tech-card-feature">Workflow Automation</span></li>
+        <li><span className="tech-card-feature">Matrix Builds</span></li>
+        <li><span className="tech-card-feature">Artifact Management</span></li>
+      </ul>
     </div>
 
     <div className="tech-card">
@@ -700,11 +730,11 @@ flowchart TD
       <div className="tech-card-description">
         Build automation and dependency management tool for Java projects with declarative configuration and lifecycle management.
       </div>
-      <div className="tech-card-features">
-        <span className="tech-card-feature">Dependency Management</span>
-        <span className="tech-card-feature">Build Lifecycle</span>
-        <span className="tech-card-feature">Plugin Ecosystem</span>
-      </div>
+      <ul className="tech-card-features">
+        <li><span className="tech-card-feature">Dependency Management</span></li>
+        <li><span className="tech-card-feature">Build Lifecycle</span></li>
+        <li><span className="tech-card-feature">Plugin Ecosystem</span></li>
+      </ul>
     </div>
 
     <div className="tech-card">
@@ -715,11 +745,11 @@ flowchart TD
       <div className="tech-card-description">
         Package manager for JavaScript that manages dependencies, runs scripts, and publishes packages with version control.
       </div>
-      <div className="tech-card-features">
-        <span className="tech-card-feature">Package Management</span>
-        <span className="tech-card-feature">Script Running</span>
-        <span className="tech-card-feature">Semantic Versioning</span>
-      </div>
+      <ul className="tech-card-features">
+        <li><span className="tech-card-feature">Package Management</span></li>
+        <li><span className="tech-card-feature">Script Running</span></li>
+        <li><span className="tech-card-feature">Semantic Versioning</span></li>
+      </ul>
     </div>
   </div>
 </div>
