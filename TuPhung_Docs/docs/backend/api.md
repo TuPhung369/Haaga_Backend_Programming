@@ -1,6 +1,7 @@
 ﻿﻿---
 sidebar_position: 2
 sidebar_label: "API"
+description: "Comprehensive documentation for the REST API architecture, endpoints, and integration patterns"
 ---
 
 import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';

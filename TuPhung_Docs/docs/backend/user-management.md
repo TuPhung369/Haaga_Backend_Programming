@@ -1,6 +1,7 @@
 ﻿﻿---
 sidebar_position: 5
 sidebar_label: "User Management"
+description: "User authentication, authorization, profile management, and administrative capabilities"
 ---
 
 import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';

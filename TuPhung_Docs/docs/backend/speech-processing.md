@@ -1,7 +1,9 @@
 ﻿﻿---
 sidebar_position: 7
 sidebar_label: "Speech Processing"
+description: "Speech-to-text and text-to-speech capabilities using SpeechBrain and AI models"
 ---
+
 import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 
 # Speech Processing with SpeechBrain
@@ -9,6 +11,7 @@ import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 ## Speech Processing Architecture and Components
 
 ### System Architecture
+
 <PanzoomWrapper>
 <div id="speech-processing-architecture-diagram">
 ```mermaid
@@ -132,7 +135,8 @@ classDiagram
     SpeechBrainService --> TTSModel : manages
     SpeechService --> TranscriptionResult : produces
     SpeechService --> SynthesisResult : produces
-```
+
+````
 
 </div>
 </PanzoomWrapper>
@@ -207,7 +211,7 @@ flowchart TD
     class AI_Models aiModelsSection
     class Speech_Functions speechFunctionsSection
     class Data_Processing dataProcessingSection
-```
+````
 
 </div>
 </PanzoomWrapper>
@@ -274,10 +278,12 @@ flowchart TD
     class GetFromCache,SaveToCache,SaveToDatabase storage
     class ReturnError,ReturnResult output
 ```
+
 </div>
 </PanzoomWrapper>
 
 ### Text-to-Speech Processing Flow
+
 <PanzoomWrapper>
 <div id="text-to-speech-processing-flow-diagram">
 
@@ -298,17 +304,17 @@ flowchart TD
 
     CheckSSML -->|Yes| ParseSSML[Parse SSML Tags]:::process
     CheckSSML -->|No| PrepareText[Prepare Plain Text]:::process
-    
+
     ParseSSML & PrepareText --> SelectVoice[Select Voice]:::process
     SelectVoice --> CheckCache{Result in Cache?}:::decision
-    
+
     CheckCache -->|Yes| GetFromCache[Retrieve from Cache]:::storage
     CheckCache -->|No| GenerateAudio[Generate Audio]:::process
-    
+
     GenerateAudio --> Tacotron[Generate Spectrogram with Tacotron2]:::process
     Tacotron --> HiFiGAN[Convert to Audio with HiFi-GAN]:::process
     HiFiGAN --> PostProcess[Post-process Audio]:::process
-    
+
     GetFromCache & PostProcess --> FormatAudio[Format Audio Response]:::process
     FormatAudio --> SaveToCache[Save to Cache]:::storage
     SaveToCache --> ReturnAudio[Return Audio File]:::output
@@ -319,13 +325,14 @@ flowchart TD
     classDef decision fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
     classDef storage fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
     classDef output fill:#F44336,stroke:#333,stroke-width:1px,color:#fff
-    
+
     class Start,ValidateText userAction
     class ParseSSML,PrepareText,SelectVoice,GenerateAudio,Tacotron,HiFiGAN,PostProcess,FormatAudio process
     class CheckSSML,CheckCache decision
     class GetFromCache,SaveToCache storage
     class ReturnError,ReturnAudio output
 ```
+
 </div>
 </PanzoomWrapper>
 
@@ -351,7 +358,7 @@ sequenceDiagram
         Controller->>+Service: transcribeAudio(file, language)
         Service->>Service: validateAudio(file)
         Service->>Service: preprocessAudio(file)
-        
+
         alt Direct Python Integration
             Service->>Bridge: executeScript(transcribe.py, args)
             Bridge->>SB: Process via subprocess
@@ -364,7 +371,7 @@ sequenceDiagram
             SB-->>-Bridge: Return JSON response
             Bridge-->>Service: Return results
         end
-        
+
         Service->>DB: saveTranscription(result)
         Service-->>-Controller: Return TranscriptionResult
         Controller-->>-Client: Return JSON response
@@ -375,7 +382,7 @@ sequenceDiagram
         note right of Client: Text-to-Speech
         Client->>+Controller: POST /api/speech/synthesize
         Controller->>+Service: synthesizeSpeech(request)
-        
+
         alt Cached Result Available
             Service->>DB: checkCache(textHash, voiceId)
             DB-->>Service: Return cached audio
@@ -387,7 +394,7 @@ sequenceDiagram
             Bridge-->>Service: Return audio bytes
             Service->>DB: cacheResult(textHash, voiceId, audioData)
         end
-        
+
         Service-->>-Controller: Return SynthesisResult
         Controller-->>-Client: Return audio file
     end
@@ -406,6 +413,7 @@ sequenceDiagram
         Controller-->>-Client: Return JSON response
     end
 ```
+
 </div>
 </PanzoomWrapper>
 
@@ -497,14 +505,14 @@ def initialize_whisper_model():
 def transcribe_audio(model, audio_path, language=None):
     # Set language or auto-detect
     language_options = {"language": language} if language else {}
-    
+
     # Transcribe with word-level timestamps
     segments, info = model.transcribe(
         audio_path,
         word_timestamps=True,
         **language_options
     )
-    
+
     # Process segments
     result = {
         "text": "",
@@ -512,7 +520,7 @@ def transcribe_audio(model, audio_path, language=None):
         "language": info.language if not language else language,
         "words": []
     }
-    
+
     for segment in segments:
         result["text"] += segment.text + " "
         segment_data = {
@@ -522,7 +530,7 @@ def transcribe_audio(model, audio_path, language=None):
             "text": segment.text
         }
         result["segments"].append(segment_data)
-        
+
         # Add word-level data
         for word in segment.words:
             word_data = {
@@ -532,7 +540,7 @@ def transcribe_audio(model, audio_path, language=None):
                 "probability": word.probability
             }
             result["words"].append(word_data)
-    
+
     result["text"] = result["text"].strip()
     return result
 ```
@@ -574,27 +582,27 @@ def initialize_tts_models(voice_type="female"):
 def synthesize_speech(text, tacotron2, hifigan, voice_config, output_path=None):
     # Preprocess text
     text = preprocess_text(text)
-    
+
     # Convert text to phonemes if needed
     if voice_config.get("use_phonemes", False):
         text = text_to_phonemes(text, voice_config["language"])
-    
+
     # Generate spectrogram
     with torch.no_grad():
         inputs = prepare_tts_inputs(text)
         spectrogram = tacotron2(inputs)
-    
+
     # Generate audio from spectrogram
     with torch.no_grad():
         audio = hifigan(spectrogram)
-    
+
     # Apply post-processing
     audio = post_process_audio(audio, voice_config)
-    
+
     # Save to file if output path provided
     if output_path:
         save_audio(audio, output_path, sample_rate=22050)
-    
+
     return audio
 ```
 
@@ -644,33 +652,33 @@ def analyze_language(audio_path, text, analysis_type):
         "scores": {},
         "details": {}
     }
-    
+
     if analysis_type == "pronunciation":
         # Load pronunciation assessment model
         model = load_pronunciation_model()
-        
+
         # Analyze pronunciation
         phoneme_scores, word_scores = model.assess_pronunciation(audio_path, text)
-        
+
         # Format results
         result["scores"]["overall"] = calculate_overall_score(phoneme_scores)
         result["scores"]["accuracy"] = calculate_accuracy_score(phoneme_scores)
         result["scores"]["fluency"] = calculate_fluency_score(word_scores)
         result["details"]["word_scores"] = word_scores
         result["details"]["phoneme_scores"] = phoneme_scores
-        
+
     elif analysis_type == "grammar":
         # Analyze grammar
         grammar_model = load_grammar_model()
         grammar_results = grammar_model.analyze(text)
-        
+
         # Format results
         result["scores"]["grammar"] = grammar_results["score"]
         result["details"]["errors"] = grammar_results["errors"]
         result["details"]["suggestions"] = grammar_results["suggestions"]
-    
+
     # Add more analysis types as needed
-    
+
     return result
 ```
 
@@ -683,6 +691,7 @@ The SpeechBrain service is integrated with the Spring Boot backend through a RES
 #### Speech-to-Text Endpoints
 
 - `POST /api/speech/transcribe`: Transcribe speech to text
+
   - Parameters:
     - `file`: Audio file (multipart/form-data)
     - `language`: Language code (optional)
@@ -698,6 +707,7 @@ The SpeechBrain service is integrated with the Spring Boot backend through a RES
 #### Text-to-Speech Endpoints
 
 - `POST /api/speech/synthesize`: Convert text to speech
+
   - Parameters:
     - `text`: Text to synthesize
     - `voiceId`: Voice identifier
@@ -727,36 +737,36 @@ The SpeechBrain service is integrated with the Spring Boot backend through a RES
 public class SpeechController {
 
     private final SpeechService speechService;
-    
+
     @Autowired
     public SpeechController(SpeechService speechService) {
         this.speechService = speechService;
     }
-    
+
     @PostMapping("/transcribe")
     public ResponseEntity<TranscriptionResult> transcribeAudio(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "language", required = false) String language) {
-        
+
         try {
             // Validate file
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            
+
             // Process transcription
             TranscriptionResult result = speechService.transcribe(
-                file.getBytes(), 
+                file.getBytes(),
                 language
             );
-            
+
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Error transcribing audio", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
     @PostMapping("/synthesize")
     public ResponseEntity<Resource> synthesizeSpeech(@RequestBody SpeechRequest request) {
         try {
@@ -764,22 +774,22 @@ public class SpeechController {
             if (request.getText() == null || request.getText().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            
+
             // Generate speech
             SynthesisResult result = speechService.synthesize(
                 request.getText(),
                 request.getVoiceId(),
                 request.isSsml()
             );
-            
+
             // Create resource from audio data
             ByteArrayResource resource = new ByteArrayResource(result.getAudioData());
-            
+
             // Set appropriate headers
             return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("audio/wav"))
                 .contentLength(result.getAudioData().length)
-                .header(HttpHeaders.CONTENT_DISPOSITION, 
+                .header(HttpHeaders.CONTENT_DISPOSITION,
                        "attachment; filename=\"speech.wav\"")
                 .body(resource);
         } catch (Exception e) {
@@ -787,35 +797,35 @@ public class SpeechController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
     @GetMapping("/voices")
     public ResponseEntity<List<Voice>> getVoices(
             @RequestParam(value = "language", required = false) String language,
             @RequestParam(value = "gender", required = false) String gender) {
-        
+
         try {
             List<Voice> voices = speechService.getAvailableVoices();
-            
+
             // Apply filters if provided
             if (language != null) {
                 voices = voices.stream()
                     .filter(v -> v.getLanguage().equals(language))
                     .collect(Collectors.toList());
             }
-            
+
             if (gender != null) {
                 voices = voices.stream()
                     .filter(v -> v.getGender().equals(gender))
                     .collect(Collectors.toList());
             }
-            
+
             return ResponseEntity.ok(voices);
         } catch (Exception e) {
             log.error("Error getting voices", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
     // Additional endpoints...
 }
 ```
@@ -835,23 +845,23 @@ public class EmbeddedPythonBridge implements PythonBridge {
     private Process pythonProcess;
     private final String pythonPath;
     private final String scriptDir;
-    
+
     @Value("${speech.python.path}")
     private String pythonPath;
-    
+
     @Value("${speech.script.dir}")
     private String scriptDir;
-    
+
     @PostConstruct
     public void initialize() {
         startService(5000);
     }
-    
+
     @PreDestroy
     public void cleanup() {
         stopService();
     }
-    
+
     @Override
     public void startService(int port) {
         try {
@@ -861,10 +871,10 @@ public class EmbeddedPythonBridge implements PythonBridge {
                 "--port", String.valueOf(port),
                 "--models", "whisper,wav2vec2,tts"
             );
-            
+
             pb.redirectErrorStream(true);
             pythonProcess = pb.start();
-            
+
             // Start a thread to read the process output
             new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(
@@ -877,16 +887,16 @@ public class EmbeddedPythonBridge implements PythonBridge {
                     log.error("Error reading Python process output", e);
                 }
             }).start();
-            
+
             // Wait for service to start
             Thread.sleep(5000);
-            
+
         } catch (Exception e) {
             log.error("Failed to start Python service", e);
             throw new RuntimeException("Failed to start Python service", e);
         }
     }
-    
+
     @Override
     public void stopService() {
         if (pythonProcess != null && pythonProcess.isAlive()) {
@@ -902,7 +912,7 @@ public class EmbeddedPythonBridge implements PythonBridge {
             }
         }
     }
-    
+
     // Other methods...
 }
 ```
@@ -979,34 +989,34 @@ class ModelCache:
         self.cache_dir = cache_dir or os.path.join(os.getcwd(), "model_cache")
         self.max_models = max_models
         self.access_times = {}
-        
+
         # Create cache directory if it doesn't exist
         os.makedirs(self.cache_dir, exist_ok=True)
-    
+
     def get(self, model_type, model_name):
         key = f"{model_type}_{model_name}"
-        
+
         if key in self.cache:
             # Update access time
             self.access_times[key] = time.time()
             return self.cache[key]
-        
+
         return None
-    
+
     def put(self, model_type, model_name, model):
         key = f"{model_type}_{model_name}"
-        
+
         # Check if cache is full
         if len(self.cache) >= self.max_models:
             # Remove least recently used model
             lru_key = min(self.access_times, key=self.access_times.get)
             del self.cache[lru_key]
             del self.access_times[lru_key]
-        
+
         # Add model to cache
         self.cache[key] = model
         self.access_times[key] = time.time()
-    
+
     def clear(self):
         self.cache.clear()
         self.access_times.clear()
@@ -1019,20 +1029,20 @@ Multiple requests can be processed in batches for improved throughput:
 ```python
 def batch_process_audio(audio_files, model, batch_size=4):
     results = []
-    
+
     # Process in batches
     for i in range(0, len(audio_files), batch_size):
         batch = audio_files[i:i+batch_size]
-        
+
         # Process batch in parallel
         with concurrent.futures.ThreadPoolExecutor(max_workers=batch_size) as executor:
             batch_results = list(executor.map(
                 lambda file: transcribe_audio(model, file),
                 batch
             ))
-        
+
         results.extend(batch_results)
-    
+
     return results
 ```
 
@@ -1046,51 +1056,51 @@ class ResourceManager:
         self.max_memory_usage = max_memory_usage
         self.max_cpu_usage = max_cpu_usage
         self.model_cache = ModelCache()
-    
+
     def check_resources(self):
         # Check memory usage
         memory_usage = psutil.virtual_memory().percent / 100
-        
+
         # Check CPU usage
         cpu_usage = psutil.cpu_percent(interval=0.1) / 100
-        
+
         return {
             "memory_available": memory_usage < self.max_memory_usage,
             "cpu_available": cpu_usage < self.max_cpu_usage,
             "gpu_available": torch.cuda.is_available() and torch.cuda.device_count() > 0
         }
-    
+
     def get_optimal_device(self):
         resources = self.check_resources()
-        
+
         if resources["gpu_available"]:
             return "cuda"
         else:
             return "cpu"
-    
+
     def get_optimal_model(self, model_type):
         resources = self.check_resources()
-        
+
         if model_type == "whisper":
             if resources["gpu_available"] and resources["memory_available"]:
                 return "large-v3"  # Use large model if resources available
             else:
                 return "medium"    # Fall back to medium model
-        
+
         # Similar logic for other model types
-        
+
         return "default"
-    
+
     def cleanup_if_needed(self):
         resources = self.check_resources()
-        
+
         if not resources["memory_available"]:
             # Clear model cache to free memory
             self.model_cache.clear()
-            
+
             # Force garbage collection
             gc.collect()
-            
+
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 ```

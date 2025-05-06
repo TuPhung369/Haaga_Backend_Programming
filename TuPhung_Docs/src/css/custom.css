@@ -6,6 +6,8 @@
 
 /* Import mermaid styles */
 @import './mermaid.css';
+/* Import intro page styles */
+@import './intro-page.css';
 
 /* Workflow Container Styles */
 .workflow-container {
@@ -2663,7 +2665,7 @@ article {
 /* Style sidebar category headings */
 .menu__link--sublist {
   font-weight: 600 !important;
-  font-size: 0.95rem !important;
+  font-size: 0.9rem !important; /* Same size as regular menu items */
 }
 
 /* Add subtle dividers between major sections */
@@ -2723,6 +2725,7 @@ html[data-theme='dark'] .theme-doc-sidebar-container {
 .menu__list-item-collapsible .menu__link {
   font-weight: 600 !important;
   letter-spacing: 0.3px !important;
+  font-size: 0.9rem !important; /* Same size as regular menu items */
 }
 
 /* Add icon to collapsed/expanded categories */
@@ -2731,8 +2734,8 @@ html[data-theme='dark'] .theme-doc-sidebar-container {
   transition: transform 0.2s ease !important;
 }
 
-/* Add subtle icon to each menu item */
-.menu__link:not(.menu__link--sublist):before {
+/* Add subtle icon only to menu items inside categories */
+.menu__list .menu__list .menu__link:not(.menu__link--sublist):before {
   content: "•";
   display: inline-block;
   margin-right: 0.5rem;
@@ -2741,6 +2744,11 @@ html[data-theme='dark'] .theme-doc-sidebar-container {
   vertical-align: middle;
   opacity: 0.7;
   transition: all 0.2s ease;
+}
+
+/* Top-level menu items (not categories) don't have bullets */
+.menu__list > .menu__list-item > .menu__link:not(.menu__link--sublist):before {
+  content: none;
 }
 
 .menu__link:not(.menu__link--sublist):hover:before {

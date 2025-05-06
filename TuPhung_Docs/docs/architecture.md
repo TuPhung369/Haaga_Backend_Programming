@@ -146,11 +146,11 @@ flowchart TD
       <div className="architecture-card-description">
         Component-based architecture using React and TypeScript with Redux Toolkit for state management, providing a responsive and interactive user interface.
       </div>
-      <div className="architecture-card-features">
-        <span className="architecture-card-feature">Component Hierarchy</span>
-        <span className="architecture-card-feature">Centralized State Management</span>
-        <span className="architecture-card-feature">Type-Safe Development</span>
-      </div>
+      <ul className="architecture-card-features">
+        <li><span className="architecture-card-feature">Component Hierarchy</span></li>
+        <li><span className="architecture-card-feature">Centralized State Management</span></li>
+        <li><span className="architecture-card-feature">Type-Safe Development</span></li>
+      </ul>
     </div>
     
     <div className="architecture-card">
@@ -161,11 +161,11 @@ flowchart TD
       <div className="architecture-card-description">
         RESTful API endpoints and WebSocket handlers that provide a clean interface between frontend and backend, with proper validation and error handling.
       </div>
-      <div className="architecture-card-features">
-        <span className="architecture-card-feature">REST Controllers</span>
-        <span className="architecture-card-feature">WebSocket Communication</span>
-        <span className="architecture-card-feature">Request/Response Validation</span>
-      </div>
+      <ul className="architecture-card-features">
+        <li><span className="architecture-card-feature">REST Controllers</span></li>
+        <li><span className="architecture-card-feature">WebSocket Communication</span></li>
+        <li><span className="architecture-card-feature">Request/Response Validation</span></li>
+      </ul>
     </div>
     
     <div className="architecture-card">
@@ -176,11 +176,11 @@ flowchart TD
       <div className="architecture-card-description">
         Core business logic implementation with service classes, DTOs for data transfer, and an event system for decoupled communication between components.
       </div>
-      <div className="architecture-card-features">
-        <span className="architecture-card-feature">Service-Oriented Design</span>
-        <span className="architecture-card-feature">Business Logic Encapsulation</span>
-        <span className="architecture-card-feature">Event-Driven Architecture</span>
-      </div>
+      <ul className="architecture-card-features">
+        <li><span className="architecture-card-feature">Service-Oriented Design</span></li>
+        <li><span className="architecture-card-feature">Business Logic Encapsulation</span></li>
+        <li><span className="architecture-card-feature">Event-Driven Architecture</span></li>
+      </ul>
     </div>
     
     <div className="architecture-card">
@@ -191,11 +191,11 @@ flowchart TD
       <div className="architecture-card-description">
         Data access and persistence using Spring Data JPA repositories, domain entities, and a combination of MySQL for relational data and Redis for caching.
       </div>
-      <div className="architecture-card-features">
-        <span className="architecture-card-feature">Repository Pattern</span>
-        <span className="architecture-card-feature">ORM with JPA/Hibernate</span>
-        <span className="architecture-card-feature">Caching Strategy</span>
-      </div>
+      <ul className="architecture-card-features">
+        <li><span className="architecture-card-feature">Repository Pattern</span></li>
+        <li><span className="architecture-card-feature">ORM with JPA/Hibernate</span></li>
+        <li><span className="architecture-card-feature">Caching Strategy</span></li>
+      </ul>
     </div>
     
     <div className="architecture-card">
@@ -206,11 +206,11 @@ flowchart TD
       <div className="architecture-card-description">
         Comprehensive security implementation with JWT authentication, role-based access control, and data encryption for sensitive information.
       </div>
-      <div className="architecture-card-features">
-        <span className="architecture-card-feature">Token-Based Authentication</span>
-        <span className="architecture-card-feature">Authorization Framework</span>
-        <span className="architecture-card-feature">Secure Communication</span>
-      </div>
+      <ul className="architecture-card-features">
+        <li><span className="architecture-card-feature">Token-Based Authentication</span></li>
+        <li><span className="architecture-card-feature">Authorization Framework</span></li>
+        <li><span className="architecture-card-feature">Secure Communication</span></li>
+      </ul>
     </div>
   </div>
 </div>
@@ -229,11 +229,11 @@ flowchart TD
       <div className="architecture-card-description">
         Standard HTTP-based communication for CRUD operations and business logic, following RESTful principles with proper resource naming and status codes.
       </div>
-      <div className="architecture-card-features">
-        <span className="architecture-card-feature">Resource-Oriented Design</span>
-        <span className="architecture-card-feature">HTTP Methods (GET, POST, PUT, DELETE)</span>
-        <span className="architecture-card-feature">JSON Data Exchange</span>
-      </div>
+      <ul className="architecture-card-features">
+        <li><span className="architecture-card-feature">Resource-Oriented Design</span></li>
+        <li><span className="architecture-card-feature">HTTP Methods (GET, POST, PUT, DELETE)</span></li>
+        <li><span className="architecture-card-feature">JSON Data Exchange</span></li>
+      </ul>
     </div>
     
     <div className="architecture-card">
@@ -244,11 +244,11 @@ flowchart TD
       <div className="architecture-card-description">
         Bidirectional real-time communication for features like chat and notifications, using SockJS for cross-browser compatibility and STOMP for messaging patterns.
       </div>
-      <div className="architecture-card-features">
-        <span className="architecture-card-feature">Persistent Connections</span>
-        <span className="architecture-card-feature">Topic Subscription</span>
-        <span className="architecture-card-feature">Real-Time Updates</span>
-      </div>
+      <ul className="architecture-card-features">
+        <li><span className="architecture-card-feature">Persistent Connections</span></li>
+        <li><span className="architecture-card-feature">Topic Subscription</span></li>
+        <li><span className="architecture-card-feature">Real-Time Updates</span></li>
+      </ul>
     </div>
     
     <div className="architecture-card">
@@ -259,11 +259,11 @@ flowchart TD
       <div className="architecture-card-description">
         Internal communication between system components using an event bus, enabling loose coupling and better scalability through asynchronous processing.
       </div>
-      <div className="architecture-card-features">
-        <span className="architecture-card-feature">Publisher-Subscriber Pattern</span>
-        <span className="architecture-card-feature">Asynchronous Processing</span>
-        <span className="architecture-card-feature">System Decoupling</span>
-      </div>
+      <ul className="architecture-card-features">
+        <li><span className="architecture-card-feature">Publisher-Subscriber Pattern</span></li>
+        <li><span className="architecture-card-feature">Asynchronous Processing</span></li>
+        <li><span className="architecture-card-feature">System Decoupling</span></li>
+      </ul>
     </div>
   </div>
 </div>
@@ -589,24 +589,39 @@ flowchart TD
   
   /* Card styling */
   .architecture-card {
-    background-color: #fff;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-    transition: all 0.3s ease;
+    background-color: #ffffff;
+    background-image: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 16px; /* More rounded corners */
+    padding: 28px; /* More generous padding */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.02); /* Enhanced shadow */
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); /* Smooth, professional animation */
     display: flex;
     flex-direction: column;
     height: 100%;
-    overflow: visible; /* Allow content to be visible */
-    position: relative; /* For proper positioning */
     min-height: 240px; /* Ensure minimum height */
-    border: 1px solid #f0f0f0;
+    border: 1px solid rgba(0,0,0,0.06); /* Subtle border */
+    position: relative; /* For decorative elements */
+    overflow: hidden; /* Ensure nothing spills out */
+  }
+
+  /* Add subtle decorative corner accent */
+  .architecture-card:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, transparent 50%, rgba(66, 133, 244, 0.08) 50%);
+    border-radius: 0 0 0 60px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
   }
   
   /* Responsive adjustments for laptop screens */
   @media (min-width: 997px) and (max-width: 1200px) {
     .architecture-card {
-      padding: 20px;
+      padding: 24px;
       min-height: 220px;
     }
     
@@ -632,105 +647,235 @@ flowchart TD
   
   html[data-theme='dark'] .architecture-card {
     background-color: #1e1e1e;
-    border: 1px solid #333;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    background-image: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+    border-color: rgba(255,255,255,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  html[data-theme='dark'] .architecture-card:before {
+    background: linear-gradient(135deg, transparent 50%, rgba(138, 180, 248, 0.12) 50%);
   }
   
   .architecture-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-    border-color: #e0e0e0;
+    transform: translateY(-8px);
+    box-shadow: 0 16px 24px rgba(0,0,0,0.1), 0 6px 12px rgba(0,0,0,0.08);
+    border-color: rgba(66, 133, 244, 0.3); /* More visible blue border on hover */
+  }
+  
+  .architecture-card:hover:before {
+    opacity: 1;
   }
   
   .architecture-card-header-wrapper {
     display: grid;
-    grid-template-columns: 50px 1fr;
+    grid-template-columns: 70px 1fr; /* More space for icon */
     align-items: center;
-    gap: 15px;
+    gap: 16px; /* Consistent with design systems */
     margin-bottom: 20px;
-    border-bottom: 1px solid #f0f0f0;
-    padding-bottom: 12px;
+    padding-bottom: 16px;
     width: 100%;
+    position: relative; /* For the pseudo-element */
     overflow: visible;
+    border-bottom: none; /* Remove border, we'll use pseudo-element instead */
   }
   
-  html[data-theme='dark'] .architecture-card-header-wrapper {
-    border-bottom: 1px solid #333;
+  /* Replace border with gradient line */
+  .architecture-card-header-wrapper:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px; /* Thicker for more presence */
+    background: linear-gradient(to right, #4285f4, #34a853, #fbbc04, #ea4335);
+    opacity: 0.7; /* Subtle gradient */
+    border-radius: 3px;
+    transition: all 0.3s ease;
+  }
+  
+  .architecture-card:hover .architecture-card-header-wrapper:after {
+    opacity: 0.9;
+    transform: scaleX(1.02); /* Subtle grow effect */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  html[data-theme='dark'] .architecture-card-header-wrapper:after {
+    opacity: 0.5; /* More subtle in dark mode */
+    background: linear-gradient(to right, #8ab4f8, #81c995, #fde293, #f28b82);
+  }
+  
+  html[data-theme='dark'] .architecture-card:hover .architecture-card-header-wrapper:after {
+    opacity: 0.7;
   }
   
   .emoji-icon {
-    font-size: 2rem;
+    font-size: 2.2rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: #f8f9fa;
+    background-image: linear-gradient(135deg, #ffffff 0%, #f1f3f4 100%);
+    border-radius: 14px; /* Match card radius */
+    padding: 14px; /* More padding for better visual */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.06); /* Enhanced shadow for depth */
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy animation */
+    border: 1px solid rgba(0,0,0,0.03);
+    width: 60px;
+    height: 60px;
+  }
+  
+  .architecture-card:hover .emoji-icon {
+    transform: scale(1.08) rotate(3deg); /* More dynamic hover effect */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    border-color: rgba(66, 133, 244, 0.2);
+  }
+  
+  html[data-theme='dark'] .emoji-icon {
+    background-color: #2d2d2d;
+    background-image: linear-gradient(135deg, #2d2d2d 0%, #383838 100%);
+    border-color: rgba(255,255,255,0.08);
   }
   
   .architecture-card-title {
-    font-size: 1.25rem;
+    font-size: 1.4rem; /* Larger */
     font-weight: 600;
     color: #202124;
     line-height: 1.3;
     margin: 0;
     padding: 0;
     grid-column: 2;
+    letter-spacing: -0.01em; /* Tighter letter spacing for headings */
+    position: relative;
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
   
+  .architecture-card:hover .architecture-card-title {
+    color: #1a73e8; /* Highlight color on hover */
+    transform: translateX(3px); /* Subtle shift on hover */
+  }
+
   .architecture-card-description {
     font-size: 0.95rem;
     color: #5f6368;
-    margin-bottom: 20px;
+    margin-bottom: 28px; /* More space before features */
     flex-grow: 1;
     width: 100%;
     clear: both; /* Clear any floats */
-    line-height: 1.5;
+    line-height: 1.7; /* Better readability */
     letter-spacing: 0.01em;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  
+  .architecture-card:hover .architecture-card-description {
+    color: #3c4043; /* Slightly darker on hover for better contrast */
   }
   
   /* Dark mode styles for card text */
   html[data-theme='dark'] .architecture-card-title {
     color: #e3e3e3;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
   
+  html[data-theme='dark'] .architecture-card:hover .architecture-card-title {
+    color: #8ab4f8; /* Blue highlight in dark mode */
+  }
+
   html[data-theme='dark'] .architecture-card-description {
     color: #b0b0b0;
   }
   
-  .architecture-card-features {
-    display: flex;
-    flex-direction: column;
-    width: 100%; /* Ensure it takes full width of parent */
-    margin-top: auto; /* Push to bottom of card */
-    border-top: 1px dashed #e0e0e0;
-    padding-top: 12px;
+  html[data-theme='dark'] .architecture-card:hover .architecture-card-description {
+    color: #d2d2d2; /* Lighter on hover for better contrast in dark mode */
   }
   
-  html[data-theme='dark'] .architecture-card-features {
-    border-top: 1px dashed #333;
+  .architecture-card-features {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: auto; /* Push to bottom of card */
+    padding-top: 16px;
+    position: relative;
+    border-top: none; /* Remove border, we'll use pseudo-element instead */
+    list-style-type: none; /* Remove default list bullets */
+    padding-left: 0; /* Remove default list padding */
+    margin-bottom: 0; /* Remove default list margin */
+    justify-content: center; /* Center align the list items */
+  }
+
+  /* Replace dashed border with subtle gradient background */
+  .architecture-card-features:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to right, rgba(66, 133, 244, 0.2) 0%, rgba(52, 168, 83, 0.2) 33%, rgba(251, 188, 4, 0.2) 66%, rgba(234, 67, 53, 0.2) 100%);
+    border-radius: 2px;
+  }
+
+  html[data-theme='dark'] .architecture-card-features:before {
+    background: linear-gradient(to right, rgba(138, 180, 248, 0.2) 0%, rgba(129, 201, 149, 0.2) 33%, rgba(253, 214, 99, 0.2) 66%, rgba(242, 139, 130, 0.2) 100%);
+    opacity: 0.7;
+  }
+
+  .architecture-card-features li {
+    display: inline-flex;
+    margin: 5px; /* Equal margin on all sides for better centering */
+    justify-content: center; /* Center the content of each list item */
+    animation: fadeIn 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  /* Staggered animation for list items */
+  .architecture-card-features li:nth-child(1) { animation-delay: 0.1s; }
+  .architecture-card-features li:nth-child(2) { animation-delay: 0.2s; }
+  .architecture-card-features li:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   
   .architecture-card-feature {
-    font-size: 0.85rem;
-    color: #5f6368;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid #f5f5f5;
+    background-color: #f1f3f4;
+    background-image: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%);
+    color: #202124;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    border-radius: 20px; /* More rounded pill shape */
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.03);
   }
-  
+
+  .architecture-card-feature:hover {
+    background-color: #e8f0fe;
+    background-image: linear-gradient(135deg, #e8f0fe 0%, #d2e3fc 100%);
+    color: #1a73e8;
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 4px 8px rgba(26, 115, 232, 0.15);
+    border-color: rgba(66, 133, 244, 0.3);
+  }
+
   html[data-theme='dark'] .architecture-card-feature {
-    color: #a0a0a0;
-    border-bottom: 1px solid #2d2d2d;
+    background-color: #333;
+    background-image: linear-gradient(135deg, #333 0%, #2d2d2d 100%);
+    color: #e3e3e3;
+    border-color: rgba(255,255,255,0.08);
   }
-  
-  .architecture-card-feature:before {
-    content: "✓";
-    color: #4CAF50;
-    margin-right: 8px;
-    font-weight: bold;
-  }
-  
-  .architecture-card-feature:last-child {
-    border-bottom: none;
+
+  html[data-theme='dark'] .architecture-card-feature:hover {
+    background-color: #444;
+    background-image: linear-gradient(135deg, #444 0%, #3d3d3d 100%);
+    color: #8ab4f8;
+    box-shadow: 0 4px 8px rgba(138, 180, 248, 0.2);
+    border-color: rgba(138, 180, 248, 0.3);
   }
   
   /* Rationale styling */

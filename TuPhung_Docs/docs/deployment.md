@@ -7,7 +7,7 @@ import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 
 # Deployment Guide
 
-This guide provides comprehensive instructions for deploying the TuPhung Project across various environments, from local development to production cloud infrastructure.
+This guide provides comprehensive instructions for deploying the Enterprise Nexus Project across various environments, from local development to production cloud infrastructure.
 
 ## Deployment Architecture and Components
 
@@ -1761,8 +1761,8 @@ To deploy the documentation to GitHub Pages:
 
    /** @type {import('@docusaurus/types').Config} */
    const config = {
-     title: "TuPhung Project Documentation",
-     tagline: "Comprehensive documentation for the TuPhung Project",
+     title: "Enterprise Nexus Project Documentation",
+     tagline: "Comprehensive documentation for the Enterprise Nexus Project",
      url: "https://tuphung369.github.io",
      baseUrl: "/Haaga_Backend_Programming/",
      onBrokenLinks: "throw",
@@ -1793,9 +1793,9 @@ To deploy the documentation to GitHub Pages:
        /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
        ({
          navbar: {
-           title: "TuPhung Project",
+           title: "Enterprise Nexus Project",
            logo: {
-             alt: "TuPhung Logo",
+             alt: "Enterprise Nexus Logo",
              src: "img/logo.svg",
            },
            items: [
@@ -1842,7 +1842,7 @@ To deploy the documentation to GitHub Pages:
                ],
              },
            ],
-           copyright: `Copyright © ${new Date().getFullYear()} TuPhung Project. Built with Docusaurus.`,
+           copyright: `Copyright © ${new Date().getFullYear()} TuPhung. Built with Docusaurus.`,
          },
          prism: {
            theme: require("prism-react-renderer/themes/github"),
