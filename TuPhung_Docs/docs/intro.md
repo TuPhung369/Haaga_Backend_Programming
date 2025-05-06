@@ -1,6 +1,6 @@
 ---
 sidebar_position: 1
-sidebar_label: "Enterprise Nexus"
+sidebar_label: "Introduction"
 ---
 
 import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
