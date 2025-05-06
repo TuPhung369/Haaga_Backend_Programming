@@ -1,4 +1,4 @@
-// Plugin để thêm script bookmark trực tiếp vào HTML
+// Plugin to add bookmark script directly to HTML
 module.exports = function (context, options) {
   return {
     name: "bookmark-plugin",
@@ -18,7 +18,7 @@ module.exports = function (context, options) {
                 margin: 0 !important;
                 padding: 0 !important;
                 position: fixed !important;
-                right: 0px !important;
+                right: 15px !important;
                 top: 75px !important;
                 width: 40px !important;
                 height: 40px !important;
@@ -27,19 +27,18 @@ module.exports = function (context, options) {
                 transition: all 0.3s ease !important;
                 z-index: 9999 !important;
                 /* Ensure bookmark is always at the edge of the viewport, not affected by scrollbar */
-                right: 0 !important;
               }
               
               /* Ensure bookmark is responsive on all screens */
               @media (max-width: 768px) {
                 #plugin-bookmark {
-                  right: 0 !important;
+                  right: 15px !important;
                 }
               }
               
               @media (max-width: 480px) {
                 #plugin-bookmark {
-                  right: 0 !important;
+                  right: 15px !important;
                 }
               }
               
@@ -57,7 +56,7 @@ module.exports = function (context, options) {
                 background-color: transparent !important;
                 border: 1px solid rgba(78, 87, 185, 0.5) !important;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-                right: 0 !important; /* Always at the edge of the viewport */
+                right: 15px !important; /* Always at the edge of the viewport */
                 top: 75px !important;
                 width: 350px !important;
                 height: auto !important;
@@ -68,14 +67,14 @@ module.exports = function (context, options) {
               /* Ensure active bookmark is responsive on all screens */
               @media (max-width: 768px) {
                 #plugin-bookmark.active {
-                  right: 0 !important; /* Always at the edge of the viewport */
+                  right: 15px !important; /* Always at the edge of the viewport */
                   width: 300px !important;
                 }
               }
               
               @media (max-width: 480px) {
                 #plugin-bookmark.active {
-                  right: 0 !important; /* Always at the edge of the viewport */
+                  right: 15px !important; /* Always at the edge of the viewport */
                   width: 250px !important;
                 }
               }
@@ -129,7 +128,7 @@ module.exports = function (context, options) {
                 color: white !important;
               }
               
-              /* Ẩn bookmark mặc định trên tất cả các trang */
+              /* Hide default bookmark on all pages */
               .table-of-contents,
               .theme-doc-toc,
               .theme-doc-toc-desktop,
@@ -157,26 +156,26 @@ module.exports = function (context, options) {
           {
             tagName: "script",
             innerHTML: `
-              // Định nghĩa các hàm toàn cục để có thể gọi từ bất kỳ đâu
+              // Define global functions that can be called from anywhere
               let createBookmark;
               let isDocumentationPage;
               let hideDefaultBookmark;
               
-              // Tạo bookmark khi trang đã tải
+              // Create bookmark when the page has loaded
               document.addEventListener('DOMContentLoaded', function() {
                 console.log('Creating plugin bookmark');
                 
-                // Xóa bookmark cũ nếu tồn tại để tránh trùng lặp
+                // Remove old bookmark if it exists to avoid duplication
                 const existingBookmark = document.getElementById('plugin-bookmark');
                 if (existingBookmark) {
                   existingBookmark.remove();
                 }
                 
-                // Định nghĩa hàm kiểm tra trang documentation
+                // Define function to check documentation page
                 isDocumentationPage = function() {
-                  // Kiểm tra URL có chứa '/docs/' không
+                  // Check if URL contains '/docs/'
                   if (window.location.pathname.includes('/docs/')) {
-                    // Loại trừ trang video
+                    // Exclude video pages
                     if (window.location.pathname.includes('/docs/video/')) {
                       console.log('This is a video page, not showing bookmark');
                       return false;
@@ -185,10 +184,10 @@ module.exports = function (context, options) {
                     return true;
                   }
                   
-                  // Kiểm tra các phần tử đặc trưng của trang documentation
+                  // Check for characteristic elements of documentation pages
                   const docElements = document.querySelectorAll('.theme-doc-markdown, .docs-doc-page');
                   if (docElements.length > 0) {
-                    // Loại trừ trang video
+                    // Exclude video pages
                     if (window.location.pathname.includes('/docs/video/')) {
                       console.log('This is a video page, not showing bookmark');
                       return false;
@@ -201,9 +200,9 @@ module.exports = function (context, options) {
                   return false;
                 };
                 
-                // Định nghĩa hàm ẩn bookmark mặc định
+                // Define function to hide default bookmark
                 hideDefaultBookmark = function() {
-                  // Danh sách các selector có thể là bookmark/TOC mặc định
+                  // List of selectors that could be default bookmark/TOC
                   const defaultBookmarkSelectors = [
                     '.table-of-contents',
                     '.theme-doc-toc',
@@ -224,33 +223,33 @@ module.exports = function (context, options) {
                     'div[role="complementary"]'
                   ];
                   
-                  // Thử từng selector
+                  // Try each selector
                   defaultBookmarkSelectors.forEach(selector => {
                     const elements = document.querySelectorAll(selector);
                     elements.forEach(el => {
-                      // Ẩn tất cả các phần tử có thể là TOC, không chỉ những phần tử có liên kết
+                      // Hide all elements that could be TOC, not just elements with links
                       console.log('Hiding default bookmark:', selector);
                       el.style.display = 'none';
                       el.style.visibility = 'hidden';
                       el.style.opacity = '0';
                       el.style.pointerEvents = 'none';
                       
-                      // Thêm thuộc tính để đảm bảo phần tử không hiển thị
+                      // Add attribute to ensure element is not displayed
                       el.setAttribute('aria-hidden', 'true');
                       
-                      // Thêm class để dễ dàng xác định các phần tử đã bị ẩn
+                      // Add class to easily identify hidden elements
                       el.classList.add('plugin-bookmark-hidden');
                     });
                   });
                   
-                  // Tìm kiếm và ẩn các phần tử có thể là TOC dựa trên nội dung, nhưng chỉ ẩn các phần tử nhỏ
+                  // Search and hide elements that could be TOC based on content, but only hide small elements
                   const allElements = document.querySelectorAll('nav, aside, div.toc, div.table-of-contents, div[class*="tableOfContents"], div[class*="tocCollapsible"]');
                   allElements.forEach(el => {
-                    // Kiểm tra xem phần tử có chứa văn bản "Table of Contents" hoặc "On this page" không
+                    // Check if the element contains text "Table of Contents" or "On this page"
                     const text = el.textContent.toLowerCase();
-                    // Chỉ ẩn các phần tử nhỏ có chứa các từ khóa này, tránh ẩn toàn bộ trang
+                    // Only hide small elements containing these keywords, avoid hiding the entire page
                     if ((text.includes('table of contents') || text.includes('on this page') || text.includes('in this article')) 
-                        && el.textContent.length < 1000) { // Chỉ ẩn các phần tử nhỏ
+                        && el.textContent.length < 1000) { // Only hide small elements
                       console.log('Hiding element with TOC-like content:', el);
                       el.style.display = 'none';
                       el.style.visibility = 'hidden';
@@ -258,23 +257,23 @@ module.exports = function (context, options) {
                   });
                 };
                 
-                // Định nghĩa hàm tạo bookmark
+                // Define function to create bookmark
                 createBookmark = function() {
-                  // Ẩn bookmark mặc định trước
+                  // Hide default bookmark first
                   hideDefaultBookmark();
                   
-                  // Xóa bookmark cũ nếu tồn tại
+                  // Remove old bookmark if it exists
                   const oldBookmark = document.getElementById('plugin-bookmark');
                   if (oldBookmark) {
                     oldBookmark.remove();
                   }
                   
-                  // Tạo phần tử bookmark với HTML trực tiếp để đảm bảo sạch sẽ
+                  // Create bookmark element with direct HTML to ensure cleanliness
                   const bookmarkContainer = document.createElement('div');
                   bookmarkContainer.innerHTML = 
                     '<div id="plugin-bookmark" style="' +
                       'position: fixed;' +
-                      'right: 0px;' +
+                      'right: 15pxpx;' +
                       'top: 75px;' +
                       'width: 350px;' +
                       'background: transparent;' +
@@ -287,10 +286,10 @@ module.exports = function (context, options) {
                       'flex-direction: column;' +
                     '"></div>';
                   
-                  // Lấy phần tử bookmark từ container
+                  // Get bookmark element from container
                   const bookmark = bookmarkContainer.firstElementChild;
                   
-                  // Tạo tiêu đề với HTML trực tiếp
+                  // Create title with direct HTML
                   const titleContainer = document.createElement('div');
                   titleContainer.innerHTML = 
                     '<div style="' +
@@ -360,7 +359,7 @@ module.exports = function (context, options) {
                     // Cập nhật bookmark
                     bookmark.setAttribute('style', 
                       'position: fixed !important;' +
-                      'right: 0px !important;' +
+                      'right: 15pxpx !important;' +
                       'top: 75px !important;' +
                       'width: 350px !important;' +
                       'height: auto !important;' +
@@ -501,7 +500,7 @@ module.exports = function (context, options) {
                       // Cập nhật bookmark - chỉ hiển thị icon hình tròn
                       bookmark.setAttribute('style', 
                         'position: fixed !important;' +
-                        'right: 0 !important;' +
+                        'right: 15px !important;' +
                         'top: 75px !important;' +
                         'width: 40px !important;' +
                         'height: 40px !important;' +
@@ -615,7 +614,7 @@ module.exports = function (context, options) {
                     });
                   }, 500);
                   
-                  // Thêm các phần tử vào bookmark
+                  // Add elements to bookmark
                   content.appendChild(list);
                   bookmark.appendChild(title);
                   bookmark.appendChild(content);
@@ -699,7 +698,7 @@ module.exports = function (context, options) {
                   // Đảm bảo trạng thái ban đầu là sạch - sử dụng setAttribute để đặt lại hoàn toàn
                   bookmark.setAttribute('style', 
                     'position: fixed !important;' +
-                    'right: 0 !important;' +
+                    'right: 15px !important;' +
                     'top: 75px !important;' +
                     'width: 40px !important;' +
                     'height: 40px !important;' +
@@ -820,14 +819,14 @@ module.exports = function (context, options) {
                   return;
                 }
                 
-                // Đợi một chút để đảm bảo DOM đã sẵn sàng trước khi tạo bookmark
+                // Wait a bit to ensure DOM is ready before creating bookmark
                 setTimeout(function() {
-                  // Tạo bookmark
+                  // Create bookmark
                   createBookmark();
                   console.log('Bookmark created on initial page load');
                 }, 300);
                 
-                // Ẩn bookmark mặc định ngay lập tức và sau một khoảng thời gian
+                // Hide default bookmark immediately and after a time interval
                 hideDefaultBookmark();
                 setTimeout(hideDefaultBookmark, 500);
                 setTimeout(hideDefaultBookmark, 1000);
@@ -910,7 +909,7 @@ module.exports = function (context, options) {
                 bookmark.style.overflow = 'hidden';
                 bookmark.style.fontFamily = 'Arial, sans-serif';
                 
-                // Tạo tiêu đề
+                // Create title
                 const title = document.createElement('div');
                 title.style.backgroundColor = '#4e57b9';
                 title.style.color = 'white';
@@ -970,7 +969,7 @@ module.exports = function (context, options) {
                   });
                 }, 1000);
                 
-                // Thêm các phần tử vào bookmark
+                // Add elements to bookmark
                 content.appendChild(list);
                 bookmark.appendChild(title);
                 bookmark.appendChild(content);
@@ -1067,9 +1066,9 @@ module.exports = function (context, options) {
                   return;
                 }
                 
-                // Ẩn bookmark mặc định
+                // Hide default bookmark
                 function hideDefaultBookmark() {
-                  // Danh sách các selector có thể là bookmark/TOC mặc định
+                  // List of selectors that could be default bookmark/TOC
                   const defaultBookmarkSelectors = [
                     '.table-of-contents',
                     '.theme-doc-toc',
@@ -1090,33 +1089,33 @@ module.exports = function (context, options) {
                     'div[role="complementary"]'
                   ];
                   
-                  // Thử từng selector
+                  // Try each selector
                   defaultBookmarkSelectors.forEach(selector => {
                     const elements = document.querySelectorAll(selector);
                     elements.forEach(el => {
-                      // Ẩn tất cả các phần tử có thể là TOC, không chỉ những phần tử có liên kết
+                      // Hide all elements that could be TOC, not just elements with links
                       console.log('Hiding default bookmark on load:', selector);
                       el.style.display = 'none';
                       el.style.visibility = 'hidden';
                       el.style.opacity = '0';
                       el.style.pointerEvents = 'none';
                       
-                      // Thêm thuộc tính để đảm bảo phần tử không hiển thị
+                      // Add attribute to ensure element is not displayed
                       el.setAttribute('aria-hidden', 'true');
                       
-                      // Thêm class để dễ dàng xác định các phần tử đã bị ẩn
+                      // Add class to easily identify hidden elements
                       el.classList.add('plugin-bookmark-hidden');
                     });
                   });
                   
-                  // Tìm kiếm và ẩn các phần tử có thể là TOC dựa trên nội dung, nhưng chỉ ẩn các phần tử nhỏ
+                  // Search and hide elements that could be TOC based on content, but only hide small elements
                   const allElements = document.querySelectorAll('nav, aside, div.toc, div.table-of-contents, div[class*="tableOfContents"], div[class*="tocCollapsible"]');
                   allElements.forEach(el => {
-                    // Kiểm tra xem phần tử có chứa văn bản "Table of Contents" hoặc "On this page" không
+                    // Check if the element contains text "Table of Contents" or "On this page"
                     const text = el.textContent.toLowerCase();
-                    // Chỉ ẩn các phần tử nhỏ có chứa các từ khóa này, tránh ẩn toàn bộ trang
+                    // Only hide small elements containing these keywords, avoid hiding the entire page
                     if ((text.includes('table of contents') || text.includes('on this page') || text.includes('in this article')) 
-                        && el.textContent.length < 1000) { // Chỉ ẩn các phần tử nhỏ
+                        && el.textContent.length < 1000) { // Only hide small elements
                       console.log('Hiding element with TOC-like content on load:', el);
                       el.style.display = 'none';
                       el.style.visibility = 'hidden';
@@ -1124,7 +1123,7 @@ module.exports = function (context, options) {
                   });
                 }
                 
-                // Ẩn bookmark mặc định ngay lập tức và sau một khoảng thời gian
+                // Hide default bookmark immediately and after a time interval
                 hideDefaultBookmark();
                 setTimeout(hideDefaultBookmark, 500);
                 setTimeout(hideDefaultBookmark, 1000);

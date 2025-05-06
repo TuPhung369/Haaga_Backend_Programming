@@ -76,8 +76,8 @@
   div.padding-top--md.padding-bottom--lg,
   section.padding-top--md.padding-bottom--lg,
   .container.padding-top--md.padding-bottom--lg {
-    padding-top: 5px !important;
-    padding-bottom: 5px !important;
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
     padding-left: 5px !important;
     padding-right: 5px !important;
   }
@@ -238,8 +238,8 @@
   div.padding-top--md.padding-bottom--lg,
   section.padding-top--md.padding-bottom--lg,
   .container.padding-top--md.padding-bottom--lg {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
     padding-left: 2px !important;
     padding-right: 2px !important;
   }
@@ -456,7 +456,7 @@ aside[class^="docSidebarContainer_"],
 .docSidebarContainer_src-theme-DocPage-Layout-Sidebar-styles-module {
   width: var(--doc-sidebar-width);
   margin: 0 !important;
-  padding: 0 !important;
+  padding: 20px 0 !important; /* 20px top and bottom padding */
   min-width: var(--doc-sidebar-width);
   max-width: var(--doc-sidebar-width);
   box-sizing: border-box !important;
@@ -674,7 +674,7 @@ div[class*="docItemCol_"] > div {
   
   /* Target Docusaurus main container classes */
   .main-wrapper [class*="docMainContainer_"] {
-    padding: 10px !important;
+    padding: 20px 10px !important; /* 20px top and bottom padding */
     width: 100vw !important;
     max-width: 100vw !important;
     margin: 0 !important;
@@ -774,7 +774,7 @@ article {
   
   /* Target Docusaurus main container classes for mobile */
   .main-wrapper [class*="docMainContainer_"] {
-    padding: 5px !important;
+    padding: 20px 5px !important; /* 20px top and bottom padding */
     width: 100vw !important;
     max-width: 100vw !important;
     margin: 0 !important;
@@ -1064,7 +1064,7 @@ article {
   max-width: 100% !important;
   box-sizing: border-box !important;
   justify-content: center !important;
-  padding: 0 !important;
+  padding: 20px 0 !important; /* 20px top and bottom padding */
   align-items: flex-start !important;
 }
 
@@ -2416,4 +2416,454 @@ html[data-theme='dark'] .button.button--outline:hover {
 /* Hide anchor links (hash symbols) next to headings */
 .hash-link {
   display: none !important;
+}
+
+/* ======================================================= */
+/* RESET PADDING FOR SIDEBAR AND CONTAINER - HIGHEST PRIORITY */
+/* ======================================================= */
+
+/* Set exact padding for sidebar container only */
+.theme-doc-sidebar-container,
+div[class^="docSidebarContainer_"],
+aside[class^="docSidebarContainer_"],
+[class*="docSidebarContainer_"] {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Specifically target docSidebarContainer_YfHR */
+.docSidebarContainer_YfHR {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Reset all container padding */
+.container,
+div.container,
+main.container,
+.main-wrapper [class*="docMainContainer_"],
+[class*="docMainContainer"],
+.container.padding-top--md.padding-bottom--lg,
+div.padding-top--md.padding-bottom--lg,
+section.padding-top--md.padding-bottom--lg {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+}
+
+/* Specifically target docMainContainer_TBSr */
+.docMainContainer_TBSr {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Reset padding for all children inside main container to 0 */
+.docMainContainer_TBSr *:not(.docMainContainer_TBSr),
+[class*="docMainContainer_"] *:not([class*="docMainContainer_"]) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Reset padding for all children inside sidebar to 0 */
+.theme-doc-sidebar-container *:not(.theme-doc-sidebar-container),
+div[class^="docSidebarContainer_"] *:not([class^="docSidebarContainer_"]),
+aside[class^="docSidebarContainer_"] *:not([class^="docSidebarContainer_"]),
+[class*="docSidebarContainer_"] *:not([class*="docSidebarContainer_"]) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Specifically reset padding for sidebar menu elements */
+.theme-doc-sidebar-menu,
+.menu__list,
+nav[class^="menu_"],
+.theme-doc-sidebar-item-category,
+.theme-doc-sidebar-item-link,
+.menu__list-item,
+.menu__link,
+.theme-doc-version-badge,
+.navbar-sidebar__item,
+.menu__list-item-collapsible {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Ensure menu items have their original padding */
+.menu__link {
+  padding: 0.4rem 0.5rem !important;
+}
+
+/* Force padding with max specificity for sidebar container */
+html body .theme-doc-sidebar-container,
+html body div[class^="docSidebarContainer_"],
+html body aside[class^="docSidebarContainer_"] {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Force padding with max specificity for main container */
+html body .container,
+html body div.container,
+html body main.container,
+html body .main-wrapper [class*="docMainContainer_"],
+html body .docMainContainer_TBSr {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+}
+
+/* Target container with padding classes with highest specificity */
+html body .container.padding-top--md.padding-bottom--lg,
+html body div.container.padding-top--md.padding-bottom--lg,
+html body main.container.padding-top--md.padding-bottom--lg,
+html body section.padding-top--md.padding-bottom--lg,
+html body div.padding-top--md.padding-bottom--lg {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+}
+
+/* Override any Docusaurus padding classes */
+.padding-top--md {
+  padding-top: 20px !important;
+}
+
+.padding-bottom--lg {
+  padding-bottom: 20px !important;
+}
+
+/* Target any element with both padding classes */
+.padding-top--md.padding-bottom--lg {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+}
+
+/* Direct targeting of specific Docusaurus padding classes with !important */
+[class*="padding-top--md"],
+[class*="padding-vert--md"],
+[class*="padding--md"] {
+  padding-top: 20px !important;
+}
+
+[class*="padding-bottom--lg"],
+[class*="padding-vert--lg"],
+[class*="padding--lg"] {
+  padding-bottom: 20px !important;
+}
+
+/* Ensure these rules apply to all screen sizes */
+@media (min-width: 320px) and (max-width: 996px) {
+  .padding-top--md.padding-bottom--lg,
+  div.padding-top--md.padding-bottom--lg,
+  section.padding-top--md.padding-bottom--lg,
+  .container.padding-top--md.padding-bottom--lg {
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .padding-top--md.padding-bottom--lg,
+  div.padding-top--md.padding-bottom--lg,
+  section.padding-top--md.padding-bottom--lg,
+  .container.padding-top--md.padding-bottom--lg {
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
+  }
+}
+
+/* Target the exact rule that's causing the issue with maximum specificity */
+body .container.padding-top--md.padding-bottom--lg, 
+#__docusaurus .container.padding-top--md.padding-bottom--lg, 
+body div.container.padding-top--md.padding-bottom--lg, 
+#__docusaurus div.container.padding-top--md.padding-bottom--lg,
+html body .container.padding-top--md.padding-bottom--lg,
+html #__docusaurus .container.padding-top--md.padding-bottom--lg,
+html body div.container.padding-top--md.padding-bottom--lg,
+html #__docusaurus div.container.padding-top--md.padding-bottom--lg {
+  width: 100% !important;
+  max-width: 1200px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure specific content elements have proper spacing */
+.markdown > *:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Preserve specific padding for content elements that need it */
+.markdown table,
+.markdown pre,
+.markdown blockquote {
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* Ensure article content has proper spacing */
+article {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* ======================================================= */
+/* PROFESSIONAL SIDEBAR STYLING */
+/* ======================================================= */
+
+/* Increase spacing between sidebar items */
+.menu__list-item {
+  margin: 0.6rem 0 !important;
+}
+
+/* Style sidebar links */
+.menu__link {
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  padding: 0.6rem 0.8rem !important;
+}
+
+/* Hover effect for sidebar links */
+.menu__link:hover {
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.1) !important;
+  transform: translateX(4px) !important;
+}
+
+/* Active sidebar link */
+.menu__link--active {
+  font-weight: 600 !important;
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.15) !important;
+  border-left: 3px solid var(--ifm-color-primary) !important;
+}
+
+/* Style sidebar category items */
+.menu__list-item-collapsible {
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.menu__list-item-collapsible:hover {
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.05) !important;
+}
+
+/* Style sidebar category headings */
+.menu__link--sublist {
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+}
+
+/* Add subtle dividers between major sections */
+.theme-doc-sidebar-menu > .menu__list > .menu__list-item:not(:last-child) {
+  margin-bottom: 1.2rem !important;
+  padding-bottom: 1.2rem !important;
+  border-bottom: 1px solid var(--ifm-toc-border-color) !important;
+}
+
+/* Nested menu items styling */
+.menu__list .menu__list {
+  margin-top: 0.4rem !important;
+  margin-bottom: 0.4rem !important;
+  padding-left: 0.8rem !important;
+  border-left: 1px solid var(--ifm-toc-border-color) !important;
+}
+
+/* Nested menu items hover effect */
+.menu__list .menu__list .menu__link:hover {
+  transform: translateX(2px) !important;
+}
+
+/* Improve sidebar scrollbar */
+.theme-doc-sidebar-menu {
+  scrollbar-width: thin !important;
+}
+
+.theme-doc-sidebar-menu::-webkit-scrollbar {
+  width: 5px !important;
+}
+
+.theme-doc-sidebar-menu::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.theme-doc-sidebar-menu::-webkit-scrollbar-thumb {
+  background-color: var(--ifm-color-emphasis-300) !important;
+  border-radius: 10px !important;
+}
+
+/* Add subtle background to sidebar in light mode */
+html[data-theme='light'] .theme-doc-sidebar-container {
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.02) !important;
+}
+
+/* Add subtle background to sidebar in dark mode */
+html[data-theme='dark'] .theme-doc-sidebar-container {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Add subtle shadow to sidebar */
+.theme-doc-sidebar-container {
+  box-shadow: 1px 0 5px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Improve sidebar category item styling */
+.menu__list-item-collapsible .menu__link {
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Add icon to collapsed/expanded categories */
+.menu__caret:before,
+.menu__link--sublist:after {
+  transition: transform 0.2s ease !important;
+}
+
+/* Add subtle icon to each menu item */
+.menu__link:not(.menu__link--sublist):before {
+  content: "•";
+  display: inline-block;
+  margin-right: 0.5rem;
+  color: var(--ifm-color-primary);
+  font-size: 1.2em;
+  vertical-align: middle;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.menu__link:not(.menu__link--sublist):hover:before {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* Style active category */
+.menu__list-item-collapsible--active {
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.05) !important;
+}
+
+/* Add subtle animation to sidebar */
+.theme-doc-sidebar-menu {
+  transition: all 0.3s ease !important;
+}
+
+/* Improve sidebar menu item spacing */
+.menu__list-item + .menu__list-item {
+  margin-top: 0.4rem !important;
+}
+
+/* Add subtle border to sidebar */
+html[data-theme='light'] .theme-doc-sidebar-container {
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.02) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+html[data-theme='dark'] .theme-doc-sidebar-container {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* ======================================================= */
+/* PROFESSIONAL MAIN CONTENT STYLING */
+/* ======================================================= */
+
+/* Improve main content container styling */
+.docMainContainer_TBSr {
+  background-color: var(--ifm-background-color) !important;
+}
+
+/* Improve headings */
+.markdown h1, .markdown h2, .markdown h3, .markdown h4, .markdown h5, .markdown h6 {
+  font-weight: 600 !important;
+  margin-bottom: 1.2rem !important;
+  margin-top: 2rem !important;
+}
+
+.markdown h1 {
+  font-size: 2.2rem !important;
+  border-bottom: 1px solid var(--ifm-toc-border-color) !important;
+  padding-bottom: 0.5rem !important;
+}
+
+.markdown h2 {
+  font-size: 1.8rem !important;
+  border-bottom: 1px solid var(--ifm-toc-border-color) !important;
+  padding-bottom: 0.3rem !important;
+}
+
+.markdown h3 {
+  font-size: 1.5rem !important;
+}
+
+/* Improve code blocks */
+.prism-code {
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Improve tables */
+.markdown table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.markdown table th {
+  background-color: var(--ifm-table-head-background) !important;
+  font-weight: 600 !important;
+}
+
+.markdown table tr:nth-child(2n) {
+  background-color: var(--ifm-table-stripe-background) !important;
+}
+
+/* Improve blockquotes */
+.markdown blockquote {
+  border-left: 4px solid var(--ifm-color-primary) !important;
+  background-color: var(--ifm-blockquote-background-color) !important;
+  border-radius: 0 8px 8px 0 !important;
+  padding: 1rem 1.5rem !important;
+  margin: 1.5rem 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Improve links */
+.markdown a {
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+  border-bottom: 1px solid transparent !important;
+}
+
+.markdown a:hover {
+  border-bottom: 1px solid var(--ifm-color-primary) !important;
+}
+
+/* Improve lists */
+.markdown ul, .markdown ol {
+  padding-left: 1.5rem !important;
+}
+
+.markdown li {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Improve horizontal rule */
+.markdown hr {
+  height: 1px !important;
+  background-color: var(--ifm-toc-border-color) !important;
+  margin: 2rem 0 !important;
 }

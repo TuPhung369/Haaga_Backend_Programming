@@ -29,7 +29,7 @@ import {
   SiSpringboot,
   SiJsonwebtokens,
   SiSocketdotio, // Changed from SiWebsocket which doesn't exist
-  SiPostgresql,
+  SiMysql,
   SiHibernate,
   SiOpenai,
 } from "react-icons/si";
@@ -134,7 +134,7 @@ const TechStackList = [
     items: [
       { icon: <FaBrain size={20} color="#FF5A5F" />, name: "SpeechBrain" },
       { icon: <SiHibernate size={20} color="#59666C" />, name: "Hibernate" },
-      { icon: <SiPostgresql size={20} color="#336791" />, name: "PostgreSQL" },
+      { icon: <SiMysql size={20} color="#4479A1" />, name: "MySQL" },
       {
         icon: <MdUpdate size={20} color="#FF9900" />,
         name: "Real-time Communication",
