@@ -273,7 +273,7 @@ module.exports = function (context, options) {
                   bookmarkContainer.innerHTML = 
                     '<div id="plugin-bookmark" style="' +
                       'position: fixed;' +
-                      'right: 15pxpx;' +
+                      'right: 15px;' +
                       'top: 75px;' +
                       'width: 350px;' +
                       'background: transparent;' +
@@ -359,7 +359,7 @@ module.exports = function (context, options) {
                     // Cập nhật bookmark
                     bookmark.setAttribute('style', 
                       'position: fixed !important;' +
-                      'right: 15pxpx !important;' +
+                      'right: 15px !important;' +
                       'top: 75px !important;' +
                       'width: 350px !important;' +
                       'height: auto !important;' +
@@ -572,10 +572,11 @@ module.exports = function (context, options) {
                         link.style.display = 'block';
                         link.style.padding = '5px 8px';
                         link.style.paddingLeft = (8 + paddingLeft) + 'px';
-                        link.style.color = '#4e57b9';
+                        link.style.color = 'rgb(30, 1, 124)';
                         link.style.textDecoration = 'none';
                         link.style.borderRadius = '4px';
                         link.style.fontSize = fontSize;
+                        link.style.fontWeight = '500';
                         link.style.transition = 'background-color 0.2s ease';
                         link.style.backgroundColor = 'white';
                         link.style.background = 'white';
@@ -592,7 +593,7 @@ module.exports = function (context, options) {
                         link.addEventListener('mouseout', function() {
                           this.style.backgroundColor = 'white';
                           this.style.background = 'white';
-                          this.style.color = '#4e57b9';
+                          this.style.color = 'rgb(30, 1, 124)';
                           this.style.opacity = '1';
                         });
                         
