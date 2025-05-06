@@ -1230,6 +1230,7 @@ html[data-theme='dark'] .main-wrapper {
   transition: all 0.2s ease-in-out !important;
   padding: 0.6rem 1rem !important;
   font-size: 0.95rem !important;
+  font-weight: 600 !important;
   display: block !important;
   text-decoration: none !important;
   color: var(--ifm-menu-color) !important;

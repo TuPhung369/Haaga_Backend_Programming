@@ -9,12 +9,15 @@ header,
 [class*="navbarContainer"],
 [class*="navbarWrapper"],
 [class*="navbar"],
+[class*="navbar__inner"],
+[class*="navbar__brand"],
+[class*="navbar navbar--fixed-top"],
 [class*="header"],
 .fixedHeaderContainer,
 div[role="banner"],
 nav,
 .navigationSlider {
-  z-index: 100000 !important; /* Very high z-index to ensure it's above everything */
+  z-index: 999 !important; /* Very high z-index to ensure it's above everything */
   position: relative;
 }
 
@@ -39,8 +42,12 @@ div[class*="tocMobile_"],
   [class*="navbarContainer"],
   [class*="navbarWrapper"],
   [class*="navbar"],
+  [class*="navbar__inner"],
+  [class*="navbar__items"],
+  [class*="navbar__brand"],
+  [class*="navbar navbar--fixed-top"],
   [class*="header"] {
-    z-index: 100000 !important;
+    z-index: 999 !important;
   }
   
   /* Ensure bookmark is above cards and workflow */

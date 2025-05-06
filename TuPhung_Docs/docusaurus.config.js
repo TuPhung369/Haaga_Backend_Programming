@@ -74,22 +74,22 @@ const config = {
         /* Move logo and project name to accommodate sidebar button */
         @media (max-width: 996px) {
           .navbar__brand, 
-          .navbar__title, 
-          .navbar__logo, 
           [class*="navbarTitle"],
           [class*="navbarBrand"] {
-            margin-left: 55px !important; /* Width of sidebar button (40px) + left margin (15px) */
+            margin-left: 40px !important; /* Width of sidebar button (30px)*/
           }
           
           /* Ensure header doesn't cover the sidebar button */
           .navbar,
-          header,
           [class*="navbarContainer"],
           [class*="navbarWrapper"],
           [class*="navbar"],
           [class*="header"],
+          [class*="navbar__inner"],
+          [class*="navbar__brand"],
+          [class*="navbar navbar--fixed-top"],
+          [class*="navbar__items"],
           .fixedHeaderContainer,
-          div[role="banner"],
           nav,
           .navigationSlider,
           .docusaurus-highlight-code-line,
@@ -100,7 +100,6 @@ const config = {
           .docsNavContainer,
           .docMainWrapper,
           .mainContainer,
-          .container,
           .wrapper {
             z-index: 99999 !important; /* Lower than sidebar z-index */
           }
