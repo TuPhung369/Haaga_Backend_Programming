@@ -18,13 +18,29 @@ module.exports = function (context, options) {
                 margin: 0 !important;
                 padding: 0 !important;
                 position: fixed !important;
-                right: 15px !important;
+                right: 0px !important;
                 top: 75px !important;
                 width: 40px !important;
                 height: 40px !important;
                 border-radius: 50% !important;
                 overflow: hidden !important;
                 transition: all 0.3s ease !important;
+                z-index: 9999 !important;
+                /* Ensure bookmark is always at the edge of the viewport, not affected by scrollbar */
+                right: 0 !important;
+              }
+              
+              /* Ensure bookmark is responsive on all screens */
+              @media (max-width: 768px) {
+                #plugin-bookmark {
+                  right: 0 !important;
+                }
+              }
+              
+              @media (max-width: 480px) {
+                #plugin-bookmark {
+                  right: 0 !important;
+                }
               }
               
               /* Reset for all children of plugin-bookmark */
@@ -41,11 +57,27 @@ module.exports = function (context, options) {
                 background-color: transparent !important;
                 border: 1px solid rgba(78, 87, 185, 0.5) !important;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-                right: 15px !important;
+                right: 0 !important; /* Always at the edge of the viewport */
                 top: 75px !important;
                 width: 350px !important;
                 height: auto !important;
                 border-radius: 8px !important;
+                z-index: 9999 !important;
+              }
+              
+              /* Ensure active bookmark is responsive on all screens */
+              @media (max-width: 768px) {
+                #plugin-bookmark.active {
+                  right: 0 !important; /* Always at the edge of the viewport */
+                  width: 300px !important;
+                }
+              }
+              
+              @media (max-width: 480px) {
+                #plugin-bookmark.active {
+                  right: 0 !important; /* Always at the edge of the viewport */
+                  width: 250px !important;
+                }
               }
               
               #plugin-bookmark.active > div {
@@ -242,7 +274,7 @@ module.exports = function (context, options) {
                   bookmarkContainer.innerHTML = 
                     '<div id="plugin-bookmark" style="' +
                       'position: fixed;' +
-                      'right: 15px;' +
+                      'right: 0px;' +
                       'top: 75px;' +
                       'width: 350px;' +
                       'background: transparent;' +
@@ -328,7 +360,7 @@ module.exports = function (context, options) {
                     // Cập nhật bookmark
                     bookmark.setAttribute('style', 
                       'position: fixed !important;' +
-                      'right: 15px !important;' +
+                      'right: 0px !important;' +
                       'top: 75px !important;' +
                       'width: 350px !important;' +
                       'height: auto !important;' +
@@ -469,7 +501,7 @@ module.exports = function (context, options) {
                       // Cập nhật bookmark - chỉ hiển thị icon hình tròn
                       bookmark.setAttribute('style', 
                         'position: fixed !important;' +
-                        'right: 15px !important;' +
+                        'right: 0 !important;' +
                         'top: 75px !important;' +
                         'width: 40px !important;' +
                         'height: 40px !important;' +
@@ -667,7 +699,7 @@ module.exports = function (context, options) {
                   // Đảm bảo trạng thái ban đầu là sạch - sử dụng setAttribute để đặt lại hoàn toàn
                   bookmark.setAttribute('style', 
                     'position: fixed !important;' +
-                    'right: 15px !important;' +
+                    'right: 0 !important;' +
                     'top: 75px !important;' +
                     'width: 40px !important;' +
                     'height: 40px !important;' +

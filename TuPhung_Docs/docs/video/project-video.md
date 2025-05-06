@@ -1525,6 +1525,11 @@ z-index: 1 !important;
             margin-bottom: 16px !important;
             height: 50vh !important;
             margin-left: 0 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 10 !important;
           }
 
           .video-list {
@@ -1635,6 +1640,17 @@ z-index: 1 !important;
           #currentVideoContainer {
             width: 100% !important;
             max-width: 100% !important;
+            display: block !important;
+            visibility: visible !important;
+            min-height: 250px !important;
+          }
+
+          .video-player {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 100% !important;
+            min-height: 250px !important;
           }
 
           #videoList {
@@ -1647,6 +1663,45 @@ z-index: 1 !important;
 
           .video-item {
             width: 100% !important;
+          }
+        }
+
+        /* Responsive styles for smallest mobile screens */
+        @media (max-width: 480px) {
+          #videoMainContainer {
+            flex-direction: column !important;
+            gap: 10px !important;
+          }
+
+          #currentVideoContainer {
+            width: 100% !important;
+            max-width: 100% !important;
+            display: block !important;
+            visibility: visible !important;
+            min-height: 200px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .video-player {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 100% !important;
+            min-height: 200px !important;
+            height: auto !important;
+          }
+
+          #currentVideo {
+            display: block !important;
+            visibility: visible !important;
+            min-height: 200px !important;
+          }
+
+          #videoList {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            max-height: 300px !important;
           }
         }
 
@@ -1692,8 +1747,8 @@ z-index: 1 !important;
         }
       `}} />
 
-    <div className="video-player" id="videoPlayer" style={{marginLeft: 0, flex: '1 1 auto'}}>
-      <div id="currentVideo"></div>
+    <div className="video-player" id="videoPlayer" style={{marginLeft: 0, flex: '1 1 auto', display: 'block', visibility: 'visible', opacity: 1}}>
+      <div id="currentVideo" style={{display: 'block', visibility: 'visible', opacity: 1}}></div>
     </div>
 
     <div
