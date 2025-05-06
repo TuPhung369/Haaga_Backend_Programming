@@ -1,0 +1,64 @@
+/**
+ * Z-index fixes for header and bookmark elements
+ * Ensures they appear above cards and workflow elements on medium screens
+ */
+
+/* Increase z-index for navbar/header */
+.navbar,
+header,
+[class*="navbarContainer"],
+[class*="navbarWrapper"],
+[class*="navbar"],
+[class*="header"],
+.fixedHeaderContainer,
+div[role="banner"],
+nav,
+.navigationSlider {
+  z-index: 100000 !important; /* Very high z-index to ensure it's above everything */
+  position: relative;
+}
+
+/* Increase z-index for bookmark container */
+.table-of-contents,
+.theme-doc-toc-desktop,
+.theme-doc-toc-mobile,
+div[class*="tableOfContents_"],
+div[class*="tocCollapsible_"],
+div[class*="tocMobile_"],
+.toc-wrapper,
+.toc-container {
+  z-index: 99999 !important; /* Very high z-index, just below header */
+  position: relative;
+}
+
+/* Specific fix for medium screens */
+@media (max-width: 996px) and (min-width: 768px) {
+  /* Ensure header is above all content */
+  .navbar,
+  header,
+  [class*="navbarContainer"],
+  [class*="navbarWrapper"],
+  [class*="navbar"],
+  [class*="header"] {
+    z-index: 100000 !important;
+  }
+  
+  /* Ensure bookmark is above cards and workflow */
+  .table-of-contents,
+  .theme-doc-toc-desktop,
+  div[class*="tableOfContents_"] {
+    z-index: 99999 !important;
+    position: relative !important;
+  }
+  
+  /* Ensure bookmark container is visible */
+  .theme-doc-toc-desktop .table-of-contents__left-border,
+  .table-of-contents__left-border,
+  div[class*="tableOfContents_"] {
+    background-color: var(--ifm-background-surface-color) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid var(--ifm-color-primary-lighter) !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+  }
+}

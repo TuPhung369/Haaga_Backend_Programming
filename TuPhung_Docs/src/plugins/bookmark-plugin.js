@@ -25,7 +25,7 @@ module.exports = function (context, options) {
                 border-radius: 50% !important;
                 overflow: hidden !important;
                 transition: all 0.3s ease !important;
-                z-index: 9999 !important;
+                z-index: 99999 !important; /* Increased z-index to ensure visibility */
                 /* Ensure bookmark is always at the edge of the viewport, not affected by scrollbar */
               }
               
@@ -61,7 +61,7 @@ module.exports = function (context, options) {
                 width: 350px !important;
                 height: auto !important;
                 border-radius: 8px !important;
-                z-index: 9999 !important;
+                z-index: 99999 !important; /* Increased z-index to ensure visibility */
               }
               
               /* Ensure active bookmark is responsive on all screens */
@@ -279,7 +279,7 @@ module.exports = function (context, options) {
                       'background: transparent;' +
                       'border: none;' +
                       'border-radius: 8px;' +
-                      'z-index: 9999;' +
+                      'z-index: 99999;' + /* Increased z-index to ensure visibility */
                       'overflow: hidden;' +
                       'font-family: Arial, sans-serif;' +
                       'display: flex;' +
@@ -368,7 +368,7 @@ module.exports = function (context, options) {
                       'border: 1px solid rgba(78, 87, 185, 0.5) !important;' +
                       'border-radius: 8px !important;' +
                       'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;' +
-                      'z-index: 9999 !important;' +
+                      'z-index: 99999 !important;' + /* Increased z-index to ensure visibility */
                       'overflow: hidden !important;' +
                       'font-family: Arial, sans-serif !important;' +
                       'display: flex !important;' +
@@ -509,7 +509,7 @@ module.exports = function (context, options) {
                         'border: 1px solid rgba(78, 87, 185, 1) !important;' +
                         'box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;' +
                         'border-radius: 50% !important;' +
-                        'z-index: 9999 !important;' +
+                        'z-index: 99999 !important;' + /* Increased z-index to ensure visibility */
                         'overflow: hidden !important;' +
                         'font-family: Arial, sans-serif !important;' +
                         'display: flex !important;' +
@@ -707,7 +707,7 @@ module.exports = function (context, options) {
                     'border: 1px solid rgba(78, 87, 185, 1) !important;' +
                     'box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;' +
                     'border-radius: 50% !important;' +
-                    'z-index: 9999 !important;' +
+                    'z-index: 99999 !important;' + /* Increased z-index to ensure visibility */
                     'overflow: hidden !important;' +
                     'font-family: Arial, sans-serif !important;' +
                     'display: flex !important;' +
