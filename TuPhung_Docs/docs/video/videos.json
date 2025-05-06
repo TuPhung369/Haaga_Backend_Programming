@@ -19,46 +19,52 @@
       "duration": "4:07"
     },
     {
-      "id": "bQ1s5zS-1f4",
-      "title": "Node.js Basics",
-      "description": "Introduction to Node.js and its core features.",
-      "duration": "10:15"
+      "id": "WcOD34UOjCs",
+      "title": "User Page",
+      "description": "Managing the Users",
+      "duration": "3:22"
     },
     {
-      "id": "bQ1s5zS-1f4",
-      "title": "Express.js Framework",
-      "description": "Building web applications with Express.js framework.",
-      "duration": "8:30"
+      "id": "4FquW_4oxDs",
+      "title": "Role Permission",
+      "description": "Role and Permission functionality.",
+      "duration": "1:48"
     },
     {
-      "id": "bQ1s5zS-1f4",
-      "title": "RESTful API Design",
-      "description": "Principles and best practices for designing RESTful APIs.",
-      "duration": "12:45"
+      "id": "_Kj9a5t6p3M",
+      "title": "Statistic Charts",
+      "description": "Using and Modifying the all of charts with Rechart and AntDesign Chart",
+      "duration": "1:13"
     },
     {
-      "id": "bQ1s5zS-1f4",
-      "title": "Database Integration",
-      "description": "Connecting and working with databases in backend applications.",
-      "duration": "9:20"
+      "id": "-YQXFoI_L38",
+      "title": "Calendar Page",
+      "description": "Help User follow up the schedule.",
+      "duration": "3:25"
     },
     {
-      "id": "bQ1s5zS-1f4",
-      "title": "Authentication & Authorization",
-      "description": "Implementing secure user authentication and authorization.",
-      "duration": "11:05"
+      "id": "sD_G3_NKPno",
+      "title": "Kanban Board",
+      "description": "Help User folloing the status of task.",
+      "duration": "2:21"
     },
     {
-      "id": "bQ1s5zS-1f4",
-      "title": "Error Handling & Logging",
-      "description": "Effective strategies for error handling and logging in backend applications.",
-      "duration": "7:15"
+      "id": "q_q30-RL42U",
+      "title": "Assistant AI",
+      "description": "Assist user more specific anwser base on user database",
+      "duration": "6:38"
     },
     {
-      "id": "bQ1s5zS-1f4",
-      "title": "Deployment & DevOps",
-      "description": "Deploying backend applications and introduction to DevOps practices.",
-      "duration": "14:30"
+      "id": "UiV5UAcd8uw",
+      "title": "Language AI",
+      "description": "User could practicing Language with AI.",
+      "duration": "6:05"
+    },
+    {
+      "id": "VyQu-dD-D8M",
+      "title": "Chat System",
+      "description": "User can send the message to other User or Group",
+      "duration": "14:52"
     }
   ]
 }
