@@ -140,7 +140,7 @@ const config = {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
           left: 15px !important;
           top: 15px !important;
-          width: 150px !important;
+          width: 170px !important;
           height: auto !important;
           border-radius: 8px !important;
           z-index: 100000 !important;
@@ -152,7 +152,7 @@ const config = {
           #plugin-sidebar.active {
             left: 15px !important;
             top: 10px !important; /* Slightly higher on smaller screens */
-            width: 130px !important;
+            width: 150px !important;
           }
         }
         
@@ -160,7 +160,7 @@ const config = {
           #plugin-sidebar.active {
             left: 15px !important;
             top: 10px !important;
-            width: 130px !important;
+            width: 150px !important;
           }
         }
         
@@ -467,7 +467,7 @@ const config = {
             localStorage.setItem('sidebarOpen', 'true');
             
             // Update sidebar styles
-            sidebar.style.width = '150px';
+            sidebar.style.width = '170px';
             sidebar.style.height = 'auto';
             sidebar.style.background = 'linear-gradient(135deg, white, rgba(78, 87, 185, 0.8))';
             sidebar.style.backgroundColor = 'transparent';
