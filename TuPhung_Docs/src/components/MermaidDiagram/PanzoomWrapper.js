@@ -6,22 +6,31 @@ const PanzoomWrapper = ({ children }) => {
   const panzoomRef = useRef(null);
   const svgRef = useRef(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // Check if device is mobile
+  // Check if device is a touch device (mobile, tablet, iPad, etc.)
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+    const checkIfTouchDevice = () => {
+      // Check if device has touch capability
+      const hasTouchCapability =
+        "ontouchstart" in window ||
+        navigator.maxTouchPoints > 0 ||
+        navigator.msMaxTouchPoints > 0;
+
+      // Also check screen size for tablets and iPads (typically <= 1024px width)
+      const isTabletOrMobile = window.innerWidth <= 1024;
+
+      setIsTouchDevice(hasTouchCapability && isTabletOrMobile);
     };
 
     // Check on initial load
-    checkIfMobile();
+    checkIfTouchDevice();
 
     // Add event listener for window resize
-    window.addEventListener("resize", checkIfMobile);
+    window.addEventListener("resize", checkIfTouchDevice);
 
     // Cleanup
-    return () => window.removeEventListener("resize", checkIfMobile);
+    return () => window.removeEventListener("resize", checkIfTouchDevice);
   }, []);
 
   // Check initial theme and observe changes
@@ -45,8 +54,8 @@ const PanzoomWrapper = ({ children }) => {
   }, []);
 
   const initializePanzoom = () => {
-    // Skip initialization on mobile devices as they have native touch zoom
-    if (isMobile) {
+    // Skip initialization on touch devices (mobile, tablet, iPad) as they have native touch zoom
+    if (isTouchDevice) {
       return false;
     }
 
@@ -91,10 +100,10 @@ const PanzoomWrapper = ({ children }) => {
   };
 
   useEffect(() => {
-    // Initial attempt to initialize Panzoom (will be skipped on mobile)
+    // Initial attempt to initialize Panzoom (will be skipped on touch devices)
     if (!initializePanzoom()) {
-      // Only attempt to initialize on non-mobile devices
-      if (!isMobile) {
+      // Only attempt to initialize on non-touch devices
+      if (!isTouchDevice) {
         const interval = setInterval(() => {
           if (initializePanzoom()) {
             clearInterval(interval);
@@ -124,7 +133,7 @@ const PanzoomWrapper = ({ children }) => {
         panzoomRef.current = null;
       }
     };
-  }, [isMobile]);
+  }, [isTouchDevice]);
 
   const zoomIn = () => {
     if (panzoomRef.current) {
@@ -149,7 +158,7 @@ const PanzoomWrapper = ({ children }) => {
       <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
         {children}
       </div>
-      {!isMobile && (
+      {!isTouchDevice && (
         <div
           style={{
             position: "absolute",
