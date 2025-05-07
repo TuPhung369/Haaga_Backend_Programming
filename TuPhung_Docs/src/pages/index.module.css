@@ -32,8 +32,7 @@
 
 /* Modern Hero Banner with Overlay */
 .heroBanner {
-  padding: 8rem 0;
-  text-align: center;
+  padding: 3rem 0 5rem;
   position: relative;
   overflow: hidden;
   background-size: cover;
@@ -41,7 +40,18 @@
   background-attachment: fixed;
   display: flex;
   justify-content: center;
+  align-items: center;
   width: 100%;
+  min-height: 100vh;
+  height: 100vh; /* Đảm bảo chiều cao đúng bằng viewport */
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.heroBanner.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Hero Banner Background Overlay */
@@ -88,11 +98,37 @@ html[data-theme='dark'] .heroBanner::before {
   box-sizing: border-box;
 }
 
+/* Hero Content Layout */
+.heroContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  margin-bottom: 2rem;
+  max-height: calc(100vh - 200px); /* Đảm bảo nội dung không vượt quá viewport */
+  overflow: visible;
+}
+
+.heroTextContent {
+  flex: 1;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Image styles removed */
+.heroImageContainer, .heroImage {
+  display: none;
+}
+
 .heroBanner h1 {
-  font-size: 3.5rem;
+  font-size: 3.2rem;
   font-weight: 800;
   letter-spacing: -0.5px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   background: linear-gradient(to right, #ffffff, #e0e0ff);
   -webkit-background-clip: text;
   background-clip: text;
@@ -101,48 +137,247 @@ html[data-theme='dark'] .heroBanner::before {
   display: block;
   position: relative;
   z-index: 2;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+  line-height: 1.1;
 }
 
 /* Target hero__subtitle class directly */
 :global(.hero__subtitle) {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 500;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   color: rgba(255, 255, 255, 0.95);
   display: block;
   position: relative;
   z-index: 2;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+  line-height: 1.3;
 }
 
 .heroDescription {
   max-width: 800px;
-  margin: 1.5rem auto 2.5rem;
-  font-size: 1.2rem;
+  margin: 1rem auto 1.5rem;
+  font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.9);
-  line-height: 1.6;
+  line-height: 1.5;
   font-weight: 400;
   display: block;
   position: relative;
   z-index: 2;
+  animation: fadeInUp 0.8s ease-out 0.6s both;
+  text-align: center;
+}
+
+.highlightText {
+  color: #ffffff;
+  font-weight: 600;
+  position: relative;
+  display: inline-block;
+}
+
+.highlightText::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+/* Hero Stats Section */
+.heroStats {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.8s ease-out 1s both;
+  width: 100%;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.heroStatItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.heroStatNumber {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 0.3rem;
+  background: linear-gradient(to right, #ffffff, #e0e0ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+}
+
+.heroStatLabel {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Wave decoration at the bottom */
+.heroWave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  z-index: 1;
+}
+
+.heroWave svg {
+  position: relative;
+  display: block;
+  width: calc(100% + 1.3px);
+  height: 80px;
+}
+
+/* Typewriter effect */
+.typewriter {
+  display: inline-block;
+  position: relative;
+}
+
+.cursor {
+  display: inline-block;
+  width: 3px;
+  height: 1.2em;
+  background-color: #fff;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.7s infinite;
+  transition: all 0.3s ease;
+}
+
+/* Ensure animation stops when cursor is hidden */
+.hideCursor.cursor {
+  animation: none;
+}
+
+.hideCursor {
+  opacity: 0 !important;
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Fade in animations */
+.fadeIn {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.fadeIn.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Text reveal animation */
+@keyframes revealText {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 @media screen and (max-width: 996px) {
   .heroBanner {
-    padding: 6rem 1.5rem;
+    padding: 3rem 1rem 5rem;
     background-attachment: scroll;
+    min-height: auto;
+    height: auto;
+    overflow-y: auto;
   }
   
-  .heroBanner h1 {
-    font-size: 2.5rem;
+  .heroContent {
+    flex-direction: column;
+    gap: 1.5rem;
+    max-height: none;
   }
   
-  .heroBanner .hero__subtitle {
-    font-size: 1.3rem;
+  .heroTextContent {
+    text-align: center;
+    max-width: 100%;
   }
   
   .heroDescription {
-    font-size: 1.1rem;
-    padding: 0 1rem;
+    margin: 1rem auto 1.5rem;
+  }
+  
+  /* Image container hidden on mobile */
+  .heroImageContainer {
+    display: none;
+  }
+  
+  .heroBanner h1 {
+    font-size: 2.2rem;
+  }
+  
+  .heroBanner .hero__subtitle {
+    font-size: 1.2rem;
+  }
+  
+  .heroDescription {
+    font-size: 1rem;
+    padding: 0;
+    line-height: 1.4;
+  }
+  
+  .heroStats {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.8rem;
+  }
+  
+  .heroStatItem {
+    padding: 0.5rem;
+    flex: 1;
+    min-width: 100px;
+  }
+  
+  .heroStatNumber {
+    font-size: 1.8rem;
+  }
+  
+  .heroStatLabel {
+    font-size: 0.8rem;
   }
   
   /* Ensure consistent padding on mobile */
@@ -150,8 +385,20 @@ html[data-theme='dark'] .heroBanner::before {
   .highlights .container,
   .testimonial .container,
   .cta .container {
-    padding-left: 1.5rem !important;
-    padding-right: 1.5rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Adjust buttons for mobile */
+  .primaryButton, .demoButton {
+    padding: 0.7rem 1.5rem;
+    min-width: 160px;
+    font-size: 0.9rem;
+  }
+  
+  /* Make wave smaller on mobile */
+  .heroWave svg {
+    height: 50px;
   }
 }
 
@@ -159,12 +406,19 @@ html[data-theme='dark'] .heroBanner::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 3rem;
+  margin-top: 1.5rem;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
   position: relative;
   z-index: 2;
+  animation: fadeInUp 0.8s ease-out 0.8s both;
+}
+
+@media screen and (max-width: 996px) {
+  .buttons {
+    justify-content: center;
+  }
 }
 
 /* Primary Button (Documentation) */
@@ -172,28 +426,29 @@ html[data-theme='dark'] .heroBanner::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.9rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 0.8rem 1.8rem;
+  border-radius: 50px;
+  font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-decoration: none;
-  background: #ffffff;
+  background: linear-gradient(135deg, #ffffff, #f0f4ff);
   color: #2941ab;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   border: none;
   position: relative;
   overflow: hidden;
-  min-width: 200px;
+  min-width: 180px;
   text-transform: uppercase;
 }
 
 .primaryButton:hover {
-  transform: translateY(-3px);
+  transform: translateY(-3px) scale(1.03);
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
   color: #2941ab;
   text-decoration: none;
+  background: linear-gradient(135deg, #ffffff, #e0e8ff);
 }
 
 .primaryButton:active {
@@ -201,14 +456,43 @@ html[data-theme='dark'] .heroBanner::before {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
+.buttonText {
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.buttonIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.primaryButton:hover .buttonText {
+  transform: translateX(-10px);
+}
+
+.primaryButton:hover .buttonIcon {
+  opacity: 1;
+  width: 20px;
+  transform: translateX(0);
+}
+
 /* Custom Demo Button */
 .demoButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.9rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 0.8rem 1.8rem;
+  border-radius: 50px;
+  font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-decoration: none;
@@ -220,12 +504,12 @@ html[data-theme='dark'] .heroBanner::before {
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
-  min-width: 200px;
+  min-width: 180px;
   text-transform: uppercase;
 }
 
 .demoButton:hover {
-  transform: translateY(-3px);
+  transform: translateY(-3px) scale(1.03);
   box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3);
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.3);
@@ -264,8 +548,9 @@ html[data-theme='dark'] .heroBanner::before {
 }
 
 .demoButton:hover .demoButtonIcon {
-  transform: scale(1.1);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1) rotate(360deg);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+  transition: all 0.5s ease;
 }
 
 /* Add subtle animation */
@@ -284,11 +569,42 @@ html[data-theme='dark'] .heroBanner::before {
     rgba(255, 255, 255, 0) 100%
   );
   transition: left 0.7s ease;
+  z-index: 1;
 }
 
 .primaryButton:hover::before,
 .demoButton:hover::before {
   left: 100%;
+}
+
+/* Button pulse animation */
+.primaryButton::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  height: 150%;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  z-index: 0;
+}
+
+.primaryButton:hover::after {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0;
+  }
 }
 
 /* Highlights section */
