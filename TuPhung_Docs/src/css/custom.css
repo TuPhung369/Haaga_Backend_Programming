@@ -8,6 +8,8 @@
 @import './mermaid.css';
 /* Import intro page styles */
 @import './intro-page.css';
+/* Import sidebar fixes and spacing improvements */
+@import './sidebar-fix.css';
 
 /* Workflow Container Styles */
 .workflow-container {

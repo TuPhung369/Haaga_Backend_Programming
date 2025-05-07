@@ -146,26 +146,7 @@ function HomepageHeader() {
           {/* Image section removed */}
         </div>
 
-        <div
-          className={clsx(
-            styles.heroStats,
-            styles.fadeIn,
-            showDescription && styles.visible
-          )}
-        >
-          <div className={styles.heroStatItem}>
-            <span className={styles.heroStatNumber}>99.9%</span>
-            <span className={styles.heroStatLabel}>Uptime</span>
-          </div>
-          <div className={styles.heroStatItem}>
-            <span className={styles.heroStatNumber}>500+</span>
-            <span className={styles.heroStatLabel}>Enterprise Features</span>
-          </div>
-          <div className={styles.heroStatItem}>
-            <span className={styles.heroStatNumber}>24/7</span>
-            <span className={styles.heroStatLabel}>Support</span>
-          </div>
-        </div>
+
       </div>
 
       <div className={styles.heroWave}>

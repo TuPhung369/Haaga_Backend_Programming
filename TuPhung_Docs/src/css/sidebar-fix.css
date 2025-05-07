@@ -133,3 +133,185 @@
   color: rgb(30, 1, 124) !important;
   font-weight: 600 !important;
 }
+
+/* ============================================================================= */
+/* SIDEBAR SPACING STYLES (Merged from sidebar-spacing.css)                      */
+/* ============================================================================= */
+
+/* Base spacing for all sidebar items */
+.menu__list-item {
+  margin: 0.4rem 0 !important;
+}
+
+/* Consistent spacing for top-level parent items */
+.theme-doc-sidebar-menu > .menu__list > .menu__list-item,
+.theme-doc-sidebar-item-link-level-1.menu__list-item {
+  margin: 1rem 0 !important;
+  padding: 0.3rem 0 !important;
+}
+
+/* Specifically target sidebar item links at level 1 for consistent spacing */
+.theme-doc-sidebar-item-link.theme-doc-sidebar-item-link-level-1.menu__list-item {
+  margin: 1rem 0 !important;
+  padding: 0.3rem 0 !important;
+}
+
+/* Reduce spacing for nested items (approximately 1/3 of parent spacing) */
+.menu__list .menu__list .menu__list-item {
+  margin: 0.2rem 0 !important;
+  padding: 0.1rem 0 !important;
+}
+
+/* Adjust font size for child items */
+.menu__list .menu__list .menu__list-item .menu__link {
+  font-size: 0.8rem !important;
+}
+
+/* Add more padding to menu links for better clickability */
+.menu__link {
+  padding: 0.5rem 0.6rem !important;
+  transition: all 0.2s ease !important;
+  margin-left: 0 !important; /* Ensure all items are aligned to the left */
+}
+
+/* Consistent spacing for category items */
+.menu__list-item-collapsible {
+  padding: 0.2rem 0 !important;
+  margin: 1rem 0 !important; /* Match top-level items */
+}
+
+/* Ensure consistent font size for all category items */
+.theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link {
+  font-size: 1rem !important; /* Override the 0.9rem in custom.css */
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Special styling for Frontend and Backend categories */
+.theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link[aria-label="Frontend"],
+.theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link[aria-label="Backend"] {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  color: var(--ifm-color-primary-darker) !important;
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.08) !important;
+  border-radius: 6px !important;
+  border-left: 3px solid var(--ifm-color-primary) !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Special hover effect for Frontend and Backend categories */
+.theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link[aria-label="Frontend"]:hover,
+.theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link[aria-label="Backend"]:hover {
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.15) !important;
+  transform: translateX(2px) !important;
+  padding-left: 0.8rem !important;
+}
+
+/* Add more spacing between major sections */
+.theme-doc-sidebar-menu > .menu__list > .menu__list-item:not(:last-child) {
+  margin-bottom: 1.5rem !important;
+  padding-bottom: 1rem !important;
+  border-bottom: 1px solid rgba(var(--ifm-color-primary-rgb), 0.15) !important;
+}
+
+/* Add extra spacing for Frontend and Backend categories */
+.theme-doc-sidebar-menu .menu__list-item-collapsible {
+  position: relative; /* For potential JavaScript targeting */
+}
+
+/* Fix height and spacing for all category items */
+.menu__list-item-collapsible {
+  height: auto !important;
+  min-height: 40px !important;
+  margin: 1rem 0 !important; /* Consistent with other parent items */
+}
+
+/* Fix height and spacing for all category links */
+.menu__link--sublist {
+  height: auto !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 0.7rem 0.6rem !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Add extra padding to Frontend and Backend links */
+.theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link[aria-label="Frontend"],
+.theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link[aria-label="Backend"] {
+  padding: 1.2rem 0.6rem !important;
+  margin: 1.5rem 0 !important;
+  height: auto !important;
+  min-height: 50px !important;
+}
+
+/* Adjust spacing for nested menu lists */
+.menu__list .menu__list {
+  margin-top: 0.3rem !important;
+  margin-bottom: 0.3rem !important;
+  padding-left: 0.8rem !important; /* Maintain left padding for hierarchy */
+}
+
+/* Improve visual separation between items with subtle borders */
+.menu__list .menu__list .menu__list-item:not(:last-child) {
+  border-bottom: 1px dashed rgba(var(--ifm-color-primary-rgb), 0.1) !important;
+  padding-bottom: 0.2rem !important; /* Reduced padding between nested items */
+}
+
+/* Remove border from the last item in each category */
+.menu__list .menu__list .menu__list-item:last-child {
+  border-bottom: none !important;
+}
+
+/* Improve spacing for category headers */
+.menu__link--sublist {
+  padding: 0.7rem 0.6rem !important; /* Consistent padding with other items */
+  font-weight: 600 !important;
+  font-size: 1rem !important; /* Same size as other top-level items */
+}
+
+/* Style top-level menu items */
+.theme-doc-sidebar-menu > .menu__list > .menu__list-item > .menu__link,
+.theme-doc-sidebar-item-link-level-1 > .menu__link {
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  padding: 0.7rem 0.6rem !important; /* Consistent padding with other items */
+}
+
+/* Add special styling for level-1 links */
+.theme-doc-sidebar-item-link.theme-doc-sidebar-item-link-level-1 > .menu__link {
+  border-left: 2px solid rgba(var(--ifm-color-primary-rgb), 0.3) !important;
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.05) !important;
+  border-radius: 4px !important;
+  margin-left: 0.2rem !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Add subtle hover effect with increased spacing */
+.menu__link:hover {
+  padding-left: 0.9rem !important;
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.08) !important;
+}
+
+/* Add visual indicator for active top-level items */
+.theme-doc-sidebar-menu > .menu__list > .menu__list-item > .menu__link.menu__link--active {
+  border-left: 3px solid var(--ifm-color-primary) !important;
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.1) !important;
+}
+
+/* Special hover effect for level-1 links */
+.theme-doc-sidebar-item-link.theme-doc-sidebar-item-link-level-1 > .menu__link:hover {
+  border-left: 2px solid var(--ifm-color-primary) !important;
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.1) !important;
+  transform: translateX(2px) !important;
+}
+
+/* Special active style for level-1 links */
+.theme-doc-sidebar-item-link.theme-doc-sidebar-item-link-level-1 > .menu__link.menu__link--active {
+  border-left: 3px solid var(--ifm-color-primary) !important;
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.15) !important;
+  font-weight: 700 !important;
+}
