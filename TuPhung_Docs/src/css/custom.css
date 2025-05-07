@@ -332,6 +332,9 @@
   /* Gradient colors for light mode */
   --gradient-light-start: #ffffff;
   --gradient-light-end: #b3bafd;
+  
+  /* Fixed navbar height for all devices */
+  --ifm-navbar-height: 75px;
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
@@ -360,6 +363,9 @@
   /* Gradient colors for dark mode */
   --gradient-dark-start: #1a1a2e;
   --gradient-dark-end: #0f0f1a;
+  
+  /* Keep the same navbar height in dark mode */
+  --ifm-navbar-height: 75px;
 }
 
 .hero--primary {
@@ -1751,6 +1757,9 @@ html[data-theme='light'] .navbar {
   position: sticky;
   top: 0;
   z-index: 999;
+  height: var(--ifm-navbar-height) !important;
+  min-height: var(--ifm-navbar-height) !important;
+  max-height: var(--ifm-navbar-height) !important;
 }
 
 /* Style navbar for dark mode */
@@ -1762,6 +1771,18 @@ html[data-theme='dark'] .navbar {
   position: sticky;
   top: 0;
   z-index: 999;
+  height: var(--ifm-navbar-height) !important;
+  min-height: var(--ifm-navbar-height) !important;
+  max-height: var(--ifm-navbar-height) !important;
+}
+
+/* Ensure consistent navbar height on mobile devices */
+@media (max-width: 996px) {
+  .navbar {
+    height: var(--ifm-navbar-height) !important;
+    min-height: var(--ifm-navbar-height) !important;
+    max-height: var(--ifm-navbar-height) !important;
+  }
 }
 
 /* Ensure navbar is properly fixed on iOS devices */
@@ -1772,10 +1793,13 @@ html[data-theme='dark'] .navbar {
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    height: var(--ifm-navbar-height) !important; /* Use the defined navbar height */
+    min-height: var(--ifm-navbar-height) !important;
+    max-height: var(--ifm-navbar-height) !important;
   }
   
   body {
-    padding-top: 60px !important; /* Adjust based on your navbar height */
+    padding-top: var(--ifm-navbar-height) !important; /* Use the defined navbar height */
   }
 }
 

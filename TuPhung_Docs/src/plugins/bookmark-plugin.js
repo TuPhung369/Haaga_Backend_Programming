@@ -173,6 +173,12 @@ module.exports = function (context, options) {
                 
                 // Define function to check documentation page
                 isDocumentationPage = function() {
+                  // Always show bookmark on homepage
+                  if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                    console.log('This is the homepage, showing bookmark');
+                    return true;
+                  }
+                  
                   // Check if URL contains '/docs/'
                   if (window.location.pathname.includes('/docs/')) {
                     // Exclude video pages
@@ -1034,6 +1040,12 @@ module.exports = function (context, options) {
                 
                 // Kiểm tra xem có phải trang documentation không
                 function isDocumentationPage() {
+                  // Always show bookmark on homepage
+                  if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                    console.log('This is the homepage, showing bookmark (load)');
+                    return true;
+                  }
+                  
                   // Kiểm tra URL có chứa '/docs/' không
                   if (window.location.pathname.includes('/docs/')) {
                     // Loại trừ trang video
