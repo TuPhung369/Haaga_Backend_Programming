@@ -1407,6 +1407,25 @@ svg[class*="iconExternalLink"] {
     no-repeat;
 }
 
+/* LinkedIn icon in the header */
+.navbar-linkedin-link {
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+  font-weight: 600;
+  color: var(--ifm-navbar-link-color);
+}
+
+.navbar-linkedin-link:hover {
+  opacity: 0.8;
+  text-decoration: none;
+  color: var(--ifm-navbar-link-hover-color);
+}
+
+.navbar-linkedin-link svg {
+  vertical-align: middle;
+}
+
 /* Toggle Theme Button */
 .toggle-theme-button {
   background: transparent;

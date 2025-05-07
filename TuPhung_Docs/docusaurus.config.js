@@ -203,12 +203,50 @@ const config = {
           fill: white !important;
         }
         
+        /* Ensure theme toggle icons in sidebar match header */
+        #plugin-sidebar.active .toggle-theme-button svg {
+          width: 20px !important;
+          height: 20px !important;
+          fill: white !important;
+        }
+        
+        /* Specific styling for light/dark theme icons in sidebar */
+        #plugin-sidebar.active .toggle-theme-button .light-theme-icon,
+        #plugin-sidebar.active .toggle-theme-button .dark-theme-icon {
+          fill: white !important;
+          width: 20px !important;
+          height: 20px !important;
+        }
+        
+        /* Ensure proper display of theme icons based on current theme */
+        html[data-theme='dark'] #plugin-sidebar.active .toggle-theme-button .light-theme-icon {
+          display: none !important;
+        }
+        
+        html[data-theme='dark'] #plugin-sidebar.active .toggle-theme-button .dark-theme-icon {
+          display: block !important;
+        }
+        
+        html[data-theme='light'] #plugin-sidebar.active .toggle-theme-button .light-theme-icon {
+          display: block !important;
+        }
+        
+        html[data-theme='light'] #plugin-sidebar.active .toggle-theme-button .dark-theme-icon {
+          display: none !important;
+        }
+        
         #plugin-sidebar.active .sidebar-text {
           display: none !important;
         }
         
         /* Add hover effect to icons */
         #plugin-sidebar.active .sidebar-icon:hover {
+          transform: scale(1.2) !important;
+          transition: transform 0.2s ease !important;
+        }
+        
+        /* Add hover effect to theme toggle button */
+        #plugin-sidebar.active .toggle-theme-button:hover {
           transform: scale(1.2) !important;
           transition: transform 0.2s ease !important;
         }
@@ -292,6 +330,10 @@ const config = {
           // Create sidebar element
           const sidebar = document.createElement('div');
           sidebar.id = 'plugin-sidebar';
+          
+          // Check the current theme
+          const initialIsDarkTheme = document.documentElement.dataset.theme === 'dark';
+          console.log('Initial theme:', initialIsDarkTheme ? 'dark' : 'light');
           
           // Create title element
           const title = document.createElement('div');
@@ -386,7 +428,7 @@ const config = {
           linkedinIcon.style.color = 'white';
           linkedinIcon.style.margin = '0 5px';
           linkedinIcon.style.cursor = 'pointer';
-          linkedinIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
+          linkedinIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="fill: #0077B5;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
           
           // 5. GitHub icon
           const githubIcon = document.createElement('a');
@@ -405,7 +447,7 @@ const config = {
           
           // 6. Theme Toggle icon
           const themeToggleIcon = document.createElement('button');
-          themeToggleIcon.className = 'sidebar-icon theme-icon';
+          themeToggleIcon.className = 'sidebar-icon toggle-theme-button theme-toggle-button';
           themeToggleIcon.style.fontSize = '20px';
           themeToggleIcon.style.lineHeight = '20px';
           themeToggleIcon.style.display = 'none'; // Initially hidden
@@ -416,14 +458,43 @@ const config = {
           themeToggleIcon.style.background = 'transparent';
           themeToggleIcon.style.border = 'none';
           themeToggleIcon.style.padding = '0';
+          themeToggleIcon.setAttribute('aria-label', 'Toggle between dark and light mode');
           
-          // Set the initial theme icon based on the current theme
+          // Set the initial theme icons (same as header)
           const isDarkTheme = document.documentElement.dataset.theme === 'dark';
-          if (isDarkTheme) {
-            themeToggleIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.79 21a9 9 0 1 1 7.92-12.21A1 1 0 0 0 22 9.27a10 10 0 1 0-12.5 11.46 1 1 0 0 0 1.44-1.32A8.9 8.9 0 0 1 12.79 21z"/></svg>';
-          } else {
-            themeToggleIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
-          }
+          
+          // Create the SVG elements with the same structure as the header
+          const lightThemeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          lightThemeIcon.setAttribute('class', 'light-theme-icon');
+          lightThemeIcon.setAttribute('width', '20');
+          lightThemeIcon.setAttribute('height', '20');
+          lightThemeIcon.setAttribute('viewBox', '0 0 24 24');
+          lightThemeIcon.setAttribute('fill', 'white');
+          lightThemeIcon.style.display = isDarkTheme ? 'none' : 'block';
+          lightThemeIcon.style.color = 'white';
+          
+          const lightThemePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          lightThemePath.setAttribute('d', 'M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z');
+          lightThemePath.setAttribute('fill', 'white');
+          lightThemeIcon.appendChild(lightThemePath);
+          
+          const darkThemeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          darkThemeIcon.setAttribute('class', 'dark-theme-icon');
+          darkThemeIcon.setAttribute('width', '20');
+          darkThemeIcon.setAttribute('height', '20');
+          darkThemeIcon.setAttribute('viewBox', '0 0 24 24');
+          darkThemeIcon.setAttribute('fill', 'black');
+          darkThemeIcon.style.display = isDarkTheme ? 'block' : 'none';
+          darkThemeIcon.style.color = 'black';
+          
+          const darkThemePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          darkThemePath.setAttribute('d', 'M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99a10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z');
+          darkThemePath.setAttribute('fill', 'black');
+          darkThemeIcon.appendChild(darkThemePath);
+          
+          // Add the SVG elements to the button
+          themeToggleIcon.appendChild(lightThemeIcon);
+          themeToggleIcon.appendChild(darkThemeIcon);
           
           // Add theme toggle functionality
           themeToggleIcon.addEventListener('click', function(e) {
@@ -440,16 +511,43 @@ const config = {
               themeToggleButton.click();
               console.log('Theme toggled via icon in sidebar title');
               
-              // Update the theme icon based on current theme
+              // Update the theme icons based on current theme
               setTimeout(() => {
                 const isDarkTheme = document.documentElement.dataset.theme === 'dark';
-                if (isDarkTheme) {
-                  // Moon icon for dark mode
-                  themeToggleIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.79 21a9 9 0 1 1 7.92-12.21A1 1 0 0 0 22 9.27a10 10 0 1 0-12.5 11.46 1 1 0 0 0 1.44-1.32A8.9 8.9 0 0 1 12.79 21z"/></svg>';
-                } else {
-                  // Sun icon for light mode
-                  themeToggleIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
+                
+                // Update sidebar theme toggle icons
+                const sidebarLightIcon = themeToggleIcon.querySelector('.light-theme-icon');
+                const sidebarDarkIcon = themeToggleIcon.querySelector('.dark-theme-icon');
+                
+                if (sidebarLightIcon && sidebarDarkIcon) {
+                  if (isDarkTheme) {
+                    sidebarLightIcon.style.display = 'none';
+                    sidebarDarkIcon.style.display = 'block';
+                  } else {
+                    sidebarLightIcon.style.display = 'block';
+                    sidebarDarkIcon.style.display = 'none';
+                  }
+                  
+                  // Ensure fill color is white
+                  sidebarLightIcon.setAttribute('fill', 'white');
+                  sidebarDarkIcon.setAttribute('fill', 'white');
                 }
+                
+                // Also update all other theme toggle buttons with the same classes
+                const allLightIcons = document.querySelectorAll('.light-theme-icon');
+                const allDarkIcons = document.querySelectorAll('.dark-theme-icon');
+                
+                allLightIcons.forEach(icon => {
+                  icon.style.display = isDarkTheme ? 'none' : 'block';
+                  icon.setAttribute('fill', icon.closest('#plugin-sidebar') ? 'white' : 'currentColor');
+                });
+                
+                allDarkIcons.forEach(icon => {
+                  icon.style.display = isDarkTheme ? 'block' : 'none';
+                  icon.setAttribute('fill', icon.closest('#plugin-sidebar') ? 'white' : 'currentColor');
+                });
+                
+                console.log('Updated all theme icons to match current theme:', isDarkTheme ? 'dark' : 'light');
               }, 100);
             }
           });
@@ -552,7 +650,12 @@ const config = {
                 const text = link.textContent.trim();
                 
                 // Skip empty links, hash links, or already added URLs
-                if (!href || href === '#' || addedUrls.has(href)) {
+                // Also skip LinkedIn and CV links
+                if (!href || 
+                    href === '#' || 
+                    addedUrls.has(href) || 
+                    href.includes('linkedin.com') || 
+                    href.includes('professional-cv')) {
                   return;
                 }
                 
@@ -632,7 +735,55 @@ const config = {
             separatorItem.appendChild(separator);
             list.appendChild(separatorItem);
             
-            // Add GitHub link
+            // Add CV link first (swapped with GitHub)
+            const cvItem = document.createElement('li');
+            cvItem.style.margin = '5px 0';
+            
+            const cvLink = document.createElement('a');
+            cvLink.href = 'https://tuphung369.github.io/professional-cv/';
+            cvLink.target = '_blank';
+            cvLink.rel = 'noopener noreferrer';
+            cvLink.style.display = 'flex';
+            cvLink.style.alignItems = 'center';
+            cvLink.style.padding = '8px 12px';
+            cvLink.style.color = '#4e57b9';
+            cvLink.style.textDecoration = 'none';
+            cvLink.style.borderRadius = '4px';
+            cvLink.style.fontSize = '14px';
+            cvLink.style.transition = 'background-color 0.2s ease';
+            cvLink.style.backgroundColor = 'white';
+            cvLink.style.background = 'white';
+            cvLink.style.opacity = '1';
+            
+            // CV icon
+            const cvIconSpan = document.createElement('span');
+            cvIconSpan.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #FFFFFF;"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
+            
+            const cvText = document.createElement('span');
+            cvText.textContent = 'My CV';
+            
+            cvLink.appendChild(cvIconSpan);
+            cvLink.appendChild(cvText);
+            
+            // Add hover effect
+            cvLink.addEventListener('mouseover', function() {
+              this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
+              this.style.background = 'rgba(78, 87, 185, 0.6)';
+              this.style.color = '#ffffff';
+              this.style.opacity = '1';
+            });
+            
+            cvLink.addEventListener('mouseout', function() {
+              this.style.backgroundColor = 'white';
+              this.style.background = 'white';
+              this.style.color = '#4e57b9';
+              this.style.opacity = '1';
+            });
+            
+            cvItem.appendChild(cvLink);
+            list.appendChild(cvItem);
+            
+            // Add GitHub link (now second)
             const githubItem = document.createElement('li');
             githubItem.style.margin = '5px 0';
             
@@ -654,7 +805,7 @@ const config = {
             
             // GitHub icon
             const githubIcon = document.createElement('span');
-            githubIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
+            githubIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #000000;"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
             
             const githubText = document.createElement('span');
             githubText.textContent = 'GitHub';
@@ -680,6 +831,54 @@ const config = {
             githubItem.appendChild(githubLink);
             list.appendChild(githubItem);
             
+            // Add LinkedIn link
+            const linkedinItem = document.createElement('li');
+            linkedinItem.style.margin = '5px 0';
+            
+            const linkedinLink = document.createElement('a');
+            linkedinLink.href = 'https://www.linkedin.com/in/tuphung010787/';
+            linkedinLink.target = '_blank';
+            linkedinLink.rel = 'noopener noreferrer';
+            linkedinLink.style.display = 'flex';
+            linkedinLink.style.alignItems = 'center';
+            linkedinLink.style.padding = '8px 12px';
+            linkedinLink.style.color = '#4e57b9';
+            linkedinLink.style.textDecoration = 'none';
+            linkedinLink.style.borderRadius = '4px';
+            linkedinLink.style.fontSize = '14px';
+            linkedinLink.style.transition = 'background-color 0.2s ease';
+            linkedinLink.style.backgroundColor = 'white';
+            linkedinLink.style.background = 'white';
+            linkedinLink.style.opacity = '1';
+            
+            // LinkedIn icon
+            const linkedinIconSpan = document.createElement('span');
+            linkedinIconSpan.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
+            
+            const linkedinText = document.createElement('span');
+            linkedinText.textContent = 'LinkedIn';
+            
+            linkedinLink.appendChild(linkedinIconSpan);
+            linkedinLink.appendChild(linkedinText);
+            
+            // Add hover effect
+            linkedinLink.addEventListener('mouseover', function() {
+              this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
+              this.style.background = 'rgba(78, 87, 185, 0.6)';
+              this.style.color = '#ffffff';
+              this.style.opacity = '1';
+            });
+            
+            linkedinLink.addEventListener('mouseout', function() {
+              this.style.backgroundColor = 'white';
+              this.style.background = 'white';
+              this.style.color = '#4e57b9';
+              this.style.opacity = '1';
+            });
+            
+            linkedinItem.appendChild(linkedinLink);
+            list.appendChild(linkedinItem);
+            
             // Add Theme Toggle button
             const themeItem = document.createElement('li');
             themeItem.style.margin = '5px 0';
@@ -689,13 +888,13 @@ const config = {
             themeButton.style.alignItems = 'center';
             themeButton.style.width = '100%';
             themeButton.style.padding = '8px 12px';
-            themeButton.style.color = '#4e57b9';
+            themeButton.style.color = '#000000';
             themeButton.style.textDecoration = 'none';
             themeButton.style.borderRadius = '4px';
             themeButton.style.fontSize = '14px';
             themeButton.style.transition = 'background-color 0.2s ease';
-            themeButton.style.backgroundColor = 'white';
-            themeButton.style.background = 'white';
+            themeButton.style.backgroundColor = 'transparent';
+            themeButton.style.background = 'transparent';
             themeButton.style.opacity = '1';
             themeButton.style.border = 'none';
             themeButton.style.cursor = 'pointer';
@@ -706,13 +905,15 @@ const config = {
             // Determine current theme
             const isDarkTheme = document.documentElement.dataset.theme === 'dark';
             if (isDarkTheme) {
-              themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M12.79 21a9 9 0 1 1 7.92-12.21A1 1 0 0 0 22 9.27a10 10 0 1 0-12.5 11.46 1 1 0 0 0 1.44-1.32A8.9 8.9 0 0 1 12.79 21z"/></svg>';
+              themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: black;"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg>';
             } else {
-              themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
+              themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: white;"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
             }
             
             const themeText = document.createElement('span');
-            themeText.textContent = 'Toggle Theme';
+            // Set text based on current theme
+            themeText.textContent = isDarkTheme ? 'Dark Mode' : 'Light Mode';
+            themeText.style.color = 'rgb(30, 1, 124)';
             
             themeButton.appendChild(themeIcon);
             themeButton.appendChild(themeText);
@@ -726,9 +927,9 @@ const config = {
             });
             
             themeButton.addEventListener('mouseout', function() {
-              this.style.backgroundColor = 'white';
-              this.style.background = 'white';
-              this.style.color = '#4e57b9';
+              this.style.backgroundColor = 'transparent';
+              this.style.background = 'transparent';
+              this.style.color = '#000000';
               this.style.opacity = '1';
             });
             
@@ -749,9 +950,13 @@ const config = {
                 setTimeout(() => {
                   const isDarkTheme = document.documentElement.dataset.theme === 'dark';
                   if (isDarkTheme) {
-                    themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M12.79 21a9 9 0 1 1 7.92-12.21A1 1 0 0 0 22 9.27a10 10 0 1 0-12.5 11.46 1 1 0 0 0 1.44-1.32A8.9 8.9 0 0 1 12.79 21z"/></svg>';
+                    themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="black" style="margin-right: 8px;"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg>';
+                    // Update text to Light Mode
+                    themeText.textContent = 'Light Mode';
                   } else {
-                    themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
+                    themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="white" style="margin-right: 8px;"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
+                    // Update text to Dark Mode
+                    themeText.textContent = 'Dark Mode';
                   }
                 }, 100);
               }
@@ -821,6 +1026,21 @@ const config = {
             linkedinIcon.style.display = 'inline-block';
             githubIcon.style.display = 'inline-block';
             themeToggleIcon.style.display = 'inline-block';
+            
+            // Make sure the correct theme icon is displayed
+            const currentIsDarkTheme = document.documentElement.dataset.theme === 'dark';
+            const sidebarLightIcon = themeToggleIcon.querySelector('.light-theme-icon');
+            const sidebarDarkIcon = themeToggleIcon.querySelector('.dark-theme-icon');
+            
+            if (sidebarLightIcon && sidebarDarkIcon) {
+              if (currentIsDarkTheme) {
+                sidebarLightIcon.style.display = 'none';
+                sidebarDarkIcon.style.display = 'block';
+              } else {
+                sidebarLightIcon.style.display = 'block';
+                sidebarDarkIcon.style.display = 'none';
+              }
+            }
             
             // Show content
             content.style.display = 'block';
@@ -947,6 +1167,58 @@ const config = {
           // Add sidebar to body
           document.body.appendChild(sidebar);
           console.log('Custom sidebar added to body');
+          
+          // Add a mutation observer to watch for theme changes
+          const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+              if (mutation.attributeName === 'data-theme') {
+                const isDarkTheme = document.documentElement.dataset.theme === 'dark';
+                console.log('Theme changed to:', isDarkTheme ? 'dark' : 'light');
+                
+                // Update all theme toggle icons
+                const allLightIcons = document.querySelectorAll('.light-theme-icon');
+                const allDarkIcons = document.querySelectorAll('.dark-theme-icon');
+                
+                allLightIcons.forEach(icon => {
+                  icon.style.display = isDarkTheme ? 'none' : 'block';
+                  icon.setAttribute('fill', 'white'); // Ensure fill color is white
+                });
+                
+                allDarkIcons.forEach(icon => {
+                  icon.style.display = isDarkTheme ? 'block' : 'none';
+                  icon.setAttribute('fill', 'black'); // Change dark mode icon to black
+                });
+                
+                // Also update the sidebar theme toggle button specifically
+                const sidebarToggleButton = document.querySelector('#plugin-sidebar .toggle-theme-button');
+                if (sidebarToggleButton) {
+                  const sidebarLightIcon = sidebarToggleButton.querySelector('.light-theme-icon');
+                  const sidebarDarkIcon = sidebarToggleButton.querySelector('.dark-theme-icon');
+                  
+                  if (sidebarLightIcon && sidebarDarkIcon) {
+                    if (isDarkTheme) {
+                      sidebarLightIcon.style.display = 'none';
+                      sidebarDarkIcon.style.display = 'block';
+                    } else {
+                      sidebarLightIcon.style.display = 'block';
+                      sidebarDarkIcon.style.display = 'none';
+                    }
+                  }
+                }
+                
+                // Update the theme text in the mobile menu
+                const themeTextElements = document.querySelectorAll('li button span');
+                themeTextElements.forEach(element => {
+                  if (element.textContent === 'Light Mode' || element.textContent === 'Dark Mode') {
+                    element.textContent = isDarkTheme ? 'Light Mode' : 'Dark Mode';
+                  }
+                });
+              }
+            });
+          });
+          
+          // Start observing the document with the configured parameters
+          observer.observe(document.documentElement, { attributes: true });
         });
         
         // Listen for window resize events
@@ -1207,17 +1479,16 @@ const config = {
             rel: "noopener noreferrer",
           },
           {
-            href: "https://www.linkedin.com/in/tuphung010787/",
-            label: "👨‍💼 LinkedIn",
+            type: "html",
             position: "left",
-            target: "_blank",
-            rel: "noopener noreferrer",
+            value:
+              '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" class="navbar-linkedin-link"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; fill: #0077B5;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
           },
           {
             type: "html",
             position: "right",
             value:
-              '<button class="toggle-theme-button" aria-label="Toggle"><svg class="light-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg><svg class="dark-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M12.79 21a9 9 0 1 1 7.92-12.21A1 1 0 0 0 22 9.27a10 10 0 1 0-12.5 11.46 1 1 0 0 0 1.44-1.32A8.9 8.9 0 0 1 12.79 21z"/></svg></button>',
+              '<button class="toggle-theme-button" aria-label="Toggle"><svg class="light-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg><svg class="dark-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg></button>',
           },
           {
             href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
@@ -1274,10 +1545,7 @@ const config = {
                 to: "/docs/video/project-video",
               },
               {
-                label: "💻 GitHub",
-                href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
-                target: "_blank",
-                rel: "noopener noreferrer",
+                html: '<a href="https://github.com/TuPhung369/Haaga_Backend_Programming" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; padding-left: 5px; fill: var(--ifm-font-color-base);"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>GitHub</a>',
               },
             ],
           },
@@ -1291,10 +1559,7 @@ const config = {
                 rel: "noopener noreferrer",
               },
               {
-                label: "👨‍💼 LinkedIn",
-                href: "https://www.linkedin.com/in/tuphung010787/",
-                target: "_blank",
-                rel: "noopener noreferrer",
+                html: '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; padding-left: 5px; fill: #0077B5;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
               },
             ],
           },
