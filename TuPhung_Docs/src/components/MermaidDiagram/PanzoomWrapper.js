@@ -6,7 +6,7 @@ const PanzoomWrapper = ({ children }) => {
   const panzoomRef = useRef(null);
   const svgRef = useRef(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(true); // Default to true to prevent initialization until we check
 
   // Check if device is a touch device (mobile, tablet, iPad, etc.)
   useEffect(() => {
@@ -17,10 +17,24 @@ const PanzoomWrapper = ({ children }) => {
         navigator.maxTouchPoints > 0 ||
         navigator.msMaxTouchPoints > 0;
 
-      // Also check screen size for tablets and iPads (typically <= 1024px width)
-      const isTabletOrMobile = window.innerWidth <= 1024;
+      // Check screen size - only consider small screens as touch devices
+      // This allows large touch screens (like Surface) to still use panzoom
+      const isSmallScreen = window.innerWidth <= 1024;
 
-      setIsTouchDevice(hasTouchCapability && isTabletOrMobile);
+      // Only disable panzoom on small touch screens (phones, tablets)
+      const isSmallTouchDevice = hasTouchCapability && isSmallScreen;
+
+      setIsTouchDevice(isSmallTouchDevice);
+
+      if (isSmallTouchDevice) {
+        console.log(
+          "PanzoomWrapper: Small touch device detected, panzoom disabled"
+        );
+      } else if (hasTouchCapability) {
+        console.log(
+          "PanzoomWrapper: Large touch device detected, panzoom enabled"
+        );
+      }
     };
 
     // Check on initial load
@@ -54,7 +68,7 @@ const PanzoomWrapper = ({ children }) => {
   }, []);
 
   const initializePanzoom = () => {
-    // Skip initialization on touch devices (mobile, tablet, iPad) as they have native touch zoom
+    // Skip initialization on touch devices completely
     if (isTouchDevice) {
       return false;
     }
@@ -65,9 +79,10 @@ const PanzoomWrapper = ({ children }) => {
       return false;
     }
 
+    // Try to find SVG with a more robust approach
     const svgElem = elem.querySelector("svg");
     if (!svgElem) {
-      console.warn("PanzoomWrapper: SVG element not found, retrying...");
+      // Don't log warning to avoid console spam
       return false;
     }
 
@@ -78,58 +93,57 @@ const PanzoomWrapper = ({ children }) => {
 
     svgRef.current = svgElem;
 
-    // Initialize or re-initialize Panzoom
-    const panzoom = Panzoom(svgElem, {
-      maxScale: 5,
-      minScale: 0.5,
-      step: 0.1,
-      canvas: true,
-    });
+    try {
+      // Initialize or re-initialize Panzoom
+      const panzoom = Panzoom(svgElem, {
+        maxScale: 5,
+        minScale: 0.5,
+        step: 0.1,
+        canvas: true,
+      });
 
-    // Store Panzoom instance
-    panzoomRef.current = panzoom;
+      // Store Panzoom instance
+      panzoomRef.current = panzoom;
 
-    // Không thêm wheel event listener để vô hiệu hóa zoom bằng chuột
-    // Chỉ sử dụng các nút zoom thay vì wheel
-
-    console.log(
-      "PanzoomWrapper: Initialized successfully (mouse wheel zoom and panning disabled)"
-    );
-
-    return true;
+      console.log("PanzoomWrapper: Initialized successfully");
+      return true;
+    } catch (error) {
+      console.error("PanzoomWrapper: Error initializing panzoom", error);
+      return false;
+    }
   };
 
   useEffect(() => {
-    // Initial attempt to initialize Panzoom (will be skipped on touch devices)
-    if (!initializePanzoom()) {
-      // Only attempt to initialize on non-touch devices
-      if (!isTouchDevice) {
-        const interval = setInterval(() => {
-          if (initializePanzoom()) {
-            clearInterval(interval);
-          }
-        }, 100);
-        setTimeout(() => clearInterval(interval), 5000);
-      }
+    // Don't even try to initialize on touch devices
+    if (isTouchDevice) {
+      return;
     }
 
-    // Listen for theme changes
-    const themeObserver = new MutationObserver(() => {
-      console.log("PanzoomWrapper: Theme change detected, re-initializing...");
-      initializePanzoom();
-    });
+    // Initial attempt to initialize Panzoom
+    if (!initializePanzoom()) {
+      // Only retry a few times to avoid infinite loops
+      let attempts = 0;
+      const maxAttempts = 10;
 
-    // Observe changes to the data-theme attribute on the document element
-    themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
+      const interval = setInterval(() => {
+        attempts++;
+        if (initializePanzoom() || attempts >= maxAttempts) {
+          clearInterval(interval);
+        }
+      }, 300);
+
+      // Cleanup interval after a maximum time
+      setTimeout(() => clearInterval(interval), 3000);
+    }
 
     // Cleanup
     return () => {
-      themeObserver.disconnect();
       if (panzoomRef.current) {
-        panzoomRef.current.destroy();
+        try {
+          panzoomRef.current.destroy();
+        } catch (e) {
+          console.error("Error destroying panzoom", e);
+        }
         panzoomRef.current = null;
       }
     };
@@ -158,6 +172,7 @@ const PanzoomWrapper = ({ children }) => {
       <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
         {children}
       </div>
+      {/* Only show zoom controls on non-touch devices */}
       {!isTouchDevice && (
         <div
           style={{
