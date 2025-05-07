@@ -297,56 +297,74 @@ module.exports = function (context, options) {
                 position: relative !important;
               }
               
-              /* Style for h1 headings - simplified */
-              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 8px"] {
+              /* We're not showing h1 headings anymore */
+              
+              /* Style for h2 headings - primary heading now */
+              #plugin-bookmark.active .bookmark-content li a.bookmark-heading-h2,
+              #plugin-bookmark.active .bookmark-content li a[data-heading-level="2"] {
                 font-weight: bold !important;
                 font-size: 15px !important;
-                color: #000 !important;
-                background-color: #f5f5f5 !important;
-                border-bottom: 1px solid #ddd !important;
-                margin-top: 5px !important;
+                color: #222 !important;
+                padding-left: 15px !important;
+                border-left: 4px solid rgba(78, 87, 185, 0.8) !important;
+                background-color: rgba(78, 87, 185, 0.08) !important;
+                margin-top: 4px !important;
+                padding-top: 8px !important;
+                padding-bottom: 8px !important;
+                border-radius: 0 4px 4px 0 !important;
               }
               
-              /* Style for h2 headings - simplified */
-              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 18px"] {
+              /* Style for h3 headings - secondary heading */
+              #plugin-bookmark.active .bookmark-content li a.bookmark-heading-h3,
+              #plugin-bookmark.active .bookmark-content li a[data-heading-level="3"] {
                 font-weight: 500 !important;
-                font-size: 14px !important;
-                color: #000 !important;
-                padding-left: 20px !important;
-              }
-              
-              /* Style for h3 headings - simplified */
-              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 28px"] {
                 font-size: 13px !important;
-                color: #000 !important;
-                padding-left: 30px !important;
+                color: #444 !important;
+                padding-left: 25px !important;
+                border-left: 2px solid rgba(78, 87, 185, 0.4) !important;
+                font-style: normal !important;
+                margin-top: 2px !important;
+                padding-top: 6px !important;
+                padding-bottom: 6px !important;
               }
               
-              /* Style for h4+ headings - simplified */
-              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 38px"],
-              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 48px"],
-              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 58px"] {
-                font-size: 12px !important;
-                color: #000 !important;
-                padding-left: 40px !important;
-              }
+              /* We're not showing h4+ headings anymore */
               
-              /* Simple hover effect for all links - with smoother transition */
+              /* Base style for all links - with smoother transition */
               #plugin-bookmark.active .bookmark-content li a {
                 transition: all 0.2s ease-in-out !important;
                 transform: translateY(0) !important; /* Prevent any transform on normal state */
               }
               
+              /* Hover effects that preserve the distinct styling */
               #plugin-bookmark.active .bookmark-content li a:hover {
-                background-color: #e6e6ff !important;
+                background-color: rgba(78, 87, 185, 0.1) !important;
                 color: #4e57b9 !important;
-                border-left-color: #4e57b9 !important;
+                border-left-width: 4px !important;
                 transform: translateY(0) !important; /* Prevent any transform on hover */
               }
               
-              /* Simple active state for all links */
+              /* Specific hover effects for h2 - primary heading */
+              #plugin-bookmark.active .bookmark-content li a.bookmark-heading-h2:hover,
+              #plugin-bookmark.active .bookmark-content li a[data-heading-level="2"]:hover {
+                background-color: rgba(78, 87, 185, 0.15) !important;
+                border-left-color: rgba(78, 87, 185, 1) !important;
+                color: rgba(78, 87, 185, 1) !important;
+              }
+              
+              /* Specific hover effects for h3 - secondary heading */
+              #plugin-bookmark.active .bookmark-content li a.bookmark-heading-h3:hover,
+              #plugin-bookmark.active .bookmark-content li a[data-heading-level="3"]:hover {
+                background-color: rgba(78, 87, 185, 0.1) !important;
+                border-left-color: rgba(78, 87, 185, 0.7) !important;
+                color: rgba(78, 87, 185, 0.9) !important;
+              }
+              
+              /* We're not showing h4+ headings anymore */
+              
+              /* Active state for all links */
               #plugin-bookmark.active .bookmark-content li a:active {
-                background-color: #d9d9ff !important;
+                background-color: rgba(78, 87, 185, 0.2) !important;
                 color: #4e57b9 !important;
                 transform: translateY(0) !important; /* Prevent any transform on active */
               }
@@ -359,6 +377,8 @@ module.exports = function (context, options) {
                 white-space: nowrap !important;
                 will-change: auto !important; /* Prevent browser optimization that might cause flickering */
               }
+              
+              /* We'll handle spacing between heading groups in JavaScript instead */
               
               /* Style for empty list message */
               .bookmark-empty-message {
@@ -514,8 +534,8 @@ module.exports = function (context, options) {
                   }
                   lastBookmarkCreationTime = now;
                   
-                  // Check if there are any headings on the page first
-                  const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                  // Check if there are any h2 or h3 headings on the page first
+                  const headings = document.querySelectorAll('h2, h3');
                   
                   // Count valid headings (with IDs)
                   let validHeadingsCount = 0;
@@ -524,11 +544,11 @@ module.exports = function (context, options) {
                   });
                   
                   // Debug: Log the headings found
-                  console.log('Headings found:', headings.length, 'Valid headings with IDs:', validHeadingsCount);
+                  console.log('Headings found:', headings.length, 'Valid h2/h3 headings with IDs:', validHeadingsCount);
                   
-                  // Only proceed if there are valid headings with IDs
+                  // Only proceed if there are valid h2 or h3 headings with IDs
                   if (validHeadingsCount === 0) {
-                    console.log('No valid headings with IDs found, skipping bookmark creation');
+                    console.log('No valid h2 or h3 headings with IDs found, skipping bookmark creation');
                     return;
                   }
                   
@@ -611,7 +631,7 @@ module.exports = function (context, options) {
                   function populateBookmark() {
                     list.innerHTML = '';
                     
-                    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    const headings = document.querySelectorAll('h2, h3');
                     
                     // Count valid headings (with IDs)
                     let validHeadingsCount = 0;
@@ -619,18 +639,26 @@ module.exports = function (context, options) {
                       if (heading.id) validHeadingsCount++;
                     });
                     
-                    // If no valid headings, hide the bookmark completely
+                    // If no valid h2 or h3 headings, hide the bookmark completely
                     if (validHeadingsCount === 0) {
                       bookmark.style.display = 'none';
-                      console.log('No headings found, hiding bookmark');
+                      console.log('No h2 or h3 headings found, hiding bookmark');
                       return;
                     }
                     
                     // Show bookmark only if there are headings
                     bookmark.style.display = 'block';
                     
-                    headings.forEach(heading => {
+                    // Track the previous heading level to add spacing between groups
+                    let prevLevel = 0;
+                    let visibleIndex = 0;
+                    
+                    headings.forEach((heading, index) => {
+                      // Skip headings without IDs
                       if (!heading.id) return;
+                      
+                      // Get heading level
+                      const level = parseInt(heading.tagName.substring(1));
                       
                       const item = document.createElement('li');
                       const link = document.createElement('a');
@@ -639,16 +667,36 @@ module.exports = function (context, options) {
                       link.style.display = 'block';
                       link.style.padding = '5px 8px';
                       
+                      // Add data attribute for heading level
+                      link.setAttribute('data-heading-level', level);
+                      
+                      // Add class for heading level
+                      link.classList.add('bookmark-heading-h' + level);
+                      
                       // Add indentation based on heading level
-                      const level = parseInt(heading.tagName.substring(1));
                       const paddingLeft = (level - 1) * 10;
                       link.style.paddingLeft = (8 + paddingLeft) + 'px';
+                      
+                      // Add spacing between different heading groups
+                      if (visibleIndex > 0 && level === 2) {
+                        // Add more space before h2 headings
+                        item.style.marginTop = '12px';
+                        item.style.borderTop = '1px solid rgba(78, 87, 185, 0.1)';
+                        item.style.paddingTop = '8px';
+                      } else if (visibleIndex > 0 && level === 3 && prevLevel === 2) {
+                        // Add a small space after the first h3 under an h2
+                        item.style.marginTop = '4px';
+                      }
+                      
+                      // Increment visible index counter
+                      visibleIndex++;
+                      
+                      // Remember this level for the next iteration
+                      prevLevel = level;
                       
                       link.style.color = '#4e57b9';
                       link.style.textDecoration = 'none';
                       link.style.borderRadius = '4px';
-                      
-                      // Remove inline hover effects - we'll use CSS instead
                       
                       // Simple click handler
                       link.addEventListener('click', function(e) {
@@ -766,19 +814,19 @@ module.exports = function (context, options) {
                 function checkHeadings() {
                   clearTimeout(headingsCheckTimer);
                   headingsCheckTimer = setTimeout(function() {
-                    // Check if there are any valid headings first
-                    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    // Check if there are any valid h2 or h3 headings first
+                    const headings = document.querySelectorAll('h2, h3');
                     let validHeadingsCount = 0;
                     headings.forEach(heading => {
                       if (heading.id) validHeadingsCount++;
                     });
                     
                     // Log the headings count for debugging
-                    console.log('Headings found in checkHeadings:', validHeadingsCount);
+                    console.log('H2/H3 headings found in checkHeadings:', validHeadingsCount);
                     
                     const existingBookmark = document.getElementById('plugin-bookmark');
                     
-                    // If no valid headings, hide the bookmark if it exists
+                    // If no valid h2 or h3 headings, hide the bookmark if it exists
                     if (validHeadingsCount === 0 && existingBookmark) {
                       existingBookmark.style.display = 'none';
                       return;
