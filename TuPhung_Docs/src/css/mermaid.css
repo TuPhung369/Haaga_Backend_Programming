@@ -325,3 +325,9 @@
     touch-action: pan-y !important; /* Allow vertical scrolling but disable horizontal drag */
   }
 }
+
+/* Force all mermaid text elements to be black in both light and dark themes */
+[data-theme='dark'] [id^="mermaid-svg"] .cluster span {
+  color: #000000 !important;
+  fill: #000000 !important;
+}

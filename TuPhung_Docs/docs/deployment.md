@@ -126,11 +126,11 @@ classDiagram
 ```mermaid
 flowchart TD
     %% Styling
-    classDef environment fill:#6DB33F,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef component fill:#FF6347,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef database fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef network fill:#4169E1,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
-    classDef security fill:#FFA500,stroke:#333,stroke-width:2px,color:#fff,font-weight:bold,font-size:14px
+    classDef environment fill:#6DB33F,stroke:#333,stroke-width:2px,color:#000000,font-weight:bold,font-size:14px
+    classDef component fill:#FF6347,stroke:#333,stroke-width:2px,color:#000000,font-weight:bold,font-size:14px
+    classDef database fill:#9C27B0,stroke:#333,stroke-width:2px,color:#000000,font-weight:bold,font-size:14px
+    classDef network fill:#4169E1,stroke:#333,stroke-width:2px,color:#000000,font-weight:bold,font-size:14px
+    classDef security fill:#FFA500,stroke:#333,stroke-width:2px,color:#000000,font-weight:bold,font-size:14px
 
     %% Main environments
     subgraph Development["Development Environment"]
@@ -244,11 +244,11 @@ Before deploying the application, ensure you have the following:
 ```mermaid
 flowchart TD
     %% Styling
-    classDef startNode fill:#4a6cf7,stroke:#2a4cd7,color:white,stroke-width:2px
-    classDef processNode fill:#28a745,stroke:#1e7e34,color:white,stroke-width:2px
-    classDef databaseNode fill:#9c27b0,stroke:#7b1fa2,color:white,stroke-width:2px
-    classDef decisionNode fill:#ffc107,stroke:#d39e00,color:#212529,stroke-width:2px
-    classDef endNode fill:#dc3545,stroke:#bd2130,color:white,stroke-width:2px
+    classDef startNode fill:#4a6cf7,stroke:#2a4cd7,color:#000,stroke-width:2px
+    classDef processNode fill:#28a745,stroke:#1e7e34,color:#000,stroke-width:2px
+    classDef databaseNode fill:#9c27b0,stroke:#7b1fa2,color:#000,stroke-width:2px
+    classDef decisionNode fill:#ffc107,stroke:#d39e00,color:#000,stroke-width:2px
+    classDef endNode fill:#dc3545,stroke:#bd2130,color:#000,stroke-width:2px
 
     %% Main flow
     Start([Start Development]):::startNode --> CloneRepo[Clone Repository]:::processNode
@@ -502,11 +502,11 @@ To containerize the application, you'll need to create Docker configuration file
 ```mermaid
 flowchart TD
     %% Styling
-    classDef container fill:#1a73e8,stroke:#0d47a1,color:white,stroke-width:2px
-    classDef volume fill:#34a853,stroke:#1e8e3e,color:white,stroke-width:2px
-    classDef network fill:#fbbc04,stroke:#f29900,color:#24292e,stroke-width:2px
-    classDef config fill:#ea4335,stroke:#c5221f,color:white,stroke-width:2px
-    classDef external fill:#9334e6,stroke:#7627bb,color:white,stroke-width:2px
+    classDef container fill:#1a73e8,stroke:#0d47a1,color:#000,stroke-width:2px
+    classDef volume fill:#34a853,stroke:#1e8e3e,color:#000,stroke-width:2px
+    classDef network fill:#fbbc04,stroke:#f29900,color:#000,stroke-width:2px
+    classDef config fill:#ea4335,stroke:#c5221f,color:#000,stroke-width:2px
+    classDef external fill:#9334e6,stroke:#7627bb,color:#000,stroke-width:2px
 
     %% Main components
     subgraph DockerEnvironment["Docker Environment"]
