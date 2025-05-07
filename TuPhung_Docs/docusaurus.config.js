@@ -266,6 +266,90 @@ const config = {
           background-color: rgba(78, 87, 185, 0.5) !important;
           color: white !important;
         }
+        
+        /* Footer column alignment fix - with high specificity to override other styles */
+        html body .footer__links,
+        html[data-theme] body .footer__links,
+        #__docusaurus .footer__links,
+        #__docusaurus[data-theme] .footer__links,
+        .footer .footer__links,
+        div.footer .footer__links,
+        footer .footer__links,
+        div.footer__links {
+          display: flex !important;
+          align-items: flex-start !important;
+          justify-content: space-between !important;
+        }
+        
+        html body .footer__col,
+        html[data-theme] body .footer__col,
+        #__docusaurus .footer__col,
+        #__docusaurus[data-theme] .footer__col,
+        .footer .footer__col,
+        div.footer .footer__col,
+        footer .footer__col,
+        div.footer__col {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          justify-content: flex-start !important;
+          height: 100% !important;
+        }
+        
+        html body .footer__title,
+        html[data-theme] body .footer__title,
+        #__docusaurus .footer__title,
+        #__docusaurus[data-theme] .footer__title,
+        .footer .footer__title,
+        div.footer .footer__title,
+        footer .footer__title,
+        div.footer__title {
+          margin-top: 0 !important;
+          margin-bottom: 1rem !important;
+        }
+        
+        html body .footer__items,
+        html[data-theme] body .footer__items,
+        #__docusaurus .footer__items,
+        #__docusaurus[data-theme] .footer__items,
+        .footer .footer__items,
+        div.footer .footer__items,
+        footer .footer__items,
+        div.footer__items {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          justify-content: flex-start !important;
+        }
+        
+        /* Override any row styles that might affect the footer */
+        html body .footer .row,
+        html[data-theme] body .footer .row,
+        #__docusaurus .footer .row,
+        #__docusaurus[data-theme] .footer .row,
+        .footer .row,
+        div.footer .row,
+        footer .row,
+        div.footer .row,
+        html body .footer div[class*="row"],
+        html[data-theme] body .footer div[class*="row"],
+        #__docusaurus .footer div[class*="row"],
+        #__docusaurus[data-theme] .footer div[class*="row"],
+        .footer div[class*="row"],
+        div.footer div[class*="row"],
+        footer div[class*="row"],
+        div.footer div[class*="row"],
+        html body .footer div[class^="row_"],
+        html[data-theme] body .footer div[class^="row_"],
+        #__docusaurus .footer div[class^="row_"],
+        #__docusaurus[data-theme] .footer div[class^="row_"],
+        .footer div[class^="row_"],
+        div.footer div[class^="row_"],
+        footer div[class^="row_"],
+        div.footer div[class^="row_"] {
+          justify-content: flex-start !important;
+          align-items: flex-start !important;
+        }
       `,
     },
     {
@@ -281,6 +365,69 @@ const config = {
           console.log('Removed old force-sidebar-button');
         }
         
+        // Function to update all theme icons and texts
+        function updateAllThemeIcons() {
+          const isDarkTheme = document.documentElement.dataset.theme === 'dark';
+          console.log('Updating all theme icons to match theme:', isDarkTheme ? 'dark' : 'light');
+          
+          // Update navbar theme toggle button
+          const navbarButtons = document.querySelectorAll('.navbar__items--right button.toggle-theme-button, .navbar__items--right .toggle-theme-button');
+          console.log('Found navbar buttons:', navbarButtons.length);
+          
+          navbarButtons.forEach(button => {
+            const navbarLightIcon = button.querySelector('.light-theme-icon');
+            const navbarDarkIcon = button.querySelector('.dark-theme-icon');
+            
+            if (navbarLightIcon && navbarDarkIcon) {
+              console.log('Updating navbar theme icons');
+              navbarLightIcon.style.display = isDarkTheme ? 'none' : 'block';
+              navbarDarkIcon.style.display = isDarkTheme ? 'block' : 'none';
+            }
+          });
+          
+          // Update sidebar theme toggle button
+          const sidebarButtons = document.querySelectorAll('#plugin-sidebar .toggle-theme-button');
+          console.log('Found sidebar buttons:', sidebarButtons.length);
+          
+          sidebarButtons.forEach(button => {
+            const sidebarLightIcon = button.querySelector('.light-theme-icon');
+            const sidebarDarkIcon = button.querySelector('.dark-theme-icon');
+            
+            if (sidebarLightIcon && sidebarDarkIcon) {
+              console.log('Updating sidebar theme icons');
+              sidebarLightIcon.style.display = isDarkTheme ? 'none' : 'block';
+              sidebarDarkIcon.style.display = isDarkTheme ? 'block' : 'none';
+              
+              // Ensure fill color is white for sidebar icons
+              sidebarLightIcon.setAttribute('fill', 'white');
+              sidebarDarkIcon.setAttribute('fill', 'white');
+            }
+          });
+          
+          // Update all theme icons in the document
+          const allLightIcons = document.querySelectorAll('.light-theme-icon');
+          const allDarkIcons = document.querySelectorAll('.dark-theme-icon');
+          
+          console.log('Updating all light icons:', allLightIcons.length);
+          console.log('Updating all dark icons:', allDarkIcons.length);
+          
+          allLightIcons.forEach(icon => {
+            icon.style.display = isDarkTheme ? 'none' : 'block';
+            icon.setAttribute('fill', icon.closest('#plugin-sidebar') ? 'white' : 'currentColor');
+          });
+          
+          allDarkIcons.forEach(icon => {
+            icon.style.display = isDarkTheme ? 'block' : 'none';
+            icon.setAttribute('fill', icon.closest('#plugin-sidebar') ? 'white' : 'currentColor');
+          });
+          
+          // Update theme texts
+          const themeTexts = document.querySelectorAll('.theme-text');
+          themeTexts.forEach(text => {
+            text.textContent = isDarkTheme ? 'Dark Mode' : 'Light Mode';
+          });
+        }
+        
         // Create sidebar when the page has loaded
         window.addEventListener('load', function() {
           console.log('Creating custom sidebar - window load event');
@@ -293,10 +440,16 @@ const config = {
           
           // Add event listener for theme toggle button in navbar
           setTimeout(() => {
-            const themeToggleButton = document.querySelector('.toggle-theme-button');
-            if (themeToggleButton) {
-              themeToggleButton.addEventListener('click', function() {
-                // Find and click the theme toggle button in the header
+            const navbarThemeToggleButtons = document.querySelectorAll('.navbar__items--right .toggle-theme-button, .navbar__items--right button.toggle-theme-button');
+            console.log('Found navbar theme toggle buttons:', navbarThemeToggleButtons.length);
+            
+            navbarThemeToggleButtons.forEach(navbarThemeToggleButton => {
+              const newButton = navbarThemeToggleButton.cloneNode(true);
+              navbarThemeToggleButton.parentNode.replaceChild(newButton, navbarThemeToggleButton);
+              
+              newButton.addEventListener('click', function() {
+                console.log('Navbar theme toggle button clicked');
+                
                 const docusaurusThemeButton = document.querySelector('.navbar__items--right .clean-btn') || 
                                          document.querySelector('[class*="toggleButton"]') || 
                                          document.querySelector('[class*="colorModeToggle"] button') ||
@@ -305,33 +458,21 @@ const config = {
                 
                 if (docusaurusThemeButton) {
                   docusaurusThemeButton.click();
-                  console.log('Theme toggled via custom button');
+                  console.log('Theme toggled via navbar button');
                   
-                  // Update the theme icons based on current theme
-                  setTimeout(() => {
-                    const isDarkTheme = document.documentElement.dataset.theme === 'dark';
-                    const lightIcon = document.querySelector('.toggle-theme-button .light-theme-icon');
-                    const darkIcon = document.querySelector('.toggle-theme-button .dark-theme-icon');
-                    
-                    if (isDarkTheme) {
-                      if (lightIcon) lightIcon.style.display = 'none';
-                      if (darkIcon) darkIcon.style.display = 'block';
-                    } else {
-                      if (lightIcon) lightIcon.style.display = 'block';
-                      if (darkIcon) darkIcon.style.display = 'none';
-                    }
+                  setTimeout(function() {
+                    console.log('Running updateAllThemeIcons from navbar click');
+                    updateAllThemeIcons();
                   }, 100);
                 }
               });
-            }
+            });
           }, 1000);
-          
           
           // Create sidebar element
           const sidebar = document.createElement('div');
           sidebar.id = 'plugin-sidebar';
           
-          // Check the current theme
           const initialIsDarkTheme = document.documentElement.dataset.theme === 'dark';
           console.log('Initial theme:', initialIsDarkTheme ? 'dark' : 'light');
           
@@ -351,7 +492,6 @@ const config = {
           title.style.justifyContent = 'center';
           title.style.overflow = 'hidden';
           
-          // Create title content
           const titleContent = document.createElement('div');
           titleContent.className = 'sidebar-title-content';
           titleContent.style.display = 'flex';
@@ -366,7 +506,7 @@ const config = {
           titleContent.style.padding = '0';
           titleContent.style.position = 'relative';
           
-          // 1. Menu Hamburger icon
+          // Menu Hamburger icon
           const menuIcon = document.createElement('span');
           menuIcon.className = 'sidebar-icon menu-icon';
           menuIcon.style.fontSize = '30px';
@@ -386,21 +526,20 @@ const config = {
           menuIcon.style.transform = 'translate(-50%, -50%)';
           menuIcon.textContent = '☰';
           
-          // 2. Video icon
+          // Video icon
           const videoIcon = document.createElement('a');
           videoIcon.href = '/Haaga_Backend_Programming/docs/video/project-video';
-          // Internal link, no need for target="_blank"
           videoIcon.className = 'sidebar-icon video-icon';
           videoIcon.style.fontSize = '20px';
           videoIcon.style.lineHeight = '20px';
-          videoIcon.style.display = 'none'; // Initially hidden
+          videoIcon.style.display = 'none';
           videoIcon.style.verticalAlign = 'middle';
           videoIcon.style.color = 'white';
           videoIcon.style.margin = '0 5px';
           videoIcon.style.cursor = 'pointer';
           videoIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.11-.9-2-2-2zm0 14H3V5h18v12z"/><path d="M16 11l-7 4V7z"/></svg>';
           
-          // 3. CV icon
+          // CV icon
           const cvIcon = document.createElement('a');
           cvIcon.href = 'https://tuphung369.github.io/professional-cv/';
           cvIcon.target = '_blank';
@@ -408,14 +547,14 @@ const config = {
           cvIcon.className = 'sidebar-icon cv-icon';
           cvIcon.style.fontSize = '20px';
           cvIcon.style.lineHeight = '20px';
-          cvIcon.style.display = 'none'; // Initially hidden
+          cvIcon.style.display = 'none';
           cvIcon.style.verticalAlign = 'middle';
           cvIcon.style.color = 'white';
           cvIcon.style.margin = '0 5px';
           cvIcon.style.cursor = 'pointer';
           cvIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
           
-          // 4. LinkedIn icon
+          // LinkedIn icon
           const linkedinIcon = document.createElement('a');
           linkedinIcon.href = 'https://www.linkedin.com/in/tuphung010787/';
           linkedinIcon.target = '_blank';
@@ -423,14 +562,14 @@ const config = {
           linkedinIcon.className = 'sidebar-icon linkedin-icon';
           linkedinIcon.style.fontSize = '20px';
           linkedinIcon.style.lineHeight = '20px';
-          linkedinIcon.style.display = 'none'; // Initially hidden
+          linkedinIcon.style.display = 'none';
           linkedinIcon.style.verticalAlign = 'middle';
           linkedinIcon.style.color = 'white';
           linkedinIcon.style.margin = '0 5px';
           linkedinIcon.style.cursor = 'pointer';
-          linkedinIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="fill: #0077B5;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
+          linkedinIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
           
-          // 5. GitHub icon
+          // GitHub icon
           const githubIcon = document.createElement('a');
           githubIcon.href = 'https://github.com/TuPhung369/Haaga_Backend_Programming';
           githubIcon.target = '_blank';
@@ -438,19 +577,19 @@ const config = {
           githubIcon.className = 'sidebar-icon github-icon';
           githubIcon.style.fontSize = '20px';
           githubIcon.style.lineHeight = '20px';
-          githubIcon.style.display = 'none'; // Initially hidden
+          githubIcon.style.display = 'none';
           githubIcon.style.verticalAlign = 'middle';
           githubIcon.style.color = 'white';
           githubIcon.style.margin = '0 5px';
           githubIcon.style.cursor = 'pointer';
           githubIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
           
-          // 6. Theme Toggle icon
+          // Theme Toggle icon
           const themeToggleIcon = document.createElement('button');
           themeToggleIcon.className = 'sidebar-icon toggle-theme-button theme-toggle-button';
           themeToggleIcon.style.fontSize = '20px';
           themeToggleIcon.style.lineHeight = '20px';
-          themeToggleIcon.style.display = 'none'; // Initially hidden
+          themeToggleIcon.style.display = 'none';
           themeToggleIcon.style.verticalAlign = 'middle';
           themeToggleIcon.style.color = 'white';
           themeToggleIcon.style.margin = '0 5px';
@@ -460,10 +599,8 @@ const config = {
           themeToggleIcon.style.padding = '0';
           themeToggleIcon.setAttribute('aria-label', 'Toggle between dark and light mode');
           
-          // Set the initial theme icons (same as header)
           const isDarkTheme = document.documentElement.dataset.theme === 'dark';
           
-          // Create the SVG elements with the same structure as the header
           const lightThemeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
           lightThemeIcon.setAttribute('class', 'light-theme-icon');
           lightThemeIcon.setAttribute('width', '20');
@@ -471,11 +608,9 @@ const config = {
           lightThemeIcon.setAttribute('viewBox', '0 0 24 24');
           lightThemeIcon.setAttribute('fill', 'white');
           lightThemeIcon.style.display = isDarkTheme ? 'none' : 'block';
-          lightThemeIcon.style.color = 'white';
           
           const lightThemePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           lightThemePath.setAttribute('d', 'M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z');
-          lightThemePath.setAttribute('fill', 'white');
           lightThemeIcon.appendChild(lightThemePath);
           
           const darkThemeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -483,76 +618,37 @@ const config = {
           darkThemeIcon.setAttribute('width', '20');
           darkThemeIcon.setAttribute('height', '20');
           darkThemeIcon.setAttribute('viewBox', '0 0 24 24');
-          darkThemeIcon.setAttribute('fill', 'black');
+          darkThemeIcon.setAttribute('fill', 'white');
           darkThemeIcon.style.display = isDarkTheme ? 'block' : 'none';
-          darkThemeIcon.style.color = 'black';
           
           const darkThemePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           darkThemePath.setAttribute('d', 'M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99a10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z');
-          darkThemePath.setAttribute('fill', 'black');
           darkThemeIcon.appendChild(darkThemePath);
           
-          // Add the SVG elements to the button
           themeToggleIcon.appendChild(lightThemeIcon);
           themeToggleIcon.appendChild(darkThemeIcon);
           
-          // Add theme toggle functionality
           themeToggleIcon.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent sidebar from closing
+            e.stopPropagation();
+            console.log('Sidebar theme toggle button clicked');
             
-            // Find and click the theme toggle button in the header
-            const themeToggleButton = document.querySelector('.navbar__items--right .clean-btn') || 
+            const docusaurusThemeButton = document.querySelector('.navbar__items--right .clean-btn') || 
                                      document.querySelector('[class*="toggleButton"]') || 
                                      document.querySelector('[class*="colorModeToggle"] button') ||
                                      document.querySelector('button[title*="Switch between dark and light mode"]') ||
                                      document.querySelector('button[aria-label*="Switch between dark and light mode"]');
             
-            if (themeToggleButton) {
-              themeToggleButton.click();
+            if (docusaurusThemeButton) {
+              docusaurusThemeButton.click();
               console.log('Theme toggled via icon in sidebar title');
               
-              // Update the theme icons based on current theme
-              setTimeout(() => {
-                const isDarkTheme = document.documentElement.dataset.theme === 'dark';
-                
-                // Update sidebar theme toggle icons
-                const sidebarLightIcon = themeToggleIcon.querySelector('.light-theme-icon');
-                const sidebarDarkIcon = themeToggleIcon.querySelector('.dark-theme-icon');
-                
-                if (sidebarLightIcon && sidebarDarkIcon) {
-                  if (isDarkTheme) {
-                    sidebarLightIcon.style.display = 'none';
-                    sidebarDarkIcon.style.display = 'block';
-                  } else {
-                    sidebarLightIcon.style.display = 'block';
-                    sidebarDarkIcon.style.display = 'none';
-                  }
-                  
-                  // Ensure fill color is white
-                  sidebarLightIcon.setAttribute('fill', 'white');
-                  sidebarDarkIcon.setAttribute('fill', 'white');
-                }
-                
-                // Also update all other theme toggle buttons with the same classes
-                const allLightIcons = document.querySelectorAll('.light-theme-icon');
-                const allDarkIcons = document.querySelectorAll('.dark-theme-icon');
-                
-                allLightIcons.forEach(icon => {
-                  icon.style.display = isDarkTheme ? 'none' : 'block';
-                  icon.setAttribute('fill', icon.closest('#plugin-sidebar') ? 'white' : 'currentColor');
-                });
-                
-                allDarkIcons.forEach(icon => {
-                  icon.style.display = isDarkTheme ? 'block' : 'none';
-                  icon.setAttribute('fill', icon.closest('#plugin-sidebar') ? 'white' : 'currentColor');
-                });
-                
-                console.log('Updated all theme icons to match current theme:', isDarkTheme ? 'dark' : 'light');
+              setTimeout(function() {
+                console.log('Running updateAllThemeIcons from sidebar click');
+                updateAllThemeIcons();
               }, 100);
             }
           });
           
-          // Add all icons to title content
           titleContent.appendChild(menuIcon);
           titleContent.appendChild(videoIcon);
           titleContent.appendChild(cvIcon);
@@ -560,10 +656,8 @@ const config = {
           titleContent.appendChild(githubIcon);
           titleContent.appendChild(themeToggleIcon);
           
-          // Add title content to title
           title.appendChild(titleContent);
           
-          // Create content element
           const content = document.createElement('div');
           content.style.padding = '0';
           content.style.margin = '0';
@@ -581,7 +675,6 @@ const config = {
           content.style.flex = '0';
           content.style.display = 'none';
           
-          // Create list for menu items
           const list = document.createElement('ul');
           list.style.listStyle = 'none';
           list.style.padding = '0';
@@ -589,20 +682,15 @@ const config = {
           list.style.backgroundColor = 'white';
           list.style.background = 'white';
           
-          // Wait a bit to ensure all navigation links are loaded
           setTimeout(() => {
-            // Get navigation links
             const navLinks = document.querySelectorAll('.navbar__items a, .menu__link, .navbar-sidebar__items a, .navbar__item a');
             console.log('Found navigation links:', navLinks.length);
             
-            // Create a Set to track URLs we've already added
             const addedUrls = new Set();
             
-            // Add some default links if no navigation links are found
             if (navLinks.length === 0) {
               console.log('No navigation links found, adding default links');
               
-              // Add Home link
               const homeItem = document.createElement('li');
               homeItem.style.margin = '5px 0';
               
@@ -623,7 +711,6 @@ const config = {
               homeItem.appendChild(homeLink);
               list.appendChild(homeItem);
               
-              // Add Docs link
               const docsItem = document.createElement('li');
               docsItem.style.margin = '5px 0';
               
@@ -644,13 +731,10 @@ const config = {
               docsItem.appendChild(docsLink);
               list.appendChild(docsItem);
             } else {
-              // Process found navigation links
               navLinks.forEach(link => {
                 const href = link.getAttribute('href');
                 const text = link.textContent.trim();
                 
-                // Skip empty links, hash links, or already added URLs
-                // Also skip LinkedIn and CV links
                 if (!href || 
                     href === '#' || 
                     addedUrls.has(href) || 
@@ -660,8 +744,6 @@ const config = {
                 }
                 
                 console.log('Adding link:', text, href);
-                
-                // Add URL to our tracking Set
                 addedUrls.add(href);
                 
                 const item = document.createElement('li');
@@ -669,7 +751,6 @@ const config = {
                 
                 const newLink = document.createElement('a');
                 newLink.href = href;
-                // Open external links in new tab
                 if (href.startsWith('http')) {
                   newLink.target = '_blank';
                   newLink.rel = 'noopener noreferrer';
@@ -686,7 +767,6 @@ const config = {
                 newLink.style.background = 'white';
                 newLink.style.opacity = '1';
                 
-                // Add hover effect
                 newLink.addEventListener('mouseover', function() {
                   this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
                   this.style.background = 'rgba(78, 87, 185, 0.6)';
@@ -706,7 +786,6 @@ const config = {
               });
             }
             
-            // Add a message if no links were added
             if (list.children.length === 0) {
               console.log('No links were added to the sidebar');
               
@@ -720,9 +799,6 @@ const config = {
               list.appendChild(noLinksItem);
             }
             
-            // Add additional menu items with text
-            
-            // Add a separator
             const separatorItem = document.createElement('li');
             separatorItem.style.margin = '10px 0';
             separatorItem.style.padding = '0 12px';
@@ -735,7 +811,6 @@ const config = {
             separatorItem.appendChild(separator);
             list.appendChild(separatorItem);
             
-            // Add CV link first (swapped with GitHub)
             const cvItem = document.createElement('li');
             cvItem.style.margin = '5px 0';
             
@@ -755,7 +830,6 @@ const config = {
             cvLink.style.background = 'white';
             cvLink.style.opacity = '1';
             
-            // CV icon
             const cvIconSpan = document.createElement('span');
             cvIconSpan.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #FFFFFF;"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
             
@@ -765,7 +839,6 @@ const config = {
             cvLink.appendChild(cvIconSpan);
             cvLink.appendChild(cvText);
             
-            // Add hover effect
             cvLink.addEventListener('mouseover', function() {
               this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
               this.style.background = 'rgba(78, 87, 185, 0.6)';
@@ -783,7 +856,6 @@ const config = {
             cvItem.appendChild(cvLink);
             list.appendChild(cvItem);
             
-            // Add GitHub link (now second)
             const githubItem = document.createElement('li');
             githubItem.style.margin = '5px 0';
             
@@ -803,7 +875,6 @@ const config = {
             githubLink.style.background = 'white';
             githubLink.style.opacity = '1';
             
-            // GitHub icon
             const githubIcon = document.createElement('span');
             githubIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #000000;"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
             
@@ -813,7 +884,6 @@ const config = {
             githubLink.appendChild(githubIcon);
             githubLink.appendChild(githubText);
             
-            // Add hover effect
             githubLink.addEventListener('mouseover', function() {
               this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
               this.style.background = 'rgba(78, 87, 185, 0.6)';
@@ -831,7 +901,6 @@ const config = {
             githubItem.appendChild(githubLink);
             list.appendChild(githubItem);
             
-            // Add LinkedIn link
             const linkedinItem = document.createElement('li');
             linkedinItem.style.margin = '5px 0';
             
@@ -842,7 +911,7 @@ const config = {
             linkedinLink.style.display = 'flex';
             linkedinLink.style.alignItems = 'center';
             linkedinLink.style.padding = '8px 12px';
-            linkedinLink.style.color = '#4e57b9';
+            linkedinLink.style.color = '#0a66c2';
             linkedinLink.style.textDecoration = 'none';
             linkedinLink.style.borderRadius = '4px';
             linkedinLink.style.fontSize = '14px';
@@ -851,7 +920,6 @@ const config = {
             linkedinLink.style.background = 'white';
             linkedinLink.style.opacity = '1';
             
-            // LinkedIn icon
             const linkedinIconSpan = document.createElement('span');
             linkedinIconSpan.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
             
@@ -861,7 +929,6 @@ const config = {
             linkedinLink.appendChild(linkedinIconSpan);
             linkedinLink.appendChild(linkedinText);
             
-            // Add hover effect
             linkedinLink.addEventListener('mouseover', function() {
               this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
               this.style.background = 'rgba(78, 87, 185, 0.6)';
@@ -888,7 +955,7 @@ const config = {
             themeButton.style.alignItems = 'center';
             themeButton.style.width = '100%';
             themeButton.style.padding = '8px 12px';
-            themeButton.style.color = '#000000';
+            themeButton.style.color = '#ffffff';
             themeButton.style.textDecoration = 'none';
             themeButton.style.borderRadius = '4px';
             themeButton.style.fontSize = '14px';
@@ -900,25 +967,44 @@ const config = {
             themeButton.style.cursor = 'pointer';
             themeButton.style.textAlign = 'left';
             
-            // Theme icon
-            const themeIcon = document.createElement('span');
-            // Determine current theme
-            const isDarkTheme = document.documentElement.dataset.theme === 'dark';
-            if (isDarkTheme) {
-              themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: black;"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg>';
-            } else {
-              themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: white;"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
-            }
+            // Theme icon container with two SVGs
+            const themeIconContainer = document.createElement('span');
+            themeIconContainer.style.marginRight = '8px';
+            
+            const themeLightIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            themeLightIcon.setAttribute('class', 'light-theme-icon');
+            themeLightIcon.setAttribute('width', '20');
+            themeLightIcon.setAttribute('height', '20');
+            themeLightIcon.setAttribute('viewBox', '0 0 24 24');
+            themeLightIcon.setAttribute('fill', 'currentColor');
+            themeLightIcon.style.display = isDarkTheme ? 'none' : 'block';
+            const lightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            lightPath.setAttribute('d', 'M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z');
+            themeLightIcon.appendChild(lightPath);
+            
+            const themeDarkIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            themeDarkIcon.setAttribute('class', 'dark-theme-icon');
+            themeDarkIcon.setAttribute('width', '20');
+            themeDarkIcon.setAttribute('height', '20');
+            themeDarkIcon.setAttribute('viewBox', '0 0 24 24');
+            themeDarkIcon.setAttribute('fill', 'currentColor');
+            themeDarkIcon.style.display = isDarkTheme ? 'block' : 'none';
+            const darkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            darkPath.setAttribute('d', 'M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99a10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z');
+            themeDarkIcon.appendChild(darkPath);
+            
+            themeIconContainer.appendChild(themeLightIcon);
+            themeIconContainer.appendChild(themeDarkIcon);
             
             const themeText = document.createElement('span');
-            // Set text based on current theme
+            themeText.className = 'theme-text';
             themeText.textContent = isDarkTheme ? 'Dark Mode' : 'Light Mode';
             themeText.style.color = 'rgb(30, 1, 124)';
+            themeText.style.fontWeight = '500';
             
-            themeButton.appendChild(themeIcon);
+            themeButton.appendChild(themeIconContainer);
             themeButton.appendChild(themeText);
             
-            // Add hover effect
             themeButton.addEventListener('mouseover', function() {
               this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
               this.style.background = 'rgba(78, 87, 185, 0.6)';
@@ -933,9 +1019,7 @@ const config = {
               this.style.opacity = '1';
             });
             
-            // Add click event to toggle theme
             themeButton.addEventListener('click', function() {
-              // Find and click the theme toggle button in the header
               const docusaurusThemeButton = document.querySelector('.navbar__items--right .clean-btn') || 
                                        document.querySelector('[class*="toggleButton"]') || 
                                        document.querySelector('[class*="colorModeToggle"] button') ||
@@ -946,16 +1030,8 @@ const config = {
                 docusaurusThemeButton.click();
                 console.log('Theme toggled via mobile menu button');
                 
-                // Update the icon based on the new theme
                 setTimeout(() => {
-                  const isDarkTheme = document.documentElement.dataset.theme === 'dark';
-                  if (isDarkTheme) {
-                    themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="black" style="margin-right: 8px;"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg>';
-                    themeText.textContent = 'Dark Mode';
-                  } else {
-                    themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="white" style="margin-right: 8px;"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
-                    themeText.textContent = 'Light Mode';
-                  }
+                  updateAllThemeIcons();
                 }, 100);
               }
             });
@@ -964,53 +1040,34 @@ const config = {
             list.appendChild(themeItem);
           }, 500);
           
-          // Add list to content
           content.appendChild(list);
           
-          // Add title and content to sidebar
           sidebar.appendChild(title);
           sidebar.appendChild(content);
           
-          // Variable to track sidebar state - check localStorage first
-          // Always start with collapsed state after page navigation
           let isOpen = false;
-          
-          // Save collapsed state to localStorage
           localStorage.setItem('sidebarOpen', 'false');
           
-          // Function to open sidebar
           function openSidebar() {
-            // Only open on mobile screens
-            if (window.innerWidth >= 997) {
-              return;
-            }
+            if (window.innerWidth >= 997) return;
             
-            // Add active class to apply CSS
             sidebar.classList.add('active');
-            
-            // Save state to localStorage
             localStorage.setItem('sidebarOpen', 'true');
             
-            // Update sidebar styles
-            sidebar.style.width = '220px'; // Increased width to accommodate all icons
+            sidebar.style.width = '220px';
             sidebar.style.height = 'auto';
             sidebar.style.background = 'linear-gradient(135deg, white, rgba(78, 87, 185, 0.8))';
             sidebar.style.backgroundColor = 'transparent';
             sidebar.style.border = '1px solid rgba(78, 87, 185, 0.5)';
             sidebar.style.borderRadius = '8px';
             
-            // Update title styles
             title.style.borderRadius = '8px 8px 0 0';
             title.style.width = 'auto';
             title.style.height = 'auto';
             title.style.display = 'block';
             
-            // No text to hide anymore
-            
-            // Hide menu icon when active
             menuIcon.style.display = 'none';
             
-            // Update title content styles
             titleContent.style.background = 'rgba(78, 87, 185, 1)';
             titleContent.style.borderRadius = '8px 8px 0 0';
             titleContent.style.padding = '8px 0';
@@ -1018,29 +1075,21 @@ const config = {
             titleContent.style.height = 'auto';
             titleContent.style.position = 'static';
             
-            // Show all icons except menu icon when sidebar is open
             videoIcon.style.display = 'inline-block';
             cvIcon.style.display = 'inline-block';
             linkedinIcon.style.display = 'inline-block';
             githubIcon.style.display = 'inline-block';
             themeToggleIcon.style.display = 'inline-block';
             
-            // Make sure the correct theme icon is displayed
             const currentIsDarkTheme = document.documentElement.dataset.theme === 'dark';
             const sidebarLightIcon = themeToggleIcon.querySelector('.light-theme-icon');
             const sidebarDarkIcon = themeToggleIcon.querySelector('.dark-theme-icon');
             
             if (sidebarLightIcon && sidebarDarkIcon) {
-              if (currentIsDarkTheme) {
-                sidebarLightIcon.style.display = 'none';
-                sidebarDarkIcon.style.display = 'block';
-              } else {
-                sidebarLightIcon.style.display = 'block';
-                sidebarDarkIcon.style.display = 'none';
-              }
+              sidebarLightIcon.style.display = currentIsDarkTheme ? 'none' : 'block';
+              sidebarDarkIcon.style.display = currentIsDarkTheme ? 'block' : 'none';
             }
             
-            // Show content
             content.style.display = 'block';
             content.style.padding = '10px';
             content.style.maxHeight = '500px';
@@ -1055,15 +1104,10 @@ const config = {
             content.style.visibility = 'visible';
           }
           
-          // Function to close sidebar
           function closeSidebar() {
-            // Remove active class
             sidebar.classList.remove('active');
-            
-            // Save state to localStorage
             localStorage.setItem('sidebarOpen', 'false');
             
-            // Hide content
             content.style.display = 'none';
             content.style.padding = '0';
             content.style.maxHeight = '0';
@@ -1071,9 +1115,6 @@ const config = {
             content.style.minHeight = '0';
             content.style.overflow = 'hidden';
             
-            // No text to hide anymore
-            
-            // Restore menu icon size and center it
             menuIcon.style.fontSize = '30px';
             menuIcon.style.lineHeight = '30px';
             menuIcon.style.width = '30px';
@@ -1084,7 +1125,6 @@ const config = {
             menuIcon.style.top = '50%';
             menuIcon.style.transform = 'translate(-50%, -50%)';
             
-            // Update sidebar styles
             sidebar.style.width = '40px';
             sidebar.style.height = '40px';
             sidebar.style.background = 'rgba(78, 87, 185, 0.9)';
@@ -1092,13 +1132,11 @@ const config = {
             sidebar.style.border = '2px solid rgba(255, 255, 255, 0.8)';
             sidebar.style.borderRadius = '50%';
             
-            // Update title styles
             title.style.borderRadius = '50%';
             title.style.width = '40px';
             title.style.height = '40px';
             title.style.display = 'flex';
             
-            // Update title content styles
             titleContent.style.background = 'transparent';
             titleContent.style.borderRadius = '0';
             titleContent.style.padding = '0';
@@ -1106,7 +1144,6 @@ const config = {
             titleContent.style.height = '40px';
             titleContent.style.position = 'relative';
             
-            // Hide all icons except menu icon when collapsed
             videoIcon.style.display = 'none';
             cvIcon.style.display = 'none';
             linkedinIcon.style.display = 'none';
@@ -1114,11 +1151,9 @@ const config = {
             themeToggleIcon.style.display = 'none';
           }
           
-          // Add click event to toggle sidebar
           sidebar.addEventListener('click', function(e) {
             console.log('Sidebar clicked', e.target);
             
-            // Only handle clicks on sidebar, title, or menu icon
             if (e.target === sidebar || e.target === title || e.target === titleContent || e.target === menuIcon) {
               console.log('Toggle sidebar', isOpen);
               
@@ -1126,19 +1161,16 @@ const config = {
                 openSidebar();
                 isOpen = true;
               } else {
-                // Only close if clicking on the menu icon or sidebar background
                 if (e.target === menuIcon || e.target === sidebar) {
                   closeSidebar();
                   isOpen = false;
                 }
               }
               
-              // Prevent event from bubbling
               e.stopPropagation();
             }
           });
           
-          // Add click event to close sidebar when clicking outside
           document.addEventListener('click', function(e) {
             if (isOpen && !sidebar.contains(e.target)) {
               console.log('Clicked outside sidebar, closing');
@@ -1147,14 +1179,10 @@ const config = {
             }
           });
           
-          // Add click event to close sidebar when clicking a link
-          // Use event delegation for dynamically added links
           content.addEventListener('click', function(e) {
-            // Check if the click is on a link (but not on a button or inside a button)
             if (e.target.tagName === 'A' && !e.target.closest('button')) {
               console.log('Link clicked, closing sidebar');
               
-              // Close after a short delay to allow the click to process
               setTimeout(function() {
                 closeSidebar();
                 isOpen = false;
@@ -1162,134 +1190,68 @@ const config = {
             }
           });
           
-          // Add sidebar to body
           document.body.appendChild(sidebar);
           console.log('Custom sidebar added to body');
           
-          // Add a mutation observer to watch for theme changes
           const observer = new MutationObserver(mutations => {
             mutations.forEach(mutation => {
               if (mutation.attributeName === 'data-theme') {
-                const isDarkTheme = document.documentElement.dataset.theme === 'dark';
-                console.log('Theme changed to:', isDarkTheme ? 'dark' : 'light');
-                
-                // Update all theme toggle icons
-                const allLightIcons = document.querySelectorAll('.light-theme-icon');
-                const allDarkIcons = document.querySelectorAll('.dark-theme-icon');
-                
-                allLightIcons.forEach(icon => {
-                  icon.style.display = isDarkTheme ? 'none' : 'block';
-                  icon.setAttribute('fill', 'white'); // Ensure fill color is white
-                });
-                
-                allDarkIcons.forEach(icon => {
-                  icon.style.display = isDarkTheme ? 'block' : 'none';
-                  icon.setAttribute('fill', 'black'); // Change dark mode icon to black
-                });
-                
-                // Also update the sidebar theme toggle button specifically
-                const sidebarToggleButton = document.querySelector('#plugin-sidebar .toggle-theme-button');
-                if (sidebarToggleButton) {
-                  const sidebarLightIcon = sidebarToggleButton.querySelector('.light-theme-icon');
-                  const sidebarDarkIcon = sidebarToggleButton.querySelector('.dark-theme-icon');
-                  
-                  if (sidebarLightIcon && sidebarDarkIcon) {
-                    if (isDarkTheme) {
-                      sidebarLightIcon.style.display = 'none';
-                      sidebarDarkIcon.style.display = 'block';
-                    } else {
-                      sidebarLightIcon.style.display = 'block';
-                      sidebarDarkIcon.style.display = 'none';
-                    }
-                  }
-                }
-                
-                // Update the theme text in the mobile menu
-                const themeTextElements = document.querySelectorAll('li button span');
-                themeTextElements.forEach(element => {
-                  if (element.textContent === 'Light Mode' || element.textContent === 'Dark Mode') {
-                    element.textContent = isDarkTheme ? 'Light Mode' : 'Dark Mode';
-                  }
-                });
+                console.log('Theme changed, updating all icons');
+                updateAllThemeIcons();
               }
             });
           });
           
-          // Start observing the document with the configured parameters
           observer.observe(document.documentElement, { attributes: true });
         });
         
-        // Listen for window resize events
         window.addEventListener('resize', function() {
-          // Check if we're on mobile or desktop
           if (window.innerWidth <= 996) {
-            // On mobile - show custom sidebar if it doesn't exist
             const customSidebar = document.getElementById('plugin-sidebar');
             if (!customSidebar) {
               console.log('Window resized to mobile, creating sidebar');
-              
-              // Create a new load event to trigger sidebar creation
               const loadEvent = new Event('load');
               window.dispatchEvent(loadEvent);
             }
           } else {
-            // On desktop - hide custom sidebar if it exists
             const customSidebar = document.getElementById('plugin-sidebar');
             if (customSidebar) {
               customSidebar.style.display = 'none';
               customSidebar.classList.remove('active');
-              
-              // Update isOpen variable if it's accessible in this scope
-              if (typeof isOpen !== 'undefined') {
-                isOpen = false;
-              }
-              
-              // Save state to localStorage
               localStorage.setItem('sidebarOpen', 'false');
             }
           }
         });
         
-        // Listen for page changes and recreate sidebar
         document.addEventListener('DOMContentLoaded', function() {
           console.log('DOMContentLoaded event - checking for sidebar');
           
-          // Wait a bit to ensure DOM is ready
           setTimeout(function() {
-            // Check if sidebar exists
             if (!document.getElementById('plugin-sidebar') && window.innerWidth <= 996) {
               console.log('Sidebar not found on DOMContentLoaded, creating again');
-              
-              // Create a new load event to trigger sidebar creation
               const loadEvent = new Event('load');
               window.dispatchEvent(loadEvent);
             }
           }, 500);
         });
         
-        // Track URL changes to update sidebar when navigating
         let lastUrl = location.href;
         
-        // Create a MutationObserver to track DOM changes
         const navigationObserver = new MutationObserver(() => {
           if (location.href !== lastUrl) {
             lastUrl = location.href;
             console.log('URL changed to', location.href);
             
-            // Wait a bit for new page to load content
             setTimeout(() => {
               console.log('Updating sidebar for new page');
               
-              // Remove old sidebar if exists
               const existingSidebar = document.getElementById('plugin-sidebar');
               if (existingSidebar) {
                 existingSidebar.remove();
               }
               
-              // Reset sidebar state in localStorage to ensure it starts collapsed
               localStorage.setItem('sidebarOpen', 'false');
               
-              // Create a new load event to trigger sidebar creation
               if (window.innerWidth <= 996) {
                 const loadEvent = new Event('load');
                 window.dispatchEvent(loadEvent);
@@ -1298,26 +1260,21 @@ const config = {
           }
         });
         
-        // Start observing the document body for changes
         navigationObserver.observe(document.body, {
           childList: true,
           subtree: true
         });
         
-        // Listen for popstate event (when user uses browser back/forward buttons)
         window.addEventListener('popstate', function() {
           console.log('Navigation detected via popstate event');
           
-          // Only update sidebar on mobile
           if (window.innerWidth <= 996) {
             setTimeout(() => {
-              // Remove old sidebar if exists
               const existingSidebar = document.getElementById('plugin-sidebar');
               if (existingSidebar) {
                 existingSidebar.remove();
               }
               
-              // Create a new load event to trigger sidebar creation
               const loadEvent = new Event('load');
               window.dispatchEvent(loadEvent);
             }, 500);
@@ -1327,47 +1284,34 @@ const config = {
     },
   ],
 
-  // Set the production url of your site here
   url: "https://TuPhung369.github.io",
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/Haaga_Backend_Programming/",
 
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: "TuPhung369", // Usually your GitHub org/user name.
-  projectName: "Haaga_Backend_Programming", // Usually your repo name.
+  organizationName: "TuPhung369",
+  projectName: "Haaga_Backend_Programming",
 
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
 
-  // Even if you don't use internalization, you can use this field to set useful
-  // metadata like html lang. For example, if your site is Chinese, you may want
-  // to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: "en",
     locales: ["en"],
   },
 
-  // Custom fields for webpack configuration
   customFields: {
     webpackConfig: {
-      // This is just for documentation, actual config is handled by clientModules
       cssModules: true,
     },
   },
 
-  // Use custom client modules file with ES modules
   clientModules: [path.resolve(__dirname, "./src/client-modules.js")],
 
-  // Enable Mermaid diagrams
   markdown: {
     mermaid: true,
   },
 
   themes: ["@docusaurus/theme-mermaid"],
 
-  // Custom plugins
   plugins: [
     path.resolve(__dirname, "./src/plugins/bookmark-plugin.js"),
     path.resolve(__dirname, "./src/plugins/category-css-plugin.js"),
@@ -1376,13 +1320,9 @@ const config = {
   presets: [
     [
       "classic",
-      /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
         docs: {
           sidebarPath: path.resolve(__dirname, "./sidebars.js"),
-          // "Edit this page" links have been removed
-          // editUrl:
-          //   "https://github.com/TuPhung369/Haaga_Backend_Programming/tree/main/TuPhung_Docs/",
           remarkPlugins: [
             [require("@docusaurus/remark-plugin-npm2yarn"), { sync: true }],
           ],
@@ -1394,190 +1334,184 @@ const config = {
             path.resolve(__dirname, "./src/css/sidebar-fix.css"),
           ],
         },
-      }),
+      },
     ],
   ],
 
-  themeConfig:
-    /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-    ({
-      // Replace with your project's social card
-      image: "img/logo.svg",
-      // Configure Table of Contents to only show h2 headers
-      tableOfContents: {
-        minHeadingLevel: 2,
-        maxHeadingLevel: 2,
+  themeConfig: {
+    image: "img/logo.svg",
+    tableOfContents: {
+      minHeadingLevel: 2,
+      maxHeadingLevel: 2,
+    },
+    docs: {
+      sidebar: {
+        autoCollapseCategories: true,
       },
-      docs: {
-        sidebar: {
-          autoCollapseCategories: true,
+    },
+    navbar: {
+      title: "🏠 Enterprise Nexus",
+      logo: {
+        alt: "Enterprise Nexus Logo",
+        src: "img/logo.svg",
+      },
+      items: [
+        {
+          type: "dropdown",
+          label: "📚 Documentation",
+          position: "left",
+          items: [
+            {
+              type: "html",
+              value:
+                '<a href="/Haaga_Backend_Programming/docs/intro" class="dropdown__link">📝 Introduction</a>',
+            },
+            {
+              type: "html",
+              value:
+                '<a href="/Haaga_Backend_Programming/docs/tech-stack" class="dropdown__link">🔧 Tech Stack</a>',
+            },
+            {
+              type: "html",
+              value:
+                '<a href="/Haaga_Backend_Programming/docs/architecture" class="dropdown__link">🏗️ Architecture</a>',
+            },
+            {
+              type: "html",
+              value:
+                '<a href="/Haaga_Backend_Programming/docs/deployment" class="dropdown__link">🚀 Deployment</a>',
+            },
+            {
+              type: "html",
+              value:
+                '<div class="dropdown-section-header">Main Categories</div>',
+              className: "dropdown-section",
+            },
+            {
+              type: "html",
+              value:
+                '<a href="/Haaga_Backend_Programming/docs/category/frontend" class="dropdown__link">🖥️ Frontend</a>',
+            },
+            {
+              type: "html",
+              value:
+                '<a href="/Haaga_Backend_Programming/docs/category/backend" class="dropdown__link">⚙️ Backend</a>',
+            },
+          ],
+        },
+        {
+          href: "/Haaga_Backend_Programming/docs/video/project-video",
+          label: "🎬 Videos",
+          position: "left",
+        },
+        {
+          href: "https://tuphung369.github.io/professional-cv/",
+          label: "📄 My CV",
+          position: "left",
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+        {
+          type: "html",
+          position: "left",
+          value:
+            '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" class="navbar-linkedin-link"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
+        },
+        {
+          type: "html",
+          position: "right",
+          value:
+            '<button class="toggle-theme-button" aria-label="Toggle"><svg class="light-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg><svg class="dark-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg></button>',
+        },
+        {
+          href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
+          className: "header-github-link",
+          position: "right",
+          "aria-label": "GitHub repository",
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+      ],
+    },
+    footer: {
+      style: "dark",
+      links: [
+        {
+          title: "📚 Documentation",
+          items: [
+            {
+              label: "📝 Introduction",
+              to: "/docs/intro",
+            },
+            {
+              label: "🏗️ Architecture",
+              to: "/docs/architecture",
+            },
+            {
+              label: "🔧 Tech Stack",
+              to: "/docs/tech-stack",
+            },
+          ],
+        },
+        {
+          title: "🔍 Technical Guides",
+          items: [
+            {
+              label: "🖥️ Frontend",
+              to: "/docs/category/frontend",
+            },
+            {
+              label: "⚙️ Backend",
+              to: "/docs/category/backend",
+            },
+            {
+              label: "🚀 Deployment Guide",
+              to: "/docs/deployment",
+            },
+          ],
+        },
+        {
+          title: "🎯 Project Resources",
+          items: [
+            {
+              label: "🎬 Video",
+              to: "/docs/video/project-video",
+            },
+            {
+              html: '<a href="https://github.com/TuPhung369/Haaga_Backend_Programming" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; padding-left: 5px; fill: var(--ifm-font-color-base);"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>GitHub</a>',
+            },
+          ],
+        },
+        {
+          title: "👋 Connect With Me",
+          items: [
+            {
+              label: "📄 My CV",
+              href: "https://tuphung369.github.io/professional-cv/",
+              target: "_blank",
+              rel: "noopener noreferrer",
+            },
+            {
+              html: '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: "#0A66C2";"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; padding-left: 5px; fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
+            },
+          ],
+        },
+      ],
+      copyright: `Copyright © ${new Date().getFullYear()} Tu Phung`,
+    },
+    prism: {
+      theme: themes.github,
+      darkTheme: themes.dracula,
+    },
+    mermaid: {
+      theme: { light: "neutral", dark: "dark" },
+      options: {
+        flowchart: {
+          curve: "linear",
         },
       },
-      navbar: {
-        title: "🏠 Enterprise Nexus",
-        logo: {
-          alt: "Enterprise Nexus Logo",
-          src: "img/logo.svg",
-        },
-        items: [
-          {
-            type: "dropdown",
-            label: "📚 Documentation",
-            position: "left",
-            items: [
-              {
-                type: "html",
-                value:
-                  '<a href="/Haaga_Backend_Programming/docs/intro" class="dropdown__link">📝 Introduction</a>',
-              },
-              {
-                type: "html",
-                value:
-                  '<a href="/Haaga_Backend_Programming/docs/tech-stack" class="dropdown__link">🔧 Tech Stack</a>',
-              },
-              {
-                type: "html",
-                value:
-                  '<a href="/Haaga_Backend_Programming/docs/architecture" class="dropdown__link">🏗️ Architecture</a>',
-              },
-              {
-                type: "html",
-                value:
-                  '<a href="/Haaga_Backend_Programming/docs/deployment" class="dropdown__link">🚀 Deployment</a>',
-              },
-
-              {
-                type: "html",
-                value:
-                  '<div class="dropdown-section-header">Main Categories</div>',
-                className: "dropdown-section",
-              },
-              {
-                type: "html",
-                value:
-                  '<a href="/Haaga_Backend_Programming/docs/category/frontend" class="dropdown__link">🖥️ Frontend</a>',
-              },
-              {
-                type: "html",
-                value:
-                  '<a href="/Haaga_Backend_Programming/docs/category/backend" class="dropdown__link">⚙️ Backend</a>',
-              },
-            ],
-          },
-          {
-            href: "/Haaga_Backend_Programming/docs/video/project-video",
-            label: "🎬 Videos",
-            position: "left",
-          },
-          {
-            href: "https://tuphung369.github.io/professional-cv/",
-            label: "📄 My CV",
-            position: "left",
-            target: "_blank",
-            rel: "noopener noreferrer",
-          },
-          {
-            type: "html",
-            position: "left",
-            value:
-              '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" class="navbar-linkedin-link"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; fill: #0077B5;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
-          },
-          {
-            type: "html",
-            position: "right",
-            value:
-              '<button class="toggle-theme-button" aria-label="Toggle"><svg class="light-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg><svg class="dark-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg></button>',
-          },
-          {
-            href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
-            className: "header-github-link",
-            position: "right",
-            "aria-label": "GitHub repository",
-            target: "_blank",
-            rel: "noopener noreferrer",
-          },
-        ],
-      },
-      footer: {
-        style: "dark",
-        links: [
-          {
-            title: "📚 Documentation",
-            items: [
-              {
-                label: "📝 Introduction",
-                to: "/docs/intro",
-              },
-              {
-                label: "🏗️ Architecture",
-                to: "/docs/architecture",
-              },
-              {
-                label: "🔧 Tech Stack",
-                to: "/docs/tech-stack",
-              },
-            ],
-          },
-          {
-            title: "🔍 Technical Guides",
-            items: [
-              {
-                label: "🖥️ Frontend",
-                to: "/docs/category/frontend",
-              },
-              {
-                label: "⚙️ Backend",
-                to: "/docs/category/backend",
-              },
-              {
-                label: "🚀 Deployment Guide",
-                to: "/docs/deployment",
-              },
-            ],
-          },
-          {
-            title: "🎯 Project Resources",
-            items: [
-              {
-                label: "🎬 Video",
-                to: "/docs/video/project-video",
-              },
-              {
-                html: '<a href="https://github.com/TuPhung369/Haaga_Backend_Programming" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; padding-left: 5px; fill: var(--ifm-font-color-base);"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>GitHub</a>',
-              },
-            ],
-          },
-          {
-            title: "👋 Connect With Me",
-            items: [
-              {
-                label: "📄 My CV",
-                href: "https://tuphung369.github.io/professional-cv/",
-                target: "_blank",
-                rel: "noopener noreferrer",
-              },
-              {
-                html: '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; padding-left: 5px; fill: #0077B5;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
-              },
-            ],
-          },
-        ],
-        copyright: `Copyright © ${new Date().getFullYear()} Tu Phung`,
-      },
-      prism: {
-        theme: themes.github,
-        darkTheme: themes.dracula,
-      },
-      // Mermaid configuration
-      mermaid: {
-        theme: { light: "neutral", dark: "dark" },
-        options: {
-          flowchart: {
-            curve: "linear",
-          },
-        },
-      },
-    }),
+    },
+  },
 };
 
 module.exports = config;
