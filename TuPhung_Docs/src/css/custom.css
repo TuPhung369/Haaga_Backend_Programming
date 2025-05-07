@@ -1424,6 +1424,25 @@ svg[class*="iconExternalLink"] {
   color: var(--ifm-navbar-link-color);
 }
 
+/* Ensure LinkedIn text color in header for light theme */
+html[data-theme='light'] .navbar-linkedin-link {
+  color: #000000 !important;
+}
+
+/* Ensure LinkedIn text color in header for dark theme */
+html[data-theme='dark'] .navbar-linkedin-link {
+  color: #ffffff !important;
+}
+
+/* LinkedIn icon color */
+html[data-theme='light'] .navbar-linkedin-link svg {
+  fill: #2864AA !important;
+}
+
+html[data-theme='dark'] .navbar-linkedin-link svg {
+  fill: #ffffff !important;
+}
+
 .navbar-linkedin-link:hover {
   opacity: 0.8;
   text-decoration: none;
@@ -1830,11 +1849,29 @@ html[data-theme='dark'] .footer {
   border-top: 1px solid rgba(37, 194, 160, 0.3);
 }
 
+/* Ensure LinkedIn text is white in dark mode but keep icon color */
+html[data-theme='dark'] .footer a[href*="linkedin.com"] {
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] .footer a[href*="linkedin.com"] svg {
+  fill: #ffffff !important;
+}
+
 /* Ensure all footer text is black in light mode */
 html[data-theme='light'] .footer .footer__link-item,
 html[data-theme='light'] .footer .footer__title,
 html[data-theme='light'] .footer .footer__copyright {
   color: #000000 !important;
+}
+
+/* Ensure LinkedIn text is black in light mode but keep icon color */
+html[data-theme='light'] .footer a[href*="linkedin.com"] {
+  color: #000000 !important;
+}
+
+html[data-theme='light'] .footer a[href*="linkedin.com"] svg {
+  fill: #2864AA !important;
 }
 
 html[data-theme='light'] .footer .footer__link-item:hover {
@@ -1886,7 +1923,12 @@ html[data-theme='light'] .footer .footer__link-item:hover {
   .footer__items {
     padding-left: 0 !important;
   }
-  
+  html[data-theme='light'] .footer_item {
+    color: black !important;
+  }
+  html[data-theme='dark'] .footer_item {
+    color: white !important;
+  }
   .footer .container {
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;

@@ -26,28 +26,28 @@ module.exports = function (context, options) {
                 overflow: hidden !important;
                 transition: all 0.3s ease !important;
                 z-index: 99999 !important; /* Increased z-index to ensure visibility */
-                /* Ensure bookmark is always at the edge of the viewport, not affected by scrollbar */
+                text-align: center !important;
+                cursor: pointer !important;
               }
               
-              /* Ensure bookmark is responsive on all screens */
-              @media (max-width: 768px) {
-                #plugin-bookmark {
-                  right: 15px !important;
-                }
+              /* Style for bookmark icon to ensure it's centered */
+              .bookmark-icon {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                font-size: 35px !important;
+                text-align: center !important;
+                width: 40px !important;
+                height: 40px !important;
+                margin: 0 auto !important;
+                padding-bottom: 10px !important;
+                color: rgba(78, 87, 185, 1) !important; /* Black color for initial state */
+                transition: color 0.3s ease !important;
               }
               
-              @media (max-width: 480px) {
-                #plugin-bookmark {
-                  right: 15px !important;
-                }
-              }
-              
-              /* Reset for all children of plugin-bookmark */
-              #plugin-bookmark > div {
-                background: transparent !important;
-                background-color: transparent !important;
-                background-image: none !important;
-                border: none !important;
+              /* Hover effect for bookmark icon */
+              #plugin-bookmark:hover .bookmark-icon {
+                color: rgba(78, 87, 185, 1) !important; /* Change to theme color on hover */
               }
               
               /* Override styles when active */
@@ -56,37 +56,49 @@ module.exports = function (context, options) {
                 background-color: transparent !important;
                 border: 1px solid rgba(78, 87, 185, 0.5) !important;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-                right: 15px !important; /* Always at the edge of the viewport */
+                right: 15px !important;
                 top: 75px !important;
                 width: 350px !important;
                 height: auto !important;
                 border-radius: 8px !important;
-                z-index: 99999 !important; /* Increased z-index to ensure visibility */
+                z-index: 99999 !important;
+                display: block !important;
               }
               
-              /* Ensure active bookmark is responsive on all screens */
-              @media (max-width: 768px) {
+              /* Responsive styles for different screen sizes */
+              @media (max-width: 1200px) and (min-width: 769px) {
+                #plugin-bookmark {
+                  right: 10px !important;
+                }
                 #plugin-bookmark.active {
-                  right: 15px !important; /* Always at the edge of the viewport */
+                  right: 10px !important;
+                  width: 300px !important;
+                }
+              }
+              
+              @media (max-width: 768px) {
+                #plugin-bookmark {
+                  right: 3px !important;
+                }
+                #plugin-bookmark.active {
+                  right: 3px !important;
                   width: 300px !important;
                 }
               }
               
               @media (max-width: 480px) {
+                #plugin-bookmark {
+                  right: 3px !important;
+                }
                 #plugin-bookmark.active {
-                  right: 15px !important; /* Always at the edge of the viewport */
+                  right: 3px !important;
                   width: 250px !important;
                 }
               }
               
-              #plugin-bookmark.active > div {
-                background: transparent !important;
-                background-color: transparent !important;
-              }
-              
               /* Style for bookmark title when active */
               #plugin-bookmark.active .bookmark-title-content {
-                background: rgba(78, 87, 185, 1) !important;
+                background: linear-gradient(135deg, rgba(78, 87, 185, 0.9), rgba(78, 87, 185, 1)) !important;
                 background-color: rgba(78, 87, 185, 1) !important;
                 color: white !important;
                 display: flex !important;
@@ -94,22 +106,80 @@ module.exports = function (context, options) {
                 justify-content: center !important;
                 width: 100% !important;
                 border-radius: 8px 8px 0 0 !important;
-                padding: 8px 0 !important;
+                padding: 10px 0 !important;
                 text-align: center !important;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+                position: relative !important;
+                overflow: hidden !important;
+                transition: all 0.3s ease !important;
               }
               
-              #plugin-bookmark.active .bookmark-icon,
+              /* Add subtle gradient animation to title */
+              @keyframes gradientShift {
+                0% {
+                  background-position: 0% 50%;
+                }
+                50% {
+                  background-position: 100% 50%;
+                }
+                100% {
+                  background-position: 0% 50%;
+                }
+              }
+              
+              #plugin-bookmark.active .bookmark-title-content:hover {
+                background: linear-gradient(135deg, rgba(78, 87, 185, 0.8), rgba(78, 87, 185, 1), rgba(60, 70, 170, 1)) !important;
+                background-size: 200% 200% !important;
+                animation: gradientShift 3s ease infinite !important;
+              }
+              
+              /* Add subtle shine effect on hover */
+              #plugin-bookmark.active .bookmark-title-content::after {
+                content: "" !important;
+                position: absolute !important;
+                top: -50% !important;
+                left: -50% !important;
+                width: 200% !important;
+                height: 200% !important;
+                background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%) !important;
+                transform: rotate(30deg) !important;
+                opacity: 0 !important;
+                transition: opacity 0.6s !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-title-content:hover::after {
+                opacity: 1 !important;
+                transition: opacity 0.6s, transform 1s !important;
+                transform: rotate(30deg) translate(100%, -100%) !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-icon {
+                color: white !important;
+                display: inline-block !important;
+                vertical-align: middle !important;
+                font-size: 20px !important;
+                width: auto !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding-bottom: 0 !important;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+                transition: transform 0.3s ease !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-title-content:hover .bookmark-icon {
+                transform: rotate(360deg) scale(1.1) !important;
+              }
+              
               #plugin-bookmark.active .bookmark-text {
                 color: white !important;
                 display: inline-block !important;
                 vertical-align: middle !important;
                 font-size: 16px !important;
                 line-height: 16px !important;
-              }
-              
-              #plugin-bookmark.active .bookmark-text {
-                display: inline-block !important;
-                margin-left: 5px !important;
+                margin-left: 8px !important;
+                font-weight: 500 !important;
+                letter-spacing: 0.5px !important;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
               }
               
               #plugin-bookmark.active ul {
@@ -126,6 +196,226 @@ module.exports = function (context, options) {
                 background: rgba(78, 87, 185, 0.5) !important;
                 background-color: rgba(78, 87, 185, 0.5) !important;
                 color: white !important;
+              }
+              
+              /* Style for bookmark content when active - with stable positioning */
+              #plugin-bookmark.active .bookmark-content {
+                background: white !important;
+                border-radius: 0 0 8px 8px !important;
+                padding: 8px 0 !important;
+                max-height: calc(90vh - 100px) !important; /* Limit to 90% of viewport height minus some space for header */
+                overflow-y: auto !important;
+                box-shadow: inset 0 -5px 5px -5px rgba(0,0,0,0.1) !important;
+                border-left: 1px solid rgba(78, 87, 185, 0.2) !important;
+                border-right: 1px solid rgba(78, 87, 185, 0.2) !important;
+                border-bottom: 1px solid rgba(78, 87, 185, 0.2) !important;
+                position: relative !important;
+                transform: translateZ(0) !important; /* Force GPU acceleration for smoother rendering */
+                backface-visibility: hidden !important; /* Prevent flickering in some browsers */
+              }
+              
+              /* Simplified content appearance without transform animations */
+              @keyframes fadeInContent {
+                from {
+                  opacity: 0.8;
+                }
+                to {
+                  opacity: 1;
+                }
+              }
+              
+              #plugin-bookmark.active .bookmark-content {
+                animation: fadeInContent 0.2s ease-out !important;
+              }
+              
+              /* Removed animation for list items to prevent flickering */
+              #plugin-bookmark.active .bookmark-content li {
+                opacity: 1 !important; /* Make items visible immediately */
+                transition: background-color 0.2s ease !important; /* Smooth transition for hover only */
+              }
+              
+              /* Scrollbar styling for bookmark content */
+              #plugin-bookmark.active .bookmark-content::-webkit-scrollbar {
+                width: 6px !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-content::-webkit-scrollbar-track {
+                background: rgba(0,0,0,0.05) !important;
+                border-radius: 0 0 8px 0 !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-content::-webkit-scrollbar-thumb {
+                background: rgba(78, 87, 185, 0.5) !important;
+                border-radius: 3px !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-content::-webkit-scrollbar-thumb:hover {
+                background: rgba(78, 87, 185, 0.7) !important;
+              }
+              
+              /* Style for headings in bookmark content */
+              #plugin-bookmark.active .bookmark-content li {
+                text-align: left !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                position: relative !important;
+                transition: all 0.2s ease !important;
+              }
+              
+              #plugin-bookmark.active .bookmark-content a {
+                text-align: left !important;
+                font-weight: normal !important;
+                transition: all 0.3s ease !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+              }
+              
+              /* Add a custom attribute to links for styling based on heading level */
+              #plugin-bookmark.active .bookmark-content li a {
+                position: relative !important;
+                display: block !important;
+                text-align: left !important;
+                padding: 6px 10px !important;
+                border-left: 3px solid transparent !important;
+                transition: all 0.2s ease !important;
+                margin: 2px 0 !important;
+                border-radius: 0 4px 4px 0 !important;
+              }
+              
+              /* Basic style for all links to ensure visibility */
+              #plugin-bookmark.active .bookmark-content li a {
+                display: block !important;
+                padding: 8px 10px !important;
+                margin: 2px 0 !important;
+                color: #000 !important;
+                font-weight: normal !important;
+                background-color: white !important;
+                border-left: 3px solid transparent !important;
+                text-decoration: none !important;
+                z-index: 100000 !important;
+                position: relative !important;
+              }
+              
+              /* Style for h1 headings - simplified */
+              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 8px"] {
+                font-weight: bold !important;
+                font-size: 15px !important;
+                color: #000 !important;
+                background-color: #f5f5f5 !important;
+                border-bottom: 1px solid #ddd !important;
+                margin-top: 5px !important;
+              }
+              
+              /* Style for h2 headings - simplified */
+              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 18px"] {
+                font-weight: 500 !important;
+                font-size: 14px !important;
+                color: #000 !important;
+                padding-left: 20px !important;
+              }
+              
+              /* Style for h3 headings - simplified */
+              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 28px"] {
+                font-size: 13px !important;
+                color: #000 !important;
+                padding-left: 30px !important;
+              }
+              
+              /* Style for h4+ headings - simplified */
+              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 38px"],
+              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 48px"],
+              #plugin-bookmark.active .bookmark-content li a[style*="paddingLeft: 58px"] {
+                font-size: 12px !important;
+                color: #000 !important;
+                padding-left: 40px !important;
+              }
+              
+              /* Simple hover effect for all links - with smoother transition */
+              #plugin-bookmark.active .bookmark-content li a {
+                transition: all 0.2s ease-in-out !important;
+                transform: translateY(0) !important; /* Prevent any transform on normal state */
+              }
+              
+              #plugin-bookmark.active .bookmark-content li a:hover {
+                background-color: #e6e6ff !important;
+                color: #4e57b9 !important;
+                border-left-color: #4e57b9 !important;
+                transform: translateY(0) !important; /* Prevent any transform on hover */
+              }
+              
+              /* Simple active state for all links */
+              #plugin-bookmark.active .bookmark-content li a:active {
+                background-color: #d9d9ff !important;
+                color: #4e57b9 !important;
+                transform: translateY(0) !important; /* Prevent any transform on active */
+              }
+              
+              /* Add ellipsis for long text */
+              #plugin-bookmark.active .bookmark-content li a {
+                max-width: 100% !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+                will-change: auto !important; /* Prevent browser optimization that might cause flickering */
+              }
+              
+              /* Style for empty list message */
+              .bookmark-empty-message {
+                text-align: center !important;
+                padding: 20px 15px !important;
+                color: #666 !important;
+                font-style: italic !important;
+                font-size: 14px !important;
+                border-top: 1px dashed rgba(78, 87, 185, 0.2) !important;
+                border-bottom: 1px dashed rgba(78, 87, 185, 0.2) !important;
+                margin: 10px 15px !important;
+                background-color: rgba(78, 87, 185, 0.03) !important;
+                border-radius: 4px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                animation: fadeInContent 0.5s ease-out !important;
+                min-height: 100px !important;
+              }
+              
+              .bookmark-empty-icon {
+                font-size: 24px !important;
+                color: rgba(78, 87, 185, 0.5) !important;
+                margin-bottom: 10px !important;
+                animation: pulseIcon 1.5s ease-in-out infinite !important;
+              }
+              
+              @keyframes pulseIcon {
+                0% {
+                  transform: scale(1);
+                  opacity: 0.7;
+                }
+                50% {
+                  transform: scale(1.1);
+                  opacity: 1;
+                }
+                100% {
+                  transform: scale(1);
+                  opacity: 0.7;
+                }
+              }
+              
+              /* Ripple effect animation */
+              @keyframes rippleEffect {
+                0% {
+                  transform: scale(0);
+                  opacity: 1;
+                }
+                50% {
+                  transform: scale(1.5);
+                  opacity: 0.5;
+                }
+                100% {
+                  transform: scale(2);
+                  opacity: 0;
+                }
               }
               
               /* Hide default bookmark on all pages */
@@ -156,60 +446,13 @@ module.exports = function (context, options) {
           {
             tagName: "script",
             innerHTML: `
-              // Define global functions that can be called from anywhere
-              let createBookmark;
-              let isDocumentationPage;
-              let hideDefaultBookmark;
-              
-              // Create bookmark when the page has loaded
               document.addEventListener('DOMContentLoaded', function() {
-                console.log('Creating plugin bookmark');
+                // Track last bookmark creation time to prevent too frequent updates
+                let lastBookmarkCreationTime = 0;
                 
-                // Remove old bookmark if it exists to avoid duplication
-                const existingBookmark = document.getElementById('plugin-bookmark');
-                if (existingBookmark) {
-                  existingBookmark.remove();
-                }
-                
-                // Define function to check documentation page
-                isDocumentationPage = function() {
-                  // Always show bookmark on homepage
-                  if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
-                    console.log('This is the homepage, showing bookmark');
-                    return true;
-                  }
-                  
-                  // Check if URL contains '/docs/'
-                  if (window.location.pathname.includes('/docs/')) {
-                    // Exclude video pages
-                    if (window.location.pathname.includes('/docs/video/')) {
-                      console.log('This is a video page, not showing bookmark');
-                      return false;
-                    }
-                    console.log('This is a documentation page');
-                    return true;
-                  }
-                  
-                  // Check for characteristic elements of documentation pages
-                  const docElements = document.querySelectorAll('.theme-doc-markdown, .docs-doc-page');
-                  if (docElements.length > 0) {
-                    // Exclude video pages
-                    if (window.location.pathname.includes('/docs/video/')) {
-                      console.log('This is a video page, not showing bookmark');
-                      return false;
-                    }
-                    console.log('Documentation elements found');
-                    return true;
-                  }
-                  
-                  console.log('This is not a documentation page');
-                  return false;
-                };
-                
-                // Define function to hide default bookmark
-                hideDefaultBookmark = function() {
-                  // List of selectors that could be default bookmark/TOC
-                  const defaultBookmarkSelectors = [
+                // Function to hide default TOC elements
+                function hideDefaultTOC() {
+                  const selectors = [
                     '.table-of-contents',
                     '.theme-doc-toc',
                     '.theme-doc-toc-desktop',
@@ -229,1074 +472,423 @@ module.exports = function (context, options) {
                     'div[role="complementary"]'
                   ];
                   
-                  // Try each selector
-                  defaultBookmarkSelectors.forEach(selector => {
-                    const elements = document.querySelectorAll(selector);
-                    elements.forEach(el => {
-                      // Hide all elements that could be TOC, not just elements with links
-                      console.log('Hiding default bookmark:', selector);
-                      el.style.display = 'none';
-                      el.style.visibility = 'hidden';
-                      el.style.opacity = '0';
-                      el.style.pointerEvents = 'none';
-                      
-                      // Add attribute to ensure element is not displayed
-                      el.setAttribute('aria-hidden', 'true');
-                      
-                      // Add class to easily identify hidden elements
-                      el.classList.add('plugin-bookmark-hidden');
-                    });
-                  });
-                  
-                  // Search and hide elements that could be TOC based on content, but only hide small elements
-                  const allElements = document.querySelectorAll('nav, aside, div.toc, div.table-of-contents, div[class*="tableOfContents"], div[class*="tocCollapsible"]');
-                  allElements.forEach(el => {
-                    // Check if the element contains text "Table of Contents" or "On this page"
-                    const text = el.textContent.toLowerCase();
-                    // Only hide small elements containing these keywords, avoid hiding the entire page
-                    if ((text.includes('table of contents') || text.includes('on this page') || text.includes('in this article')) 
-                        && el.textContent.length < 1000) { // Only hide small elements
-                      console.log('Hiding element with TOC-like content:', el);
-                      el.style.display = 'none';
-                      el.style.visibility = 'hidden';
+                  selectors.forEach(selector => {
+                    try {
+                      const elements = document.querySelectorAll(selector);
+                      elements.forEach(el => {
+                        el.style.display = 'none';
+                        el.style.visibility = 'hidden';
+                      });
+                    } catch (e) {
+                      console.error('Error hiding TOC:', e);
                     }
                   });
-                };
+                }
                 
-                // Define function to create bookmark
-                createBookmark = function() {
-                  // Hide default bookmark first
-                  hideDefaultBookmark();
-                  
-                  // Remove old bookmark if it exists
-                  const oldBookmark = document.getElementById('plugin-bookmark');
-                  if (oldBookmark) {
-                    oldBookmark.remove();
+                // Function to check if current page is a documentation page
+                function isDocPage() {
+                  // Homepage
+                  if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                    return true;
                   }
                   
-                  // Create bookmark element with direct HTML to ensure cleanliness
-                  const bookmarkContainer = document.createElement('div');
-                  bookmarkContainer.innerHTML = 
-                    '<div id="plugin-bookmark" style="' +
-                      'position: fixed;' +
-                      'right: 15px;' +
-                      'top: 75px;' +
-                      'width: 350px;' +
-                      'background: transparent;' +
-                      'border: none;' +
-                      'border-radius: 8px;' +
-                      'z-index: 99999;' + /* Increased z-index to ensure visibility */
-                      'overflow: hidden;' +
-                      'font-family: Arial, sans-serif;' +
-                      'display: flex;' +
-                      'flex-direction: column;' +
-                    '"></div>';
+                  // Docs pages
+                  if (window.location.pathname.includes('/docs/')) {
+                    if (window.location.pathname.includes('/docs/video/')) {
+                      return false;
+                    }
+                    return true;
+                  }
                   
-                  // Get bookmark element from container
-                  const bookmark = bookmarkContainer.firstElementChild;
+                  // Check for doc elements
+                  const docElements = document.querySelectorAll('.theme-doc-markdown, .docs-doc-page');
+                  return docElements.length > 0;
+                }
+                
+                // Function to create bookmark
+                function createBookmark() {
+                  // Prevent too frequent updates (at most once every 500ms)
+                  const now = Date.now();
+                  if (now - lastBookmarkCreationTime < 500) {
+                    return;
+                  }
+                  lastBookmarkCreationTime = now;
                   
-                  // Create title with direct HTML
-                  const titleContainer = document.createElement('div');
-                  titleContainer.innerHTML = 
-                    '<div style="' +
-                      'background: transparent;' +
-                      'padding: 0;' +
-                      'font-weight: bold;' +
-                      'text-align: center;' +
-                      'cursor: pointer;' +
-                      'border: none;' +
-                      'border-radius: 50%;' +
-                      'width: 40px;' +
-                      'height: 40px;' +
-                      'display: flex;' +
-                      'align-items: center;' +
-                      'justify-content: center;' +
-                    '">' +
-                      '<div class="bookmark-title-content" style="' +
-                        'display: flex;' +
-                        'align-items: center;' +
-                        'justify-content: center;' +
-                        'color: #4e57b9;' +
-                        'font-weight: bold;' +
-                        'font-size: 16px;' +
-                        'width: 100%;' +
-                      '"><span class="bookmark-icon" style="font-size: 30px; line-height: 30px; display: inline-block; vertical-align: middle;">&#9733;</span><span class="bookmark-text" style="margin-left: 5px; display: none; vertical-align: middle;">Bookmark</span></div>' +
-                    '</div>';
+                  // Check if there are any headings on the page first
+                  const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
                   
-                  const title = titleContainer.firstElementChild;
-                  const titleContent = title.firstElementChild;
+                  // Count valid headings (with IDs)
+                  let validHeadingsCount = 0;
+                  headings.forEach(heading => {
+                    if (heading.id) validHeadingsCount++;
+                  });
                   
-                  // Tạo nội dung với HTML trực tiếp
-                  const contentContainer = document.createElement('div');
-                  contentContainer.innerHTML = 
-                    '<div style="' +
-                      'padding: 0;' +
-                      'margin: 0;' +
-                      'max-height: 0;' +
-                      'height: 0;' +
-                      'min-height: 0;' +
-                      'overflow: hidden;' +
-                      'transition: all 0.3s ease;' +
-                      'background-color: transparent;' +
-                      'background: transparent;' +
-                      'background-image: none;' +
-                      'border: none;' +
-                      'border-top: 0;' +
-                      'border-radius: 0 0 8px 8px;' +
-                      'flex: 0;' +
-                      'display: none;' +
-                    '"></div>';
+                  // Debug: Log the headings found
+                  console.log('Headings found:', headings.length, 'Valid headings with IDs:', validHeadingsCount);
                   
-                  const content = contentContainer.firstElementChild;
+                  // Only proceed if there are valid headings with IDs
+                  if (validHeadingsCount === 0) {
+                    console.log('No valid headings with IDs found, skipping bookmark creation');
+                    return;
+                  }
                   
-                  // Tạo danh sách liên kết
+                  // Remove existing bookmark if any
+                  let wasOpen = false;
+                  const existingBookmark = document.getElementById('plugin-bookmark');
+                  if (existingBookmark) {
+                    // If bookmark is already open, remember this state
+                    wasOpen = existingBookmark.classList.contains('active');
+                    existingBookmark.remove();
+                  }
+                  
+                  // Create bookmark container
+                  const bookmark = document.createElement('div');
+                  bookmark.id = 'plugin-bookmark';
+                  
+                  // Create title
+                  const title = document.createElement('div');
+                  title.className = 'bookmark-title';
+                  title.style.padding = '0';
+                  title.style.margin = '0';
+                  title.style.textAlign = 'center';
+                  title.style.cursor = 'pointer';
+                  
+                  // Create title content
+                  const titleContent = document.createElement('div');
+                  titleContent.className = 'bookmark-title-content';
+                  titleContent.style.textAlign = 'center';
+                  
+                  // Create icon - using star icon (&#9733;) instead of bookmark emoji
+                  const icon = document.createElement('span');
+                  icon.className = 'bookmark-icon';
+                  icon.innerHTML = '&#9733;'; // Star icon
+                  
+                  // Create text
+                  const text = document.createElement('span');
+                  text.className = 'bookmark-text';
+                  text.textContent = 'Bookmark';
+                  text.style.display = 'none';
+                  
+                  // Create content
+                  const content = document.createElement('div');
+                  content.className = 'bookmark-content';
+                  content.style.maxHeight = '0';
+                  content.style.overflow = 'hidden';
+                  content.style.transition = 'max-height 0.3s ease-in-out, opacity 0.2s ease-in-out';
+                  content.style.background = 'white';
+                  content.style.opacity = '0';
+                  
+                  // Create list
                   const list = document.createElement('ul');
                   list.style.listStyle = 'none';
                   list.style.padding = '0';
                   list.style.margin = '0';
                   list.style.backgroundColor = 'white';
-                  list.style.background = 'white';
                   
-                  // Hàm mở bookmark - sử dụng HTML trực tiếp để đảm bảo sạch sẽ
-                  const openBookmark = function() {
-                    // Thêm class active để áp dụng CSS
-                    bookmark.classList.add('active');
-                    
-                    // Cập nhật bookmark
-                    bookmark.setAttribute('style', 
-                      'position: fixed !important;' +
-                      'right: 15px !important;' +
-                      'top: 75px !important;' +
-                      'width: 350px !important;' +
-                      'height: auto !important;' +
-                      'background: linear-gradient(135deg, white, rgba(78, 87, 185, 0.8)) !important;' +
-                      'background-color: transparent !important;' +
-                      'border: 1px solid rgba(78, 87, 185, 0.5) !important;' +
-                      'border-radius: 8px !important;' +
-                      'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;' +
-                      'z-index: 99999 !important;' + /* Increased z-index to ensure visibility */
-                      'overflow: hidden !important;' +
-                      'font-family: Arial, sans-serif !important;' +
-                      'display: flex !important;' +
-                      'flex-direction: column !important;' +
-                      'opacity: 1 !important;' +
-                      'transition: all 0.3s ease !important;'
-                    );
-                    
-                    // Cập nhật tiêu đề
-                    title.setAttribute('style', 
-                      'background: transparent !important;' +
-                      'background-color: transparent !important;' +
-                      'padding: 8px 12px !important;' +
-                      'font-weight: bold !important;' +
-                      'text-align: left !important;' +
-                      'cursor: pointer !important;' +
-                      'border: none !important;' +
-                      'border-radius: 8px 8px 0 0 !important;' +
-                      'opacity: 1 !important;' +
-                      'width: auto !important;' +
-                      'height: auto !important;' +
-                      'display: block !important;'
-                    );
-                    
-                    // Hiển thị text "Bookmark" khi mở
-                    const bookmarkText = title.querySelector('.bookmark-text');
-                    if (bookmarkText) {
-                      bookmarkText.style.display = 'inline-block';
-                      bookmarkText.style.verticalAlign = 'middle';
-                    }
-                    
-                    // Điều chỉnh kích thước icon khi active
-                    const bookmarkIcon = title.querySelector('.bookmark-icon');
-                    if (bookmarkIcon) {
-                      bookmarkIcon.style.fontSize = '16px';
-                      bookmarkIcon.style.lineHeight = '16px';
-                    }
-                    
-                    // Đảm bảo title content được căn giữa
-                    const titleContent = title.querySelector('.bookmark-title-content');
-                    if (titleContent) {
-                      titleContent.style.display = 'flex';
-                      titleContent.style.alignItems = 'center';
-                      titleContent.style.justifyContent = 'center';
-                      titleContent.style.padding = '8px 0';
-                    }
-                    
-                    // Cập nhật nội dung tiêu đề
-                    titleContent.setAttribute('style',
-                      'display: flex !important;' +
-                      'align-items: center !important;' +
-                      'justify-content: center !important;' +
-                      'color: white !important;' +
-                      'font-weight: bold !important;' +
-                      'font-size: 16px !important;' +
-                      'width: 100% !important;' +
-                      'background: rgba(78, 87, 185, 1) !important;' +
-                      'border-radius: 8px 8px 0 0 !important;' +
-                      'padding: 8px 0 !important;' +
-                      'text-align: center !important;'
-                    );
-                    
-                    // Cập nhật nội dung
-                    content.setAttribute('style', 
-                      'display: block;' +
-                      'padding: 10px;' +
-                      'max-height: 500px;' +
-                      'height: auto;' +
-                      'overflow-y: auto;' +
-                      'background-color: transparent !important;' +
-                      'background: transparent !important;' +
-                      'border-top: 1px solid #eee;' +
-                      'border-radius: 0 0 8px 8px;' +
-                      'flex: 1;' +
-                      'opacity: 1 !important;'
-                    );
-                  };
-                  
-                  // Hàm đóng bookmark - sử dụng HTML trực tiếp để đảm bảo sạch sẽ
-                  const closeBookmark = function() {
-                    // Xóa class active
-                    bookmark.classList.remove('active');
-                    
-                    // Đặt các thuộc tính trước khi ẩn
-                    content.setAttribute('style', 
-                      'padding: 0 !important;' +
-                      'max-height: 0 !important;' +
-                      'height: 0 !important;' +
-                      'min-height: 0 !important;' +
-                      'overflow: hidden !important;' +
-                      'transition: all 0.3s ease !important;' +
-                      'background-color: transparent !important;' +
-                      'background: transparent !important;' +
-                      'background-image: none !important;' +
-                      'border: none !important;' +
-                      'border-top: 0 !important;' +
-                      'border-radius: 0 0 8px 8px !important;' +
-                      'flex: 0 !important;' +
-                      'display: none !important;'
-                    );
-                    
-                    // Ẩn text "Bookmark" khi đóng
-                    const bookmarkText = title.querySelector('.bookmark-text');
-                    if (bookmarkText) {
-                      bookmarkText.style.display = 'none';
-                    }
-                    
-                    // Khôi phục kích thước icon khi không active
-                    const bookmarkIcon = title.querySelector('.bookmark-icon');
-                    if (bookmarkIcon) {
-                      bookmarkIcon.style.fontSize = '30px';
-                      bookmarkIcon.style.lineHeight = '30px';
-                    }
-                    
-                    // Cập nhật nội dung tiêu đề để đảm bảo icon ở giữa
-                    titleContent.setAttribute('style',
-                      'display: flex !important;' +
-                      'align-items: center !important;' +
-                      'justify-content: center !important;' +
-                      'color: #4e57b9 !important;' +
-                      'font-weight: bold !important;' +
-                      'font-size: 16px !important;' +
-                      'width: 100% !important;' +
-                      'padding-left: 0 !important;'
-                    );
-                    
-                    // Ẩn hoàn toàn sau một khoảng thời gian ngắn
-                    setTimeout(function() {
-                      // Cập nhật bookmark - chỉ hiển thị icon hình tròn
-                      bookmark.setAttribute('style', 
-                        'position: fixed !important;' +
-                        'right: 15px !important;' +
-                        'top: 75px !important;' +
-                        'width: 40px !important;' +
-                        'height: 40px !important;' +
-                        'background: rgba(78, 87, 185, 0.0) !important;' +
-                        'background-color: rgba(78, 87, 185, 0.0) !important;' +
-                        'border: 1px solid rgba(78, 87, 185, 1) !important;' +
-                        'box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;' +
-                        'border-radius: 50% !important;' +
-                        'z-index: 99999 !important;' + /* Increased z-index to ensure visibility */
-                        'overflow: hidden !important;' +
-                        'font-family: Arial, sans-serif !important;' +
-                        'display: flex !important;' +
-                        'flex-direction: column !important;' +
-                        'transition: all 0.3s ease !important;'
-                      );
-                      
-                      // Cập nhật tiêu đề - chỉ hiển thị icon
-                      title.setAttribute('style', 
-                        'background: transparent !important;' +
-                        'padding: 0 !important;' +
-                        'font-weight: bold !important;' +
-                        'text-align: center !important;' +
-                        'cursor: pointer !important;' +
-                        'border: none !important;' +
-                        'border-radius: 50% !important;' +
-                        'width: 40px !important;' +
-                        'height: 40px !important;' +
-                        'display: flex !important;' +
-                        'align-items: center !important;' +
-                        'justify-content: center !important;'
-                      );
-                    }, 300);
-                  };
-                  
-                  // Tìm các tiêu đề trong trang
-                  setTimeout(function() {
-                    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-                    headings.forEach(heading => {
-                      if (heading.id) {
-                        const item = document.createElement('li');
-                        item.style.margin = '5px 0';
-                        
-                        // Thêm padding dựa vào cấp độ heading để tạo hiệu ứng phân cấp
-                        const headingLevel = parseInt(heading.tagName.substring(1));
-                        const paddingLeft = (headingLevel - 1) * 10;
-                        
-                        // Điều chỉnh font size dựa vào cấp độ heading
-                        let fontSize;
-                        switch(headingLevel) {
-                          case 1:
-                            fontSize = '18px';
-                            break;
-                          case 2:
-                            fontSize = '16px';
-                            break;
-                          case 3:
-                            fontSize = '14px';
-                            break;
-                          case 4:
-                            fontSize = '13px';
-                            break;
-                          default:
-                            fontSize = '12px';
-                        }
-                        
-                        const link = document.createElement('a');
-                        link.href = '#' + heading.id;
-                        link.textContent = heading.textContent;
-                        link.style.display = 'block';
-                        link.style.padding = '5px 8px';
-                        link.style.paddingLeft = (8 + paddingLeft) + 'px';
-                        link.style.color = 'rgb(30, 1, 124)';
-                        link.style.textDecoration = 'none';
-                        link.style.borderRadius = '4px';
-                        link.style.fontSize = fontSize;
-                        link.style.fontWeight = '500';
-                        link.style.transition = 'background-color 0.2s ease';
-                        link.style.backgroundColor = 'white';
-                        link.style.background = 'white';
-                        link.style.opacity = '1';
-                        
-                        // Thêm hiệu ứng hover với background opacity 0.5
-                        link.addEventListener('mouseover', function() {
-                          this.style.backgroundColor = 'rgba(78, 87, 185, 0.6)';
-                          this.style.background = 'rgba(78, 87, 185, 0.6)';
-                          this.style.color = '#ffffff';
-                          this.style.opacity = '1';
-                        });
-                        
-                        link.addEventListener('mouseout', function() {
-                          this.style.backgroundColor = 'white';
-                          this.style.background = 'white';
-                          this.style.color = 'rgb(30, 1, 124)';
-                          this.style.opacity = '1';
-                        });
-                        
-                        // Thêm sự kiện click để đóng bookmark khi click vào link
-                        link.addEventListener('click', function(e) {
-                          // Ngăn chặn sự kiện click lan ra document để tránh đóng bookmark ngay lập tức
-                          e.stopPropagation();
-                          
-                          // Đóng bookmark sau khi click vào link
-                          setTimeout(function() {
-                            closeBookmark();
-                            isOpen = false;
-                          }, 100);
-                        });
-                        
-                        item.appendChild(link);
-                        list.appendChild(item);
-                      }
-                    });
-                  }, 500);
-                  
-                  // Add elements to bookmark
+                  // Assemble elements
+                  titleContent.appendChild(icon);
+                  titleContent.appendChild(text);
+                  title.appendChild(titleContent);
                   content.appendChild(list);
                   bookmark.appendChild(title);
                   bookmark.appendChild(content);
                   
-                  // Biến để theo dõi trạng thái bookmark
-                  let isOpen = false;
-                  let hoverTimer = null;
-                  let leaveTimer = null;
-                  let isHovering = false;
-                  
-                  // Sử dụng hover để mở bookmark với độ trễ để tránh mở/đóng liên tục
-                  bookmark.addEventListener('mouseenter', function() {
-                    isHovering = true;
-                    
-                    // Xóa timer đóng nếu đang có
-                    if (leaveTimer) {
-                      clearTimeout(leaveTimer);
-                      leaveTimer = null;
-                    }
-                    
-                    // Đặt timer để mở bookmark sau một khoảng thời gian
-                    if (!isOpen && !hoverTimer) {
-                      hoverTimer = setTimeout(function() {
-                        if (isHovering) {
-                          openBookmark();
-                          isOpen = true;
-                        }
-                        hoverTimer = null;
-                      }, 300); // Độ trễ dài hơn để tránh mở khi di chuột qua nhanh
-                    }
-                  });
-                  
-                  // Sự kiện mouseleave để đóng bookmark
-                  bookmark.addEventListener('mouseleave', function() {
-                    isHovering = false;
-                    
-                    // Xóa timer mở nếu đang có
-                    if (hoverTimer) {
-                      clearTimeout(hoverTimer);
-                      hoverTimer = null;
-                    }
-                    
-                    // Đặt timer để đóng bookmark sau một khoảng thời gian
-                    if (isOpen && !leaveTimer) {
-                      leaveTimer = setTimeout(function() {
-                        if (!isHovering) {
-                          closeBookmark();
-                          isOpen = false;
-                        }
-                        leaveTimer = null;
-                      }, 500); // Độ trễ dài hơn để tránh đóng quá nhanh
-                    }
-                  });
-                  
-                  // Thêm sự kiện click cho bookmark để toggle trạng thái
-                  bookmark.addEventListener('click', function(e) {
-                    // Chỉ xử lý click trên bookmark hoặc title, không xử lý click trên nội dung
-                    if (e.target === bookmark || e.target === title || e.target.closest('#plugin-bookmark > div:first-child') !== null) {
-                      if (!isOpen) {
-                        openBookmark();
-                        isOpen = true;
-                      } else {
-                        closeBookmark();
-                        isOpen = false;
-                      }
-                      
-                      // Xóa các timer nếu đang có
-                      if (hoverTimer) {
-                        clearTimeout(hoverTimer);
-                        hoverTimer = null;
-                      }
-                      if (leaveTimer) {
-                        clearTimeout(leaveTimer);
-                        leaveTimer = null;
-                      }
-                    }
-                  });
-                  
-                  // Không cần thêm sự kiện click cho tiêu đề vì đã xử lý ở bookmark click
-                  
-                  // Đảm bảo trạng thái ban đầu là sạch - sử dụng setAttribute để đặt lại hoàn toàn
-                  bookmark.setAttribute('style', 
-                    'position: fixed !important;' +
-                    'right: 15px !important;' +
-                    'top: 75px !important;' +
-                    'width: 40px !important;' +
-                    'height: 40px !important;' +
-                    'background: rgba(78, 87, 185, 0.0) !important;' +
-                    'background-color: rgba(78, 87, 185, 0.0) !important;' +
-                    'border: 1px solid rgba(78, 87, 185, 1) !important;' +
-                    'box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;' +
-                    'border-radius: 50% !important;' +
-                    'z-index: 99999 !important;' + /* Increased z-index to ensure visibility */
-                    'overflow: hidden !important;' +
-                    'font-family: Arial, sans-serif !important;' +
-                    'display: flex !important;' +
-                    'flex-direction: column !important;' +
-                    'transition: all 0.3s ease !important;' +
-                    'cursor: pointer !important;'
-                  );
-                  
-                  // Đảm bảo tiêu đề hiển thị đúng ở trạng thái ban đầu
-                  title.setAttribute('style', 
-                    'background: transparent !important;' +
-                    'padding: 0 !important;' +
-                    'font-weight: bold !important;' +
-                    'text-align: center !important;' +
-                    'cursor: pointer !important;' +
-                    'border: none !important;' +
-                    'border-radius: 50% !important;' +
-                    'width: 40px !important;' +
-                    'height: 40px !important;' +
-                    'display: flex !important;' +
-                    'align-items: center !important;' +
-                    'justify-content: center !important;'
-                  );
-                  
-                  // Ẩn text "Bookmark" ở trạng thái ban đầu
-                  const bookmarkText = title.querySelector('.bookmark-text');
-                  if (bookmarkText) {
-                    bookmarkText.style.display = 'none';
-                  }
-                  
-                  // Đảm bảo icon ở giữa ở trạng thái ban đầu
-                  titleContent.setAttribute('style',
-                    'display: flex !important;' +
-                    'align-items: center !important;' +
-                    'justify-content: center !important;' +
-                    'color: #4e57b9 !important;' +
-                    'font-weight: bold !important;' +
-                    'font-size: 16px !important;' +
-                    'width: 100% !important;' +
-                    'padding-left: 0 !important;'
-                  );
-                  
-                  content.setAttribute('style', 
-                    'padding: 0;' +
-                    'margin: 0;' +
-                    'max-height: 0;' +
-                    'height: 0;' +
-                    'min-height: 0;' +
-                    'overflow: hidden;' +
-                    'background-color: transparent;' +
-                    'background: transparent;' +
-                    'background-image: none;' +
-                    'border: none;' +
-                    'border-top: 0;' +
-                    'border-radius: 0 0 8px 8px;' +
-                    'flex: 0;' +
-                    'display: none;'
-                  );
-                  
-                  // Thêm bookmark vào body
+                  // Add to document
                   document.body.appendChild(bookmark);
                   
-                  // Không cần kích hoạt sự kiện hover tự động nữa
-                  // Để người dùng tự hover vào bookmark khi cần
+                  // Check if bookmark should be visible initially
+                  populateBookmark();
                   
-                  console.log('Plugin bookmark created');
-                };
-                
-                // Theo dõi thay đổi URL để cập nhật bookmark khi chuyển trang
-                let lastUrl = location.href; 
-                
-                // Tạo một MutationObserver để theo dõi thay đổi trong DOM
-                const navigationObserver = new MutationObserver(() => {
-                  if (location.href !== lastUrl) {
-                    lastUrl = location.href;
-                    console.log('URL changed to', location.href);
+                  // Track state
+                  let isOpen = wasOpen;
+                  
+                  // If it was open before, reopen it
+                  if (wasOpen) {
+                    openBookmark();
+                  }
+                  
+                  // Function to populate bookmark with headings
+                  function populateBookmark() {
+                    list.innerHTML = '';
                     
-                    // Đợi một chút để trang mới tải xong nội dung
-                    setTimeout(() => {
-                      console.log('Updating bookmark for new page');
-                      updateBookmark();
-                    }, 1000);
-                  }
-                });
-                
-                // Cấu hình và bắt đầu observer
-                navigationObserver.observe(document, {childList: true, subtree: true});
-                
-                // Hàm cập nhật bookmark
-                function updateBookmark() {
-                  const existingBookmark = document.getElementById('plugin-bookmark');
-                  if (existingBookmark) {
-                    // Xóa bookmark cũ
-                    existingBookmark.remove();
-                    console.log('Removed old bookmark');
-                  }
-                  
-                  // Kiểm tra xem có phải trang documentation không
-                  if (isDocumentationPage()) {
-                    // Tạo lại bookmark
-                    createBookmark();
-                    console.log('Created new bookmark for page:', location.href);
-                  }
-                }
-                
-                // Nếu không phải trang documentation, không hiển thị bookmark
-                if (!isDocumentationPage()) {
-                  console.log('Skipping bookmark creation on non-documentation page');
-                  return;
-                }
-                
-                // Wait a bit to ensure DOM is ready before creating bookmark
-                setTimeout(function() {
-                  // Create bookmark
-                  createBookmark();
-                  console.log('Bookmark created on initial page load');
-                }, 300);
-                
-                // Hide default bookmark immediately and after a time interval
-                hideDefaultBookmark();
-                setTimeout(hideDefaultBookmark, 500);
-                setTimeout(hideDefaultBookmark, 1000);
-                setTimeout(hideDefaultBookmark, 2000);
-                setTimeout(hideDefaultBookmark, 3000);
-                setTimeout(hideDefaultBookmark, 5000);
-                
-                // Thiết lập một interval để liên tục kiểm tra và ẩn bookmark mặc định
-                const hideInterval = setInterval(hideDefaultBookmark, 2000);
-                // Dừng interval sau 20 giây để tránh tốn tài nguyên
-                setTimeout(() => clearInterval(hideInterval), 20000);
-                
-                // Sử dụng MutationObserver để phát hiện và ẩn các phần tử TOC mới được thêm vào DOM
-                const observer = new MutationObserver(function(mutations) {
-                  mutations.forEach(function(mutation) {
-                    if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-                      // Chỉ kiểm tra các phần tử mới thêm vào, không chạy lại toàn bộ hideDefaultBookmark
-                      mutation.addedNodes.forEach(node => {
-                        // Chỉ xử lý các phần tử DOM
-                        if (node.nodeType === 1) {
-                          // Kiểm tra xem phần tử có phải là TOC không
-                          const isToc = node.classList && (
-                            node.classList.contains('table-of-contents') ||
-                            node.classList.contains('theme-doc-toc') ||
-                            node.classList.contains('theme-doc-toc-desktop') ||
-                            node.classList.contains('toc') ||
-                            node.classList.contains('on-this-page') ||
-                            /tableOfContents/i.test(node.className) ||
-                            /tocCollapsible/i.test(node.className)
-                          );
-                          
-                          if (isToc) {
-                            console.log('Found new TOC element, hiding:', node);
-                            node.style.display = 'none';
-                            node.style.visibility = 'hidden';
-                            node.style.opacity = '0';
-                            node.style.pointerEvents = 'none';
-                            node.setAttribute('aria-hidden', 'true');
-                          }
-                          
-                          // Kiểm tra các phần tử con
-                          const tocElements = node.querySelectorAll('.table-of-contents, .theme-doc-toc, .theme-doc-toc-desktop, .toc, .on-this-page, [class*="tableOfContents"], [class*="tocCollapsible"]');
-                          if (tocElements.length > 0) {
-                            tocElements.forEach(el => {
-                              console.log('Found new TOC child element, hiding:', el);
-                              el.style.display = 'none';
-                              el.style.visibility = 'hidden';
-                              el.style.opacity = '0';
-                              el.style.pointerEvents = 'none';
-                              el.setAttribute('aria-hidden', 'true');
-                            });
-                          }
-                        }
-                      });
+                    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    
+                    // Count valid headings (with IDs)
+                    let validHeadingsCount = 0;
+                    headings.forEach(heading => {
+                      if (heading.id) validHeadingsCount++;
+                    });
+                    
+                    // If no valid headings, hide the bookmark completely
+                    if (validHeadingsCount === 0) {
+                      bookmark.style.display = 'none';
+                      console.log('No headings found, hiding bookmark');
+                      return;
                     }
-                  });
-                });
-                
-                // Cấu hình và bắt đầu observer
-                observer.observe(document.body, {
-                  childList: true,
-                  subtree: true
-                });
-                
-                // Dừng observer sau 30 giây để tránh tốn tài nguyên
-                setTimeout(() => observer.disconnect(), 30000);
-                
-                // Tạo phần tử bookmark
-                const bookmark = document.createElement('div');
-                bookmark.id = 'plugin-bookmark';
-                bookmark.style.position = 'fixed';
-                bookmark.style.right = '15px';
-                bookmark.style.top = '80px';
-                bookmark.style.width = '350px';
-                bookmark.style.backgroundColor = 'white';
-                bookmark.style.border = '1px solid #4e57b9';
-                bookmark.style.borderRadius = '8px';
-                bookmark.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                bookmark.style.zIndex = '9999';
-                bookmark.style.overflow = 'hidden';
-                bookmark.style.fontFamily = 'Arial, sans-serif';
-                
-                // Create title
-                const title = document.createElement('div');
-                title.style.backgroundColor = '#4e57b9';
-                title.style.color = 'white';
-                title.style.padding = '8px 12px';
-                title.style.fontWeight = 'bold';
-                title.style.textAlign = 'center';
-                title.style.cursor = 'pointer';
-                title.innerHTML = '<span style="margin-right: 5px; font-size: 1.1em;">&#9733;</span> Bookmark';
-                
-                // Tạo nội dung
-                const content = document.createElement('div');
-                content.style.padding = '10px';
-                content.style.maxHeight = '0px';
-                content.style.overflow = 'hidden';
-                content.style.transition = 'max-height 0.3s ease';
-                
-                // Tạo danh sách liên kết
-                const list = document.createElement('ul');
-                list.style.listStyle = 'none';
-                list.style.padding = '0';
-                list.style.margin = '0';
-                
-                // Tìm các tiêu đề trong trang
-                setTimeout(function() {
-                  const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-                  headings.forEach(heading => {
-                    if (heading.id) {
+                    
+                    // Show bookmark only if there are headings
+                    bookmark.style.display = 'block';
+                    
+                    headings.forEach(heading => {
+                      if (!heading.id) return;
+                      
                       const item = document.createElement('li');
-                      item.style.margin = '5px 0';
-                      
-                      // Thêm padding dựa vào cấp độ heading để tạo hiệu ứng phân cấp
-                      const headingLevel = parseInt(heading.tagName.substring(1));
-                      const paddingLeft = (headingLevel - 1) * 10;
-                      
                       const link = document.createElement('a');
                       link.href = '#' + heading.id;
                       link.textContent = heading.textContent;
                       link.style.display = 'block';
                       link.style.padding = '5px 8px';
+                      
+                      // Add indentation based on heading level
+                      const level = parseInt(heading.tagName.substring(1));
+                      const paddingLeft = (level - 1) * 10;
                       link.style.paddingLeft = (8 + paddingLeft) + 'px';
+                      
                       link.style.color = '#4e57b9';
                       link.style.textDecoration = 'none';
                       link.style.borderRadius = '4px';
                       
-                      // Thêm hiệu ứng hover
-                      link.addEventListener('mouseover', function() {
-                        this.style.backgroundColor = 'rgba(78, 87, 185, 0.1)';
-                      });
+                      // Remove inline hover effects - we'll use CSS instead
                       
-                      link.addEventListener('mouseout', function() {
-                        this.style.backgroundColor = 'transparent';
+                      // Simple click handler
+                      link.addEventListener('click', function(e) {
+                        // Close bookmark after a delay
+                        setTimeout(closeBookmark, 300);
                       });
                       
                       item.appendChild(link);
                       list.appendChild(item);
+                    });
+                  }
+                  
+                  // Function to open bookmark
+                  function openBookmark() {
+                    // Always open the bookmark, even if empty
+                    // We'll show a message if there are no headings
+                    
+                    isOpen = true;
+                    bookmark.classList.add('active');
+                    
+                    text.style.display = 'inline-block';
+                    
+                    titleContent.style.background = 'rgba(78, 87, 185, 1)';
+                    titleContent.style.color = 'white';
+                    titleContent.style.borderRadius = '8px 8px 0 0';
+                    titleContent.style.padding = '8px 0';
+                    
+                    // Set max-height to a large value to allow content to expand naturally
+                    // The CSS will limit it to 90vh - 100px if needed
+                    content.style.maxHeight = '2000px';
+                    content.style.opacity = '1';
+                    content.style.borderTop = '1px solid #eee';
+                    content.style.borderRadius = '0 0 8px 8px';
+                    
+                    populateBookmark();
+                  }
+                  
+                  // Function to close bookmark
+                  function closeBookmark() {
+                    isOpen = false;
+                    bookmark.classList.remove('active');
+                    
+                    titleContent.style.background = 'transparent';
+                    titleContent.style.color = '#4e57b9';
+                    titleContent.style.borderRadius = '0';
+                    titleContent.style.padding = '0';
+                    
+                    text.style.display = 'none';
+                    
+                    content.style.maxHeight = '0';
+                    content.style.opacity = '0';
+                  }
+                  
+                  // Open bookmark on hover
+                  bookmark.addEventListener('mouseenter', function() {
+                    if (!isOpen) {
+                      openBookmark();
+                    }
+                    // Cancel any pending close timer
+                    if (leaveTimer) {
+                      clearTimeout(leaveTimer);
                     }
                   });
-                }, 1000);
+                  
+                  // Close bookmark when mouse leaves (with a small delay)
+                  let leaveTimer;
+                  bookmark.addEventListener('mouseleave', function() {
+                    if (isOpen) {
+                      leaveTimer = setTimeout(function() {
+                        closeBookmark();
+                      }, 300); // 300ms delay before closing
+                    }
+                  });
+                }
                 
-                // Add elements to bookmark
-                content.appendChild(list);
-                bookmark.appendChild(title);
-                bookmark.appendChild(content);
+                // Only create bookmark on documentation pages
+                if (isDocPage()) {
+                  hideDefaultTOC();
+                  createBookmark();
+                }
                 
-                // Thêm sự kiện click cho tiêu đề để mở/đóng nội dung
-                title.addEventListener('click', function() {
-                  if (content.style.maxHeight === '0px' || content.style.maxHeight === '') {
-                    content.style.maxHeight = '500px'; // Tăng chiều cao tối đa để hiển thị nhiều heading hơn
-                    content.style.overflowY = 'auto'; // Thêm thanh cuộn nếu nội dung quá dài
-                  } else {
-                    content.style.maxHeight = '0px';
-                  }
+                // Handle page changes (for SPAs)
+                window.addEventListener('popstate', function() {
+                  setTimeout(function() {
+                    if (isDocPage()) {
+                      hideDefaultTOC();
+                      createBookmark();
+                    }
+                  }, 300);
                 });
                 
-                // Thêm bookmark vào body
-                document.body.appendChild(bookmark);
+                // Track URL changes for client-side routing (like sidebar navigation)
+                let lastUrl = location.href;
+                let urlCheckTimer = null;
+                let headingsCheckTimer = null;
                 
-                console.log('Plugin bookmark created');
-              });
-              
-              // Chạy lại sau khi trang đã tải hoàn toàn
-              window.addEventListener('load', function() {
-                console.log('Window loaded, checking for bookmark');
-                
-                // Theo dõi thay đổi URL để cập nhật bookmark khi chuyển trang
-                let lastUrl = location.href; 
-                
-                // Tạo một MutationObserver để theo dõi thay đổi trong DOM
-                const navigationObserver = new MutationObserver(() => {
+                // Function to check URL changes with debouncing
+                function checkUrlChange() {
                   if (location.href !== lastUrl) {
                     lastUrl = location.href;
-                    console.log('URL changed to', location.href);
+                    console.log('URL changed to:', lastUrl);
                     
-                    // Đợi một chút để trang mới tải xong nội dung
-                    setTimeout(() => {
-                      console.log('Updating bookmark for new page');
-                      updateBookmark();
-                    }, 1000);
-                  }
-                });
-                
-                // Cấu hình và bắt đầu observer
-                navigationObserver.observe(document, {childList: true, subtree: true});
-                
-                // Hàm cập nhật bookmark
-                function updateBookmark() {
-                  const existingBookmark = document.getElementById('plugin-bookmark');
-                  if (existingBookmark) {
-                    // Xóa bookmark cũ
-                    existingBookmark.remove();
-                    console.log('Removed old bookmark');
-                  }
-                  
-                  // Kiểm tra xem có phải trang documentation không
-                  if (isDocumentationPage()) {
-                    // Tạo lại bookmark
-                    createBookmark();
-                    console.log('Created new bookmark for page:', location.href);
+                    // Wait a bit for the content to update
+                    clearTimeout(urlCheckTimer);
+                    urlCheckTimer = setTimeout(function() {
+                      if (isDocPage()) {
+                        hideDefaultTOC();
+                        createBookmark();
+                      }
+                    }, 300);
                   }
                 }
                 
-                // Kiểm tra xem có phải trang documentation không
-                function isDocumentationPage() {
-                  // Always show bookmark on homepage
-                  if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
-                    console.log('This is the homepage, showing bookmark (load)');
-                    return true;
-                  }
-                  
-                  // Kiểm tra URL có chứa '/docs/' không
-                  if (window.location.pathname.includes('/docs/')) {
-                    // Loại trừ trang video
-                    if (window.location.pathname.includes('/docs/video/')) {
-                      console.log('This is a video page, not showing bookmark (load)');
-                      return false;
-                    }
-                    console.log('This is a documentation page (load)');
-                    return true;
-                  }
-                  
-                  // Kiểm tra các phần tử đặc trưng của trang documentation
-                  const docElements = document.querySelectorAll('.theme-doc-markdown, .docs-doc-page');
-                  if (docElements.length > 0) {
-                    // Loại trừ trang video
-                    if (window.location.pathname.includes('/docs/video/')) {
-                      console.log('This is a video page, not showing bookmark (load)');
-                      return false;
-                    }
-                    console.log('Documentation elements found (load)');
-                    return true;
-                  }
-                  
-                  console.log('This is not a documentation page (load)');
-                  return false;
-                }
-                
-                // Nếu không phải trang documentation, không hiển thị bookmark
-                if (!isDocumentationPage()) {
-                  console.log('Skipping bookmark check on non-documentation page');
-                  return;
-                }
-                
-                // Hide default bookmark
-                function hideDefaultBookmark() {
-                  // List of selectors that could be default bookmark/TOC
-                  const defaultBookmarkSelectors = [
-                    '.table-of-contents',
-                    '.theme-doc-toc',
-                    '.theme-doc-toc-desktop',
-                    '.table-of-contents-container',
-                    '[class*="tableOfContents"]',
-                    '[class*="tocCollapsible"]',
-                    '.toc-wrapper',
-                    '.toc-container',
-                    '.toc',
-                    '.on-this-page',
-                    '.on-this-page-navigation',
-                    'nav[aria-label="Table of contents"]',
-                    'nav[aria-label="On this page"]',
-                    'aside[class*="toc"]',
-                    'div[class*="toc"]',
-                    'div[class*="TableOfContents"]',
-                    'div[role="complementary"]'
-                  ];
-                  
-                  // Try each selector
-                  defaultBookmarkSelectors.forEach(selector => {
-                    const elements = document.querySelectorAll(selector);
-                    elements.forEach(el => {
-                      // Hide all elements that could be TOC, not just elements with links
-                      console.log('Hiding default bookmark on load:', selector);
-                      el.style.display = 'none';
-                      el.style.visibility = 'hidden';
-                      el.style.opacity = '0';
-                      el.style.pointerEvents = 'none';
-                      
-                      // Add attribute to ensure element is not displayed
-                      el.setAttribute('aria-hidden', 'true');
-                      
-                      // Add class to easily identify hidden elements
-                      el.classList.add('plugin-bookmark-hidden');
+                // Function to check headings with debouncing
+                function checkHeadings() {
+                  clearTimeout(headingsCheckTimer);
+                  headingsCheckTimer = setTimeout(function() {
+                    // Check if there are any valid headings first
+                    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    let validHeadingsCount = 0;
+                    headings.forEach(heading => {
+                      if (heading.id) validHeadingsCount++;
                     });
-                  });
-                  
-                  // Search and hide elements that could be TOC based on content, but only hide small elements
-                  const allElements = document.querySelectorAll('nav, aside, div.toc, div.table-of-contents, div[class*="tableOfContents"], div[class*="tocCollapsible"]');
-                  allElements.forEach(el => {
-                    // Check if the element contains text "Table of Contents" or "On this page"
-                    const text = el.textContent.toLowerCase();
-                    // Only hide small elements containing these keywords, avoid hiding the entire page
-                    if ((text.includes('table of contents') || text.includes('on this page') || text.includes('in this article')) 
-                        && el.textContent.length < 1000) { // Only hide small elements
-                      console.log('Hiding element with TOC-like content on load:', el);
-                      el.style.display = 'none';
-                      el.style.visibility = 'hidden';
+                    
+                    // Log the headings count for debugging
+                    console.log('Headings found in checkHeadings:', validHeadingsCount);
+                    
+                    const existingBookmark = document.getElementById('plugin-bookmark');
+                    
+                    // If no valid headings, hide the bookmark if it exists
+                    if (validHeadingsCount === 0 && existingBookmark) {
+                      existingBookmark.style.display = 'none';
+                      return;
                     }
-                  });
-                }
-                
-                // Hide default bookmark immediately and after a time interval
-                hideDefaultBookmark();
-                setTimeout(hideDefaultBookmark, 500);
-                setTimeout(hideDefaultBookmark, 1000);
-                setTimeout(hideDefaultBookmark, 2000);
-                setTimeout(hideDefaultBookmark, 3000);
-                setTimeout(hideDefaultBookmark, 5000);
-                
-                // Thiết lập một interval để liên tục kiểm tra và ẩn bookmark mặc định
-                const hideInterval = setInterval(hideDefaultBookmark, 2000);
-                // Dừng interval sau 20 giây để tránh tốn tài nguyên
-                setTimeout(() => clearInterval(hideInterval), 20000);
-                
-                // Sử dụng MutationObserver để phát hiện và ẩn các phần tử TOC mới được thêm vào DOM
-                const observer = new MutationObserver(function(mutations) {
-                  mutations.forEach(function(mutation) {
-                    if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-                      // Chỉ kiểm tra các phần tử mới thêm vào, không chạy lại toàn bộ hideDefaultBookmark
-                      mutation.addedNodes.forEach(node => {
-                        // Chỉ xử lý các phần tử DOM
-                        if (node.nodeType === 1) {
-                          // Kiểm tra xem phần tử có phải là TOC không
-                          const isToc = node.classList && (
-                            node.classList.contains('table-of-contents') ||
-                            node.classList.contains('theme-doc-toc') ||
-                            node.classList.contains('theme-doc-toc-desktop') ||
-                            node.classList.contains('toc') ||
-                            node.classList.contains('on-this-page') ||
-                            /tableOfContents/i.test(node.className) ||
-                            /tocCollapsible/i.test(node.className)
-                          );
-                          
-                          if (isToc) {
-                            console.log('Found new TOC element on load, hiding:', node);
-                            node.style.display = 'none';
-                            node.style.visibility = 'hidden';
-                            node.style.opacity = '0';
-                            node.style.pointerEvents = 'none';
-                            node.setAttribute('aria-hidden', 'true');
-                          }
-                          
-                          // Kiểm tra các phần tử con
-                          const tocElements = node.querySelectorAll('.table-of-contents, .theme-doc-toc, .theme-doc-toc-desktop, .toc, .on-this-page, [class*="tableOfContents"], [class*="tocCollapsible"]');
-                          if (tocElements.length > 0) {
-                            tocElements.forEach(el => {
-                              console.log('Found new TOC child element on load, hiding:', el);
-                              el.style.display = 'none';
-                              el.style.visibility = 'hidden';
-                              el.style.opacity = '0';
-                              el.style.pointerEvents = 'none';
-                              el.setAttribute('aria-hidden', 'true');
-                            });
-                          }
-                        }
-                      });
-                    }
-                  });
-                });
-                
-                // Cấu hình và bắt đầu observer
-                observer.observe(document.body, {
-                  childList: true,
-                  subtree: true
-                });
-                
-                // Dừng observer sau 30 giây để tránh tốn tài nguyên
-                setTimeout(() => observer.disconnect(), 30000);
-                
-                // Kiểm tra và tạo lại bookmark nếu cần
-                if (!document.getElementById('plugin-bookmark')) {
-                  console.log('Bookmark not found, creating again');
-                  // Chạy lại script tạo bookmark
-                  setTimeout(function() {
-                    // Kiểm tra xem có phải trang documentation không
-                    if (isDocumentationPage()) {
-                      // Tạo lại bookmark
+                    
+                    // If there are headings and we're on a doc page, create or update the bookmark
+                    if (validHeadingsCount > 0 && isDocPage()) {
                       createBookmark();
-                      console.log('Plugin bookmark recreated on load');
-                      
-                      // Không cần kích hoạt sự kiện hover tự động nữa
-                      console.log('Bookmark recreated successfully');
                     }
-                  }, 500);
+                  }, 200);
                 }
                 
-                // Thêm sự kiện lắng nghe cho popstate (khi người dùng sử dụng nút back/forward của trình duyệt)
-                window.addEventListener('popstate', function() {
-                  console.log('Navigation detected via popstate event');
-                  setTimeout(() => {
-                    // Xóa bookmark cũ nếu có
-                    const existingBookmark = document.getElementById('plugin-bookmark');
-                    if (existingBookmark) {
-                      existingBookmark.remove();
-                    }
-                    
-                    // Tạo lại bookmark nếu đang ở trang documentation
-                    if (isDocumentationPage && isDocumentationPage()) {
-                      if (typeof createBookmark === 'function') {
-                        createBookmark();
-                        console.log('Bookmark updated after popstate event');
-                      } else {
-                        console.error('createBookmark function is not defined');
-                      }
-                    }
-                  }, 500);
-                });
-                
-                // Lắng nghe sự kiện hashchange (khi URL thay đổi chỉ ở phần hash)
-                window.addEventListener('hashchange', function() {
-                  console.log('Hash changed in URL');
-                  setTimeout(() => {
-                    // Xóa bookmark cũ nếu có
-                    const existingBookmark = document.getElementById('plugin-bookmark');
-                    if (existingBookmark) {
-                      existingBookmark.remove();
-                    }
-                    
-                    // Tạo lại bookmark nếu đang ở trang documentation
-                    if (isDocumentationPage && isDocumentationPage()) {
-                      if (typeof createBookmark === 'function') {
-                        createBookmark();
-                        console.log('Bookmark updated after hashchange event');
-                      } else {
-                        console.error('createBookmark function is not defined');
-                      }
-                    }
-                  }, 500);
-                });
-                
-                // Theo dõi click vào các liên kết trong sidebar của Docusaurus
-                document.addEventListener('click', function(e) {
-                  // Kiểm tra xem có phải click vào liên kết trong sidebar không
-                  if (e.target && (e.target.tagName === 'A' || e.target.closest('a'))) {
-                    const link = e.target.tagName === 'A' ? e.target : e.target.closest('a');
-                    const href = link.getAttribute('href');
-                    
-                    // Kiểm tra xem liên kết có dẫn đến trang documentation không
-                    if (href && href.includes('/docs/') && !href.startsWith('#')) {
-                      console.log('Clicked on a documentation link:', href);
+                // Create a new MutationObserver to watch for DOM changes
+                // Make sure document is fully loaded before creating observer
+                function setupMutationObserver() {
+                  if (document && document.body) {
+                    try {
+                      const observer = new MutationObserver(function(mutations) {
+                        // Check for URL changes and heading changes
+                        checkUrlChange();
+                        checkHeadings();
+                      });
                       
-                      // Đợi một chút để trang mới tải
-                      setTimeout(() => {
-                        // Xóa bookmark cũ nếu có
-                        const existingBookmark = document.getElementById('plugin-bookmark');
-                        if (existingBookmark) {
-                          existingBookmark.remove();
-                        }
-                        
-                        // Tạo lại bookmark
-                        if (isDocumentationPage && isDocumentationPage()) {
-                          if (typeof createBookmark === 'function') {
-                            createBookmark();
-                            console.log('Bookmark updated after sidebar navigation');
-                          } else {
-                            console.error('createBookmark function is not defined');
-                          }
-                        }
-                      }, 1000);
+                      // Start observing the document with the configured parameters
+                      observer.observe(document.body, { childList: true, subtree: true });
+                      console.log('MutationObserver successfully attached to document.body');
+                    } catch (error) {
+                      console.error('Error setting up MutationObserver:', error);
                     }
+                  } else {
+                    console.warn('Document body not available yet, retrying in 100ms');
+                    setTimeout(setupMutationObserver, 100);
+                  }
+                }
+                
+                // Wait for document to be ready before setting up observer
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                  setupMutationObserver();
+                } else {
+                  document.addEventListener('DOMContentLoaded', setupMutationObserver);
+                }
+                
+                // Also check for URL changes on click events (for sidebar navigation)
+                document.addEventListener('click', function(e) {
+                  // Check if the click was on a link
+                  if (e.target.tagName === 'A' || e.target.closest('a')) {
+                    // Wait a bit for the navigation to happen
+                    setTimeout(checkUrlChange, 100);
+                    setTimeout(checkHeadings, 300);
                   }
                 });
+                
+                // Additional check for dynamic content loading
+                // This helps with pages where content might be loaded after initial page load
+                setTimeout(checkHeadings, 1000);
+                
+                // Set up periodic checks for the first few seconds after page load
+                // This helps catch late-loading content in SPAs
+                for (let i = 1; i <= 5; i++) {
+                  setTimeout(checkHeadings, i * 1000);
+                }
+                
+                // For Docusaurus specifically, try to detect route changes
+                // by monitoring for specific events or DOM elements
+                function setupDocusaurusRouteChangeDetection() {
+                  // Make sure document is available
+                  if (!document || !document.body) {
+                    console.warn('Document not ready for Docusaurus route detection, retrying in 200ms');
+                    setTimeout(setupDocusaurusRouteChangeDetection, 200);
+                    return;
+                  }
+                  
+                  // Check for Docusaurus-specific elements that might indicate a route change
+                  const docusaurusContentContainer = document.querySelector('.main-wrapper');
+                  if (docusaurusContentContainer) {
+                    try {
+                      const contentObserver = new MutationObserver(function(mutations) {
+                        // When main content changes, check headings
+                        checkHeadings();
+                        // Also recreate bookmark after a short delay
+                        setTimeout(function() {
+                          if (isDocPage()) {
+                            createBookmark();
+                          }
+                        }, 300);
+                      });
+                      
+                      try {
+                        contentObserver.observe(docusaurusContentContainer, { 
+                          childList: true, 
+                          subtree: true,
+                          attributes: false,
+                          characterData: false
+                        });
+                        console.log('Docusaurus content observer successfully attached');
+                      } catch (observeError) {
+                        console.error('Error attaching observer to Docusaurus content:', observeError);
+                      }
+                      
+                      console.log('Docusaurus route detection set up successfully');
+                    } catch (error) {
+                      console.error('Error setting up Docusaurus route detection:', error);
+                    }
+                  } else {
+                    console.warn('Docusaurus content container not found');
+                  }
+                }
+                
+                // Set up Docusaurus-specific detection after a short delay
+                setTimeout(setupDocusaurusRouteChangeDetection, 1000);
               });
             `,
           },

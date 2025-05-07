@@ -1237,33 +1237,53 @@ const config = {
         
         let lastUrl = location.href;
         
-        const navigationObserver = new MutationObserver(() => {
-          if (location.href !== lastUrl) {
-            lastUrl = location.href;
-            console.log('URL changed to', location.href);
-            
-            setTimeout(() => {
-              console.log('Updating sidebar for new page');
+        // Function to set up navigation observer
+        function setupNavigationObserver() {
+          if (document && document.body) {
+            try {
+              const navigationObserver = new MutationObserver(() => {
+                if (location.href !== lastUrl) {
+                  lastUrl = location.href;
+                  console.log('URL changed to', location.href);
+                  
+                  setTimeout(() => {
+                    console.log('Updating sidebar for new page');
+                    
+                    const existingSidebar = document.getElementById('plugin-sidebar');
+                    if (existingSidebar) {
+                      existingSidebar.remove();
+                    }
+                    
+                    localStorage.setItem('sidebarOpen', 'false');
+                    
+                    if (window.innerWidth <= 996) {
+                      const loadEvent = new Event('load');
+                      window.dispatchEvent(loadEvent);
+                    }
+                  }, 500);
+                }
+              });
               
-              const existingSidebar = document.getElementById('plugin-sidebar');
-              if (existingSidebar) {
-                existingSidebar.remove();
-              }
-              
-              localStorage.setItem('sidebarOpen', 'false');
-              
-              if (window.innerWidth <= 996) {
-                const loadEvent = new Event('load');
-                window.dispatchEvent(loadEvent);
-              }
-            }, 500);
+              navigationObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+              });
+              console.log('Navigation observer successfully attached to document.body');
+            } catch (error) {
+              console.error('Error setting up navigation observer:', error);
+            }
+          } else {
+            console.warn('Document body not available yet for navigation observer, retrying in 100ms');
+            setTimeout(setupNavigationObserver, 100);
           }
-        });
+        }
         
-        navigationObserver.observe(document.body, {
-          childList: true,
-          subtree: true
-        });
+        // Wait for document to be ready before setting up observer
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          setupNavigationObserver();
+        } else {
+          document.addEventListener('DOMContentLoaded', setupNavigationObserver);
+        }
         
         window.addEventListener('popstate', function() {
           console.log('Navigation detected via popstate event');
@@ -1492,7 +1512,7 @@ const config = {
               rel: "noopener noreferrer",
             },
             {
-              html: '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: #0A66C2;"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; padding-left: 5px; fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
+              html: '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center;"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; padding-left: 5px; fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
             },
           ],
         },
