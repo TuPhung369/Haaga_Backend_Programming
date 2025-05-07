@@ -951,12 +951,10 @@ const config = {
                   const isDarkTheme = document.documentElement.dataset.theme === 'dark';
                   if (isDarkTheme) {
                     themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="black" style="margin-right: 8px;"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg>';
-                    // Update text to Light Mode
-                    themeText.textContent = 'Light Mode';
+                    themeText.textContent = 'Dark Mode';
                   } else {
                     themeIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="white" style="margin-right: 8px;"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg>';
-                    // Update text to Dark Mode
-                    themeText.textContent = 'Dark Mode';
+                    themeText.textContent = 'Light Mode';
                   }
                 }, 100);
               }
