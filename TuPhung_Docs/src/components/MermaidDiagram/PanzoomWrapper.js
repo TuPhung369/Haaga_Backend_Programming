@@ -124,10 +124,53 @@ const PanzoomWrapper = ({ children }) => {
   useEffect(() => {
     // Don't even try to initialize on touch devices
     if (isTouchDevice) {
+      // For touch devices, we'll just make sure the SVG is properly set up for native browser zooming
+      const setupMobileZoom = () => {
+        if (containerRef.current) {
+          const svgElement = containerRef.current.querySelector("svg");
+          if (svgElement) {
+            // Make SVG responsive
+            if (!svgElement.getAttribute("viewBox")) {
+              const width = svgElement.getAttribute("width") || "100%";
+              const height = svgElement.getAttribute("height") || "100%";
+              svgElement.setAttribute("viewBox", `0 0 ${width} ${height}`);
+              svgElement.setAttribute("width", "100%");
+              svgElement.setAttribute("height", "auto");
+            }
+
+            // Remove any transform that might interfere with native zooming
+            svgElement.style.transform = "none";
+
+            console.log(
+              "PanzoomWrapper: Mobile native zoom enabled for touch device"
+            );
+            return true;
+          }
+        }
+        return false;
+      };
+
+      // Try to set up mobile zoom
+      if (!setupMobileZoom()) {
+        // Retry a few times if SVG isn't immediately available
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        const interval = setInterval(() => {
+          attempts++;
+          if (setupMobileZoom() || attempts >= maxAttempts) {
+            clearInterval(interval);
+          }
+        }, 300);
+
+        // Cleanup interval after a maximum time
+        setTimeout(() => clearInterval(interval), 3000);
+      }
+
       return;
     }
 
-    // Initial attempt to initialize Panzoom
+    // For desktop devices, initialize Panzoom
     if (!initializePanzoom()) {
       // Only retry a few times to avoid infinite loops
       let attempts = 0;
@@ -157,6 +200,8 @@ const PanzoomWrapper = ({ children }) => {
     };
   }, [isTouchDevice]);
 
+  // Desktop zoom functions only
+
   const zoomIn = () => {
     if (panzoomRef.current) {
       panzoomRef.current.zoomIn();
@@ -175,8 +220,34 @@ const PanzoomWrapper = ({ children }) => {
     }
   };
 
+  // Common button style for both desktop and mobile
+  const buttonStyle = {
+    width: "32px",
+    height: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "14px",
+    background: "transparent",
+    border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
+    borderRadius: "4px",
+    cursor: "pointer",
+    color: isDarkMode ? "#ffffff" : "#000000",
+    backdropFilter: "blur(2px)",
+    transition: "all 0.2s ease",
+    opacity: 0.7,
+  };
+
   return (
-    <div style={{ position: "relative", width: "100%", overflow: "visible" }}>
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        overflow: "visible",
+        // Enable standard touch behavior
+        touchAction: "auto",
+      }}
+    >
       <div
         ref={containerRef}
         style={{
@@ -184,11 +255,16 @@ const PanzoomWrapper = ({ children }) => {
           position: "relative",
           // Allow browser's native touch gestures on touch devices
           touchAction: isTouchDevice ? "auto" : "none",
+          // Enable content scaling on mobile
+          WebkitOverflowScrolling: isTouchDevice ? "touch" : "auto",
+          // Ensure content can be zoomed on mobile
+          maxWidth: "100%",
         }}
       >
         {children}
       </div>
-      {/* Only show zoom controls on non-touch devices */}
+
+      {/* Only show zoom controls on desktop devices */}
       {!isTouchDevice && (
         <div
           style={{
@@ -210,22 +286,7 @@ const PanzoomWrapper = ({ children }) => {
             onClick={zoomIn}
             className="panzoom-button"
             title="Zoom In"
-            style={{
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "14px",
-              background: "transparent",
-              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
-              borderRadius: "4px",
-              cursor: "pointer",
-              color: isDarkMode ? "#ffffff" : "#000000",
-              backdropFilter: "blur(2px)",
-              transition: "all 0.2s ease",
-              opacity: 0.7,
-            }}
+            style={buttonStyle}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
           >
@@ -235,22 +296,7 @@ const PanzoomWrapper = ({ children }) => {
             onClick={zoomOut}
             className="panzoom-button"
             title="Zoom Out"
-            style={{
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "14px",
-              background: "transparent",
-              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
-              borderRadius: "4px",
-              cursor: "pointer",
-              color: isDarkMode ? "#ffffff" : "#000000",
-              backdropFilter: "blur(2px)",
-              transition: "all 0.2s ease",
-              opacity: 0.7,
-            }}
+            style={buttonStyle}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
           >
@@ -260,22 +306,7 @@ const PanzoomWrapper = ({ children }) => {
             onClick={resetZoom}
             className="panzoom-button"
             title="Reset"
-            style={{
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "14px",
-              background: "transparent",
-              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
-              borderRadius: "4px",
-              cursor: "pointer",
-              color: isDarkMode ? "#ffffff" : "#000000",
-              backdropFilter: "blur(2px)",
-              transition: "all 0.2s ease",
-              opacity: 0.7,
-            }}
+            style={buttonStyle}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
           >
