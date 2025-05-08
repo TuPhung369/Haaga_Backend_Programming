@@ -7,6 +7,7 @@ const PanzoomWrapper = ({ children }) => {
   const svgRef = useRef(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(true); // Default to true to prevent initialization until we check
+  const [mobileScale, setMobileScale] = useState(1); // Track mobile scaling
 
   // Check if device is a touch device (mobile, tablet, iPad, etc.)
   useEffect(() => {
@@ -126,6 +127,25 @@ const PanzoomWrapper = ({ children }) => {
     if (isTouchDevice) {
       // For touch devices, we'll just make sure the SVG is properly set up for native browser zooming
       const setupMobileZoom = () => {
+        // First, ensure the viewport meta tag is set correctly for zooming
+        let viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+          // Update existing viewport meta tag to ensure zoom is enabled
+          viewportMeta.setAttribute(
+            "content",
+            "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+          );
+        } else {
+          // Create a new viewport meta tag if it doesn't exist
+          viewportMeta = document.createElement("meta");
+          viewportMeta.setAttribute("name", "viewport");
+          viewportMeta.setAttribute(
+            "content",
+            "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+          );
+          document.head.appendChild(viewportMeta);
+        }
+
         if (containerRef.current) {
           const svgElement = containerRef.current.querySelector("svg");
           if (svgElement) {
@@ -140,6 +160,14 @@ const PanzoomWrapper = ({ children }) => {
 
             // Remove any transform that might interfere with native zooming
             svgElement.style.transform = "none";
+
+            // Add additional properties to ensure zooming works
+            svgElement.style.touchAction = "pinch-zoom";
+            svgElement.style.WebkitUserSelect = "text";
+            svgElement.style.userSelect = "text";
+
+            // Make sure the SVG is not preventing touch events
+            svgElement.style.pointerEvents = "auto";
 
             console.log(
               "PanzoomWrapper: Mobile native zoom enabled for touch device"
@@ -200,22 +228,107 @@ const PanzoomWrapper = ({ children }) => {
     };
   }, [isTouchDevice]);
 
-  // Desktop zoom functions only
+  // Touch event handling for mobile devices
+  const [touchStartDistance, setTouchStartDistance] = useState(null);
+  const [initialScale, setInitialScale] = useState(1);
 
+  // Calculate distance between two touch points
+  const getDistance = (touch1, touch2) => {
+    return Math.sqrt(
+      Math.pow(touch2.clientX - touch1.clientX, 2) +
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+    );
+  };
+
+  // Handle touch start event
+  const handleTouchStart = (e) => {
+    if (isTouchDevice && e.touches.length === 2) {
+      // Two finger touch - potential pinch gesture
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      setTouchStartDistance(distance);
+      setInitialScale(mobileScale);
+    }
+  };
+
+  // Handle touch move event
+  const handleTouchMove = (e) => {
+    if (isTouchDevice && e.touches.length === 2 && touchStartDistance) {
+      // Calculate new scale based on finger distance change
+      const currentDistance = getDistance(e.touches[0], e.touches[1]);
+      const scaleFactor = currentDistance / touchStartDistance;
+      const newScale = Math.max(0.5, Math.min(5, initialScale * scaleFactor));
+
+      setMobileScale(newScale);
+
+      // Apply scale to SVG
+      if (containerRef.current) {
+        const svgElement = containerRef.current.querySelector("svg");
+        if (svgElement) {
+          svgElement.style.transform = `scale(${newScale})`;
+          svgElement.style.transformOrigin = "center center";
+        }
+      }
+
+      // Prevent default to avoid browser's native zoom
+      e.preventDefault();
+    }
+  };
+
+  // Handle touch end event
+  const handleTouchEnd = () => {
+    setTouchStartDistance(null);
+  };
+
+  // Desktop zoom functions
   const zoomIn = () => {
-    if (panzoomRef.current) {
+    if (isTouchDevice) {
+      // For mobile, use our custom zoom
+      const newScale = Math.min(mobileScale + 0.2, 5);
+      setMobileScale(newScale);
+
+      if (containerRef.current) {
+        const svgElement = containerRef.current.querySelector("svg");
+        if (svgElement) {
+          svgElement.style.transform = `scale(${newScale})`;
+          svgElement.style.transformOrigin = "center center";
+        }
+      }
+    } else if (panzoomRef.current) {
       panzoomRef.current.zoomIn();
     }
   };
 
   const zoomOut = () => {
-    if (panzoomRef.current) {
+    if (isTouchDevice) {
+      // For mobile, use our custom zoom
+      const newScale = Math.max(mobileScale - 0.2, 0.5);
+      setMobileScale(newScale);
+
+      if (containerRef.current) {
+        const svgElement = containerRef.current.querySelector("svg");
+        if (svgElement) {
+          svgElement.style.transform = `scale(${newScale})`;
+          svgElement.style.transformOrigin = "center center";
+        }
+      }
+    } else if (panzoomRef.current) {
       panzoomRef.current.zoomOut();
     }
   };
 
   const resetZoom = () => {
-    if (panzoomRef.current) {
+    if (isTouchDevice) {
+      // Reset mobile zoom
+      setMobileScale(1);
+
+      if (containerRef.current) {
+        const svgElement = containerRef.current.querySelector("svg");
+        if (svgElement) {
+          svgElement.style.transform = "scale(1)";
+          svgElement.style.transformOrigin = "center center";
+        }
+      }
+    } else if (panzoomRef.current) {
       panzoomRef.current.reset();
     }
   };
@@ -244,8 +357,11 @@ const PanzoomWrapper = ({ children }) => {
         position: "relative",
         width: "100%",
         overflow: "visible",
-        // Enable standard touch behavior
-        touchAction: "auto",
+        // Enable pinch-zoom specifically
+        touchAction: isTouchDevice ? "pinch-zoom" : "auto",
+        // Add these properties to enable mobile zooming
+        WebkitTextSizeAdjust: isTouchDevice ? "100%" : "none",
+        WebkitTapHighlightColor: "rgba(0,0,0,0)",
       }}
     >
       <div
@@ -254,66 +370,70 @@ const PanzoomWrapper = ({ children }) => {
           width: "100%",
           position: "relative",
           // Allow browser's native touch gestures on touch devices
-          touchAction: isTouchDevice ? "auto" : "none",
+          touchAction: isTouchDevice ? "pinch-zoom" : "none",
           // Enable content scaling on mobile
           WebkitOverflowScrolling: isTouchDevice ? "touch" : "auto",
           // Ensure content can be zoomed on mobile
           maxWidth: "100%",
+          // Add these properties to enable pinch-zoom on mobile
+          WebkitUserSelect: isTouchDevice ? "text" : "none",
+          userSelect: isTouchDevice ? "text" : "none",
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
         {children}
       </div>
-
-      {/* Only show zoom controls on desktop devices */}
-      {!isTouchDevice && (
-        <div
-          style={{
-            position: "absolute",
-            top: "0px",
-            right: "5px",
-            left: "auto", // Ensure it's not placed on the left
-            zIndex: 10,
-            display: "flex",
-            flexDirection: "row",
-            gap: "8px",
-            background: "transparent",
-            transform: "none", // Ensure no transform is applied
-            margin: 0, // Ensure no margin
-            padding: 0, // Ensure no padding
-          }}
+      {/* Show zoom controls on all devices */}
+      <div
+        style={{
+          position: "absolute",
+          top: "0px",
+          right: "5px",
+          left: "auto", // Ensure it's not placed on the left
+          zIndex: 10,
+          display: "flex",
+          flexDirection: "row",
+          gap: "8px",
+          background: "transparent",
+          transform: "none", // Ensure no transform is applied
+          margin: 0, // Ensure no margin
+          padding: 0, // Ensure no padding
+        }}
+      >
+        <button
+          onClick={zoomIn}
+          className="panzoom-button"
+          title="Zoom In"
+          style={buttonStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
         >
-          <button
-            onClick={zoomIn}
-            className="panzoom-button"
-            title="Zoom In"
-            style={buttonStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
-          >
-            ➕
-          </button>
-          <button
-            onClick={zoomOut}
-            className="panzoom-button"
-            title="Zoom Out"
-            style={buttonStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
-          >
-            ➖
-          </button>
-          <button
-            onClick={resetZoom}
-            className="panzoom-button"
-            title="Reset"
-            style={buttonStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
-          >
-            🔄
-          </button>
-        </div>
-      )}
+          ➕
+        </button>
+        <button
+          onClick={zoomOut}
+          className="panzoom-button"
+          title="Zoom Out"
+          style={buttonStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+        >
+          ➖
+        </button>
+        <button
+          onClick={resetZoom}
+          className="panzoom-button"
+          title="Reset"
+          style={buttonStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+        >
+          🔄
+        </button>
+      </div>
     </div>
   );
 };
