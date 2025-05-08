@@ -100,12 +100,20 @@ const PanzoomWrapper = ({ children }) => {
         minScale: 0.5,
         step: 0.1,
         canvas: true,
+        // Disable panzoom's handling of touch events to allow native browser behavior
+        touch: false,
+        // Set this to false to prevent panzoom from capturing all pointer events
+        disablePan: false,
+        // Allow browser's native touch gestures
+        touchAction: "auto",
       });
 
       // Store Panzoom instance
       panzoomRef.current = panzoom;
 
-      console.log("PanzoomWrapper: Initialized successfully");
+      console.log(
+        "PanzoomWrapper: Initialized successfully for desktop/large screens"
+      );
       return true;
     } catch (error) {
       console.error("PanzoomWrapper: Error initializing panzoom", error);
@@ -169,7 +177,15 @@ const PanzoomWrapper = ({ children }) => {
 
   return (
     <div style={{ position: "relative", width: "100%", overflow: "visible" }}>
-      <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
+      <div
+        ref={containerRef}
+        style={{
+          width: "100%",
+          position: "relative",
+          // Allow browser's native touch gestures on touch devices
+          touchAction: isTouchDevice ? "auto" : "none",
+        }}
+      >
         {children}
       </div>
       {/* Only show zoom controls on non-touch devices */}
