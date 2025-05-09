@@ -1,0 +1,49 @@
+/**
+ * Dropdown menu styling
+ * This file contains styles for dropdown menus
+ */
+
+/* Ensure all dropdown links display icons properly */
+.dropdown__link {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0.75rem 1rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+}
+
+/* Add hover effect to dropdown links */
+.dropdown__link:hover {
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.05) !important;
+  transform: translateX(2px) !important;
+}
+
+/* Style for dropdown section headers */
+.dropdown-section-header {
+  font-weight: 700 !important;
+  color: var(--ifm-color-primary-darker) !important;
+  padding: 0.75rem 1rem 0.5rem !important;
+  margin-top: 0.5rem !important;
+  border-top: 1px solid rgba(var(--ifm-color-primary-rgb), 0.1) !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Ensure icons are properly displayed */
+.dropdown__link::before {
+  margin-right: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Specific styling for deployment link */
+.dropdown__link--deployment {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Ensure all dropdown links have proper spacing */
+.navbar__item.dropdown .dropdown__menu {
+  padding: 0.5rem 0 !important;
+}

@@ -1,0 +1,46 @@
+/**
+ * Responsive dropdown menu styling
+ * This file contains responsive styles for dropdown menus at different screen sizes
+ */
+
+/* Styles for dropdown links with the main-category class (added via JavaScript) */
+.dropdown__link--main-category {
+  font-weight: bold;
+}
+
+/* Large screens (997px-1200px): Only show Main Category in Documentation dropdown */
+@media (min-width: 997px) and (max-width: 1200px) {
+  /* Hide all dropdown items except the first one (Main Category) */
+  .dropdown__menu .dropdown__link:not(:first-child) {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  /* Hide section headers */
+  .dropdown-section-header {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  /* Ensure first dropdown link (Main Category) is visible */
+  .dropdown__menu .dropdown__link:first-child {
+    display: flex !important;
+    visibility: visible !important;
+    padding: 0.75rem 1rem !important;
+  }
+  
+  /* Adjust dropdown menu size */
+  .navbar__item.dropdown .dropdown__menu {
+    min-width: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+  }
+}

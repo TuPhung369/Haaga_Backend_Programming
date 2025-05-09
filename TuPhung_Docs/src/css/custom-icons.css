@@ -1,0 +1,123 @@
+/* Custom colorful icons for footer, sidebar, header, and menu */
+.footer-icon, .sidebar-icon, .header-icon, .menu-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+  transition: transform 0.3s ease;
+}
+
+/* Hover effect for icons */
+a:hover .footer-icon, 
+a:hover .sidebar-icon, 
+a:hover .header-icon, 
+a:hover .menu-icon {
+  transform: scale(1.1);
+}
+
+/* Ensure proper spacing on all screen sizes */
+@media (min-width: 992px) {
+  .footer-icon, .sidebar-icon, .header-icon, .menu-icon {
+    margin-right: 9px; /* 3px more on large screens */
+  }
+}
+
+/* Individual icon styles - Using Icons8 Fluent Color style for consistency */
+.icon-document {
+  background: url('https://img.icons8.com/fluency/96/folder-invoices.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-guide {
+  background: url('https://img.icons8.com/fluency/96/search.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-resources {
+  background: url('https://img.icons8.com/fluency/96/repository.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-connect {
+  background: url('https://img.icons8.com/fluency/96/communication.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+.icon-intro {
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-color: transparent !important;
+}
+
+.icon-architecture {
+  background: url('https://img.icons8.com/fluency/96/blueprint.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-tech-stack {
+  background: url('https://img.icons8.com/fluency/96/maintenance.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-frontend {
+  background: url('https://img.icons8.com/?size=100&id=ZJ2g7YgS3wpT&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-backend {
+  background: url('https://img.icons8.com/fluency/96/database.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-deployment {
+  background: url('https://img.icons8.com/fluency/96/rocket.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-video {
+  background: url('https://img.icons8.com/?size=100&id=haXCqQUbXGmb&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-github {
+  background: url('https://img.icons8.com/fluency/96/github.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-cv {
+  background: url('https://img.icons8.com/fluency/96/resume.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.icon-linkedin {
+  background: url('https://img.icons8.com/fluency/96/linkedin.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* Home icon */
+.icon-home {
+  background: url('https://img.icons8.com/fluency/96/home.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* Theme toggle icon */
+.icon-theme {
+  background: url('https://img.icons8.com/fluency/96/day-and-night.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}

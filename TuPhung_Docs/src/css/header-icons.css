@@ -1,0 +1,279 @@
+/**
+ * Header icons styling
+ * This file contains styles for header icons using Icons8 Fluency
+ */
+
+/* GitHub icon in the header */
+.header-github-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.header-github-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background: url('https://img.icons8.com/fluency/96/github.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.header-github-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* LinkedIn icon in the header */
+.navbar-linkedin-link {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  font-weight: 600;
+}
+
+.navbar-linkedin-link svg {
+  display: none;
+}
+
+.navbar-linkedin-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/linkedin.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.navbar-linkedin-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* Ensure consistent spacing between header icons */
+.navbar__items--right > * {
+  margin-left: 12px;
+}
+
+/* Theme toggle button styling */
+.toggle-theme-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-theme-button:hover .header-icon {
+  transform: scale(1.1);
+}
+
+/* CV icon in the header */
+.header-cv-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  font-weight: 600;
+}
+
+.header-cv-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/resume.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.header-cv-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* Video icon in the header */
+.header-video-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  font-weight: 600;
+}
+
+.header-video-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=haXCqQUbXGmb&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.header-video-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* Documentation icon in the header */
+.header-docs-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  font-weight: 600;
+}
+
+.header-docs-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/book.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.header-docs-link:hover::before {
+  transform: scale(1.1);
+}
+/**
+ * Header icons styling
+ * This file contains styles for header icons using Icons8 Fluency
+ */
+
+/* GitHub icon in the header */
+.header-github-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.header-github-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background: url('https://img.icons8.com/fluency/96/github.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.header-github-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* LinkedIn icon in the header */
+.navbar-linkedin-link {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  font-weight: 600;
+}
+
+.navbar-linkedin-link svg {
+  display: none;
+}
+
+.navbar-linkedin-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/linkedin.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.navbar-linkedin-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* Ensure consistent spacing between header icons */
+.navbar__items--right > * {
+  margin-left: 12px;
+}
+
+/* Theme toggle button styling */
+.toggle-theme-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-theme-button:hover .header-icon {
+  transform: scale(1.1);
+}/**
+ * Header icons styling
+ * This file contains styles for header icons using Icons8 Fluency
+ */
+
+/* GitHub icon in the header */
+.header-github-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.header-github-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background: url('https://img.icons8.com/fluency/96/github.png');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+.header-github-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* LinkedIn icon in the header */
+.navbar-linkedin-link {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-linkedin-link svg {
+  display: none;
+}
+
+.navbar-linkedin-link::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  display: flex;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/linkedin.png');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+.navbar-linkedin-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* Ensure consistent spacing between header icons */
+.navbar__items--right > * {
+  margin-left: 12px;
+}

@@ -55,6 +55,11 @@
   vertical-align: middle !important;
   color: white !important;
   font-weight: bold !important;
+  transition: transform 0.3s ease !important;
+}
+
+#plugin-sidebar a:hover .sidebar-icon {
+  transform: scale(1.1) !important;
 }
 
 /* Hide the text by default */
@@ -118,7 +123,7 @@
 #plugin-sidebar.active > div:nth-child(2) {
   display: block !important;
   padding: 10px !important;
-  max-height: 500px !important;
+  max-height: calc(100vh - 60px) !important; /* Subtract header height */
   height: auto !important;
   min-height: auto !important;
   overflow-y: auto !important;
@@ -167,7 +172,7 @@
   font-size: 0.8rem !important;
 }
 
-/* Add more padding to menu links for better clickability */
+/* Add more padding to menu links for better click ability */
 .menu__link {
   padding: 0.5rem 0.6rem !important;
   transition: all 0.2s ease !important;
@@ -239,7 +244,7 @@
   align-items: center !important;
 }
 
-/* Add extra padding to Frontend and Backend links */
+/* Add extra padding to Frontend, Backend, and Deployment links */
 .theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link[aria-label="Frontend"],
 .theme-doc-sidebar-menu .menu__list-item-collapsible .menu__link[aria-label="Backend"] {
   padding: 1.2rem 0.6rem !important;
@@ -279,6 +284,8 @@
   font-weight: 600 !important;
   font-size: 1rem !important;
   padding: 0.7rem 0.6rem !important; /* Consistent padding with other items */
+  display: flex !important;
+  align-items: center !important;
 }
 
 /* Add special styling for level-1 links */

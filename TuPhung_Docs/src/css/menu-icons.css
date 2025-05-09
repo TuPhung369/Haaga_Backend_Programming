@@ -1,0 +1,444 @@
+/* Menu Icons CSS - Adds icons to menu items */
+
+/* ==================== DOCUMENTATION DROPDOWN ICONS ==================== */
+
+/* Documentation dropdown icon */
+.dropdown__link[href*="docs/intro"]::before,
+.dropdown__link--intro::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.dropdown__link[href*="docs/architecture"]::before,
+.dropdown__link--architecture::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/blueprint.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.dropdown__link[href*="docs/tech-stack"]::before,
+.dropdown__link--tech-stack::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/maintenance.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.dropdown__link[href*="docs/category/frontend"]::before,
+.dropdown__link--frontend::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=ZJ2g7YgS3wpT&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.dropdown__link[href*="docs/category/backend"]::before,
+.dropdown__link--backend::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/database.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+.dropdown__link[href*="docs/deployment"]::before,
+.dropdown__link--deployment::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/rocket.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* ==================== SIDEBAR MENU ICONS ==================== */
+
+/* Introduction icon */
+.menu__link[href*="docs/intro"]::before,
+.menu__link[aria-label="Introduction"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* Architecture icon */
+.menu__link[href*="docs/architecture"]::before,
+.menu__link[aria-label="Architecture"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/blueprint.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* Tech Stack icon */
+.menu__link[href*="docs/tech-stack"]::before,
+.menu__link[aria-label="Tech Stack"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/maintenance.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* Frontend icon */
+.menu__link[href*="docs/category/frontend"]::before,
+.menu__link[aria-label="Frontend"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=ZJ2g7YgS3wpT&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* Backend icon */
+.menu__link[href*="docs/category/backend"]::before,
+.menu__link[aria-label="Backend"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/database.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* Deployment icon */
+.menu__link[href*="docs/deployment"]::before,
+.menu__link[href$="/docs/deployment"]::before,
+.menu__link[href$="/deployment"]::before,
+.menu__link[aria-label="Deployment"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/rocket.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* Video icon */
+.menu__link[href*="docs/video"]::before,
+.menu__link[aria-label="Video"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=haXCqQUbXGmb&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* ==================== DARK MODE OVERRIDES ==================== */
+
+/* Dark mode overrides for better contrast */
+html[data-theme='dark'] .menu__link::before,
+html[data-theme='dark'] .dropdown__link::before {
+  filter: brightness(1.2);
+}
+
+/* ==================== MOBILE MENU ICONS ==================== */
+
+/* Mobile menu icons */
+@media (max-width: 996px) {
+  .menu__link::before,
+  .dropdown__link::before {
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+  }
+}
+
+/* ==================== NAVBAR ICONS ==================== */
+
+/* Documentation dropdown icon */
+.navbar__item.dropdown .navbar__link::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* Video icon */
+.header-video-link::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=haXCqQUbXGmb&format=png&color=000000');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* CV icon */
+.header-cv-link::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/resume.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.3s ease;
+}
+
+/* LinkedIn icon */
+.navbar-linkedin-link::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/linkedin.png');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+/* GitHub icon */
+.header-github-link::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/github.png');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+/* ==================== DROPDOWN SECTION HEADERS ==================== */
+
+/* Dropdown section headers */
+.dropdown-section {
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  font-weight: bold;
+  color: var(--ifm-color-primary);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+/* ==================== DROPDOWN LINK HOVER EFFECTS ==================== */
+
+/* Hover effects for dropdown links */
+.dropdown__link:hover::before {
+  transform: scale(1.1);
+}
+
+/* ==================== MENU LINK HOVER EFFECTS ==================== */
+
+/* Hover effects for menu links */
+.menu__link:hover::before {
+  transform: scale(1.1);
+}
+
+/* ==================== NAVBAR LINK HOVER EFFECTS ==================== */
+
+/* Hover effects for navbar links */
+.navbar__link:hover::before,
+.header-video-link:hover::before,
+.header-cv-link:hover::before,
+.navbar-linkedin-link:hover::before,
+.header-github-link:hover::before {
+  transform: scale(1.1);
+}
+
+/* ==================== DROPDOWN MENU STYLING ==================== */
+
+/* Dropdown menu styling */
+.dropdown__menu {
+  min-width: 220px;
+}
+
+.dropdown__link {
+  display: flex;
+  align-items: center;
+}
+
+/* ==================== ACTIVE LINK STYLING ==================== */
+
+/* Active link styling */
+.menu__link--active::before {
+  transform: scale(1.1);
+}
+
+.dropdown__link--active::before {
+  transform: scale(1.1);
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dropdown__link::before,
+  .menu__link::before,
+  .navbar__link::before,
+  .header-video-link::before,
+  .header-cv-link::before,
+  .navbar-linkedin-link::before,
+  .header-github-link::before {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+  }
+}
+
+/* ==================== DROPDOWN LINK SPECIFIC STYLING ==================== */
+
+/* Dropdown link specific styling */
+.dropdown__link[href*="docs/intro"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=000000');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+.dropdown__link[href*="docs/category/frontend"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=ZJ2g7YgS3wpT&format=png&color=000000');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+.dropdown__link[href*="docs/category/backend"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/database.png');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+/* ==================== MENU LINK SPECIFIC STYLING ==================== */
+
+/* Menu link specific styling */
+.menu__link[href*="/docs/category/frontend"]::before,
+.menu__link[aria-label="Frontend"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=ZJ2g7YgS3wpT&format=png&color=000000');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+.menu__link[href*="/docs/category/backend"]::before,
+.menu__link[aria-label="Backend"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/database.png');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+/* ==================== NAVBAR LINK SPECIFIC STYLING ==================== */
+
+/* Navbar link specific styling */
+.navbar__link[href*="docs/intro"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=000000');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+.navbar__link[href*="docs/category/frontend"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/?size=100&id=ZJ2g7YgS3wpT&format=png&color=000000');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}
+
+.navbar__link[href*="docs/category/backend"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  background: url('https://img.icons8.com/fluency/96/database.png');
+  background-size: contain;
+  transition: transform 0.3s ease;
+}

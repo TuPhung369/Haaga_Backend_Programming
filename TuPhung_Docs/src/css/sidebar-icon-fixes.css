@@ -1,0 +1,73 @@
+/**
+ * Additional CSS fixes for sidebar icons
+ * This file contains specific fixes for the icons in the mobile sidebar
+ * 
+ * This implementation uses a container-based approach to better manage icons
+ * in the mobile sidebar. The container is shown/hidden as a unit instead of 
+ * manipulating individual icons, which provides better performance and 
+ * more reliable icon management.
+ */
+
+/* Container for sidebar icons when expanded */
+.sidebar-icons-container {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 100%;
+}
+
+/* Ensure icons in the container are properly sized and spaced */
+.sidebar-icons-container a,
+.sidebar-icons-container button {
+  margin: 0 3px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Style for the icons in the sidebar container */
+.sidebar-icons-container .footer-icon {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+/* Add hover effect for the icons in the sidebar */
+.sidebar-icons-container a:hover .footer-icon,
+.sidebar-icons-container button:hover .footer-icon {
+  transform: scale(1.2);
+  transition: transform 0.2s ease;
+}
+
+/* Ensure the theme toggle button is styled correctly */
+.sidebar-icons-container .toggle-theme-button {
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+}
+
+/* Special styling for dark mode toggle in the sidebar */
+html[data-theme='dark'] .sidebar-icons-container .icon-theme {
+  filter: brightness(1.2);
+}
+
+/* Ensure the container is hidden when sidebar is collapsed */
+#plugin-sidebar:not(.active) .sidebar-icons-container {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+/* Ensure menu icon is always front and center in collapsed mode */
+.menu-icon {
+  z-index: 1000;
+  position: relative;
+}

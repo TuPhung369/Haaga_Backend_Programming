@@ -73,6 +73,14 @@ const config = {
           pointer-events: auto !important;
         }
         
+        /* Ensure proper sizing for title content in collapsed mode */
+        #plugin-sidebar:not(.active) .sidebar-title-content {
+          width: 40px !important;
+          height: 40px !important;
+          overflow: hidden !important;
+          position: relative !important;
+        }
+        
 
         
         /* Move logo and project name to accommodate sidebar button */
@@ -120,6 +128,15 @@ const config = {
           }
         }
         
+        /* Ensure hamburger menu is properly displayed in collapsed state and other icons are hidden */
+        #plugin-sidebar:not(.active) .menu-icon {
+          display: inline-block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+          z-index: 9999 !important; /* Increased z-index to ensure it's above everything else */
+        }
+        
         /* Ensure sidebar is responsive on all screens */
         @media (max-width: 768px) {
           #plugin-sidebar {
@@ -145,6 +162,7 @@ const config = {
           top: 17px !important;
           width: 220px !important; /* Increased width to accommodate all icons */
           height: auto !important;
+          max-height: 80vh !important; /* Use 80% of viewport height */
           border-radius: 8px !important;
           z-index: 100000 !important;
           overflow: visible !important;
@@ -156,6 +174,7 @@ const config = {
             left: 15px !important;
             top: 10px !important; /* Slightly higher on smaller screens */
             width: 220px !important; /* Increased width to accommodate all icons */
+            max-height: 80vh !important; /* Use 80% of viewport height */
           }
         }
         
@@ -164,6 +183,7 @@ const config = {
             left: 15px !important;
             top: 10px !important;
             width: 220px !important; /* Increased width to accommodate all icons */
+            max-height: 80vh !important; /* Use 80% of viewport height */
           }
         }
         
@@ -203,6 +223,19 @@ const config = {
           pointer-events: none !important;
         }
         
+        /* Hide all other icon links when sidebar is NOT active (collapsed mode) */
+        #plugin-sidebar:not(.active) .home-icon,
+        #plugin-sidebar:not(.active) .video-icon,
+        #plugin-sidebar:not(.active) .cv-icon,
+        #plugin-sidebar:not(.active) .linkedin-icon,
+        #plugin-sidebar:not(.active) .github-icon,
+        #plugin-sidebar:not(.active) .toggle-theme-button {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+        
         #plugin-sidebar.active .sidebar-icon svg {
           width: 20px !important;
           height: 20px !important;
@@ -222,6 +255,7 @@ const config = {
           fill: white !important;
           width: 20px !important;
           height: 20px !important;
+          color: white !important;
         }
         
         /* Ensure proper display of theme icons based on current theme */
@@ -255,6 +289,42 @@ const config = {
         #plugin-sidebar.active .toggle-theme-button:hover {
           transform: scale(1.2) !important;
           transition: transform 0.2s ease !important;
+        }
+        
+        /* Ensure theme toggle button in sidebar has consistent styling */
+        #plugin-sidebar .toggle-theme-button {
+          background: transparent !important;
+          border: none !important;
+          padding: 0 !important;
+          margin: 0 5px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          color: white !important;
+        }
+        
+        /* Ensure Introduction icon is always black in sidebar for both themes */
+        #plugin-sidebar .icon-intro,
+        html[data-theme='dark'] #plugin-sidebar .icon-intro,
+        #plugin-sidebar.active .icon-intro,
+        html[data-theme='dark'] #plugin-sidebar.active .icon-intro {
+          color: black !important;
+          fill: black !important;
+          stroke: black !important;
+          background-color: transparent !important;
+        }
+        
+        /* Force SVG elements inside icon-intro to be black */
+        #plugin-sidebar .icon-intro svg,
+        html[data-theme='dark'] #plugin-sidebar .icon-intro svg,
+        #plugin-sidebar.active .icon-intro svg,
+        html[data-theme='dark'] #plugin-sidebar.active .icon-intro svg,
+        #plugin-sidebar .icon-intro svg *,
+        html[data-theme='dark'] #plugin-sidebar .icon-intro svg * {
+          fill: black !important;
+          color: black !important;
+          stroke: black !important;
+          background-color: transparent !important;
         }
         
         #plugin-sidebar.active ul {
@@ -372,6 +442,20 @@ const config = {
           padding-left: 0 !important;
         }
         
+        /* Additional spacing for GitHub and LinkedIn icons on large and extra-large screens */
+        @media (min-width: 992px) {
+          html body .footer__items a svg,
+          html[data-theme] body .footer__items a svg,
+          #__docusaurus .footer__items a svg,
+          #__docusaurus[data-theme] .footer__items a svg,
+          .footer .footer__items a svg,
+          div.footer .footer__items a svg,
+          footer .footer__items a svg,
+          div.footer__items a svg {
+            margin-right: 6px !important; /* Increased from 3px to 6px (moved 3px further) */
+          }
+        }
+        
         /* Override any row styles that might affect the footer */
         html body .footer .row,
         html[data-theme] body .footer .row,
@@ -451,6 +535,8 @@ const config = {
               // Ensure fill color is white for sidebar icons
               sidebarLightIcon.setAttribute('fill', 'white');
               sidebarDarkIcon.setAttribute('fill', 'white');
+              sidebarLightIcon.style.color = 'white';
+              sidebarDarkIcon.style.color = 'white';
             }
           });
           
@@ -463,12 +549,74 @@ const config = {
           
           allLightIcons.forEach(icon => {
             icon.style.display = isDarkTheme ? 'none' : 'block';
-            icon.setAttribute('fill', icon.closest('#plugin-sidebar') ? 'white' : 'currentColor');
+            
+            // Xác định màu fill dựa trên vị trí của icon
+            if (icon.closest('#plugin-sidebar .sidebar-title-content')) {
+              // Icon trong header của sidebar
+              icon.setAttribute('fill', 'white');
+            } else if (icon.closest('#plugin-sidebar .icon-intro')) {
+              // Icon Introduction trong sidebar luôn màu đen
+              icon.setAttribute('fill', 'black');
+              icon.style.backgroundColor = 'transparent';
+              
+              // Force all child SVG elements to be black with transparent background
+              const svgElements = icon.querySelectorAll('svg, svg *');
+              svgElements.forEach(svgEl => {
+                svgEl.setAttribute('fill', 'black');
+                svgEl.style.fill = 'black';
+                svgEl.style.backgroundColor = 'transparent';
+              });
+            } else if (icon.classList.contains('icon-intro') && icon.classList.contains('sidebar-icon')) {
+              // Icon Introduction trong sidebar luôn màu đen
+              icon.setAttribute('fill', 'black');
+              icon.style.backgroundColor = 'transparent';
+            } else if (icon.classList.contains('icon-intro') && icon.classList.contains('footer-icon')) {
+              // Icon Introduction trong footer - màu đen trong light mode
+              icon.setAttribute('fill', 'black');
+              icon.style.backgroundColor = 'transparent';
+            } else if (icon.closest('#plugin-sidebar ul')) {
+              // Icon trong list menu của sidebar
+              icon.setAttribute('fill', '#ffffff');
+            } else {
+              // Icon ở các vị trí khác
+              icon.setAttribute('fill', 'currentColor');
+            }
           });
           
           allDarkIcons.forEach(icon => {
             icon.style.display = isDarkTheme ? 'block' : 'none';
-            icon.setAttribute('fill', icon.closest('#plugin-sidebar') ? 'white' : 'currentColor');
+            
+            // Xác định màu fill dựa trên vị trí của icon
+            if (icon.closest('#plugin-sidebar .sidebar-title-content')) {
+              // Icon trong header của sidebar
+              icon.setAttribute('fill', 'white');
+            } else if (icon.closest('#plugin-sidebar .icon-intro')) {
+              // Icon Introduction trong sidebar luôn màu đen
+              icon.setAttribute('fill', 'black');
+              icon.style.backgroundColor = 'transparent';
+              
+              // Force all child SVG elements to be black with transparent background
+              const svgElements = icon.querySelectorAll('svg, svg *');
+              svgElements.forEach(svgEl => {
+                svgEl.setAttribute('fill', 'black');
+                svgEl.style.fill = 'black';
+                svgEl.style.backgroundColor = 'transparent';
+              });
+            } else if (icon.classList.contains('icon-intro') && icon.classList.contains('sidebar-icon')) {
+              // Icon Introduction trong sidebar luôn màu đen
+              icon.setAttribute('fill', 'black');
+              icon.style.backgroundColor = 'transparent';
+            } else if (icon.classList.contains('icon-intro') && icon.classList.contains('footer-icon')) {
+              // Icon Introduction trong footer - màu trắng trong dark mode
+              icon.setAttribute('fill', 'white');
+              icon.style.backgroundColor = 'transparent';
+            } else if (icon.closest('#plugin-sidebar ul')) {
+              // Icon trong list menu của sidebar
+              icon.setAttribute('fill', '#ffffff');
+            } else {
+              // Icon ở các vị trí khác
+              icon.setAttribute('fill', 'currentColor');
+            }
           });
           
           // Update theme texts
@@ -487,6 +635,14 @@ const config = {
           if (existingSidebar) {
             existingSidebar.remove();
           }
+          
+          // Clean up any lingering sidebar elements that may not have been properly removed
+          const allSidebarIcons = document.querySelectorAll('.sidebar-icon:not(.menu-icon)');
+          allSidebarIcons.forEach(icon => {
+            if (!icon.closest('#plugin-sidebar')) {
+              icon.remove();
+            }
+          });
           
           // Add event listener for theme toggle button in navbar
           setTimeout(() => {
@@ -555,12 +711,13 @@ const config = {
           titleContent.style.backgroundColor = 'transparent';
           titleContent.style.padding = '0';
           titleContent.style.position = 'relative';
+          titleContent.style.overflow = 'hidden'; // Force hidden overflow in collapsed state to hide other icons
           
-          // Menu Hamburger icon
+          // Menu Hamburger icon - smaller size
           const menuIcon = document.createElement('span');
           menuIcon.className = 'sidebar-icon menu-icon';
-          menuIcon.style.fontSize = '30px';
-          menuIcon.style.lineHeight = '30px';
+          menuIcon.style.fontSize = '24px';
+          menuIcon.style.lineHeight = '24px';
           menuIcon.style.display = 'inline-block';
           menuIcon.style.verticalAlign = 'middle';
           menuIcon.style.color = 'white';
@@ -571,10 +728,38 @@ const config = {
           menuIcon.style.width = '30px';
           menuIcon.style.height = '30px';
           menuIcon.style.position = 'absolute';
-          menuIcon.style.left = 'calc(45% - 2.5px)'; /* Điều chỉnh sang trái thêm 5px */
-          menuIcon.style.top = 'calc(50% - 2.55px)'; /* Điều chỉnh lên trên thêm 5px */
+          menuIcon.style.left = 'calc(50% - 2.5px)'; /* Center horizontally */
+          menuIcon.style.top = 'calc(50% - 2.55px)'; /* Center vertically */
           menuIcon.style.transform = 'translate(-50%, -50%)';
+          menuIcon.style.zIndex = '200'; /* Ensure menu is always on top */
+          menuIcon.style.pointerEvents = 'auto';
           menuIcon.textContent = '☰';
+          
+          // Home icon for Enterprise Nexus
+          const homeIcon = document.createElement('a');
+          homeIcon.href = '/Haaga_Backend_Programming/docs/intro';
+          homeIcon.className = 'sidebar-icon home-icon';
+          homeIcon.style.fontSize = '20px';
+          homeIcon.style.lineHeight = '20px';
+          homeIcon.style.display = 'none';
+          homeIcon.style.visibility = 'hidden';
+          homeIcon.style.opacity = '0';
+          homeIcon.style.pointerEvents = 'none';
+          homeIcon.style.verticalAlign = 'middle';
+          homeIcon.style.color = 'white';
+          homeIcon.style.margin = '0 5px';
+          homeIcon.style.cursor = 'pointer';
+          homeIcon.innerHTML = '<span class="footer-icon icon-home"></span>';
+          
+          // Add click event to close sidebar when clicking on home icon
+          homeIcon.addEventListener('click', function(e) {
+            console.log('Home icon clicked, closing sidebar');
+            // Use the closeSidebar function to properly close the sidebar
+            setTimeout(function() {
+              closeSidebar();
+              isOpen = false;
+            }, 100);
+          });
           
           // Video icon
           const videoIcon = document.createElement('a');
@@ -583,11 +768,14 @@ const config = {
           videoIcon.style.fontSize = '20px';
           videoIcon.style.lineHeight = '20px';
           videoIcon.style.display = 'none';
+          videoIcon.style.visibility = 'hidden';
+          videoIcon.style.opacity = '0';
+          videoIcon.style.pointerEvents = 'none';
           videoIcon.style.verticalAlign = 'middle';
           videoIcon.style.color = 'white';
           videoIcon.style.margin = '0 5px';
           videoIcon.style.cursor = 'pointer';
-          videoIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.11-.9-2-2-2zm0 14H3V5h18v12z"/><path d="M16 11l-7 4V7z"/></svg>';
+          videoIcon.innerHTML = '<span class="footer-icon icon-video"></span>';
           
           // CV icon
           const cvIcon = document.createElement('a');
@@ -598,11 +786,24 @@ const config = {
           cvIcon.style.fontSize = '20px';
           cvIcon.style.lineHeight = '20px';
           cvIcon.style.display = 'none';
+          cvIcon.style.visibility = 'hidden';
+          cvIcon.style.opacity = '0';
+          cvIcon.style.pointerEvents = 'none';
           cvIcon.style.verticalAlign = 'middle';
           cvIcon.style.color = 'white';
           cvIcon.style.margin = '0 5px';
           cvIcon.style.cursor = 'pointer';
-          cvIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
+          cvIcon.innerHTML = '<span class="footer-icon icon-cv"></span>';
+          
+          // Add click event to close sidebar when clicking on CV icon
+          cvIcon.addEventListener('click', function(e) {
+            console.log('CV icon clicked, closing sidebar');
+            // Use the closeSidebar function to properly close the sidebar
+            setTimeout(function() {
+              closeSidebar();
+              isOpen = false;
+            }, 100);
+          });
           
           // LinkedIn icon
           const linkedinIcon = document.createElement('a');
@@ -613,11 +814,24 @@ const config = {
           linkedinIcon.style.fontSize = '20px';
           linkedinIcon.style.lineHeight = '20px';
           linkedinIcon.style.display = 'none';
+          linkedinIcon.style.visibility = 'hidden';
+          linkedinIcon.style.opacity = '0';
+          linkedinIcon.style.pointerEvents = 'none';
           linkedinIcon.style.verticalAlign = 'middle';
           linkedinIcon.style.color = 'white';
           linkedinIcon.style.margin = '0 5px';
           linkedinIcon.style.cursor = 'pointer';
-          linkedinIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
+          linkedinIcon.innerHTML = '<span class="footer-icon icon-linkedin"></span>';
+          
+          // Add click event to close sidebar when clicking on LinkedIn icon
+          linkedinIcon.addEventListener('click', function(e) {
+            console.log('LinkedIn icon clicked, closing sidebar');
+            // Use the closeSidebar function to properly close the sidebar
+            setTimeout(function() {
+              closeSidebar();
+              isOpen = false;
+            }, 100);
+          });
           
           // GitHub icon
           const githubIcon = document.createElement('a');
@@ -628,11 +842,24 @@ const config = {
           githubIcon.style.fontSize = '20px';
           githubIcon.style.lineHeight = '20px';
           githubIcon.style.display = 'none';
+          githubIcon.style.visibility = 'hidden';
+          githubIcon.style.opacity = '0';
+          githubIcon.style.pointerEvents = 'none';
           githubIcon.style.verticalAlign = 'middle';
           githubIcon.style.color = 'white';
           githubIcon.style.margin = '0 5px';
           githubIcon.style.cursor = 'pointer';
-          githubIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
+          githubIcon.innerHTML = '<span class="footer-icon icon-github"></span>';
+          
+          // Add click event to close sidebar when clicking on GitHub icon
+          githubIcon.addEventListener('click', function(e) {
+            console.log('GitHub icon clicked, closing sidebar');
+            // Use the closeSidebar function to properly close the sidebar
+            setTimeout(function() {
+              closeSidebar();
+              isOpen = false;
+            }, 100);
+          });
           
           // Theme Toggle icon
           const themeToggleIcon = document.createElement('button');
@@ -640,6 +867,9 @@ const config = {
           themeToggleIcon.style.fontSize = '20px';
           themeToggleIcon.style.lineHeight = '20px';
           themeToggleIcon.style.display = 'none';
+          themeToggleIcon.style.visibility = 'hidden';
+          themeToggleIcon.style.opacity = '0';
+          themeToggleIcon.style.pointerEvents = 'none';
           themeToggleIcon.style.verticalAlign = 'middle';
           themeToggleIcon.style.color = 'white';
           themeToggleIcon.style.margin = '0 5px';
@@ -648,6 +878,8 @@ const config = {
           themeToggleIcon.style.border = 'none';
           themeToggleIcon.style.padding = '0';
           themeToggleIcon.setAttribute('aria-label', 'Toggle between dark and light mode');
+          
+          // Không sử dụng icon8 style icon nữa
           
           const isDarkTheme = document.documentElement.dataset.theme === 'dark';
           
@@ -699,12 +931,27 @@ const config = {
             }
           });
           
+          // Add hamburger menu icon first
           titleContent.appendChild(menuIcon);
-          titleContent.appendChild(videoIcon);
-          titleContent.appendChild(cvIcon);
-          titleContent.appendChild(linkedinIcon);
-          titleContent.appendChild(githubIcon);
-          titleContent.appendChild(themeToggleIcon);
+          
+          // Create a container for all the other icons to manage them together
+          const iconContainer = document.createElement('div');
+          iconContainer.className = 'sidebar-icons-container';
+          iconContainer.style.display = 'none'; // Hidden by default in collapsed mode
+          iconContainer.style.visibility = 'hidden';
+          iconContainer.style.opacity = '0';
+          iconContainer.style.position = 'absolute';
+          iconContainer.style.pointerEvents = 'none';
+          
+          // Add all other icons to this container
+          iconContainer.appendChild(homeIcon);
+          iconContainer.appendChild(cvIcon);
+          iconContainer.appendChild(linkedinIcon);
+          iconContainer.appendChild(githubIcon);
+          iconContainer.appendChild(themeToggleIcon);
+          
+          // Add the container to the title content
+          titleContent.appendChild(iconContainer);
           
           title.appendChild(titleContent);
           
@@ -746,8 +993,8 @@ const config = {
               
               const homeLink = document.createElement('a');
               homeLink.href = '/';
-              homeLink.textContent = 'Home';
-              homeLink.style.display = 'block';
+              homeLink.style.display = 'flex';
+              homeLink.style.alignItems = 'center';
               homeLink.style.padding = '8px 12px';
               homeLink.style.color = '#4e57b9';
               homeLink.style.textDecoration = 'none';
@@ -758,6 +1005,13 @@ const config = {
               homeLink.style.background = 'white';
               homeLink.style.opacity = '1';
               
+              // Add icon for home link
+              const homeIconSpan = document.createElement('span');
+              homeIconSpan.className = 'footer-icon icon-document';
+              homeIconSpan.style.marginRight = '4px';
+              homeLink.appendChild(homeIconSpan);
+              homeLink.appendChild(document.createTextNode('Home'));
+              
               homeItem.appendChild(homeLink);
               list.appendChild(homeItem);
               
@@ -766,8 +1020,8 @@ const config = {
               
               const docsLink = document.createElement('a');
               docsLink.href = '/docs';
-              docsLink.textContent = 'Documentation';
-              docsLink.style.display = 'block';
+              docsLink.style.display = 'flex';
+              docsLink.style.alignItems = 'center';
               docsLink.style.padding = '8px 12px';
               docsLink.style.color = '#4e57b9';
               docsLink.style.textDecoration = 'none';
@@ -777,6 +1031,15 @@ const config = {
               docsLink.style.backgroundColor = 'white';
               docsLink.style.background = 'white';
               docsLink.style.opacity = '1';
+              
+              // Add icon for docs link
+              const docsIconSpan = document.createElement('span');
+              docsIconSpan.className = 'footer-icon icon-intro';
+              docsIconSpan.style.marginRight = '4px';
+              docsIconSpan.style.color = 'black';
+              docsIconSpan.style.fill = 'black';
+              docsLink.appendChild(docsIconSpan);
+              docsLink.appendChild(document.createTextNode('Documentation'));
               
               docsItem.appendChild(docsLink);
               list.appendChild(docsItem);
@@ -789,7 +1052,8 @@ const config = {
                     href === '#' || 
                     addedUrls.has(href) || 
                     href.includes('linkedin.com') || 
-                    href.includes('professional-cv')) {
+                    href.includes('professional-cv') ||
+                    href.includes('github.com')) {
                   return;
                 }
                 
@@ -805,8 +1069,47 @@ const config = {
                   newLink.target = '_blank';
                   newLink.rel = 'noopener noreferrer';
                 }
-                newLink.textContent = text;
-                newLink.style.display = 'block';
+                
+                // Create and set up the icon span based on the link's URL
+                let iconSpan = document.createElement('span');
+                
+                // Skip Enterprise Nexus title link
+                if (text === "Enterprise Nexus") {
+                  return; // Skip this item
+                } else if (href.includes('/intro')) {
+                  iconSpan.className = 'footer-icon icon-intro';
+                  iconSpan.style.color = 'black';
+                  iconSpan.style.fill = 'black';
+                } else if (href.includes('/tech-stack')) {
+                  iconSpan.className = 'footer-icon icon-tech-stack';
+                } else if (href.includes('/architecture')) {
+                  iconSpan.className = 'footer-icon icon-architecture';
+                } else if (href.includes('/deployment') || href.endsWith('/deployment')) {
+                  iconSpan.className = 'footer-icon icon-deployment';
+                } else if (href.includes('/category/frontend')) {
+                  iconSpan.className = 'footer-icon icon-frontend';
+                } else if (href.includes('/category/backend')) {
+                  iconSpan.className = 'footer-icon icon-backend';
+                } else if (href.includes('/video')) {
+                  iconSpan.className = 'footer-icon icon-video';
+                } else if (href.includes('github.com')) {
+                  iconSpan.className = 'footer-icon icon-github';
+                } else if (href.includes('docs/enterprise')) {
+                  iconSpan.className = 'footer-icon icon-architecture';
+                }
+                
+                // Only append icon if we found a matching one
+                if (iconSpan.className) {
+                  iconSpan.style.marginRight = '4px';
+                  newLink.appendChild(iconSpan);
+                }
+                
+                // Create text node
+                const textNode = document.createTextNode(text);
+                newLink.appendChild(textNode);
+                
+                newLink.style.display = 'flex';
+                newLink.style.alignItems = 'center';
                 newLink.style.padding = '8px 12px';
                 newLink.style.color = '#4e57b9';
                 newLink.style.textDecoration = 'none';
@@ -829,6 +1132,19 @@ const config = {
                   this.style.background = 'white';
                   this.style.color = '#4e57b9';
                   this.style.opacity = '1';
+                });
+                
+                // Add click event to ensure proper navigation and sidebar closing
+                newLink.addEventListener('click', function(e) {
+                  // If it's an internal link (not external), handle it
+                  if (!this.target || this.target !== '_blank') {
+                    console.log('Internal link clicked, closing sidebar');
+                    // Use the closeSidebar function to properly close the sidebar
+                    setTimeout(function() {
+                      closeSidebar();
+                      isOpen = false;
+                    }, 100);
+                  }
                 });
                 
                 item.appendChild(newLink);
@@ -881,7 +1197,7 @@ const config = {
             cvLink.style.opacity = '1';
             
             const cvIconSpan = document.createElement('span');
-            cvIconSpan.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #FFFFFF;"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
+            cvIconSpan.className = 'footer-icon icon-cv';
             
             const cvText = document.createElement('span');
             cvText.textContent = 'My CV';
@@ -901,6 +1217,16 @@ const config = {
               this.style.background = 'white';
               this.style.color = '#4e57b9';
               this.style.opacity = '1';
+            });
+            
+            // Add click event to ensure proper handling
+            cvLink.addEventListener('click', function(e) {
+              console.log('CV link clicked, closing sidebar');
+              // Use the closeSidebar function to properly close the sidebar
+              setTimeout(function() {
+                closeSidebar();
+                isOpen = false;
+              }, 100);
             });
             
             cvItem.appendChild(cvLink);
@@ -926,7 +1252,8 @@ const config = {
             githubLink.style.opacity = '1';
             
             const githubIcon = document.createElement('span');
-            githubIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #ffffff;"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>';
+            githubIcon.className = 'footer-icon icon-github';
+            githubIcon.style.marginRight = '4px';
             
             const githubText = document.createElement('span');
             githubText.textContent = 'GitHub';
@@ -946,6 +1273,16 @@ const config = {
               this.style.background = 'white';
               this.style.color = '#4e57b9';
               this.style.opacity = '1';
+            });
+            
+            // Add click event to ensure proper handling
+            githubLink.addEventListener('click', function(e) {
+              console.log('GitHub link clicked, closing sidebar');
+              // Use the closeSidebar function to properly close the sidebar
+              setTimeout(function() {
+                closeSidebar();
+                isOpen = false;
+              }, 100);
             });
             
             githubItem.appendChild(githubLink);
@@ -971,7 +1308,8 @@ const config = {
             linkedinLink.style.opacity = '1';
             
             const linkedinIconSpan = document.createElement('span');
-            linkedinIconSpan.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px; fill: #ffffff;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>';
+            linkedinIconSpan.className = 'footer-icon icon-linkedin';
+            linkedinIconSpan.style.marginRight = '4px';
             
             const linkedinText = document.createElement('span');
             linkedinText.textContent = 'LinkedIn';
@@ -991,6 +1329,16 @@ const config = {
               this.style.background = 'white';
               this.style.color = '#4e57b9';
               this.style.opacity = '1';
+            });
+            
+            // Add click event to ensure proper handling
+            linkedinLink.addEventListener('click', function(e) {
+              console.log('LinkedIn link clicked, closing sidebar');
+              // Use the closeSidebar function to properly close the sidebar
+              setTimeout(function() {
+                closeSidebar();
+                isOpen = false;
+              }, 100);
             });
             
             linkedinItem.appendChild(linkedinLink);
@@ -1017,40 +1365,47 @@ const config = {
             themeButton.style.cursor = 'pointer';
             themeButton.style.textAlign = 'left';
             
-            // Theme icon container with two SVGs
+            // Sử dụng icon mặt trời và mặt trăng thay vì icon8
+            const listLightThemeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            listLightThemeIcon.setAttribute('class', 'light-theme-icon');
+            listLightThemeIcon.setAttribute('width', '20');
+            listLightThemeIcon.setAttribute('height', '20');
+            listLightThemeIcon.setAttribute('viewBox', '0 0 24 24');
+            listLightThemeIcon.setAttribute('fill', 'white');
+            listLightThemeIcon.style.display = isDarkTheme ? 'none' : 'block';
+            listLightThemeIcon.style.marginRight = '0px';
+            
+            const listLightThemePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            listLightThemePath.setAttribute('d', 'M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z');
+            listLightThemeIcon.appendChild(listLightThemePath);
+            
+            const listDarkThemeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            listDarkThemeIcon.setAttribute('class', 'dark-theme-icon');
+            listDarkThemeIcon.setAttribute('width', '20');
+            listDarkThemeIcon.setAttribute('height', '20');
+            listDarkThemeIcon.setAttribute('viewBox', '0 0 24 24');
+            listDarkThemeIcon.setAttribute('fill', 'white');
+            listDarkThemeIcon.style.display = isDarkTheme ? 'block' : 'none';
+            listDarkThemeIcon.style.marginRight = '0px';
+            
+            const listDarkThemePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            listDarkThemePath.setAttribute('d', 'M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99a10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z');
+            listDarkThemeIcon.appendChild(listDarkThemePath);
+            
             const themeIconContainer = document.createElement('span');
-            themeIconContainer.style.marginRight = '8px';
-            
-            const themeLightIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            themeLightIcon.setAttribute('class', 'light-theme-icon');
-            themeLightIcon.setAttribute('width', '20');
-            themeLightIcon.setAttribute('height', '20');
-            themeLightIcon.setAttribute('viewBox', '0 0 24 24');
-            themeLightIcon.setAttribute('fill', 'currentColor');
-            themeLightIcon.style.display = isDarkTheme ? 'none' : 'block';
-            const lightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            lightPath.setAttribute('d', 'M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z');
-            themeLightIcon.appendChild(lightPath);
-            
-            const themeDarkIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            themeDarkIcon.setAttribute('class', 'dark-theme-icon');
-            themeDarkIcon.setAttribute('width', '20');
-            themeDarkIcon.setAttribute('height', '20');
-            themeDarkIcon.setAttribute('viewBox', '0 0 24 24');
-            themeDarkIcon.setAttribute('fill', 'currentColor');
-            themeDarkIcon.style.display = isDarkTheme ? 'block' : 'none';
-            const darkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            darkPath.setAttribute('d', 'M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99a10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z');
-            themeDarkIcon.appendChild(darkPath);
-            
-            themeIconContainer.appendChild(themeLightIcon);
-            themeIconContainer.appendChild(themeDarkIcon);
+            themeIconContainer.style.display = 'inline-flex';
+            themeIconContainer.style.alignItems = 'center';
+            themeIconContainer.style.marginRight = '4px'; // Giảm khoảng cách giữa icon và text
+            themeIconContainer.appendChild(listLightThemeIcon);
+            themeIconContainer.appendChild(listDarkThemeIcon);
             
             const themeText = document.createElement('span');
             themeText.className = 'theme-text';
             themeText.textContent = isDarkTheme ? 'Dark Mode' : 'Light Mode';
             themeText.style.color = 'rgb(30, 1, 124)';
             themeText.style.fontWeight = '600';
+            themeText.style.fontFamily = 'var(--ifm-font-family-base)';
+            themeText.style.fontSize = 'var(--ifm-font-size-base)';
             
             themeButton.appendChild(themeIconContainer);
             themeButton.appendChild(themeText);
@@ -1116,7 +1471,8 @@ const config = {
             title.style.height = 'auto';
             title.style.display = 'block';
             
-            menuIcon.style.display = 'none';
+            // Hide the menu icon with important flag
+            menuIcon.style.cssText += 'display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
             
             titleContent.style.background = 'rgba(78, 87, 185, 1)';
             titleContent.style.borderRadius = '8px 8px 0 0';
@@ -1124,13 +1480,22 @@ const config = {
             titleContent.style.width = '100%';
             titleContent.style.height = 'auto';
             titleContent.style.position = 'static';
+            titleContent.style.display = 'flex';
+            titleContent.style.justifyContent = 'space-evenly';
             
-            // Make icons visible
-            videoIcon.style.display = 'inline-block';
-            cvIcon.style.display = 'inline-block';
-            linkedinIcon.style.display = 'inline-block';
-            githubIcon.style.display = 'inline-block';
-            themeToggleIcon.style.display = 'inline-block';
+            // Show the icon container instead of individual icons
+            const iconContainer = document.querySelector('.sidebar-icons-container');
+            if (iconContainer) {
+              iconContainer.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; position: static !important; justify-content: space-evenly !important; width: 100% !important;';
+              
+              // Make all icons within the container visible
+              setTimeout(() => {
+                const icons = iconContainer.querySelectorAll('a, button');
+                icons.forEach(icon => {
+                  icon.style.cssText += 'display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
+                });
+              }, 10);
+            }
             
             const currentIsDarkTheme = document.documentElement.dataset.theme === 'dark';
             const sidebarLightIcon = themeToggleIcon.querySelector('.light-theme-icon');
@@ -1139,6 +1504,10 @@ const config = {
             if (sidebarLightIcon && sidebarDarkIcon) {
               sidebarLightIcon.style.display = currentIsDarkTheme ? 'none' : 'block';
               sidebarDarkIcon.style.display = currentIsDarkTheme ? 'block' : 'none';
+              sidebarLightIcon.setAttribute('fill', 'white');
+              sidebarDarkIcon.setAttribute('fill', 'white');
+              sidebarLightIcon.style.color = 'white';
+              sidebarDarkIcon.style.color = 'white';
             }
             
             content.style.display = 'block';
@@ -1159,9 +1528,6 @@ const config = {
             sidebar.classList.remove('active');
             localStorage.setItem('sidebarOpen', 'false');
             
-            // Show menuIcon again
-            menuIcon.style.display = 'inline-block';
-            
             content.style.display = 'none';
             content.style.padding = '0';
             content.style.maxHeight = '0';
@@ -1169,18 +1535,7 @@ const config = {
             content.style.minHeight = '0';
             content.style.overflow = 'hidden';
             
-            menuIcon.style.fontSize = '30px';
-            menuIcon.style.lineHeight = '30px';
-            menuIcon.style.width = '30px';
-            menuIcon.style.height = '30px';
-            menuIcon.style.margin = '0';
-            menuIcon.style.display = 'inline-block';
-            menuIcon.style.verticalAlign = 'middle';
-            menuIcon.style.position = 'absolute';
-            menuIcon.style.left = 'calc(45% - 2.5px)'; /* Điều chỉnh sang trái thêm 5px */
-            menuIcon.style.top = 'calc(50% - 2.5px)'; /* Điều chỉnh lên trên thêm 5px */
-            menuIcon.style.transform = 'translate(-50%, -50%)';
-            
+            // Reset sidebar to collapsed state
             sidebar.style.width = '40px';
             sidebar.style.height = '40px';
             sidebar.style.background = 'rgba(78, 87, 185, 0.9)';
@@ -1200,11 +1555,27 @@ const config = {
             titleContent.style.height = '40px';
             titleContent.style.position = 'relative';
             
-            videoIcon.style.display = 'none';
-            cvIcon.style.display = 'none';
-            linkedinIcon.style.display = 'none';
-            githubIcon.style.display = 'none';
-            themeToggleIcon.style.display = 'none';
+            // Hide the icon container
+            const iconContainer = document.querySelector('.sidebar-icons-container');
+            if (iconContainer) {
+              iconContainer.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; position: absolute !important; left: -9999px !important;';
+            }
+            
+            // Ensure menu icon is visible with !important flags and smaller size
+            menuIcon.style.cssText = 'display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 9999 !important; font-size: 24px !important; line-height: 24px !important; width: 24px !important; height: 24px !important; margin: 0 !important; vertical-align: middle !important;';
+            
+            // Force redraw of the menu icon
+            setTimeout(function() {
+              menuIcon.style.display = 'none';
+              void menuIcon.offsetHeight; // Force reflow
+              menuIcon.style.display = 'inline-block !important';
+              
+              // Double check that home icon is hidden and menu icon is visible
+              const homeIcon = document.querySelector('.home-icon');
+              if (homeIcon) {
+                homeIcon.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
+              }
+            }, 10);
           }
           
           sidebar.addEventListener('click', function(e) {
@@ -1408,6 +1779,10 @@ const config = {
           customCss: [
             path.resolve(__dirname, "./src/css/custom.css"),
             path.resolve(__dirname, "./src/css/sidebar-fix.css"),
+            path.resolve(__dirname, "./src/css/responsive-navbar.css"),
+            path.resolve(__dirname, "./src/css/responsive-dropdown.css"),
+            path.resolve(__dirname, "./src/css/sidebar-icon-fixes.css"),
+            path.resolve(__dirname, "./src/css/icon-override.css"),
           ],
         },
       },
@@ -1426,7 +1801,7 @@ const config = {
       },
     },
     navbar: {
-      title: "🏠 Enterprise Nexus",
+      title: "Enterprise Nexus",
       logo: {
         alt: "Enterprise Nexus Logo",
         src: "img/logo.svg",
@@ -1434,28 +1809,29 @@ const config = {
       items: [
         {
           type: "dropdown",
-          label: "📚 Documentation",
+          label: "Documentation",
           position: "left",
+          className: "header-docs-link",
           items: [
             {
               type: "html",
               value:
-                '<a href="/Haaga_Backend_Programming/docs/intro" class="dropdown__link">📝 Introduction</a>',
+                '<a href="/Haaga_Backend_Programming/docs/intro" class="dropdown__link dropdown__link--intro">Introduction</a>',
             },
             {
               type: "html",
               value:
-                '<a href="/Haaga_Backend_Programming/docs/tech-stack" class="dropdown__link">🔧 Tech Stack</a>',
+                '<a href="/Haaga_Backend_Programming/docs/tech-stack" class="dropdown__link dropdown__link--tech-stack">Tech Stack</a>',
             },
             {
               type: "html",
               value:
-                '<a href="/Haaga_Backend_Programming/docs/architecture" class="dropdown__link">🏗️ Architecture</a>',
+                '<a href="/Haaga_Backend_Programming/docs/architecture" class="dropdown__link dropdown__link--architecture">Architecture</a>',
             },
             {
               type: "html",
               value:
-                '<a href="/Haaga_Backend_Programming/docs/deployment" class="dropdown__link">🚀 Deployment</a>',
+                '<a href="/Haaga_Backend_Programming/docs/deployment" class="dropdown__link dropdown__link--deployment deployment-link">Deployment</a>',
             },
             {
               type: "html",
@@ -1466,24 +1842,26 @@ const config = {
             {
               type: "html",
               value:
-                '<a href="/Haaga_Backend_Programming/docs/category/frontend" class="dropdown__link">🖥️ Frontend</a>',
+                '<a href="/Haaga_Backend_Programming/docs/category/frontend" class="dropdown__link dropdown__link--frontend">Frontend</a>',
             },
             {
               type: "html",
               value:
-                '<a href="/Haaga_Backend_Programming/docs/category/backend" class="dropdown__link">⚙️ Backend</a>',
+                '<a href="/Haaga_Backend_Programming/docs/category/backend" class="dropdown__link dropdown__link--backend">Backend</a>',
             },
           ],
         },
         {
           href: "/Haaga_Backend_Programming/docs/video/project-video",
-          label: "🎬 Videos",
+          label: "Videos",
           position: "left",
+          className: "header-video-link",
         },
         {
           href: "https://tuphung369.github.io/professional-cv/",
-          label: "📄 My CV",
+          label: "My CV",
           position: "left",
+          className: "header-cv-link",
           target: "_blank",
           rel: "noopener noreferrer",
         },
@@ -1491,13 +1869,13 @@ const config = {
           type: "html",
           position: "left",
           value:
-            '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" class="navbar-linkedin-link"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 8px; fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
+            '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" class="navbar-linkedin-link">LinkedIn</a>',
         },
         {
           type: "html",
           position: "right",
           value:
-            '<button class="toggle-theme-button" aria-label="Toggle"><svg class="light-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6zm0-10c-2.206 0-4 1.794-4 4s1.794 4 4 4 4-1.794 4-4-1.794-4-4-4zm0-4a1 1 0 0 1-1-1V1a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 0 1 2 0v2a1 1 0 0 1-1 1zm10-10h-2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zM4 12H2a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2zm16.95-9.364l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414zm-18.486 18.5l1.414-1.414a1 1 0 1 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414-1.414zm18.486 0a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414zM5.05 5.05a1 1 0 0 1-1.414 0L2.222 3.636a1 1 0 0 1 1.414-1.414l1.414 1.414a1 1 0 0 1 0 1.414z"/></svg><svg class="dark-theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M21.53 15.93c-.16-.27-.61-.69-1.73-.49a8.46 8.46 0 01-1.88.13 8.409 8.409 0 01-5.91-2.82 8.068 8.068 0 01-1.44-8.66c.44-1.01.13-1.54-.09-1.76s-.77-.55-1.83-.11a10.318 10.318 0 00-6.32 10.21 10.475 10.475 0 007.04 8.99 10 10 0 002.89.55c.16.01.32.02.48.02a10.5 10.5 0 008.47-4.27c.67-.93.49-1.519.32-1.79z"/></svg></button>',
+            '<button class="toggle-theme-button" aria-label="Toggle"><span class="header-icon icon-theme"></span></button>',
         },
         {
           href: "https://github.com/TuPhung369/Haaga_Backend_Programming",
@@ -1513,62 +1891,52 @@ const config = {
       style: "dark",
       links: [
         {
-          title: "📚 Documentation",
+          title: "Documentation",
           items: [
             {
-              label: "📝 Introduction",
-              to: "/docs/intro",
+              html: '<a href="/Haaga_Backend_Programming/docs/intro" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-intro"></span>Introduction</a>',
             },
             {
-              label: "🏗️ Architecture",
-              to: "/docs/architecture",
+              html: '<a href="/Haaga_Backend_Programming/docs/architecture" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-architecture"></span>Architecture</a>',
             },
             {
-              label: "🔧 Tech Stack",
-              to: "/docs/tech-stack",
+              html: '<a href="/Haaga_Backend_Programming/docs/tech-stack" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-tech-stack"></span>Tech Stack</a>',
             },
           ],
         },
         {
-          title: "🔍 Technical Guides",
+          title: "Technical Guides",
           items: [
             {
-              label: "🖥️ Frontend",
-              to: "/docs/category/frontend",
+              html: '<a href="/Haaga_Backend_Programming/docs/category/frontend" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-frontend"></span>Frontend</a>',
             },
             {
-              label: "⚙️ Backend",
-              to: "/docs/category/backend",
+              html: '<a href="/Haaga_Backend_Programming/docs/category/backend" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-backend"></span>Backend</a>',
             },
             {
-              label: "🚀 Deployment Guide",
-              to: "/docs/deployment",
+              html: '<a href="/Haaga_Backend_Programming/docs/deployment" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-deployment"></span>Deployment Guide</a>',
             },
           ],
         },
         {
-          title: "🎯 Project Resources",
+          title: "Project Resources",
           items: [
             {
-              label: "🎬 Video",
-              to: "/docs/video/project-video",
+              html: '<a href="/Haaga_Backend_Programming/docs/video/project-video" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-video"></span>Video</a>',
             },
             {
-              html: '<a href="https://github.com/TuPhung369/Haaga_Backend_Programming" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 3px; fill: var(--ifm-font-color-base);"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>GitHub</a>',
+              html: '<a href="https://github.com/TuPhung369/Haaga_Backend_Programming" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-github"></span>GitHub</a>',
             },
           ],
         },
         {
-          title: "👋 Connect With Me",
+          title: "Connect With Me",
           items: [
             {
-              label: "📄 My CV",
-              href: "https://tuphung369.github.io/professional-cv/",
-              target: "_blank",
-              rel: "noopener noreferrer",
+              html: '<a href="https://tuphung369.github.io/professional-cv/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-cv"></span>My CV</a>',
             },
             {
-              html: '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center;"><svg width="25" height="25" viewBox="0 0 24 24" style="margin-right: 3px; fill: #0A66C2;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>LinkedIn</a>',
+              html: '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-linkedin"></span>LinkedIn</a>',
             },
           ],
         },

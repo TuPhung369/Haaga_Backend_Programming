@@ -12,6 +12,7 @@ module.exports = [
   "./js/dropdown-closer.js", // Dropdown menu closer script
   "./js/frontend-category-enhancer.js", // Frontend category page enhancer
   "./js/sidebar-spacing.js", // Sidebar spacing enhancer
+  "./js/sidebar-icons-enhancer.js", // Sidebar icons enhancer
   // "./js/mermaid-gantt-enhancer.js", // Mermaid Gantt chart enhancer - disabled as we're using timeline instead
 ];
 

@@ -13,6 +13,89 @@ export const VideoGallery = () => {
 // Add state to track if videos are loaded
 const [videosLoaded, setVideosLoaded] = useState(false);
 
+// Function to manually render video items - moved outside useEffect for global scope
+const renderVideoItems = () => {
+console.log('Manually rendering video items');
+const videoList = document.getElementById('videoList');
+
+if (videoList && videoData && videoData.videos) {
+console.log('Found video list container and video data, rendering items');
+
+    // Clear existing content
+    videoList.innerHTML = '';
+
+    // Create video items
+    videoData.videos.forEach((video, index) => {
+      // Use video ID directly
+      const videoIdWithParams = video.id;
+
+      // Create video item element
+      const videoItem = document.createElement('div');
+      videoItem.className = `video-item ${index === 0 ? 'active' : ''}`;
+      videoItem.setAttribute('data-video-id', videoIdWithParams);
+      videoItem.setAttribute('data-video-title', video.title);
+      videoItem.setAttribute('data-video-description', video.description);
+
+      // Create thumbnail
+      const thumbnailDiv = document.createElement('div');
+      thumbnailDiv.className = 'video-thumbnail';
+
+      const thumbnailImg = document.createElement('img');
+      thumbnailImg.src = `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`;
+      thumbnailImg.alt = `${video.title} Thumbnail`;
+      thumbnailDiv.appendChild(thumbnailImg);
+
+      // Add duration overlay
+      if (video.duration) {
+        const durationOverlay = document.createElement('div');
+        // Simple duration overlay
+        durationOverlay.className = 'video-duration-overlay';
+        durationOverlay.textContent = video.duration;
+        thumbnailDiv.appendChild(durationOverlay);
+      }
+
+      // Create info div
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'video-info';
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'video-timestamp';
+      titleDiv.textContent = video.title;
+      infoDiv.appendChild(titleDiv);
+
+      // Add description
+      const descriptionDiv = document.createElement('div');
+      descriptionDiv.className = 'video-description';
+      descriptionDiv.textContent = video.description;
+      infoDiv.appendChild(descriptionDiv);
+
+      // Create share button
+      const shareButton = document.createElement('button');
+      shareButton.className = 'share-button';
+      shareButton.title = 'Share this video';
+      shareButton.innerHTML = '<i class="fas fa-share-alt"></i> Share';
+
+      // Add elements to video item
+      videoItem.appendChild(thumbnailDiv);
+      videoItem.appendChild(infoDiv);
+      videoItem.appendChild(shareButton);
+
+      // Add video item to list
+      videoList.appendChild(videoItem);
+    });
+
+    console.log('Finished rendering video items:', videoList.children.length);
+
+} else {
+console.log('Could not find video list container or video data');
+}
+};
+
+// Make renderVideoItems available globally to prevent "not defined" errors
+if (typeof window !== 'undefined') {
+window.renderVideoItems = renderVideoItems;
+}
+
 // Add YouTube API and global styles
 const YouTubeAPIScript = () => (
 
@@ -228,87 +311,7 @@ console.log('No hash in URL, using default video');
 }
 };
 
-// Function to manually render video items
-const renderVideoItems = () => {
-console.log('Manually rendering video items');
-const videoList = document.getElementById('videoList');
-
-if (videoList && videoData && videoData.videos) {
-console.log('Found video list container and video data, rendering items');
-
-    // Clear existing content
-    videoList.innerHTML = '';
-
-    // Create video items
-    videoData.videos.forEach((video, index) => {
-      // Use video ID directly
-      const videoIdWithParams = video.id;
-
-      // Create video item element
-      const videoItem = document.createElement('div');
-      videoItem.className = `video-item ${index === 0 ? 'active' : ''}`;
-      videoItem.setAttribute('data-video-id', videoIdWithParams);
-      videoItem.setAttribute('data-video-title', video.title);
-      videoItem.setAttribute('data-video-description', video.description);
-
-      // Create thumbnail
-      const thumbnailDiv = document.createElement('div');
-      thumbnailDiv.className = 'video-thumbnail';
-
-      const thumbnailImg = document.createElement('img');
-      thumbnailImg.src = `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`;
-      thumbnailImg.alt = `${video.title} Thumbnail`;
-      thumbnailDiv.appendChild(thumbnailImg);
-
-      // Removed timestamp overlay - not needed
-
-      // Add duration overlay
-      if (video.duration) {
-        const durationOverlay = document.createElement('div');
-        // Simple duration overlay
-        durationOverlay.className = 'video-duration-overlay';
-        durationOverlay.textContent = video.duration;
-        thumbnailDiv.appendChild(durationOverlay);
-      }
-
-      // Create info div
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'video-info';
-
-      const titleDiv = document.createElement('div');
-      titleDiv.className = 'video-timestamp';
-      titleDiv.textContent = video.title;
-      infoDiv.appendChild(titleDiv);
-
-      // Add description
-      const descriptionDiv = document.createElement('div');
-      descriptionDiv.className = 'video-description';
-      descriptionDiv.textContent = video.description;
-      infoDiv.appendChild(descriptionDiv);
-
-      // Duration is now displayed in the thumbnail overlay
-
-      // Create share button
-      const shareButton = document.createElement('button');
-      shareButton.className = 'share-button';
-      shareButton.title = 'Share this video';
-      shareButton.innerHTML = '<i class="fas fa-share-alt"></i> Share';
-
-      // Add elements to video item
-      videoItem.appendChild(thumbnailDiv);
-      videoItem.appendChild(infoDiv);
-      videoItem.appendChild(shareButton);
-
-      // Add video item to list
-      videoList.appendChild(videoItem);
-    });
-
-    console.log('Finished rendering video items:', videoList.children.length);
-
-} else {
-console.log('Could not find video list container or video data');
-}
-};
+// Use the renderVideoItems function defined at the component level
 
 // Call this function to ensure video items are loaded
 setTimeout(ensureVideoItemsLoaded, 1000);

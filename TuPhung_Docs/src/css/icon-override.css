@@ -1,0 +1,89 @@
+/**
+ * Icon override for all project icons
+ * This file replaces all icons with a consistent icon set
+ */
+
+/* Override Documentation icon in header in light mode */
+html[data-theme='light'] .header-docs-link::before {
+  background: url('https://img.icons8.com/?size=100&id=zc5irSeZZhcR&format=png&color=000000') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Override Documentation icon in header in dark mode */
+html[data-theme='dark'] .header-docs-link::before {
+  background: url('https://img.icons8.com/?size=100&id=zc5irSeZZhcR&format=png&color=FFFFFF') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Override sidebar menu icon for introduction in light mode */
+html[data-theme='light'] .menu__link[href*="/docs/intro"]::before,
+html[data-theme='light'] .menu__link[href*="docs/intro"]::before,
+html[data-theme='light'] .menu__link[href$="/intro"]::before,
+html[data-theme='light'] .dropdown__link--intro::before {
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=000000') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Override sidebar menu icon for introduction in dark mode */
+html[data-theme='dark'] .menu__link[href*="/docs/intro"]::before,
+html[data-theme='dark'] .menu__link[href*="docs/intro"]::before,
+html[data-theme='dark'] .menu__link[href$="/intro"]::before,
+html[data-theme='dark'] .dropdown__link--intro::before {
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=FFFFFF') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Special icon for CV in light mode */
+html[data-theme='light'] .icon-cv,
+html[data-theme='light'] span.icon-cv,
+html[data-theme='light'] .footer-icon.icon-cv,
+html[data-theme='light'] .sidebar-icon.icon-cv,
+html[data-theme='light'] .header-icon.icon-cv,
+html[data-theme='light'] .menu-icon.icon-cv,
+html[data-theme='light'] .header-cv-link::before {
+  background: url('https://img.icons8.com/?size=100&id=YzNTZDDjZwH1&format=png&color=000000') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Special icon for CV in dark mode */
+html[data-theme='dark'] .icon-cv,
+html[data-theme='dark'] span.icon-cv,
+html[data-theme='dark'] .footer-icon.icon-cv,
+html[data-theme='dark'] .sidebar-icon.icon-cv,
+html[data-theme='dark'] .header-icon.icon-cv,
+html[data-theme='dark'] .menu-icon.icon-cv,
+html[data-theme='dark'] .header-cv-link::before {
+  background: url('https://img.icons8.com/?size=100&id=YzNTZDDjZwH1&format=png&color=FFFFFF') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Sidebar icon for introduction in dark mode - always black */
+html[data-theme='dark'] .sidebar-icon.icon-intro,
+html[data-theme='dark'] #plugin-sidebar .icon-intro {
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=000000') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-color: transparent !important;
+}
+
+/* Footer icon for introduction in dark mode - white */
+html[data-theme='dark'] .footer-icon.icon-intro {
+  background: url('https://img.icons8.com/?size=100&id=eRycnOx8ELSA&format=png&color=FFFFFF') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-color: transparent !important;
+}
+
+/* Preserve the theme toggle icons */
+.light-theme-icon,
+.dark-theme-icon,
+.toggle-theme-button svg,
+.toggle-theme-button path {
+  background-image: none !important;
+}

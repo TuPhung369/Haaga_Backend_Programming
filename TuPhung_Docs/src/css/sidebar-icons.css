@@ -1,0 +1,442 @@
+/**
+ * Sidebar icons styling
+ * This file contains styles for sidebar menu icons using Icons8 Fluency
+ */
+
+/* Style for sidebar menu items with icons */
+.menu__link {
+  display: flex !important;
+  align-items: center !important;
+  position: relative !important;
+}
+
+/* Consistent styling for all top-level sidebar items */
+.theme-doc-sidebar-menu > .menu__list > .menu__list-item > .menu__link {
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  padding: 0.6rem 0.8rem !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Hover effect for all top-level sidebar items */
+.theme-doc-sidebar-menu > .menu__list > .menu__list-item > .menu__link:hover {
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.08) !important;
+  transform: translateX(2px) !important;
+}
+
+/* Add icons to specific sidebar menu items */
+/* Introduction icon */
+.menu__link[href*="/docs/intro"]::before,
+.menu__link[href*="docs/intro"]::before,
+.menu__link[href$="/intro"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/document.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Architecture icon */
+.menu__link[href*="/docs/architecture"]::before,
+.menu__link[href*="docs/architecture"]::before,
+.menu__link[href$="/architecture"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/blueprint.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Tech Stack icon */
+.menu__link[href*="/docs/tech-stack"]::before,
+.menu__link[href*="docs/tech-stack"]::before,
+.menu__link[href$="/tech-stack"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/maintenance.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Deployment icon */
+.menu__link[href*="/docs/deployment"]::before,
+.menu__link[href*="docs/deployment"]::before,
+.menu__link[href$="/deployment"]::before,
+.menu__link[href$="/docs/deployment"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/rocket.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend icon */
+.menu__link[href*="/docs/category/frontend"]::before,
+.menu__link[href*="docs/category/frontend"]::before,
+.menu__link[aria-label="Frontend"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/?size=100&id=ZJ2g7YgS3wpT&format=png&color=000000') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Backend icon */
+.menu__link[href*="/docs/category/backend"]::before,
+.menu__link[href*="docs/category/backend"]::before,
+.menu__link[aria-label="Backend"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/database.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Video icon */
+.menu__link[href*="/docs/video"]::before,
+.menu__link[href*="docs/video"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/?size=100&id=haXCqQUbXGmb&format=png&color=000000') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ==================== FRONTEND CHILDREN ICONS ==================== */
+
+/* Frontend - Project Structure */
+.menu__link[href*="/docs/frontend/structure"]::before,
+.menu__link[href*="docs/frontend/structure"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/folder-tree.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - State Management */
+.menu__link[href*="/docs/frontend/state-management"]::before,
+.menu__link[href*="docs/frontend/state-management"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/data-configuration.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - Authentication */
+.menu__link[href*="/docs/frontend/authentication"]::before,
+.menu__link[href*="docs/frontend/authentication"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/password-check.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - User Management */
+.menu__link[href*="/docs/frontend/user-management"]::before,
+.menu__link[href*="docs/frontend/user-management"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/user-group-man-woman.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - Calendar */
+.menu__link[href*="/docs/frontend/calendar"]::before,
+.menu__link[href*="docs/frontend/calendar"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/calendar.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - Kanban Board */
+.menu__link[href*="/docs/frontend/kanban"]::before,
+.menu__link[href*="docs/frontend/kanban"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/task-planning.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - AI Assistants */
+.menu__link[href*="/docs/frontend/ai-assistants"]::before,
+.menu__link[href*="docs/frontend/ai-assistants"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/artificial-intelligence.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - Language AI */
+.menu__link[href*="/docs/frontend/language-ai"]::before,
+.menu__link[href*="docs/frontend/language-ai"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/language.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - Chat System */
+.menu__link[href*="/docs/frontend/chat"]::before,
+.menu__link[href*="docs/frontend/chat"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/chat.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Frontend - UI Gallery Viewer */
+.menu__link[href*="/docs/frontend/ui-gallery-viewer"]::before,
+.menu__link[href*="docs/frontend/ui-gallery-viewer"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/image-gallery.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ==================== BACKEND CHILDREN ICONS ==================== */
+
+/* Backend - Project Structure */
+.menu__link[href*="/docs/backend/structure"]::before,
+.menu__link[href*="docs/backend/structure"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/folder-tree.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Backend - API */
+.menu__link[href*="/docs/backend/api"]::before,
+.menu__link[href*="docs/backend/api"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/api-settings.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Backend - Authentication */
+.menu__link[href*="/docs/backend/auth"]::before,
+.menu__link[href*="docs/backend/auth"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/security-checked.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Backend - Database */
+.menu__link[href*="/docs/backend/database"]::before,
+.menu__link[href*="docs/backend/database"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/database-restore.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Backend - User Management */
+.menu__link[href*="/docs/backend/user-management"]::before,
+.menu__link[href*="docs/backend/user-management"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/conference-call.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Backend - WebSockets */
+.menu__link[href*="/docs/backend/websockets"]::before,
+.menu__link[href*="docs/backend/websockets"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/connection-sync.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Backend - Speech Processing */
+.menu__link[href*="/docs/backend/speech-processing"]::before,
+.menu__link[href*="docs/backend/speech-processing"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/microphone.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Backend - Exception Handling */
+.menu__link[href*="/docs/backend/exception-handling"]::before,
+.menu__link[href*="docs/backend/exception-handling"]::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  background: url('https://img.icons8.com/fluency/96/error.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  transition: transform 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Hover effect for sidebar menu icons */
+.menu__link:hover::before {
+  transform: scale(1.1) !important;
+}
