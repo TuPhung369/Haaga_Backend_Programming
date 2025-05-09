@@ -40,16 +40,9 @@ module.exports = function (context, options) {
                 width: 40px !important;
                 height: 40px !important;
                 margin: 0 auto !important;
-                padding-bottom: 10px !important;
+                padding-bottom: 5px !important; /* Reduced padding for all screen sizes */
                 color: rgba(78, 87, 185, 1) !important; /* Black color for initial state */
                 transition: color 0.3s ease !important;
-              }
-              
-              /* Adjust icon position for mobile devices in collapsed state */
-              @media (max-width: 768px) {
-                #plugin-bookmark:not(.active) .bookmark-icon {
-                  padding-bottom: 5px !important;
-                }
               }
               
               /* Hover effect for bookmark icon */
