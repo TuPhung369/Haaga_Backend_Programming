@@ -1050,7 +1050,7 @@ const config = {
             themeText.className = 'theme-text';
             themeText.textContent = isDarkTheme ? 'Dark Mode' : 'Light Mode';
             themeText.style.color = 'rgb(30, 1, 124)';
-            themeText.style.fontWeight = '500';
+            themeText.style.fontWeight = '600';
             
             themeButton.appendChild(themeIconContainer);
             themeButton.appendChild(themeText);
