@@ -45,6 +45,13 @@ module.exports = function (context, options) {
                 transition: color 0.3s ease !important;
               }
               
+              /* Adjust icon position for mobile devices in collapsed state */
+              @media (max-width: 768px) {
+                #plugin-bookmark:not(.active) .bookmark-icon {
+                  padding-bottom: 5px !important;
+                }
+              }
+              
               /* Hover effect for bookmark icon */
               #plugin-bookmark:hover .bookmark-icon {
                 color: rgba(78, 87, 185, 1) !important; /* Change to theme color on hover */
@@ -750,7 +757,7 @@ module.exports = function (context, options) {
                     content.style.opacity = '0';
                   }
                   
-                  // Open bookmark on hover
+                  // Open bookmark on hover (desktop) or click (mobile)
                   bookmark.addEventListener('mouseenter', function() {
                     if (!isOpen) {
                       openBookmark();
@@ -758,6 +765,16 @@ module.exports = function (context, options) {
                     // Cancel any pending close timer
                     if (leaveTimer) {
                       clearTimeout(leaveTimer);
+                    }
+                  });
+                  
+                  // Toggle bookmark on click (especially for mobile)
+                  title.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent document click from immediately closing it
+                    if (isOpen) {
+                      closeBookmark();
+                    } else {
+                      openBookmark();
                     }
                   });
                   
@@ -769,6 +786,40 @@ module.exports = function (context, options) {
                         closeBookmark();
                       }, 300); // 300ms delay before closing
                     }
+                  });
+                  
+                  // Add document-wide click event handler to close bookmark when clicking outside
+                  document.addEventListener('click', function(e) {
+                    // If bookmark exists and is open
+                    const bookmarkElement = document.getElementById('plugin-bookmark');
+                    if (bookmarkElement && bookmarkElement.classList.contains('active')) {
+                      // Check if the click was outside the bookmark
+                      if (!bookmarkElement.contains(e.target)) {
+                        closeBookmark();
+                      }
+                    }
+                  });
+                  
+                  // Add touchstart event for mobile devices
+                  document.addEventListener('touchstart', function(e) {
+                    // If bookmark exists and is open
+                    const bookmarkElement = document.getElementById('plugin-bookmark');
+                    if (bookmarkElement && bookmarkElement.classList.contains('active')) {
+                      // Check if the touch was outside the bookmark and not on a link inside the bookmark
+                      if (!bookmarkElement.contains(e.target) && !e.target.closest('#plugin-bookmark a')) {
+                        closeBookmark();
+                      }
+                    }
+                  });
+                  
+                  // Prevent clicks inside the bookmark content from closing it
+                  content.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                  });
+                  
+                  // Prevent touches inside the bookmark content from closing it
+                  content.addEventListener('touchstart', function(e) {
+                    e.stopPropagation();
                   });
                 }
                 
