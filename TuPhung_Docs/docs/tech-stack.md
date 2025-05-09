@@ -10,22 +10,39 @@ import PanzoomWrapper from '@site/src/components/MermaidDiagram/PanzoomWrapper';
 /* Modifying the icon size and header layout */
 .tech-icon {
   margin-right: 0; /* No right margin */
-  padding-top: 20px; /* Add padding to the top of the icon */
   grid-column: 1; /* Place in first column of grid */
+  background-color: #f8f9fa;
+  background-image: linear-gradient(135deg, #ffffff 0%, #f1f3f4 100%);
+  border-radius: 14px; /* Match card radius */
+  padding: 14px; /* More padding for better visual */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.06); /* Enhanced shadow for depth */
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy animation */
+  border: 1px solid rgba(0,0,0,0.03);
 }
 
 /* For image icons */
 img.tech-icon {
-  width: 50px; /* Increased size */
-  height: 50px; /* Increased size */
+  width: 52px; /* Consistent size */
+  height: 52px; /* Consistent size */
   object-fit: contain;
-  padding: 2px; /* Add a small padding to prevent cutting off edges */
+  padding: 0; /* Remove padding from image itself */
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); /* Subtle shadow for icons */
 }
 
 /* For emoji icons */
 div.tech-icon {
-  font-size: 40px; /* Increased size */
+  font-size: 40px; /* Consistent size */
   line-height: 1;
+  width: 52px; /* Consistent size */
+  height: 52px; /* Consistent size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); /* Matching shadow for emoji icons */
 }
 
 /* Make header wrapper tighter */
@@ -805,7 +822,13 @@ flowchart TD
 
   .tech-stack-overview-icon {
     font-size: 2.5rem;
-    margin-bottom: 10px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    text-align: center;
   }
 
   .tech-stack-overview-count {
@@ -834,8 +857,14 @@ flowchart TD
   }
 
   .tech-category-icon {
-    font-size: 1.8rem;
+    font-size: 2rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-right: 15px;
+    text-align: center;
   }
 
   .tech-category-title {
@@ -933,37 +962,10 @@ flowchart TD
     opacity: 0.7;
   }
 
-  .tech-icon {
-    background-color: #f8f9fa;
-    background-image: linear-gradient(135deg, #ffffff 0%, #f1f3f4 100%);
-    border-radius: 14px; /* Match card radius */
-    padding: 14px; /* More padding for better visual */
-    grid-column: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.06); /* Enhanced shadow for depth */
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy animation */
-    border: 1px solid rgba(0,0,0,0.03);
-  }
-
   .tech-card:hover .tech-icon {
     transform: scale(1.08) rotate(3deg); /* More dynamic hover effect */
     box-shadow: 0 6px 12px rgba(0,0,0,0.1);
     border-color: rgba(66, 133, 244, 0.2);
-  }
-
-  img.tech-icon {
-    width: 52px;
-    height: 52px;
-    object-fit: contain;
-    padding: 0; /* Remove padding from image itself */
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); /* Subtle shadow for icons */
-  }
-
-  div.tech-icon {
-    font-size: 40px; /* Slightly larger for better visibility */
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); /* Matching shadow for emoji icons */
   }
 
   .tech-card-title {
