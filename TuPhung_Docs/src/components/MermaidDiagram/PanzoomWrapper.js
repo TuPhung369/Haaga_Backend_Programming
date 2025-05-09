@@ -9,9 +9,11 @@ const PanzoomWrapper = ({ children }) => {
   const [isTouchDevice, setIsTouchDevice] = useState(true); // Default to true to prevent initialization until we check
   const [mobileScale, setMobileScale] = useState(1); // Track mobile scaling
 
-  // Check if device is a touch device (mobile, tablet, iPad, etc.)
+  // Check if device is a touch device (mobile, tablet, iPad, etc.) and screen size
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
   useEffect(() => {
-    const checkIfTouchDevice = () => {
+    const checkDeviceAndScreenSize = () => {
       // Check if device has touch capability
       const hasTouchCapability =
         "ontouchstart" in window ||
@@ -20,10 +22,11 @@ const PanzoomWrapper = ({ children }) => {
 
       // Check screen size - only consider small screens as touch devices
       // This allows large touch screens (like Surface) to still use panzoom
-      const isSmallScreen = window.innerWidth <= 1024;
+      const smallScreen = window.innerWidth <= 1024;
+      setIsSmallScreen(smallScreen);
 
       // Only disable panzoom on small touch screens (phones, tablets)
-      const isSmallTouchDevice = hasTouchCapability && isSmallScreen;
+      const isSmallTouchDevice = hasTouchCapability && smallScreen;
 
       setIsTouchDevice(isSmallTouchDevice);
 
@@ -39,13 +42,13 @@ const PanzoomWrapper = ({ children }) => {
     };
 
     // Check on initial load
-    checkIfTouchDevice();
+    checkDeviceAndScreenSize();
 
     // Add event listener for window resize
-    window.addEventListener("resize", checkIfTouchDevice);
+    window.addEventListener("resize", checkDeviceAndScreenSize);
 
     // Cleanup
-    return () => window.removeEventListener("resize", checkIfTouchDevice);
+    return () => window.removeEventListener("resize", checkDeviceAndScreenSize);
   }, []);
 
   // Check initial theme and observe changes
@@ -69,8 +72,11 @@ const PanzoomWrapper = ({ children }) => {
   }, []);
 
   const initializePanzoom = () => {
-    // Skip initialization on touch devices completely
-    if (isTouchDevice) {
+    // Skip initialization on small screens completely
+    if (isSmallScreen) {
+      console.log(
+        "PanzoomWrapper: Small screen detected, skipping Panzoom initialization"
+      );
       return false;
     }
 
@@ -95,26 +101,24 @@ const PanzoomWrapper = ({ children }) => {
     svgRef.current = svgElem;
 
     try {
-      // Initialize or re-initialize Panzoom
-      const panzoom = Panzoom(svgElem, {
+      // Initialize Panzoom only for desktop with standard options
+      const panzoomOptions = {
         maxScale: 5,
         minScale: 0.5,
         step: 0.1,
         canvas: true,
-        // Disable panzoom's handling of touch events to allow native browser behavior
         touch: false,
-        // Set this to false to prevent panzoom from capturing all pointer events
-        disablePan: false,
-        // Allow browser's native touch gestures
+        disablePan: false, // Allow panning/dragging on desktop
         touchAction: "auto",
-      });
+      };
+
+      // Initialize Panzoom with the appropriate options
+      const panzoom = Panzoom(svgElem, panzoomOptions);
 
       // Store Panzoom instance
       panzoomRef.current = panzoom;
 
-      console.log(
-        "PanzoomWrapper: Initialized successfully for desktop/large screens"
-      );
+      console.log("PanzoomWrapper: Initialized successfully for desktop");
       return true;
     } catch (error) {
       console.error("PanzoomWrapper: Error initializing panzoom", error);
@@ -123,110 +127,105 @@ const PanzoomWrapper = ({ children }) => {
   };
 
   useEffect(() => {
-    // Don't even try to initialize on touch devices
-    if (isTouchDevice) {
-      // For touch devices, we'll just make sure the SVG is properly set up for native browser zooming
-      const setupMobileZoom = () => {
-        // First, ensure the viewport meta tag is set correctly for zooming
-        let viewportMeta = document.querySelector('meta[name="viewport"]');
-        if (viewportMeta) {
-          // Update existing viewport meta tag to ensure zoom is enabled
-          viewportMeta.setAttribute(
-            "content",
-            "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
-          );
-        } else {
-          // Create a new viewport meta tag if it doesn't exist
-          viewportMeta = document.createElement("meta");
-          viewportMeta.setAttribute("name", "viewport");
-          viewportMeta.setAttribute(
-            "content",
-            "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
-          );
-          document.head.appendChild(viewportMeta);
-        }
+    if (isSmallScreen) {
+      // For small screens, set up native browser zooming
+      // First, ensure the viewport meta tag is set correctly for zooming
+      let viewportMeta = document.querySelector('meta[name="viewport"]');
+      if (viewportMeta) {
+        // Update existing viewport meta tag to ensure zoom is enabled
+        viewportMeta.setAttribute(
+          "content",
+          "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+        );
+      } else {
+        // Create a new viewport meta tag if it doesn't exist
+        viewportMeta = document.createElement("meta");
+        viewportMeta.setAttribute("name", "viewport");
+        viewportMeta.setAttribute(
+          "content",
+          "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+        );
+        document.head.appendChild(viewportMeta);
+      }
 
-        if (containerRef.current) {
-          const svgElement = containerRef.current.querySelector("svg");
-          if (svgElement) {
-            // Make SVG responsive
-            if (!svgElement.getAttribute("viewBox")) {
-              const width = svgElement.getAttribute("width") || "100%";
-              const height = svgElement.getAttribute("height") || "100%";
-              svgElement.setAttribute("viewBox", `0 0 ${width} ${height}`);
-              svgElement.setAttribute("width", "100%");
-              svgElement.setAttribute("height", "auto");
-            }
-
-            // Remove any transform that might interfere with native zooming
-            svgElement.style.transform = "none";
-
-            // Add additional properties to ensure zooming works
-            svgElement.style.touchAction = "manipulation"; // Changed from pinch-zoom to manipulation
-            svgElement.style.WebkitUserSelect = "none"; // Changed from text to none
-            svgElement.style.userSelect = "none"; // Changed from text to none
-
-            // Make sure the SVG is not preventing touch events
-            svgElement.style.pointerEvents = "auto";
-
-            console.log(
-              "PanzoomWrapper: Mobile native zoom enabled for touch device"
-            );
-            return true;
+      // Find the SVG element and apply styles to prevent dragging
+      if (containerRef.current) {
+        const svgElement = containerRef.current.querySelector("svg");
+        if (svgElement) {
+          // Make SVG responsive
+          if (!svgElement.getAttribute("viewBox")) {
+            const width = svgElement.getAttribute("width") || "100%";
+            const height = svgElement.getAttribute("height") || "100%";
+            svgElement.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            svgElement.setAttribute("width", "100%");
+            svgElement.setAttribute("height", "auto");
           }
-        }
-        return false;
-      };
 
-      // Try to set up mobile zoom
-      if (!setupMobileZoom()) {
-        // Retry a few times if SVG isn't immediately available
+          // Add a class to identify it
+          svgElement.classList.add("no-drag-mobile");
+
+          // Apply direct styles to prevent dragging but allow zooming
+          svgElement.style.touchAction = "pinch-zoom";
+          svgElement.style.userDrag = "none";
+          svgElement.style.WebkitUserDrag = "none";
+          svgElement.style.userSelect = "none";
+          svgElement.style.WebkitUserSelect = "none";
+
+          // Remove any transform that might interfere with zooming
+          svgElement.style.transform = "none";
+
+          // Add event listeners directly to the SVG to prevent dragging
+          const preventDrag = (e) => {
+            if (e.touches && e.touches.length === 1) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          };
+
+          svgElement.addEventListener("touchmove", preventDrag, {
+            passive: false,
+          });
+
+          console.log("PanzoomWrapper: Mobile native zoom enabled");
+
+          // Clean up
+          return () => {
+            svgElement.removeEventListener("touchmove", preventDrag);
+          };
+        }
+      }
+    } else {
+      // For desktop devices, initialize Panzoom
+      if (!initializePanzoom()) {
+        // Only retry a few times to avoid infinite loops
         let attempts = 0;
-        const maxAttempts = 5; // Reduced from 10 to 5
+        const maxAttempts = 10;
 
         const interval = setInterval(() => {
           attempts++;
-          if (setupMobileZoom() || attempts >= maxAttempts) {
+          if (initializePanzoom() || attempts >= maxAttempts) {
             clearInterval(interval);
           }
-        }, 200); // Reduced from 300 to 200
+        }, 300);
 
         // Cleanup interval after a maximum time
-        setTimeout(() => clearInterval(interval), 1000); // Reduced from 3000 to 1000
+        setTimeout(() => clearInterval(interval), 3000);
       }
 
-      return;
-    }
-
-    // For desktop devices, initialize Panzoom
-    if (!initializePanzoom()) {
-      // Only retry a few times to avoid infinite loops
-      let attempts = 0;
-      const maxAttempts = 10;
-
-      const interval = setInterval(() => {
-        attempts++;
-        if (initializePanzoom() || attempts >= maxAttempts) {
-          clearInterval(interval);
+      // Cleanup
+      return () => {
+        if (panzoomRef.current) {
+          try {
+            panzoomRef.current.destroy();
+          } catch (e) {
+            console.error("Error destroying panzoom", e);
+          }
+          panzoomRef.current = null;
         }
-      }, 300);
-
-      // Cleanup interval after a maximum time
-      setTimeout(() => clearInterval(interval), 3000);
+      };
     }
-
-    // Cleanup
-    return () => {
-      if (panzoomRef.current) {
-        try {
-          panzoomRef.current.destroy();
-        } catch (e) {
-          console.error("Error destroying panzoom", e);
-        }
-        panzoomRef.current = null;
-      }
-    };
-  }, [isTouchDevice]);
+  }, [isSmallScreen]);
 
   // Touch event handling for mobile devices
   const [touchStartDistance, setTouchStartDistance] = useState(null);
@@ -242,21 +241,35 @@ const PanzoomWrapper = ({ children }) => {
 
   // Handle touch start event
   const handleTouchStart = (e) => {
-    if (isTouchDevice && e.touches.length === 2) {
-      // Two finger touch - potential pinch gesture
-      const distance = getDistance(e.touches[0], e.touches[1]);
-      setTouchStartDistance(distance);
-      setInitialScale(mobileScale);
+    if (isSmallScreen) {
+      if (e.touches.length === 2) {
+        // Two finger touch - potential pinch gesture
+        const distance = getDistance(e.touches[0], e.touches[1]);
+        setTouchStartDistance(distance);
+        setInitialScale(mobileScale);
+      } else if (e.touches.length === 1) {
+        // Single finger touch - potential drag gesture
+        // Prevent drag behavior on mobile
+        // We don't call preventDefault here as it would prevent all touch events
+        // Instead we'll handle it in touchMove
+      }
     }
   };
 
   // Handle touch move event
   const handleTouchMove = (e) => {
-    // On mobile devices, we'll let the browser handle zooming natively
-    // This is more stable and prevents crashes
-    if (isTouchDevice) {
-      // Don't do any custom zoom handling on mobile
-      return;
+    if (isSmallScreen) {
+      // On small screens, only allow pinch-zoom gestures, prevent panning/dragging
+      if (e.touches.length === 2) {
+        // This is a pinch gesture, let it through for zooming
+        // Don't prevent default to allow zoom behavior
+      } else if (e.touches.length === 1) {
+        // This is a drag/pan gesture, prevent it completely
+        // We need to prevent default here to stop any dragging
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
     }
   };
 
@@ -265,24 +278,21 @@ const PanzoomWrapper = ({ children }) => {
     setTouchStartDistance(null);
   };
 
-  // Desktop zoom functions
+  // Zoom functions for all devices
   const zoomIn = () => {
-    // Only use Panzoom for desktop devices
-    if (!isTouchDevice && panzoomRef.current) {
+    if (panzoomRef.current) {
       panzoomRef.current.zoomIn();
     }
   };
 
   const zoomOut = () => {
-    // Only use Panzoom for desktop devices
-    if (!isTouchDevice && panzoomRef.current) {
+    if (panzoomRef.current) {
       panzoomRef.current.zoomOut();
     }
   };
 
   const resetZoom = () => {
-    // Only use Panzoom for desktop devices
-    if (!isTouchDevice && panzoomRef.current) {
+    if (panzoomRef.current) {
       panzoomRef.current.reset();
     }
   };
@@ -311,9 +321,21 @@ const PanzoomWrapper = ({ children }) => {
         position: "relative",
         width: "100%",
         overflow: "visible",
-        // Use manipulation for better touch handling
-        touchAction: "manipulation",
+        // Only allow pinch-zoom on small screens, normal behavior on desktop
+        touchAction: isSmallScreen ? "pinch-zoom" : "auto",
         WebkitTapHighlightColor: "rgba(0,0,0,0)",
+        // Prevent dragging behavior only on small screens
+        userDrag: isSmallScreen ? "none" : "auto",
+        WebkitUserDrag: isSmallScreen ? "none" : "auto",
+        // Additional properties for small screens
+        ...(isSmallScreen && {
+          // Prevent any transform that might enable dragging
+          transform: "none",
+          // Prevent any transition that might enable dragging
+          transition: "none",
+          // Prevent any animation that might enable dragging
+          animation: "none",
+        }),
       }}
     >
       <div
@@ -321,24 +343,46 @@ const PanzoomWrapper = ({ children }) => {
         style={{
           width: "100%",
           position: "relative",
-          // Use appropriate touch action based on device
-          touchAction: isTouchDevice ? "manipulation" : "none",
+          // Only allow pinch-zoom on small screens, normal behavior on desktop
+          touchAction: isSmallScreen ? "pinch-zoom" : "auto",
           // Ensure content can be zoomed on mobile
           maxWidth: "100%",
-          // Use appropriate user-select based on device
+          // Prevent text selection
           WebkitUserSelect: "none",
           userSelect: "none",
+          // Prevent dragging behavior only on small screens
+          userDrag: isSmallScreen ? "none" : "auto",
+          WebkitUserDrag: isSmallScreen ? "none" : "auto",
+          // Prevent cursor changes that might suggest dragging only on small screens
+          cursor: isSmallScreen ? "default" : "auto",
+          // Additional properties to prevent dragging on mobile
+          ...(isSmallScreen && {
+            pointerEvents: "auto",
+            touchAction: "pinch-zoom",
+            WebkitTouchCallout: "none",
+            WebkitOverflowScrolling: "touch",
+            // Prevent any transform that might enable dragging
+            transform: "none",
+            // Prevent any transition that might enable dragging
+            transition: "none",
+            // Prevent any animation that might enable dragging
+            animation: "none",
+            // Disable pointer events for dragging
+            pointerEvents: "none",
+            // Re-enable pointer events for pinch-zoom
+            touchAction: "pinch-zoom",
+          }),
         }}
-        // Remove touch event handlers on mobile devices to let browser handle zooming
-        onTouchStart={isTouchDevice ? null : handleTouchStart}
-        onTouchMove={isTouchDevice ? null : handleTouchMove}
-        onTouchEnd={isTouchDevice ? null : handleTouchEnd}
-        onTouchCancel={isTouchDevice ? null : handleTouchEnd}
+        // Always attach touch handlers, but they will have different behavior based on device type
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
         {children}
       </div>
       {/* Show zoom controls only on desktop devices */}
-      {!isTouchDevice && (
+      {!isSmallScreen && (
         <div
           style={{
             position: "absolute",
