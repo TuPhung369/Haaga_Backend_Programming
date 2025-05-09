@@ -90,11 +90,13 @@ html[data-theme='dark'] .partnersSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  border-radius: 8px;
+  justify-content: flex-start;
+  padding: 2rem 1.5rem;
+  border-radius: 12px;
   transition: all 0.3s ease;
   text-align: center;
+  height: 100%;
+  min-height: 320px; /* Đảm bảo tất cả các card có chiều cao tối thiểu giống nhau */
 }
 
 /* Light mode partner card */
@@ -126,14 +128,16 @@ html[data-theme='dark'] .partnerCard:hover {
 }
 
 .partnerLogo {
-  height: 64px;
-  width: 64px;
+  height: 128px;
+  width: 128px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-top: 1rem; /* Khoảng cách cố định từ top border */
+  margin-bottom: 1.5rem;
   transition: all 0.3s ease;
   color: var(--ifm-color-primary);
+  font-size: 100px; /* Extra large screens */
 }
 
 .partnerCard:hover .partnerLogo {
@@ -142,21 +146,37 @@ html[data-theme='dark'] .partnerCard:hover {
 }
 
 .partnerName {
-  font-weight: 600;
-  font-size: 1rem;
+  font-weight: 700;
+  font-size: 1.2rem;
   color: var(--ifm-color-emphasis-900);
-  margin-bottom: 0.25rem;
+  margin-bottom: 1rem; /* Tăng khoảng cách giữa tên và mô tả */
+  letter-spacing: 0.5px;
+  height: 1.5rem; /* Chiều cao cố định cho phần tên */
 }
 
 .partnerCategory {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
   color: var(--ifm-color-primary);
   background-color: rgba(var(--ifm-color-primary-rgb), 0.1);
-  padding: 0.2rem 0.6rem;
+  padding: 0.5rem 0.8rem;
   border-radius: 12px;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.5rem;
+  min-height: 4rem; /* Chiều cao tối thiểu cho phần mô tả */
+  width: 100%; /* Đảm bảo chiều rộng đầy đủ */
 }
 
+/* Large screens */
+@media screen and (max-width: 1200px) {
+  .partnerLogo {
+    font-size: 80px; /* Large screens */
+  }
+}
+
+/* Medium screens */
 @media screen and (max-width: 996px) {
   .partnersGrid {
     grid-template-columns: repeat(3, 1fr);
@@ -174,15 +194,64 @@ html[data-theme='dark'] .partnerCard:hover {
   .partnersSection {
     padding: 4rem 0;
   }
+  
+  .partnerCard {
+    min-height: 300px; /* Điều chỉnh chiều cao tối thiểu cho màn hình trung bình */
+  }
+  
+  .partnerLogo {
+    height: 100px;
+    width: 100px;
+    font-size: 60px; /* Medium screens */
+    margin-top: 0.8rem;
+    margin-bottom: 1.2rem;
+  }
+  
+  .partnerName {
+    font-size: 1.1rem;
+    height: 1.4rem;
+    margin-bottom: 0.8rem;
+  }
+  
+  .partnerCategory {
+    font-size: 0.85rem;
+    min-height: 3.5rem;
+  }
 }
 
+/* Tablet screens */
 @media screen and (max-width: 768px) {
   .partnersGrid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
+  
+  .partnerCard {
+    min-height: 280px; /* Điều chỉnh chiều cao tối thiểu cho màn hình tablet */
+  }
+  
+  .partnerLogo {
+    height: 80px;
+    width: 80px;
+    font-size: 40px; /* Tablet screens */
+    margin-top: 0.7rem;
+    margin-bottom: 1rem;
+  }
+  
+  .partnerName {
+    font-size: 1rem;
+    height: 1.3rem;
+    margin-bottom: 0.7rem;
+  }
+  
+  .partnerCategory {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.7rem;
+    min-height: 3rem;
+  }
 }
 
+/* Mobile screens */
 @media screen and (max-width: 480px) {
   .partnersGrid {
     grid-template-columns: 1fr;
@@ -190,5 +259,31 @@ html[data-theme='dark'] .partnerCard:hover {
   
   .partnersSection {
     padding: 3rem 0;
+  }
+  
+  .partnerCard {
+    min-height: 250px; /* Điều chỉnh chiều cao tối thiểu cho màn hình di động */
+    padding: 1.5rem 1rem;
+  }
+  
+  .partnerLogo {
+    height: 70px;
+    width: 70px;
+    font-size: 36px; /* Mobile screens */
+    margin-top: 0.5rem;
+    margin-bottom: 0.8rem;
+  }
+  
+  .partnerName {
+    font-size: 1rem;
+    height: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .partnerCategory {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+    margin-top: 0.3rem;
+    min-height: 2.5rem;
   }
 }

@@ -58,7 +58,9 @@ export default function HomepageSecurityFeatures() {
         <div className={styles.partnersGrid}>
           {securityFeatures.map((feature, idx) => (
             <div key={idx} className={styles.partnerCard}>
-              <div className={styles.partnerLogo}>{feature.logo}</div>
+              <div className={styles.partnerLogo} aria-hidden="true">
+                {feature.logo}
+              </div>
               <div className={styles.partnerName}>{feature.name}</div>
               <div className={styles.partnerCategory}>
                 {feature.description}

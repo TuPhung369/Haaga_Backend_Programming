@@ -6,7 +6,7 @@ import Layout from "@theme/Layout";
 import HomepageFeatures from "@site/src/components/HomepageFeatures";
 import HomepageStats from "@site/src/components/HomepageStats";
 import HomepageDemo from "@site/src/components/HomepageDemo";
-import HomepagePartners from "@site/src/components/HomepagePartners";
+import HomepageSecurity from "@site/src/components/HomepageSecurity";
 
 import styles from "./index.module.css";
 
@@ -296,7 +296,7 @@ export default function Home() {
           <HomepageFeatures />
           <HomepageStats />
           <HomepageDemo />
-          <HomepagePartners />
+          <HomepageSecurity />
           <HomepageTestimonial />
           <HomepageCTA />
         </main>
