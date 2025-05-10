@@ -101,26 +101,22 @@ function HomepageHeader() {
               )}
             >
               <span className={styles.highlightText}>Elevate</span> your daily
-              workflow with an intelligent assistant that
+              workflow with an intelligent assistant that{" "}
               <span className={styles.highlightText}>
-                {" "}
                 automates routine tasks
               </span>{" "}
-              and manages events seamlessly. Our platform
+              and manages events seamlessly. Our platform{" "}
               <span className={styles.highlightText}>
-                {" "}
                 leverages personalized AI
               </span>{" "}
               to access your knowledge base for precise answers, enabling rapid
               knowledge capture and retrieval beyond traditional AI limitations.
-              With integrated
+              With integrated{" "}
               <span className={styles.highlightText}>
-                {" "}
                 language enhancement tools
               </span>{" "}
-              and kanban automation, all secured with
+              and kanban automation, all secured with{" "}
               <span className={styles.highlightText}>
-                {" "}
                 enterprise-grade protection
               </span>
               , we're redefining productivity optimization.
