@@ -7,7 +7,7 @@ const path = require("path");
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Enterprise Nexus",
-  tagline: "Comprehensive documentation for the Enterprise Nexus Platform",
+  tagline: "Empowering Your Workflow with Intelligent Automation",
   favicon: "img/favicon.ico",
 
   // Ensure proper mobile viewport settings

@@ -1,0 +1,20 @@
+/* Import tech and masculine fonts from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Saira+Stencil+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Wallpoet&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap');
+
+/* Define tech font variables */
+:root {
+  --font-tech-primary: 'Russo One', sans-serif;
+  --font-tech-secondary: 'Rajdhani', sans-serif;
+  --font-tech-accent: 'Audiowide', cursive;
+  --font-tech-alt: 'Chakra Petch', sans-serif;
+  --font-tech-code: 'Quantico', monospace;
+}

@@ -22,6 +22,8 @@
 @import './dropdown-styles.css';
 /* Import responsive navbar styles */
 @import './responsive-navbar.css';
+/* Import tech fonts */
+@import './tech-fonts.css';
 
 /* Workflow Container Styles */
 .workflow-container {

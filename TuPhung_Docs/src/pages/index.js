@@ -74,10 +74,16 @@ function HomepageHeader() {
       <div className={clsx("container", styles.homeContainer)}>
         <div className={styles.heroContent}>
           <div className={styles.heroTextContent}>
-            <h1 className={clsx("hero__title", styles.typewriter)}>
-              {displayText}
-              {!isTypingComplete && <span className={styles.cursor}></span>}
-            </h1>
+            <div style={{ position: "relative" }}>
+              <h1
+                className={clsx("hero__title", styles.typewriter)}
+                data-text={displayText}
+              >
+                {displayText}
+                {!isTypingComplete && <span className={styles.cursor}></span>}
+              </h1>
+              <div className={styles.rgbArrow}></div>
+            </div>
             <p
               className={clsx(
                 "hero__subtitle",
@@ -94,16 +100,30 @@ function HomepageHeader() {
                 showDescription && styles.visible
               )}
             >
-              <span className={styles.highlightText}>Revolutionize</span> your
-              enterprise management with our cutting-edge platform featuring{" "}
+              <span className={styles.highlightText}>Elevate</span> your daily
+              workflow with an intelligent assistant that
               <span className={styles.highlightText}>
-                advanced AI capabilities
-              </span>
-              , real-time collaboration tools, and{" "}
+                {" "}
+                automates routine tasks
+              </span>{" "}
+              and manages events seamlessly. Our platform
               <span className={styles.highlightText}>
-                enterprise-grade security
+                {" "}
+                leverages personalized AI
+              </span>{" "}
+              to access your knowledge base for precise answers, enabling rapid
+              knowledge capture and retrieval beyond traditional AI limitations.
+              With integrated
+              <span className={styles.highlightText}>
+                {" "}
+                language enhancement tools
+              </span>{" "}
+              and kanban automation, all secured with
+              <span className={styles.highlightText}>
+                {" "}
+                enterprise-grade protection
               </span>
-              .
+              , we're redefining productivity optimization.
             </p>
             <div
               className={clsx(
@@ -145,8 +165,6 @@ function HomepageHeader() {
           </div>
           {/* Image section removed */}
         </div>
-
-
       </div>
 
       <div className={styles.heroWave}>
