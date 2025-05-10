@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const menuIcon = sidebar.querySelector(".menu-icon");
       if (menuIcon) {
         menuIcon.style.cssText =
-          "display: inline-block !important; visibility: visible !important; opacity: 1 !important; z-index: 9999 !important; position: absolute !important; left: 4.5px !important; top: 4.5px !important; padding: 0 !important; margin: 0 !important;";
+          "display: inline-block !important; visibility: visible !important; opacity: 1 !important; z-index: 9999 !important; position: absolute !important; left: 3px !important; top: -3px !important; padding: 0 !important; margin: 0 !important;";
       }
     } else {
       // Show icon container when sidebar is active

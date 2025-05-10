@@ -160,7 +160,7 @@ const config = {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
           left: 15px !important;
           top: 17px !important;
-          width: 220px !important; /* Increased width to accommodate all icons */
+          width: 280px !important; /* Increased width to 280px */
           height: auto !important;
           max-height: 80vh !important; /* Use 80% of viewport height */
           border-radius: 8px !important;
@@ -175,7 +175,7 @@ const config = {
           #plugin-sidebar.active {
             left: 15px !important;
             top: 10px !important; /* Slightly higher on smaller screens */
-            width: 220px !important; /* Increased width to accommodate all icons */
+            width: 280px !important; /* Increased width to 280px */
             max-height: 80vh !important; /* Use 80% of viewport height */
             display: flex !important;
             flex-direction: column !important;
@@ -193,7 +193,7 @@ const config = {
           #plugin-sidebar.active {
             left: 15px !important;
             top: 10px !important;
-            width: 220px !important; /* Increased width to accommodate all icons */
+            width: 280px !important; /* Increased width to 280px */
             max-height: 80vh !important; /* Use 80% of viewport height */
             display: flex !important;
             flex-direction: column !important;
@@ -750,8 +750,8 @@ const config = {
           menuIcon.style.width = '24px';
           menuIcon.style.height = '24px';
           menuIcon.style.position = 'absolute';
-          menuIcon.style.left = '4.5px'; /* Position from left edge */
-          menuIcon.style.top = '4.5px'; /* Position from top edge */
+          menuIcon.style.left = '3px'; /* Position from left edge */
+          menuIcon.style.top = '-3px'; /* Position from top edge */
           menuIcon.style.zIndex = '200'; /* Ensure menu is always on top */
           menuIcon.style.pointerEvents = 'auto';
           menuIcon.textContent = '☰';
@@ -1482,7 +1482,7 @@ const config = {
             sidebar.classList.add('active');
             localStorage.setItem('sidebarOpen', 'true');
             
-            sidebar.style.width = '220px';
+            sidebar.style.width = '280px';
             sidebar.style.height = 'auto';
             sidebar.style.maxHeight = '80vh';
             sidebar.style.display = 'flex';
@@ -1591,7 +1591,7 @@ const config = {
             }
             
             // Ensure menu icon is visible with !important flags and smaller size
-            menuIcon.style.cssText = 'display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; position: absolute !important; left: 4.5px !important; top: 4.5px !important; z-index: 9999 !important; font-size: 24px !important; line-height: 24px !important; width: 24px !important; height: 24px !important; margin: 0 !important; padding: 0 !important; vertical-align: middle !important;';
+            menuIcon.style.cssText = 'display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; position: absolute !important; left: 3px !important; top: -3px !important; z-index: 9999 !important; font-size: 24px !important; line-height: 24px !important; width: 24px !important; height: 24px !important; margin: 0 !important; padding: 0 !important; vertical-align: middle !important;';
             
             // Force redraw of the menu icon
             setTimeout(function() {

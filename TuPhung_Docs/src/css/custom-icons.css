@@ -18,8 +18,8 @@
   vertical-align: middle;
   transition: transform 0.3s ease;
   position: absolute;
-  left: 4.5px !important;
-  top: 4.5px !important;
+  left: 3px !important;
+  top: -3px !important;
 }
 
 /* Hover effect for icons */
@@ -40,8 +40,8 @@ a:hover .menu-icon {
 /* Ensure proper positioning on medium and mobile screens */
 @media (max-width: 996px) {
   .menu-icon {
-    left: 4.5px !important;
-    top: 4.5px !important;
+    left: 3px !important;
+    top: -3px !important;
   }
 }
 
