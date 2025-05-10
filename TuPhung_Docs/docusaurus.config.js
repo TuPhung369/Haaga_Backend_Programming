@@ -165,7 +165,9 @@ const config = {
           max-height: 80vh !important; /* Use 80% of viewport height */
           border-radius: 8px !important;
           z-index: 100000 !important;
-          overflow: visible !important;
+          overflow: hidden !important; /* Changed from visible to hidden to enforce max-height */
+          display: flex !important;
+          flex-direction: column !important;
         }
         
         /* Ensure active sidebar is responsive on all screens */
@@ -175,6 +177,15 @@ const config = {
             top: 10px !important; /* Slightly higher on smaller screens */
             width: 220px !important; /* Increased width to accommodate all icons */
             max-height: 80vh !important; /* Use 80% of viewport height */
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          
+          #plugin-sidebar.active > div:nth-child(2) {
+            max-height: calc(80vh - 60px) !important; /* 80vh minus header height */
+            overflow-y: auto !important; /* Enable vertical scrolling */
+            overflow-x: hidden !important; /* Hide horizontal scrollbar */
+            flex: 1 1 auto !important; /* Allow this element to grow and shrink */
           }
         }
         
@@ -184,6 +195,15 @@ const config = {
             top: 10px !important;
             width: 220px !important; /* Increased width to accommodate all icons */
             max-height: 80vh !important; /* Use 80% of viewport height */
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          
+          #plugin-sidebar.active > div:nth-child(2) {
+            max-height: calc(80vh - 60px) !important; /* 80vh minus header height */
+            overflow-y: auto !important; /* Enable vertical scrolling */
+            overflow-x: hidden !important; /* Hide horizontal scrollbar */
+            flex: 1 1 auto !important; /* Allow this element to grow and shrink */
           }
         }
         
@@ -724,13 +744,13 @@ const config = {
           menuIcon.style.fontWeight = 'bold';
           menuIcon.style.cursor = 'pointer';
           menuIcon.style.margin = '0';
+          menuIcon.style.padding = '0';
           menuIcon.style.textAlign = 'center';
-          menuIcon.style.width = '30px';
-          menuIcon.style.height = '30px';
+          menuIcon.style.width = '24px';
+          menuIcon.style.height = '24px';
           menuIcon.style.position = 'absolute';
-          menuIcon.style.left = 'calc(50% - 2.5px)'; /* Center horizontally */
-          menuIcon.style.top = 'calc(50% - 2.55px)'; /* Center vertically */
-          menuIcon.style.transform = 'translate(-50%, -50%)';
+          menuIcon.style.left = '4.5px'; /* Position from left edge */
+          menuIcon.style.top = '4.5px'; /* Position from top edge */
           menuIcon.style.zIndex = '200'; /* Ensure menu is always on top */
           menuIcon.style.pointerEvents = 'auto';
           menuIcon.textContent = '☰';
@@ -971,6 +991,8 @@ const config = {
           content.style.borderRadius = '0 0 8px 8px';
           content.style.flex = '0';
           content.style.display = 'none';
+          content.style.overflowY = 'auto';
+          content.style.overflowX = 'hidden';
           
           const list = document.createElement('ul');
           list.style.listStyle = 'none';
@@ -1461,10 +1483,14 @@ const config = {
             
             sidebar.style.width = '220px';
             sidebar.style.height = 'auto';
+            sidebar.style.maxHeight = '80vh';
+            sidebar.style.display = 'flex';
+            sidebar.style.flexDirection = 'column';
             sidebar.style.background = 'linear-gradient(135deg, white, rgba(78, 87, 185, 0.8))';
             sidebar.style.backgroundColor = 'transparent';
             sidebar.style.border = '1px solid rgba(78, 87, 185, 0.5)';
             sidebar.style.borderRadius = '8px';
+            sidebar.style.overflow = 'hidden';
             
             title.style.borderRadius = '8px 8px 0 0';
             title.style.width = 'auto';
@@ -1512,16 +1538,18 @@ const config = {
             
             content.style.display = 'block';
             content.style.padding = '10px';
-            content.style.maxHeight = '500px';
+            content.style.maxHeight = 'calc(80vh - 60px)'; /* 80vh minus header height */
             content.style.height = 'auto';
             content.style.minHeight = 'auto';
             content.style.overflowY = 'auto';
+            content.style.overflowX = 'hidden';
             content.style.borderTop = '1px solid #eee';
             content.style.borderRadius = '0 0 8px 8px';
             content.style.backgroundColor = 'white';
             content.style.background = 'white';
             content.style.opacity = '1';
             content.style.visibility = 'visible';
+            content.style.flex = '1 1 auto'; /* Allow this element to grow and shrink */
           }
           
           function closeSidebar() {
@@ -1562,7 +1590,7 @@ const config = {
             }
             
             // Ensure menu icon is visible with !important flags and smaller size
-            menuIcon.style.cssText = 'display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 9999 !important; font-size: 24px !important; line-height: 24px !important; width: 24px !important; height: 24px !important; margin: 0 !important; vertical-align: middle !important;';
+            menuIcon.style.cssText = 'display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; position: absolute !important; left: 4.5px !important; top: 4.5px !important; z-index: 9999 !important; font-size: 24px !important; line-height: 24px !important; width: 24px !important; height: 24px !important; margin: 0 !important; padding: 0 !important; vertical-align: middle !important;';
             
             // Force redraw of the menu icon
             setTimeout(function() {

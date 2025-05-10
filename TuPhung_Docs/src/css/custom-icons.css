@@ -1,11 +1,25 @@
 /* Custom colorful icons for footer, sidebar, header, and menu */
-.footer-icon, .sidebar-icon, .header-icon, .menu-icon {
+.footer-icon, .sidebar-icon, .header-icon {
   width: 24px;
   height: 24px;
   margin-right: 6px;
   display: inline-block;
   vertical-align: middle;
   transition: transform 0.3s ease;
+}
+
+/* Special styling for menu icon to ensure it's positioned correctly */
+.menu-icon {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  vertical-align: middle;
+  transition: transform 0.3s ease;
+  position: absolute;
+  left: 4.5px !important;
+  top: 4.5px !important;
 }
 
 /* Hover effect for icons */
@@ -18,8 +32,16 @@ a:hover .menu-icon {
 
 /* Ensure proper spacing on all screen sizes */
 @media (min-width: 992px) {
-  .footer-icon, .sidebar-icon, .header-icon, .menu-icon {
+  .footer-icon, .sidebar-icon, .header-icon {
     margin-right: 9px; /* 3px more on large screens */
+  }
+}
+
+/* Ensure proper positioning on medium and mobile screens */
+@media (max-width: 996px) {
+  .menu-icon {
+    left: 4.5px !important;
+    top: 4.5px !important;
   }
 }
 

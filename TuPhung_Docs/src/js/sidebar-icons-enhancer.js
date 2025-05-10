@@ -81,11 +81,11 @@ document.addEventListener("DOMContentLoaded", function () {
           "display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; position: absolute !important; left: -9999px !important;";
       }
 
-      // Make sure menu icon is visible and centered
+      // Make sure menu icon is visible and positioned correctly
       const menuIcon = sidebar.querySelector(".menu-icon");
       if (menuIcon) {
         menuIcon.style.cssText =
-          "display: inline-block !important; visibility: visible !important; opacity: 1 !important; z-index: 9999 !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important;";
+          "display: inline-block !important; visibility: visible !important; opacity: 1 !important; z-index: 9999 !important; position: absolute !important; left: 4.5px !important; top: 4.5px !important; padding: 0 !important; margin: 0 !important;";
       }
     } else {
       // Show icon container when sidebar is active

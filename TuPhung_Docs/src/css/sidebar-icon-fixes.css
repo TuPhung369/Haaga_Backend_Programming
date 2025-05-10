@@ -66,8 +66,12 @@ html[data-theme='dark'] .sidebar-icons-container .icon-theme {
   left: -9999px !important;
 }
 
-/* Ensure menu icon is always front and center in collapsed mode */
+/* Ensure menu icon is always positioned correctly in collapsed mode */
 .menu-icon {
   z-index: 1000;
-  position: relative;
+  position: absolute;
+  left: 3px !important;
+  top: 3px !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
