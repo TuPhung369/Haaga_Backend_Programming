@@ -19,7 +19,7 @@
   transition: transform 0.3s ease;
   position: absolute;
   left: 3px !important;
-  top: -3px !important;
+  top: 3px !important; /* Adjusted to center vertically */
 }
 
 /* Hover effect for icons */
@@ -41,7 +41,7 @@ a:hover .menu-icon {
 @media (max-width: 996px) {
   .menu-icon {
     left: 3px !important;
-    top: -3px !important;
+    top: 3px !important; /* Adjusted to center vertically */
   }
 }
 

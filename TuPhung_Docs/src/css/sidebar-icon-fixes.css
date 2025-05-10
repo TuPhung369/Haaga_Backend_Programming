@@ -71,7 +71,7 @@ html[data-theme='dark'] .sidebar-icons-container .icon-theme {
   z-index: 1000;
   position: absolute;
   left: 3px !important;
-  top: --3px !important;
+  top: 3px !important; /* Adjusted to center vertically */
   padding: 0 !important;
   margin: 0 !important;
 }

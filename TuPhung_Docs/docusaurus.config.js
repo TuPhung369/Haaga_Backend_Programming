@@ -751,7 +751,7 @@ const config = {
           menuIcon.style.height = '24px';
           menuIcon.style.position = 'absolute';
           menuIcon.style.left = '3px'; /* Position from left edge */
-          menuIcon.style.top = '-3px'; /* Position from top edge */
+          menuIcon.style.top = '3px'; /* Position from top edge - centered vertically */
           menuIcon.style.zIndex = '200'; /* Ensure menu is always on top */
           menuIcon.style.pointerEvents = 'auto';
           menuIcon.textContent = '☰';
@@ -1591,7 +1591,7 @@ const config = {
             }
             
             // Ensure menu icon is visible with !important flags and smaller size
-            menuIcon.style.cssText = 'display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; position: absolute !important; left: 3px !important; top: -3px !important; z-index: 9999 !important; font-size: 24px !important; line-height: 24px !important; width: 24px !important; height: 24px !important; margin: 0 !important; padding: 0 !important; vertical-align: middle !important;';
+            menuIcon.style.cssText = 'display: inline-block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; position: absolute !important; left: 3px !important; top: 3px !important; z-index: 9999 !important; font-size: 24px !important; line-height: 24px !important; width: 24px !important; height: 24px !important; margin: 0 !important; padding: 0 !important; vertical-align: middle !important;';
             
             // Force redraw of the menu icon
             setTimeout(function() {
