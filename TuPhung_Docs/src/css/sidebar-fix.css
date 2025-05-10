@@ -107,6 +107,7 @@
   border-radius: 8px 8px 0 0 !important;
   padding: 8px 0 !important;
   text-align: center !important;
+  min-width: 180px !important;
 }
 
 #plugin-sidebar.active .sidebar-icon {

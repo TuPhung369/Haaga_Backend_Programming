@@ -70,8 +70,8 @@ html[data-theme='dark'] .sidebar-icons-container .icon-theme {
 .menu-icon {
   z-index: 1000;
   position: absolute;
-  left: 0px !important;
-  top: 0px !important;
+  left: 3px !important;
+  top: -3px !important;
   padding: 0 !important;
   margin: 0 !important;
 }

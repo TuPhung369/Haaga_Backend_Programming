@@ -200,6 +200,7 @@ const config = {
           }
           
           #plugin-sidebar.active > div:nth-child(2) {
+            min-width: 180px !important;
             max-height: calc(80vh - 60px) !important; /* 80vh minus header height */
             overflow-y: auto !important; /* Enable vertical scrolling */
             overflow-x: hidden !important; /* Hide horizontal scrollbar */
