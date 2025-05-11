@@ -263,6 +263,27 @@
   }
 }
 
+/* Category pages specific styles - Frontend and Backend */
+.dashboardPage .dashboardMain {
+  max-width: 1400px !important;
+  width: 1400px !important;
+}
+
+/* Responsive styles for category pages */
+@media (max-width: 1440px) {
+  .dashboardPage .dashboardMain {
+    max-width: 1200px !important;
+    width: 1200px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .dashboardPage .dashboardMain {
+    max-width: 980px !important;
+    width: 980px !important;
+  }
+}
+
 /* Mobile screen adjustments for workflow container */
 @media (max-width: 768px) {
   .workflow-container {
