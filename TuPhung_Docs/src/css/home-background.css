@@ -1,0 +1,335 @@
+/**
+ * Custom background styling for home page
+ * This file adds a futuristic tech-inspired background to the home page
+ */
+
+/* Home page background styling */
+:global(.pageWrapper) {
+  position: relative;
+  background-color: var(--ifm-background-color);
+}
+
+/* Add a futuristic tech pattern to the entire page */
+:global(.pageWrapper)::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.4;
+  
+  /* Create a futuristic tech grid pattern */
+  background-image: 
+    /* Horizontal lines */
+    linear-gradient(90deg, 
+      rgba(var(--ifm-color-primary-rgb), 0.03) 1px, 
+      transparent 1px
+    ),
+    /* Vertical lines */
+    linear-gradient(0deg, 
+      rgba(var(--ifm-color-primary-rgb), 0.03) 1px, 
+      transparent 1px
+    ),
+    /* Diagonal lines */
+    linear-gradient(45deg, 
+      rgba(var(--ifm-color-primary-rgb), 0.01) 1px, 
+      transparent 1px
+    ),
+    /* Diagonal lines (opposite direction) */
+    linear-gradient(-45deg, 
+      rgba(var(--ifm-color-primary-rgb), 0.01) 1px, 
+      transparent 1px
+    );
+  
+  background-size: 
+    50px 50px, /* Horizontal lines */
+    50px 50px, /* Vertical lines */
+    100px 100px, /* Diagonal lines */
+    100px 100px; /* Diagonal lines (opposite) */
+  
+  /* Add subtle animation */
+  animation: grid-float 60s linear infinite;
+}
+
+/* Add floating tech particles */
+:global(.pageWrapper)::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  
+  /* Removed floating tech particles */
+  background-image: none;
+  
+  background-size: 
+    800px 800px, /* Large particle 1 */
+    800px 800px, /* Large particle 2 */
+    800px 800px, /* Large particle 3 */
+    800px 800px, /* Large particle 4 */
+    800px 800px, /* Large particle 5 */
+    400px 400px, /* Small particle 1 */
+    400px 400px, /* Small particle 2 */
+    400px 400px, /* Small particle 3 */
+    400px 400px; /* Small particle 4 */
+  
+  /* Removed animation */
+  animation: none;
+}
+
+/* Hero banner background enhancement */
+:global(.heroBanner) {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add tech circuit pattern overlay to hero banner */
+:global(.heroBanner)::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.15;
+  
+  /* Removed circuit-like pattern */
+  background-image: none;
+  
+  background-size: 
+    300px 300px, /* Circuit node 1 */
+    300px 300px, /* Circuit node 2 */
+    300px 300px, /* Circuit node 3 */
+    300px 300px, /* Circuit node 4 */
+    100px 100px, /* Circuit line horizontal */
+    100px 100px; /* Circuit line vertical */
+  
+  /* Add subtle animation */
+  animation: circuit-pulse 15s linear infinite;
+}
+
+/* Add digital data flow effect to hero banner */
+:global(.heroContent)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.1;
+  
+  /* Create digital data flow effect */
+  background-image: 
+    /* Binary code-like pattern */
+    repeating-linear-gradient(90deg, 
+      rgba(255, 255, 255, 0) 0%, 
+      rgba(255, 255, 255, 0.1) 10%, 
+      rgba(255, 255, 255, 0) 20%
+    );
+  
+  background-size: 200% 100%;
+  
+  /* Add flowing animation */
+  animation: data-flow 10s linear infinite;
+}
+
+/* Section background enhancements */
+:global(.highlights), 
+:global(.features), 
+:global(.stats), 
+:global(.demo), 
+:global(.security), 
+:global(.testimonial), 
+:global(.cta) {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add tech-inspired background to sections */
+:global(.highlights)::before, 
+:global(.features)::before, 
+:global(.stats)::before, 
+:global(.demo)::before, 
+:global(.security)::before, 
+:global(.testimonial)::before, 
+:global(.cta)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  
+  /* Removed tech-inspired pattern */
+  background-image: none;
+  
+  background-size: 
+    200px 200px, /* Tech dot 1 */
+    200px 200px, /* Tech dot 2 */
+    200px 200px, /* Tech dot 3 */
+    200px 200px, /* Tech dot 4 */
+    200px 200px; /* Tech dot 5 */
+}
+
+/* Removed decorative corner elements */
+
+/* Dark mode adjustments */
+[data-theme='dark'] :global(.pageWrapper)::before {
+  opacity: 0.2;
+  
+  /* Adjust grid colors for dark mode */
+  background-image: 
+    /* Horizontal lines */
+    linear-gradient(90deg, 
+      rgba(123, 104, 238, 0.08) 1px, 
+      transparent 1px
+    ),
+    /* Vertical lines */
+    linear-gradient(0deg, 
+      rgba(123, 104, 238, 0.08) 1px, 
+      transparent 1px
+    ),
+    /* Diagonal lines */
+    linear-gradient(45deg, 
+      rgba(123, 104, 238, 0.05) 1px, 
+      transparent 1px
+    ),
+    /* Diagonal lines (opposite direction) */
+    linear-gradient(-45deg, 
+      rgba(123, 104, 238, 0.05) 1px, 
+      transparent 1px
+    );
+}
+
+[data-theme='dark'] :global(.pageWrapper)::after {
+  opacity: 0.3;
+  
+  /* Removed particle colors for dark mode */
+  background-image: none;
+}
+
+/* Animations */
+@keyframes grid-float {
+  0% {
+    background-position: 
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+  }
+  100% {
+    background-position: 
+      50px 0,
+      0 50px,
+      50px 50px,
+      -50px 50px;
+  }
+}
+
+@keyframes particles-float {
+  0% {
+    background-position: 
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+  }
+  100% {
+    background-position: 
+      200px 200px,
+      -200px 200px,
+      200px -200px,
+      -200px -200px,
+      200px 0,
+      100px 100px,
+      -100px 100px,
+      100px -100px,
+      -100px -100px;
+  }
+}
+
+@keyframes circuit-pulse {
+  0% {
+    background-position: 
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+  }
+  100% {
+    background-position: 
+      300px 0,
+      0 300px,
+      -300px 0,
+      0 -300px,
+      100px 0,
+      0 100px;
+  }
+}
+
+@keyframes data-flow {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 996px) {
+  :global(.pageWrapper)::before {
+    /* Simplify grid for mobile */
+    background-size: 
+      30px 30px, /* Horizontal lines */
+      30px 30px, /* Vertical lines */
+      60px 60px, /* Diagonal lines */
+      60px 60px; /* Diagonal lines (opposite) */
+  }
+  
+  :global(.pageWrapper)::after {
+    /* Simplify particles for mobile */
+    background-size: 
+      500px 500px, /* Large particle 1 */
+      500px 500px, /* Large particle 2 */
+      500px 500px, /* Large particle 3 */
+      500px 500px, /* Large particle 4 */
+      500px 500px, /* Large particle 5 */
+      250px 250px, /* Small particle 1 */
+      250px 250px, /* Small particle 2 */
+      250px 250px, /* Small particle 3 */
+      250px 250px; /* Small particle 4 */
+  }
+  
+  :global(.heroBanner)::after {
+    /* Simplify circuit pattern for mobile */
+    background-size: 
+      200px 200px, /* Circuit node 1 */
+      200px 200px, /* Circuit node 2 */
+      200px 200px, /* Circuit node 3 */
+      200px 200px, /* Circuit node 4 */
+      60px 60px, /* Circuit line horizontal */
+      60px 60px; /* Circuit line vertical */
+  }
+}

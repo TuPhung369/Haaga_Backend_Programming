@@ -10,6 +10,18 @@
   width: 100%;
   overflow: hidden;
   align-items: center;
+  position: relative;
+  background-color: var(--ifm-background-color);
+  background-image: linear-gradient(
+    to bottom,
+    rgba(var(--ifm-color-primary-rgb), 0.05),
+    rgba(var(--ifm-color-primary-rgb), 0.02) 20%,
+    rgba(var(--ifm-color-primary-rgb), 0.01) 40%,
+    rgba(var(--ifm-color-primary-rgb), 0.02) 60%,
+    rgba(var(--ifm-color-primary-rgb), 0.05) 80%,
+    rgba(var(--ifm-color-primary-rgb), 0.08)
+  );
+  box-shadow: inset 0 0 200px rgba(var(--ifm-color-primary-rgb), 0.05);
 }
 
 .pageWrapper main {
@@ -17,6 +29,96 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
+  position: relative;
+  z-index: 1; /* Ensure content is above background elements */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.015),
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.015)
+  );
+  border-radius: 16px;
+  margin-top: -2rem;
+  padding-top: 2rem;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.05);
+  /* Removed blur effect */
+}
+
+/* Professional tech pattern background */
+.pageWrapper::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2; /* Lower z-index to ensure it's behind particles */
+  pointer-events: none;
+  opacity: 0.25; /* Reduced opacity for subtlety */
+  
+  /* Create a more subtle and professional tech grid pattern */
+  background-image: 
+    /* Horizontal lines - more subtle */
+    linear-gradient(90deg, 
+      rgba(var(--ifm-color-primary-rgb), 0.02) 1px, 
+      transparent 1px
+    ),
+    /* Vertical lines - more subtle */
+    linear-gradient(0deg, 
+      rgba(var(--ifm-color-primary-rgb), 0.02) 1px, 
+      transparent 1px
+    ),
+    /* Diagonal lines - very subtle */
+    linear-gradient(45deg, 
+      rgba(var(--ifm-color-primary-rgb), 0.008) 1px, 
+      transparent 1px
+    ),
+    /* Diagonal lines (opposite direction) - very subtle */
+    linear-gradient(-45deg, 
+      rgba(var(--ifm-color-primary-rgb), 0.008) 1px, 
+      transparent 1px
+    );
+  
+  background-size: 
+    40px 40px, /* Horizontal lines - smaller grid */
+    40px 40px, /* Vertical lines - smaller grid */
+    120px 120px, /* Diagonal lines - larger pattern */
+    120px 120px; /* Diagonal lines (opposite) - larger pattern */
+  
+  /* Slower, more subtle animation */
+  animation: grid-float 120s linear infinite;
+  
+  /* Add a subtle gradient overlay for depth */
+  background-blend-mode: overlay;
+}
+
+/* Add professional floating particles */
+.pageWrapper::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* Above the grid but below content */
+  pointer-events: none;
+  opacity: 0.3; /* Reduced opacity for subtlety */
+  
+  /* Removed floating particles */
+  background-image: none;
+  
+  background-size: 
+    1000px 1000px, /* Large particle 1 - larger spacing */
+    1000px 1000px, /* Large particle 2 - larger spacing */
+    1000px 1000px, /* Large particle 3 - larger spacing */
+    1000px 1000px, /* Large particle 4 - larger spacing */
+    1000px 1000px, /* Large particle 5 - larger spacing */
+    500px 500px,   /* Small particle 1 - larger spacing */
+    500px 500px,   /* Small particle 2 - larger spacing */
+    500px 500px,   /* Small particle 3 - larger spacing */
+    500px 500px;   /* Small particle 4 - larger spacing */
+  
+  /* Removed animation and blur */
 }
 
 /* Home Container - Override global container styles */
@@ -25,9 +127,26 @@
   width: 100% !important;
   max-width: var(--ifm-container-width) !important;
   margin: 0 auto !important;
-  padding: 0 1rem !important;
+  padding: 1.5rem !important;
   clear: both !important;
   box-sizing: border-box;
+  /* Removed background, border and shadow */
+  position: relative;
+  overflow: hidden;
+}
+
+/* Removed animated gradient border */
+
+@keyframes gradient-border {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Modern Hero Banner with Overlay */
@@ -66,30 +185,58 @@
   pointer-events: none;
 }
 
+/* Add professional vignette effect to hero banner */
+.heroBanner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.7);
+  opacity: 0.5;
+}
+
 /* Light mode hero banner */
 html[data-theme='light'] .heroBanner {
   background-image: url('https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+  background-size: cover;
+  background-position: center;
 }
 
 html[data-theme='light'] .heroBanner::before {
-  background: linear-gradient(135deg, rgba(41, 65, 171, 0.9), rgba(33, 107, 188, 0.85));
-  backdrop-filter: blur(3px);
+  background: linear-gradient(135deg, 
+    rgba(41, 65, 171, 0.92), 
+    rgba(33, 107, 188, 0.88),
+    rgba(41, 65, 171, 0.92)
+  );
+  /* Removed blur effect */
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.2);
 }
 
 /* Dark mode hero banner */
 html[data-theme='dark'] .heroBanner {
   background-image: url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+  background-size: cover;
+  background-position: center;
 }
 
 html[data-theme='dark'] .heroBanner::before {
-  background: linear-gradient(135deg, rgba(26, 26, 46, 0.92), rgba(74, 61, 184, 0.85));
-  backdrop-filter: blur(3px);
+  background: linear-gradient(135deg, 
+    rgba(26, 26, 46, 0.94), 
+    rgba(74, 61, 184, 0.88),
+    rgba(26, 26, 46, 0.94)
+  );
+  /* Removed blur effect */
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.3);
 }
 
 /* Hero Content */
 .heroBanner .container {
   position: relative;
-  z-index: 2;
+  z-index: 5; /* Increased z-index to ensure content is above all background elements */
   display: block !important;
   width: 100% !important;
   max-width: var(--ifm-container-width) !important;
@@ -117,6 +264,10 @@ html[data-theme='dark'] .heroBanner::before {
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
+  position: relative;
+  z-index: 10; /* Ensure text is above all background elements */
+  /* Add subtle text shadow for better readability */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* Image styles removed */
@@ -219,14 +370,17 @@ html[data-theme='dark'] .heroBanner::before {
   max-width: 800px;
   margin: 1rem auto 1.5rem;
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.95); /* Increased opacity for better readability */
+  line-height: 1.6; /* Increased line height for better readability */
   font-weight: 400;
   display: block;
   position: relative;
   z-index: 2;
   animation: fadeInUp 0.8s ease-out 0.6s both;
   text-align: center;
+  letter-spacing: 0.01em; /* Slight letter spacing for better readability */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); /* Text shadow for better contrast */
+  /* Removed background, border and shadow */
 }
 
 .highlightText {
@@ -234,6 +388,12 @@ html[data-theme='dark'] .heroBanner::before {
   font-weight: 600;
   position: relative;
   display: inline-block;
+  background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,1), rgba(255,255,255,0.9));
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  padding: 0 2px;
+  letter-spacing: 0.02em;
 }
 
 /* Hero Stats Section */
@@ -241,13 +401,9 @@ html[data-theme='dark'] .heroBanner::before {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
+  /* Removed background, border and shadow */
   padding: 1rem;
   margin-top: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   animation: fadeInUp 0.8s ease-out 1s both;
   width: 100%;
   max-width: 800px;
@@ -534,11 +690,14 @@ html[data-theme='dark'] .heroBanner::before {
 }
 
 @keyframes fadeInUp {
-  from {
+  0% {
     opacity: 0;
     transform: translateY(20px);
   }
-  to {
+  70% {
+    opacity: 0.7;
+  }
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
@@ -871,7 +1030,7 @@ html[data-theme='dark'] .heroBanner::before {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
+  /* Removed blur effect */
   position: relative;
   overflow: hidden;
   min-width: 180px;
@@ -986,18 +1145,62 @@ html[data-theme='dark'] .heroBanner::before {
   justify-content: center;
   width: 100%;
   clear: both;
+  margin: 2rem 0;
+  position: relative;
 }
 
 /* Light mode highlights section */
 html[data-theme='light'] .highlights {
   background-color: #f8f9fc;
-  background-image: linear-gradient(120deg, #f8f9fc 0%, #f0f4ff 100%);
+  background-image: 
+    linear-gradient(120deg, #f8f9fc 0%, #f0f4ff 100%),
+    radial-gradient(circle at 20% 30%, rgba(41, 65, 171, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(41, 65, 171, 0.07) 0%, transparent 50%);
+  box-shadow: 
+    0 30px 100px -30px rgba(41, 65, 171, 0.15),
+    0 -30px 100px -30px rgba(41, 65, 171, 0.1);
+  border-top: 1px solid rgba(41, 65, 171, 0.05);
+  border-bottom: 1px solid rgba(41, 65, 171, 0.05);
 }
 
 /* Dark mode highlights section */
 html[data-theme='dark'] .highlights {
   background-color: #0f1225;
-  background-image: linear-gradient(120deg, #0f1225 0%, #1a1a35 100%);
+  background-image: 
+    linear-gradient(120deg, #0f1225 0%, #1a1a35 100%),
+    radial-gradient(circle at 20% 30%, rgba(74, 61, 184, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(74, 61, 184, 0.12) 0%, transparent 50%);
+  box-shadow: 
+    0 30px 100px -30px rgba(74, 61, 184, 0.2),
+    0 -30px 100px -30px rgba(74, 61, 184, 0.15);
+  border-top: 1px solid rgba(74, 61, 184, 0.08);
+  border-bottom: 1px solid rgba(74, 61, 184, 0.08);
+}
+
+/* Add subtle animated particles to highlights section */
+.highlights::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Removed animated particles */
+  background-image: none;
+  background-size: 100% 100%;
+  opacity: 0.7;
+  z-index: 0;
+  pointer-events: none;
+  animation: highlights-particles 30s ease infinite alternate;
+}
+
+@keyframes highlights-particles {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 5% 5%;
+  }
 }
 
 /* Section title styling for highlights */
@@ -1049,9 +1252,22 @@ html[data-theme='dark'] .highlights {
   width: 100% !important;
   max-width: var(--ifm-container-width) !important;
   margin: 0 auto !important;
-  padding: 0 1rem !important;
+  padding: 2rem !important;
   clear: both;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--ifm-color-primary-rgb), 0.02),
+    rgba(var(--ifm-color-primary-rgb), 0.04),
+    rgba(var(--ifm-color-primary-rgb), 0.02)
+  );
+  border-radius: 16px;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  /* Removed blur effect */
 }
 
 /* Highlight Card Container */
@@ -1071,31 +1287,92 @@ html[data-theme='dark'] .highlights {
 .highlightCard {
   padding: 2.5rem 2rem;
   height: 100%;
-  min-height: 320px; /* Đảm bảo tất cả các card có chiều cao tối thiểu giống nhau */
-  border-radius: 12px;
+  min-height: 320px; /* Ensure all cards have the same minimum height */
+  border-radius: 16px;
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Căn chỉnh nội dung từ trên xuống */
+  justify-content: flex-start;
   align-items: center;
   text-align: center;
   position: relative;
   overflow: hidden;
   z-index: 1;
+  /* Removed blur effect */
 }
 
 /* Light mode highlight card */
 html[data-theme='light'] .highlightCard {
-  background-color: white;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.9)
+  );
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.08),
+    0 5px 15px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(230, 236, 255, 0.7);
+}
+
+/* Add subtle glow effect on hover for light mode */
+html[data-theme='light'] .highlightCardContainer:hover .highlightCard {
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 10px 20px rgba(0, 0, 0, 0.05),
+    0 0 20px rgba(var(--ifm-color-primary-rgb), 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 1);
 }
 
 /* Dark mode highlight card */
 html[data-theme='dark'] .highlightCard {
-  background-color: #1e1e38;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 56, 0.9),
+    rgba(30, 30, 56, 0.95),
+    rgba(30, 30, 56, 0.9)
+  );
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.2),
+    0 5px 15px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Add subtle glow effect on hover for dark mode */
+html[data-theme='dark'] .highlightCardContainer:hover .highlightCard {
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 10px 20px rgba(0, 0, 0, 0.1),
+    0 0 20px rgba(var(--ifm-color-primary-rgb), 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Add subtle animated gradient border to cards */
+.highlightCard::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  z-index: -1;
+  background: linear-gradient(
+    45deg,
+    rgba(var(--ifm-color-primary-rgb), 0.3),
+    rgba(var(--ifm-color-primary-rgb), 0.1),
+    rgba(var(--ifm-color-primary-rgb), 0.05),
+    rgba(var(--ifm-color-primary-rgb), 0.1)
+  );
+  border-radius: 18px;
+  opacity: 0;
+  filter: blur(8px);
+  transition: opacity 0.4s ease;
+}
+
+.highlightCardContainer:hover .highlightCard::before {
+  opacity: 0.7;
 }
 
 /* Card Icon */
@@ -1106,23 +1383,89 @@ html[data-theme='dark'] .highlightCard {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 1rem; /* Khoảng cách cố định từ top border */
+  margin-top: 1rem;
   margin-bottom: 1.5rem;
   font-size: 2rem;
   transition: all 0.3s ease;
-  background: linear-gradient(135deg, var(--ifm-color-primary-lightest), var(--ifm-color-primary));
+  background: linear-gradient(
+    135deg, 
+    var(--ifm-color-primary-lightest), 
+    var(--ifm-color-primary),
+    var(--ifm-color-primary-dark)
+  );
   color: white;
-  box-shadow: 0 10px 20px rgba(41, 65, 171, 0.2);
+  box-shadow: 
+    0 10px 20px rgba(41, 65, 171, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   position: relative;
   overflow: hidden;
+  z-index: 2;
+}
+
+/* Add subtle shine effect */
+.highlightCardIcon::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shine 6s infinite;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.7;
+}
+
+@keyframes shine {
+  0% {
+    top: -100%;
+    left: -100%;
+  }
+  20%, 100% {
+    top: 100%;
+    left: 100%;
+  }
 }
 
 html[data-theme='dark'] .highlightCardIcon {
-  box-shadow: 0 10px 20px rgba(41, 65, 171, 0.3);
+  box-shadow: 
+    0 10px 20px rgba(41, 65, 171, 0.3),
+    0 0 30px rgba(41, 65, 171, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .highlightCardContainer:hover .highlightCardIcon {
   transform: scale(1.1) rotate(5deg);
+  box-shadow: 
+    0 15px 30px rgba(41, 65, 171, 0.3),
+    0 0 20px rgba(41, 65, 171, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+/* Add glow effect on hover */
+.highlightCardIcon::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: radial-gradient(circle, rgba(var(--ifm-color-primary-rgb), 0.3), transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.highlightCardContainer:hover .highlightCardIcon::after {
+  opacity: 1;
 }
 
 /* Card Title */
@@ -1721,6 +2064,80 @@ html[data-theme='light'] .ctaButtons .button--outline {
     min-height: 250px; /* Điều chỉnh chiều cao tối thiểu cho màn hình di động */
     padding: 1.5rem 1rem;
   }
+}
+
+/* Animations for background effects */
+@keyframes grid-float {
+  0% {
+    background-position: 
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+  }
+  50% {
+    background-position: 
+      20px 10px,
+      10px 20px,
+      25px 25px,
+      -25px 25px;
+  }
+  100% {
+    background-position: 
+      40px 0,
+      0 40px,
+      50px 50px,
+      -50px 50px;
+  }
+}
+
+@keyframes particles-float {
+  0% {
+    background-position: 
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0;
+    opacity: 0.3;
+  }
+  33% {
+    opacity: 0.35;
+  }
+  50% {
+    background-position: 
+      100px 100px,
+      -100px 100px,
+      100px -100px,
+      -100px -100px,
+      100px 0,
+      50px 50px,
+      -50px 50px,
+      50px -50px,
+      -50px -50px;
+    opacity: 0.4;
+  }
+  66% {
+    opacity: 0.35;
+  }
+  100% {
+    background-position: 
+      200px 200px,
+      -200px 200px,
+      200px -200px,
+      -200px -200px,
+      200px 0,
+      100px 100px,
+      -100px 100px,
+      100px -100px,
+      -100px -100px;
+    opacity: 0.3;
+  }
+}
   
   .highlightCardIcon {
     width: 60px;
@@ -1752,7 +2169,7 @@ html[data-theme='light'] .ctaButtons .button--outline {
   .testimonialInner blockquote::after {
     font-size: 5rem;
   }
-}
+
 
 /* Extra small devices (phones, 480px and down) */
 @media screen and (max-width: 480px) {

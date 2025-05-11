@@ -1,0 +1,189 @@
+/**
+ * Custom background styling for documentation content
+ * This file adds a modern tech-inspired background to the main content area
+ */
+
+/* Main content background styling */
+article {
+  /* Base background with subtle gradient */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 242, 255, 0.9) 100%);
+  
+  /* Add tech-inspired pattern with random dots */
+  background-image: 
+    /* Random dot patterns at various positions */
+    radial-gradient(circle at 25px 25px, rgba(78, 87, 185, 0.15) 3px, transparent 0),
+    radial-gradient(circle at 75px 75px, rgba(78, 87, 185, 0.1) 4px, transparent 0),
+    radial-gradient(circle at 125px 35px, rgba(78, 87, 185, 0.12) 2px, transparent 0),
+    radial-gradient(circle at 35px 125px, rgba(78, 87, 185, 0.08) 5px, transparent 0),
+    radial-gradient(circle at 90px 150px, rgba(78, 87, 185, 0.1) 3px, transparent 0),
+    radial-gradient(circle at 150px 90px, rgba(78, 87, 185, 0.12) 2px, transparent 0),
+    radial-gradient(circle at 180px 180px, rgba(78, 87, 185, 0.08) 4px, transparent 0),
+    radial-gradient(circle at 65px 200px, rgba(78, 87, 185, 0.1) 3px, transparent 0),
+    radial-gradient(circle at 200px 65px, rgba(78, 87, 185, 0.12) 2px, transparent 0);
+  
+  background-size: 
+    250px 250px, /* Dot pattern 1 */
+    250px 250px, /* Dot pattern 2 */
+    250px 250px, /* Dot pattern 3 */
+    250px 250px, /* Dot pattern 4 */
+    250px 250px, /* Dot pattern 5 */
+    250px 250px, /* Dot pattern 6 */
+    250px 250px, /* Dot pattern 7 */
+    250px 250px, /* Dot pattern 8 */
+    250px 250px; /* Dot pattern 9 */
+  
+  /* Add subtle shadow for depth */
+  box-shadow: inset 0 0 30px rgba(78, 87, 185, 0.05);
+  
+  /* Ensure proper padding and rounded corners */
+  padding: 2rem !important;
+  border-radius: 12px !important;
+  margin-bottom: 2rem !important;
+  
+  /* Ensure content is properly contained */
+  position: relative;
+  overflow: hidden !important;
+  
+  /* Add subtle border */
+  border: 1px solid rgba(78, 87, 185, 0.1);
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] article {
+  /* Darker base with tech-inspired gradient */
+  background: linear-gradient(135deg, rgba(30, 30, 46, 0.95) 0%, rgba(20, 20, 35, 0.95) 100%);
+  
+  /* Add tech-inspired pattern overlay for dark mode with random dots */
+  background-image: 
+    /* Random dot patterns at various positions */
+    radial-gradient(circle at 25px 25px, rgba(123, 104, 238, 0.2) 3px, transparent 0),
+    radial-gradient(circle at 75px 75px, rgba(123, 104, 238, 0.15) 4px, transparent 0),
+    radial-gradient(circle at 125px 35px, rgba(123, 104, 238, 0.18) 2px, transparent 0),
+    radial-gradient(circle at 35px 125px, rgba(123, 104, 238, 0.12) 5px, transparent 0),
+    radial-gradient(circle at 90px 150px, rgba(123, 104, 238, 0.15) 3px, transparent 0),
+    radial-gradient(circle at 150px 90px, rgba(123, 104, 238, 0.18) 2px, transparent 0),
+    radial-gradient(circle at 180px 180px, rgba(123, 104, 238, 0.12) 4px, transparent 0),
+    radial-gradient(circle at 65px 200px, rgba(123, 104, 238, 0.15) 3px, transparent 0),
+    radial-gradient(circle at 200px 65px, rgba(123, 104, 238, 0.18) 2px, transparent 0);
+  
+  background-size: 
+    250px 250px, /* Dot pattern 1 */
+    250px 250px, /* Dot pattern 2 */
+    250px 250px, /* Dot pattern 3 */
+    250px 250px, /* Dot pattern 4 */
+    250px 250px, /* Dot pattern 5 */
+    250px 250px, /* Dot pattern 6 */
+    250px 250px, /* Dot pattern 7 */
+    250px 250px, /* Dot pattern 8 */
+    250px 250px; /* Dot pattern 9 */
+  
+  /* Add subtle glow effect for dark mode */
+  box-shadow: inset 0 0 40px rgba(123, 104, 238, 0.1);
+  
+  /* Dark mode border */
+  border: 1px solid rgba(123, 104, 238, 0.15);
+}
+
+/* Add subtle animation for hover effect */
+article:hover {
+  background-position: 
+    5px 5px,
+    -5px -5px,
+    10px -10px,
+    -10px 10px,
+    15px 0px,
+    0px 15px,
+    -15px -15px,
+    10px -15px,
+    -15px 10px;
+  transition: background-position 1.5s ease;
+}
+
+/* Ensure content inside article has proper spacing */
+article > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Add decorative elements to enhance tech feel */
+article::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  background: 
+    radial-gradient(circle at 75% 25%, 
+      rgba(78, 87, 185, 0.1) 0%, 
+      rgba(78, 87, 185, 0.05) 30%, 
+      transparent 70%);
+  z-index: 1;
+}
+
+/* Dark mode decorative elements */
+[data-theme='dark'] article::before {
+  background: 
+    radial-gradient(circle at 75% 25%, 
+      rgba(123, 104, 238, 0.15) 0%, 
+      rgba(123, 104, 238, 0.05) 30%, 
+      transparent 70%);
+}
+
+/* Add bottom decorative element */
+article::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200px;
+  height: 100px;
+  background: 
+    radial-gradient(ellipse at 25% 80%, 
+      rgba(78, 87, 185, 0.1) 0%, 
+      rgba(78, 87, 185, 0.05) 40%, 
+      transparent 80%);
+  z-index: 1;
+}
+
+/* Dark mode bottom decorative element */
+[data-theme='dark'] article::after {
+  background: 
+    radial-gradient(ellipse at 25% 80%, 
+      rgba(123, 104, 238, 0.15) 0%, 
+      rgba(123, 104, 238, 0.05) 40%, 
+      transparent 80%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 996px) {
+  article {
+    padding: 1.5rem !important;
+    border-radius: 8px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  article {
+    padding: 1rem !important;
+    border-radius: 6px !important;
+    
+    /* Simplify background pattern for mobile */
+    background-size: 
+      180px 180px, /* Dot pattern 1 */
+      180px 180px, /* Dot pattern 2 */
+      180px 180px, /* Dot pattern 3 */
+      180px 180px, /* Dot pattern 4 */
+      180px 180px, /* Dot pattern 5 */
+      180px 180px, /* Dot pattern 6 */
+      180px 180px, /* Dot pattern 7 */
+      180px 180px, /* Dot pattern 8 */
+      180px 180px; /* Dot pattern 9 */
+  }
+  
+  /* Hide decorative elements on mobile for better performance */
+  article::before,
+  article::after {
+    display: none;
+  }
+}

@@ -1,0 +1,146 @@
+/**
+ * Custom background styling for sidebar
+ * This file adds a modern tech-inspired background to the sidebar
+ */
+
+/* Sidebar container background styling */
+.theme-doc-sidebar-container,
+div[class^="docSidebarContainer_"],
+aside[class^="docSidebarContainer_"] {
+  /* Base background with subtle gradient */
+  background: linear-gradient(180deg, rgba(245, 247, 255, 0.97) 0%, rgba(235, 240, 255, 0.97) 100%);
+  
+  /* Add subtle tech pattern with random dots */
+  background-image: 
+    /* Random dot patterns at various positions */
+    radial-gradient(circle at 15px 15px, rgba(78, 87, 185, 0.07) 2px, transparent 0),
+    radial-gradient(circle at 45px 45px, rgba(78, 87, 185, 0.05) 3px, transparent 0),
+    radial-gradient(circle at 75px 25px, rgba(78, 87, 185, 0.06) 2px, transparent 0),
+    radial-gradient(circle at 25px 75px, rgba(78, 87, 185, 0.04) 1px, transparent 0),
+    radial-gradient(circle at 60px 90px, rgba(78, 87, 185, 0.05) 2px, transparent 0),
+    radial-gradient(circle at 90px 60px, rgba(78, 87, 185, 0.06) 1px, transparent 0);
+  
+  background-size: 
+    100px 100px, /* Dot pattern 1 */
+    100px 100px, /* Dot pattern 2 */
+    100px 100px, /* Dot pattern 3 */
+    100px 100px, /* Dot pattern 4 */
+    100px 100px, /* Dot pattern 5 */
+    100px 100px; /* Dot pattern 6 */
+  
+  /* Add subtle shadow for depth */
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03);
+  
+  /* Ensure proper border */
+  border-right: 1px solid rgba(78, 87, 185, 0.1);
+  
+  /* Ensure content is properly contained */
+  position: relative;
+  overflow: hidden !important;
+  z-index: 10;
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .theme-doc-sidebar-container,
+[data-theme='dark'] div[class^="docSidebarContainer_"],
+[data-theme='dark'] aside[class^="docSidebarContainer_"] {
+  /* Darker base with tech-inspired gradient - adjusted for better contrast */
+  background: linear-gradient(180deg, rgba(22, 22, 35, 0.97) 0%, rgba(15, 15, 25, 0.97) 100%);
+  
+  /* Add tech-inspired pattern overlay for dark mode with random dots - enhanced visibility */
+  background-image: 
+    /* Random dot patterns at various positions with increased size and contrast */
+    radial-gradient(circle at 15px 15px, rgba(123, 104, 238, 0.25) 3px, transparent 0),
+    radial-gradient(circle at 45px 45px, rgba(123, 104, 238, 0.2) 4px, transparent 0),
+    radial-gradient(circle at 75px 25px, rgba(123, 104, 238, 0.22) 3px, transparent 0),
+    radial-gradient(circle at 25px 75px, rgba(123, 104, 238, 0.18) 2px, transparent 0),
+    radial-gradient(circle at 60px 90px, rgba(123, 104, 238, 0.2) 3px, transparent 0),
+    radial-gradient(circle at 90px 60px, rgba(123, 104, 238, 0.22) 2px, transparent 0);
+  
+  /* Dark mode border */
+  border-right: 1px solid rgba(123, 104, 238, 0.15);
+  
+  /* Add enhanced glow effect for dark mode */
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2), inset 0 0 30px rgba(123, 104, 238, 0.05);
+  
+  /* Add subtle animation for the dots */
+  animation: sidebar-dots-pulse 4s ease-in-out infinite alternate;
+}
+
+/* Animation for sidebar dots in dark mode */
+@keyframes sidebar-dots-pulse {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 5px 10px;
+  }
+}
+
+/* Add decorative element to top of sidebar */
+.theme-doc-sidebar-container::before,
+div[class^="docSidebarContainer_"]::before,
+aside[class^="docSidebarContainer_"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: 
+    linear-gradient(to bottom, 
+      rgba(78, 87, 185, 0.08) 0%, 
+      transparent 100%);
+  z-index: -1;
+}
+
+/* Dark mode top decorative element */
+[data-theme='dark'] .theme-doc-sidebar-container::before,
+[data-theme='dark'] div[class^="docSidebarContainer_"]::before,
+[data-theme='dark'] aside[class^="docSidebarContainer_"]::before {
+  background: 
+    linear-gradient(to bottom, 
+      rgba(123, 104, 238, 0.25) 0%, 
+      rgba(123, 104, 238, 0.1) 50%,
+      transparent 100%);
+}
+
+/* Style the sidebar menu items for better contrast with new background */
+.menu__link {
+  border-radius: 6px;
+  margin: 0.2rem 0;
+  transition: background-color 0.2s ease;
+}
+
+.menu__link:hover {
+  background-color: rgba(78, 87, 185, 0.08);
+}
+
+[data-theme='dark'] .menu__link:hover {
+  background-color: rgba(123, 104, 238, 0.15);
+}
+
+.menu__link--active {
+  background-color: rgba(78, 87, 185, 0.12) !important;
+  border-left: 3px solid var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .menu__link--active {
+  background-color: rgba(123, 104, 238, 0.2) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 996px) {
+  .theme-doc-sidebar-container,
+  div[class^="docSidebarContainer_"],
+  aside[class^="docSidebarContainer_"] {
+    /* Simplify background pattern for mobile */
+    background-size: 
+      80px 80px, /* Dot pattern 1 */
+      80px 80px, /* Dot pattern 2 */
+      80px 80px, /* Dot pattern 3 */
+      80px 80px, /* Dot pattern 4 */
+      80px 80px, /* Dot pattern 5 */
+      80px 80px; /* Dot pattern 6 */
+  }
+}

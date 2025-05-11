@@ -190,8 +190,8 @@ html[data-theme='dark'] .demoContainer {
 .demoFeature {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.2);
+  /* Removed blur effect */
   padding: 0.5rem 1rem;
   border-radius: 50px;
   color: white;

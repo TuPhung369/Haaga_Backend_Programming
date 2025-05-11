@@ -294,6 +294,7 @@ export default function BackendCategory() {
     <Layout
       title="Backend Documentation"
       description="Enterprise Nexus Backend Documentation"
+      className="backend-category"
     >
       <div className={styles.dashboardPage}>
         <div className={styles.dashboardMain}>

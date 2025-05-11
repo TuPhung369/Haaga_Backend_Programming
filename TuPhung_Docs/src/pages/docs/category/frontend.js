@@ -277,6 +277,7 @@ export default function FrontendCategory() {
     <Layout
       title="Frontend Documentation"
       description="Enterprise Nexus Frontend Documentation"
+      className="frontend-category"
     >
       <div className={styles.dashboardPage}>
         <div className={styles.dashboardMain}>

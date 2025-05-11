@@ -97,10 +97,10 @@ div[class*="tocMobile_"],
     backface-visibility: hidden !important;
   }
   
-  /* Reduce backdrop-filter for better performance on iOS */
+  /* Remove backdrop-filter for better performance */
   html[data-theme='light'] .navbar,
   html[data-theme='dark'] .navbar {
-    backdrop-filter: blur(5px) !important; /* Reduced from 10px */
+    backdrop-filter: none !important; /* Removed blur effect */
   }
   
   /* Add padding to body to prevent content from being hidden under fixed navbar */

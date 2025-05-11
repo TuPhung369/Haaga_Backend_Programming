@@ -1,0 +1,250 @@
+/**
+ * Custom background styling for header/navbar
+ * This file adds a modern tech-inspired background to the header
+ */
+
+/* Header/navbar background styling */
+.navbar,
+nav[class^="navbar_"],
+header[class^="navbar_"] {
+  /* Base background with advanced glass effect */
+  background: rgba(255, 255, 255, 0.95);
+  /* Removed blur effect */
+  
+  /* Add high-tech pattern with random circles of various sizes (d=10-50px) */
+  background-image: 
+    /* Random circles with random positions and sizes */
+    radial-gradient(circle at 15% 25%, rgba(78, 87, 185, 0.15) 10px, transparent 0),
+    radial-gradient(circle at 85% 75%, rgba(78, 87, 185, 0.13) 20px, transparent 0),
+    radial-gradient(circle at 50% 50%, rgba(78, 87, 185, 0.10) 33px, transparent 0),
+    radial-gradient(circle at 65% 20%, rgba(78, 87, 185, 0.14) 20px, transparent 0),
+    /* Digital data flow effect */
+    linear-gradient(90deg, 
+      rgba(78, 87, 185, 0.01) 0%, 
+      rgba(78, 87, 185, 0.03) 20%, 
+      rgba(78, 87, 185, 0.01) 40%, 
+      rgba(78, 87, 185, 0.03) 60%, 
+      rgba(78, 87, 185, 0.01) 80%, 
+      rgba(78, 87, 185, 0.03) 100%
+    );
+  
+  background-size: 
+    300px 300px, /* Circle 1 - increased spacing */
+    400px 400px, /* Circle 2 - increased spacing */
+    450px 450px, /* Circle 3 - increased spacing */
+    380px 380px, /* Circle 4 - increased spacing */
+    100% 100%; /* Data flow effect */
+  
+  /* Add professional shadow for depth */
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 2px 5px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  
+  /* Ensure proper border */
+  border-bottom: 1px solid rgba(78, 87, 185, 0.15);
+  
+  /* Ensure content is properly contained */
+  position: relative;
+  z-index: 20;
+  
+  /* Add subtle animation for the circuit pattern */
+  animation: header-circuit-pulse 15s linear infinite;
+}
+
+/* Animation for header circles in light mode */
+@keyframes header-circuit-pulse {
+  0% {
+    background-position: 
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0% 0%;
+  }
+  100% {
+    background-position: 
+      20px 20px,
+      -20px -20px,
+      25px 30px,
+      30px -15px,
+      100% 0%;
+  }
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .navbar,
+[data-theme='dark'] nav[class^="navbar_"],
+[data-theme='dark'] header[class^="navbar_"] {
+  /* Darker base with advanced glass effect */
+  background: rgba(12, 12, 20, 0.95);
+  /* Removed blur effect */
+  
+  /* Add high-tech pattern with random circles of various sizes for dark mode (d=10-50px) */
+  background-image: 
+    /* Random circles with random positions and sizes */
+    radial-gradient(circle at 25% 25%, rgba(123, 104, 238, 0.25) 12px, transparent 0),
+    radial-gradient(circle at 85% 75%, rgba(123, 104, 238, 0.18) 22px, transparent 0),
+    radial-gradient(circle at 55% 45%, rgba(123, 104, 238, 0.15) 33px, transparent 0),
+    radial-gradient(circle at 70% 20%, rgba(123, 104, 238, 0.25) 19px, transparent 0),
+    /* Digital data flow effect */
+    linear-gradient(90deg, 
+      rgba(123, 104, 238, 0.03) 0%, 
+      rgba(123, 104, 238, 0.08) 20%, 
+      rgba(123, 104, 238, 0.03) 40%, 
+      rgba(123, 104, 238, 0.08) 60%, 
+      rgba(123, 104, 238, 0.03) 80%, 
+      rgba(123, 104, 238, 0.08) 100%
+    );
+  
+  background-size: 
+    320px 320px, /* Circle 1 - increased spacing */
+    420px 420px, /* Circle 2 - increased spacing */
+    470px 470px, /* Circle 3 - increased spacing */
+    400px 400px, /* Circle 4 - increased spacing */
+    100% 100%; /* Data flow effect */
+  
+  /* Dark mode border with glow */
+  border-bottom: 1px solid rgba(123, 104, 238, 0.2);
+  
+  /* Add enhanced glow effect for dark mode */
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.2),
+    0 2px 5px rgba(0, 0, 0, 0.1),
+    inset 0 0 30px rgba(123, 104, 238, 0.05);
+  
+  /* Add animation for the circuit pattern in dark mode */
+  animation: header-circuit-pulse-dark 15s linear infinite;
+}
+
+/* Animation for header circles in dark mode */
+@keyframes header-circuit-pulse-dark {
+  0% {
+    background-position: 
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0% 0%;
+  }
+  100% {
+    background-position: 
+      -25px -25px,
+      25px 25px,
+      -30px -35px,
+      -35px 20px,
+      100% 0%;
+  }
+}
+
+/* Add decorative accent to navbar - tech-inspired gradient */
+.navbar::after,
+nav[class^="navbar_"]::after,
+header[class^="navbar_"]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--ifm-color-primary) 0%, 
+    var(--ifm-color-primary-light) 25%, 
+    var(--ifm-color-primary-lighter) 50%,
+    var(--ifm-color-primary-light) 75%,
+    var(--ifm-color-primary) 100%);
+  z-index: 30;
+  box-shadow: 0 0 8px rgba(var(--ifm-color-primary-rgb), 0.4);
+}
+
+/* Style navbar items for better contrast with new background */
+.navbar__link {
+  position: relative;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  margin: 0 0.2rem;
+}
+
+.navbar__link:hover {
+  color: var(--ifm-color-primary);
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.05);
+  transform: translateY(-1px);
+}
+
+.navbar__link--active {
+  position: relative;
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+}
+
+.navbar__link--active::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ifm-color-primary);
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(var(--ifm-color-primary-rgb), 0.4);
+}
+
+/* Add enhanced hover effect to navbar brand/logo */
+.navbar__brand {
+  position: relative;
+  transition: all 0.3s ease;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+}
+
+.navbar__brand:hover {
+  transform: translateY(-2px);
+  background-color: rgba(var(--ifm-color-primary-rgb), 0.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Add tech-inspired style to navbar search */
+.navbar__search {
+  position: relative;
+}
+
+.navbar__search-input {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--ifm-color-primary-rgb), 0.2);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.navbar__search-input:focus {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(var(--ifm-color-primary-rgb), 0.4);
+  box-shadow: 0 0 0 2px rgba(var(--ifm-color-primary-rgb), 0.1);
+}
+
+[data-theme='dark'] .navbar__search-input {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-color: rgba(123, 104, 238, 0.3);
+}
+
+[data-theme='dark'] .navbar__search-input:focus {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-color: rgba(123, 104, 238, 0.5);
+  box-shadow: 0 0 0 2px rgba(123, 104, 238, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 996px) {
+  .navbar,
+  nav[class^="navbar_"],
+  header[class^="navbar_"] {
+    /* Simplify background for mobile */
+    background-size: 
+      250px 250px, /* Circle 1 - increased spacing */
+      320px 320px, /* Circle 2 - increased spacing */
+      350px 350px, /* Circle 3 - increased spacing */
+      300px 300px, /* Circle 4 - increased spacing */
+      100% 100%; /* Data flow effect */
+  }
+}
