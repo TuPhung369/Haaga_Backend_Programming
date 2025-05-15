@@ -800,7 +800,7 @@ const config = {
           
           // CV icon
           const cvIcon = document.createElement('a');
-          cvIcon.href = 'https://tuphung369.github.io/professional-cv/';
+          cvIcon.href = 'https://tuphung369.github.io/Tu_Phung_CV/';
           cvIcon.target = '_blank';
           cvIcon.rel = 'noopener noreferrer';
           cvIcon.className = 'sidebar-icon cv-icon';
@@ -1075,7 +1075,7 @@ const config = {
                     href === '#' || 
                     addedUrls.has(href) || 
                     href.includes('linkedin.com') || 
-                    href.includes('professional-cv') ||
+                    href.includes('Tu_Phung_CV') ||
                     href.includes('github.com')) {
                   return;
                 }
@@ -1204,7 +1204,7 @@ const config = {
             cvItem.style.margin = '5px 0';
             
             const cvLink = document.createElement('a');
-            cvLink.href = 'https://tuphung369.github.io/professional-cv/';
+            cvLink.href = 'https://tuphung369.github.io/Tu_Phung_CV/';
             cvLink.target = '_blank';
             cvLink.rel = 'noopener noreferrer';
             cvLink.style.display = 'flex';
@@ -1887,7 +1887,7 @@ const config = {
           className: "header-video-link",
         },
         {
-          href: "https://tuphung369.github.io/professional-cv/",
+          href: "https://tuphung369.github.io/Tu_Phung_CV/",
           label: "My CV",
           position: "left",
           className: "header-cv-link",
@@ -1962,7 +1962,7 @@ const config = {
           title: "Connect With Me",
           items: [
             {
-              html: '<a href="https://tuphung369.github.io/professional-cv/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-cv"></span>My CV</a>',
+              html: '<a href="https://tuphung369.github.io/Tu_Phung_CV/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-cv"></span>My CV</a>',
             },
             {
               html: '<a href="https://www.linkedin.com/in/tuphung010787/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; color: var(--ifm-font-color-base);"><span class="footer-icon icon-linkedin"></span>LinkedIn</a>',
