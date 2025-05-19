@@ -583,13 +583,91 @@ export const connectWebSocket = (
             console.log(
               `[WebSocket] Subscribing to read receipts at: /user/${capturedUserId}/queue/read-receipts`
             );
+
+            // Subscribe to direct notifications
+            console.log(
+              `[WebSocket] Subscribing to direct notifications at: /user/${capturedUserId}/queue/direct-notifications`
+            );
+            const directNotificationSubscription = stompClient.subscribe(
+              `/user/${capturedUserId}/queue/direct-notifications`,
+              (message: IMessage) => {
+                console.log(
+                  "[WebSocket] *** DIRECT NOTIFICATION RECEIVED *** Raw message:",
+                  message
+                );
+                try {
+                  const directNotification = JSON.parse(message.body);
+                  console.log(
+                    "[WebSocket] Direct notification parsed - FULL OBJECT:",
+                    directNotification
+                  );
+
+                  // Log additional details for debugging
+                  const currentUserId = store.getState().user.userInfo?.id;
+                  console.log(
+                    "[WebSocket] Current user ID (receiver of direct notification):",
+                    currentUserId
+                  );
+                  console.log(
+                    "[WebSocket] Who read my messages?",
+                    directNotification.readerId || directNotification.contactId
+                  );
+
+                  // Process the direct notification - update the UI to show messages as read
+                  if (
+                    directNotification.type === "READ_RECEIPT" ||
+                    directNotification.type === "DIRECT_READ_RECEIPT"
+                  ) {
+                    console.log(
+                      "[WebSocket] Processing direct read receipt notification"
+                    );
+
+                    // Import the necessary actions to update message read status
+                    import("../store/chatSlice").then(
+                      ({ updateMessagesReadStatus }) => {
+                        // Dispatch the action to update the UI
+                        store.dispatch(
+                          updateMessagesReadStatus({
+                            contactId:
+                              directNotification.readerId ||
+                              directNotification.contactId,
+                            currentUserId: currentUserId,
+                            isRecipientReadEvent: true,
+                            forceUpdate: true,
+                          })
+                        );
+
+                        console.log(
+                          "[WebSocket] Direct notification processed, UI updated"
+                        );
+                      }
+                    );
+                  }
+                } catch (error) {
+                  console.error(
+                    "[WebSocket] Error processing direct notification:",
+                    error
+                  );
+                }
+              }
+            );
+            console.log(
+              "[WebSocket] Direct notification subscription created:",
+              directNotificationSubscription ? "Success" : "Failed"
+            );
             const readReceiptSubscription = stompClient.subscribe(
               `/user/${capturedUserId}/queue/read-receipts`,
               (message: IMessage) => {
-                console.log("[WebSocket] Raw read receipt received:", message);
+                console.log(
+                  "[WebSocket] *** READ RECEIPT RECEIVED *** Raw message:",
+                  message
+                );
                 try {
                   const readReceipt = JSON.parse(message.body);
-                  console.log("[WebSocket] Read receipt parsed:", readReceipt);
+                  console.log(
+                    "[WebSocket] Read receipt parsed - FULL OBJECT:",
+                    readReceipt
+                  );
                   console.log(
                     "[WebSocket] Read receipt type:",
                     readReceipt.type
@@ -603,8 +681,42 @@ export const connectWebSocket = (
                     readReceipt.readerId
                   );
 
-                  // Get current user ID for logging
+                  // Log additional details for debugging
                   const currentUserId = store.getState().user.userInfo?.id;
+                  console.log(
+                    "[WebSocket] Current user ID (receiver of notification):",
+                    currentUserId
+                  );
+                  console.log(
+                    "[WebSocket] Is this a notification that someone read my messages?",
+                    readReceipt.contactId !== currentUserId ? "YES" : "NO"
+                  );
+                  console.log(
+                    "[WebSocket] Who read my messages?",
+                    readReceipt.contactId
+                  );
+
+                  // Check if this is a confirmation message after database update
+                  const isConfirmation =
+                    readReceipt.type === "READ_CONFIRMATION";
+
+                  // Check if this is a direct notification
+                  const isDirectNotification =
+                    readReceipt.isDirectNotification === true;
+
+                  if (isConfirmation) {
+                    console.log(
+                      "[WebSocket] *** RECEIVED READ CONFIRMATION *** This is a confirmation after database update"
+                    );
+                  }
+
+                  if (isDirectNotification) {
+                    console.log(
+                      "[WebSocket] *** RECEIVED DIRECT NOTIFICATION *** This is a direct notification from the reader"
+                    );
+                  }
+
+                  // Get current user ID for logging
 
                   // Update the UI to show messages as read by dispatching an action to Redux
                   console.log(
@@ -617,161 +729,245 @@ export const connectWebSocket = (
                   // Log whether this is a confirmation of our read action or a notification that our messages were read
                   // If contactId is NOT our ID, then this is a notification that someone read our messages
                   // The contactId in this case is the ID of the user who read our messages
-                  if (readReceipt.contactId !== currentUserId) {
+
+                  // IMPORTANT DEBUG LOGS
+                  console.log("[WebSocket] *** DECISION POINT ***");
+                  console.log(
+                    "[WebSocket] readReceipt.contactId:",
+                    readReceipt.contactId
+                  );
+                  console.log("[WebSocket] currentUserId:", currentUserId);
+                  console.log("[WebSocket] isConfirmation:", isConfirmation);
+                  console.log(
+                    "[WebSocket] isDirectNotification:",
+                    isDirectNotification
+                  );
+                  console.log(
+                    "[WebSocket] readReceipt.contactId !== currentUserId:",
+                    readReceipt.contactId !== currentUserId
+                  );
+
+                  if (
+                    readReceipt.contactId !== currentUserId ||
+                    isConfirmation ||
+                    isDirectNotification
+                  ) {
                     console.log(
-                      "[WebSocket] *** IMPORTANT: This is a notification that our messages were read by the recipient ***"
+                      "[WebSocket] *** CONDITION MET: Will process this notification ***"
                     );
 
-                    // In the ReadStatusResponse from the server, contactId is the ID of the user who read the messages
-                    // This is the user we need to update the read status for
-
-                    // The contactId is the ID of the user who read our messages
-                    const readerId = readReceipt.contactId;
-
-                    console.log(
-                      "[WebSocket] Messages were read by user with ID:",
-                      readerId
-                    );
-
-                    if (readerId) {
+                    // For confirmation messages or direct notifications, we always want to update the UI regardless of contactId
+                    if (isConfirmation || isDirectNotification) {
                       console.log(
-                        "[WebSocket] Messages were read by user:",
-                        readerId
+                        "[WebSocket] *** PROCESSING CONFIRMATION OR DIRECT NOTIFICATION ***"
                       );
                       console.log(
-                        "[WebSocket] *** NOTIFICATION RECEIVED: Our messages to",
-                        readerId,
-                        "were read ***"
+                        "[WebSocket] *** PROCESSING READ CONFIRMATION OR DIRECT NOTIFICATION *** Updating UI"
                       );
 
-                      // Update read status for messages sent to this specific reader
-                      console.log(
-                        "[WebSocket] Updating read status for messages sent to:",
-                        readerId
-                      );
+                      // For confirmation messages or direct notifications, we need to update the read status for all messages
+                      // sent to the contact who read our messages
+                      let readerId;
+                      let contactIdToUpdate;
 
-                      // Check if we have any messages to this user in our store
-                      const messages = store.getState().chat.messages;
-                      const hasSentMessages = messages.some(
-                        (msg) =>
-                          msg.sender.id === currentUserId &&
-                          msg.receiver.id === readerId
-                      );
+                      if (isDirectNotification) {
+                        // For direct notifications, the contactId is the ID of the reader (the user who read our messages)
+                        readerId = readReceipt.readerId;
+                        contactIdToUpdate = readReceipt.contactId;
 
-                      if (hasSentMessages) {
                         console.log(
-                          "[WebSocket] Found messages in store that need to be marked as read"
-                        );
-
-                        // Dispatch the action with both IDs to ensure proper updating
-                        store.dispatch(
-                          updateMessagesReadStatus({
-                            contactId: readerId,
-                            currentUserId: currentUserId,
-                            isRecipientReadEvent: true, // This is a notification that the recipient read our messages
-                          })
+                          "[WebSocket] Direct notification - Reader ID:",
+                          readerId,
+                          "Contact ID to update:",
+                          contactIdToUpdate
                         );
                       } else {
-                        console.log(
-                          "[WebSocket] No messages found in store to this user, fetching from server..."
-                        );
-
-                        // If we don't have messages in the store (e.g., user wasn't active),
-                        // fetch messages from the server to update the UI
-                        import("../services/chatService").then(
-                          ({ getMessages }) => {
-                            getMessages(readerId)
-                              .then((messages) => {
-                                console.log(
-                                  "[WebSocket] Successfully fetched messages from server, updating store"
-                                );
-
-                                // Update the store with the fetched messages
-                                import("../store/chatSlice").then(
-                                  ({ setMessages }) => {
-                                    store.dispatch(setMessages(messages));
-
-                                    // Now update the read status
-                                    store.dispatch(
-                                      updateMessagesReadStatus({
-                                        contactId: readerId,
-                                        currentUserId: currentUserId,
-                                        isRecipientReadEvent: true,
-                                      })
-                                    );
-                                  }
-                                );
-                              })
-                              .catch((error) => {
-                                console.error(
-                                  "[WebSocket] Failed to fetch messages from server:",
-                                  error
-                                );
-                              });
-                          }
-                        );
+                        // For regular read receipts, use the readerId from the receipt
+                        readerId = readReceipt.readerId;
+                        contactIdToUpdate = readReceipt.contactId;
                       }
 
-                      // Log whether the contact is currently selected (for debugging)
-                      const selectedContact =
-                        store.getState().chat.selectedContact;
-                      const isContactSelected =
-                        selectedContact && selectedContact.id === readerId;
-                      console.log(
-                        `[WebSocket] Contact ${readerId} is ${
-                          isContactSelected ? "currently" : "not"
-                        } selected in the UI`
-                      );
-                    } else {
-                      // Fallback to the old method if readerId is not provided
-                      const messages = store.getState().chat.messages;
-                      const selectedContact =
-                        store.getState().chat.selectedContact;
-
-                      const otherUserIds = [
-                        ...new Set(
-                          messages
-                            .filter(
-                              (msg) =>
-                                msg.sender.id === currentUserId && !msg.read
-                            )
-                            .map((msg) => msg.receiver.id)
-                        ),
-                      ];
-
-                      console.log(
-                        "[WebSocket] Other user IDs with unread messages:",
-                        otherUserIds
-                      );
-
-                      // Update the read status for all contacts with unread messages
-                      console.log(
-                        "[WebSocket] Updating read status for all contacts with unread messages"
-                      );
-
-                      // Process each contact with unread messages
-                      otherUserIds.forEach((contactId) => {
+                      if (readerId && currentUserId) {
                         console.log(
-                          `[WebSocket] Updating read status for contact: ${contactId}`
+                          "[WebSocket] Updating read status for messages sent to:",
+                          contactIdToUpdate
                         );
+
                         store.dispatch(
                           updateMessagesReadStatus({
-                            contactId: contactId,
+                            contactId: contactIdToUpdate,
                             currentUserId: currentUserId,
-                            isRecipientReadEvent: true, // This is a notification that the recipient read our messages
+                            isRecipientReadEvent: true, // This is a confirmation that the recipient read our messages
+                            forceUpdate: isDirectNotification, // Force update for direct notifications
                           })
                         );
-                      });
 
-                      // Log whether any of these contacts is currently selected (for debugging)
-                      if (selectedContact) {
+                        // Log that we've dispatched the action
                         console.log(
-                          `[WebSocket] Currently selected contact: ${
-                            selectedContact.id
-                          }, is in unread list: ${otherUserIds.includes(
-                            selectedContact.id
-                          )}`
+                          "[WebSocket] Dispatched updateMessagesReadStatus action with contactId:",
+                          contactIdToUpdate,
+                          "currentUserId:",
+                          currentUserId,
+                          "isRecipientReadEvent: true, forceUpdate:",
+                          isDirectNotification
                         );
+                      }
+                    } else {
+                      console.log(
+                        "[WebSocket] *** IMPORTANT: This is a notification that our messages were read by the recipient ***"
+                      );
+
+                      // In the ReadStatusResponse from the server, contactId is the ID of the user who read the messages
+                      // This is the user we need to update the read status for
+
+                      // The contactId is the ID of the user who read our messages
+                      const readerId = readReceipt.contactId;
+
+                      console.log(
+                        "[WebSocket] Messages were read by user with ID:",
+                        readerId
+                      );
+
+                      if (readerId) {
+                        console.log(
+                          "[WebSocket] Messages were read by user:",
+                          readerId
+                        );
+                        console.log(
+                          "[WebSocket] *** NOTIFICATION RECEIVED: Our messages to",
+                          readerId,
+                          "were read ***"
+                        );
+
+                        // Update read status for messages sent to this specific reader
+                        console.log(
+                          "[WebSocket] Updating read status for messages sent to:",
+                          readerId
+                        );
+
+                        // Check if we have any messages to this user in our store
+                        const messages = store.getState().chat.messages;
+                        const hasSentMessages = messages.some(
+                          (msg) =>
+                            msg.sender.id === currentUserId &&
+                            msg.receiver.id === readerId
+                        );
+
+                        if (hasSentMessages) {
+                          console.log(
+                            "[WebSocket] Found messages in store that need to be marked as read"
+                          );
+
+                          // Dispatch the action with both IDs to ensure proper updating
+                          store.dispatch(
+                            updateMessagesReadStatus({
+                              contactId: readerId,
+                              currentUserId: currentUserId,
+                              isRecipientReadEvent: true, // This is a notification that the recipient read our messages
+                            })
+                          );
+                        } else {
+                          console.log(
+                            "[WebSocket] No messages found in store to this user, fetching from server..."
+                          );
+
+                          // If we don't have messages in the store (e.g., user wasn't active),
+                          // fetch messages from the server to update the UI
+                          import("../services/chatService").then(
+                            ({ getMessages }) => {
+                              getMessages(readerId)
+                                .then((messages) => {
+                                  console.log(
+                                    "[WebSocket] Successfully fetched messages from server, updating store"
+                                  );
+
+                                  // Update the store with the fetched messages
+                                  import("../store/chatSlice").then(
+                                    ({ setMessages }) => {
+                                      store.dispatch(setMessages(messages));
+
+                                      // Now update the read status
+                                      store.dispatch(
+                                        updateMessagesReadStatus({
+                                          contactId: readerId,
+                                          currentUserId: currentUserId,
+                                          isRecipientReadEvent: true,
+                                        })
+                                      );
+                                    }
+                                  );
+                                })
+                                .catch((error) => {
+                                  console.error(
+                                    "[WebSocket] Failed to fetch messages from server:",
+                                    error
+                                  );
+                                });
+                            }
+                          );
+                        }
+
+                        // Log whether the contact is currently selected (for debugging)
+                        const selectedContact =
+                          store.getState().chat.selectedContact;
+                        const isContactSelected =
+                          selectedContact && selectedContact.id === readerId;
+                        console.log(
+                          `[WebSocket] Contact ${readerId} is ${
+                            isContactSelected ? "currently" : "not"
+                          } selected in the UI`
+                        );
+                      } else {
+                        // Fallback to the old method if readerId is not provided
+                        const messages = store.getState().chat.messages;
+                        const selectedContact =
+                          store.getState().chat.selectedContact;
+
+                        const otherUserIds = [
+                          ...new Set(
+                            messages
+                              .filter(
+                                (msg) =>
+                                  msg.sender.id === currentUserId && !msg.read
+                              )
+                              .map((msg) => msg.receiver.id)
+                          ),
+                        ];
+
+                        console.log(
+                          "[WebSocket] Other user IDs with unread messages:",
+                          otherUserIds
+                        );
+
+                        // Update the read status for all contacts with unread messages
+                        console.log(
+                          "[WebSocket] Updating read status for all contacts with unread messages"
+                        );
+
+                        // Process each contact with unread messages
+                        otherUserIds.forEach((contactId) => {
+                          console.log(
+                            `[WebSocket] Updating read status for contact: ${contactId}`
+                          );
+                          store.dispatch(
+                            updateMessagesReadStatus({
+                              contactId: contactId,
+                              currentUserId: currentUserId,
+                              isRecipientReadEvent: true, // This is a notification that the recipient read our messages
+                            })
+                          );
+                        });
+
+                        // Log whether any of these contacts is currently selected (for debugging)
+                        if (selectedContact) {
+                          console.log(
+                            `[WebSocket] Currently selected contact: ${
+                              selectedContact.id
+                            }, is in unread list: ${otherUserIds.includes(
+                              selectedContact.id
+                            )}`
+                          );
+                        }
                       }
                     }
                   } else {
@@ -881,6 +1077,62 @@ export const connectWebSocket = (
             console.log(
               "[WebSocket] Message updates subscription created:",
               messageUpdatesSubscription ? "Success" : "Failed"
+            );
+
+            // Subscribe to direct notifications (for read receipts and other direct messages)
+            console.log(
+              `[WebSocket] Subscribing to direct notifications at: /user/${capturedUserId}/queue/direct-notifications`
+            );
+            const directNotificationsSubscription = stompClient.subscribe(
+              `/user/${capturedUserId}/queue/direct-notifications`,
+              (message: IMessage) => {
+                console.log(
+                  "[WebSocket] Raw direct notification received:",
+                  message
+                );
+                try {
+                  const notification = JSON.parse(message.body);
+                  console.log(
+                    "[WebSocket] Direct notification parsed:",
+                    notification
+                  );
+
+                  // Check if this is a read receipt notification
+                  if (notification.type === "DIRECT_READ_RECEIPT") {
+                    console.log(
+                      "[WebSocket] *** RECEIVED DIRECT READ RECEIPT *** from user:",
+                      notification.readerId
+                    );
+
+                    // Get current user ID
+                    const currentUserId = store.getState().user.userInfo?.id;
+
+                    // Update the UI to show messages as read
+                    console.log(
+                      "[WebSocket] Updating read status for messages sent to user:",
+                      notification.contactId
+                    );
+
+                    // Dispatch action to update read status in Redux store
+                    store.dispatch(
+                      updateMessagesReadStatus({
+                        contactId: notification.contactId,
+                        currentUserId: currentUserId,
+                        isRecipientReadEvent: true, // This is a notification that the recipient read our messages
+                      })
+                    );
+                  }
+                } catch (error) {
+                  console.error(
+                    "[WebSocket] Error processing direct notification:",
+                    error
+                  );
+                }
+              }
+            );
+            console.log(
+              "[WebSocket] Direct notifications subscription created:",
+              directNotificationsSubscription ? "Success" : "Failed"
             );
           }
         } catch (error) {
@@ -1514,6 +1766,8 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
         timestamp: new Date().toISOString(), // Add timestamp for tracking
         isGroup: isGroup, // Indicate if this is a group message
         type: "READ_RECEIPT", // Explicitly mark the type of notification
+        forceNotify: true, // Add a flag to force notification to the sender
+        senderIds: [contactId], // Explicitly specify which users should be notified
       });
 
       // Send the read receipt notification via WebSocket
@@ -1539,6 +1793,244 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
         "[WebSocket] Server should now notify the sender (contactId) that their messages were read by:",
         currentUserId
       );
+
+      // Also send a direct message to the sender's queue to ensure they get the notification
+      console.log(
+        "[WebSocket] *** STEP 5.1: SENDING DIRECT NOTIFICATION TO SENDER ***"
+      );
+
+      // Create a direct notification for the sender
+      const directNotificationBody = JSON.stringify({
+        contactId: currentUserId, // This is the ID of the reader (current user)
+        messageId: `direct-${Date.now()}`,
+        readerId: currentUserId,
+        timestamp: new Date().toISOString(),
+        isGroup: isGroup,
+        type: "READ_RECEIPT", // Use the standard read receipt type that server already handles
+        targetUserId: contactId, // The user who should receive this notification
+        forceNotify: true, // Force notification
+        isDirectNotification: true, // Flag to indicate this is a direct notification
+        senderIds: [contactId], // Explicitly specify which users should be notified
+      });
+
+      console.log(
+        "[WebSocket] *** DIRECT NOTIFICATION PAYLOAD ***",
+        directNotificationBody
+      );
+
+      // Send a direct message to the sender's queue using the standard read receipt endpoint
+      stompClient.publish({
+        destination: `/app/chat.markAsRead`, // Use the standard markAsRead endpoint
+        body: directNotificationBody,
+        headers: {
+          "receipt": `direct-${receiptId}`,
+          "targetUserId": contactId, // Add the target user ID as a header
+          "forceNotify": "true", // Force notification in headers too
+          "isDirectNotification": "true", // Flag in headers too
+        },
+      });
+
+      // ADDITIONAL ATTEMPT 1: Try sending directly to the user's queue
+      try {
+        console.log(
+          "[WebSocket] *** ATTEMPTING DIRECT QUEUE SEND (METHOD 1) ***"
+        );
+
+        // Create a simplified payload for direct queue
+        const directQueuePayload = JSON.stringify({
+          contactId: currentUserId, // Reader ID
+          readerId: currentUserId,
+          timestamp: new Date().toISOString(),
+          type: "READ_RECEIPT",
+          isDirectNotification: true,
+          forceUpdate: true,
+          message: `User ${currentUserId} has read your messages`,
+        });
+
+        // Send directly to the user's queue
+        stompClient.publish({
+          destination: `/queue/user.${contactId}.read-receipts`, // Direct to user's queue
+          body: directQueuePayload,
+          headers: {
+            "content-type": "application/json",
+            "receipt": `direct-queue-${receiptId}`,
+          },
+        });
+
+        console.log(
+          "[WebSocket] Direct queue message sent to:",
+          `/queue/user.${contactId}.read-receipts`
+        );
+      } catch (directQueueError) {
+        console.error(
+          "[WebSocket] Error sending direct queue message:",
+          directQueueError
+        );
+      }
+
+      // ADDITIONAL ATTEMPT 2: Try sending to the user's topic
+      try {
+        console.log(
+          "[WebSocket] *** ATTEMPTING DIRECT TOPIC SEND (METHOD 2) ***"
+        );
+
+        // Create a simplified payload for direct topic
+        const directTopicPayload = JSON.stringify({
+          contactId: currentUserId, // Reader ID
+          readerId: currentUserId,
+          timestamp: new Date().toISOString(),
+          type: "READ_RECEIPT",
+          isDirectNotification: true,
+          forceUpdate: true,
+          message: `User ${currentUserId} has read your messages`,
+          targetUserId: contactId,
+        });
+
+        // Send to a topic that the user might be subscribed to
+        stompClient.publish({
+          destination: `/topic/user.${contactId}.notifications`, // User-specific topic
+          body: directTopicPayload,
+          headers: {
+            "content-type": "application/json",
+            "receipt": `direct-topic-${receiptId}`,
+          },
+        });
+
+        console.log(
+          "[WebSocket] Direct topic message sent to:",
+          `/topic/user.${contactId}.notifications`
+        );
+      } catch (directTopicError) {
+        console.error(
+          "[WebSocket] Error sending direct topic message:",
+          directTopicError
+        );
+      }
+
+      // ADDITIONAL ATTEMPT 3: Try sending to the standard user destination prefix
+      try {
+        console.log(
+          "[WebSocket] *** ATTEMPTING STANDARD USER DESTINATION (METHOD 3) ***"
+        );
+
+        // Create a simplified payload
+        const standardUserPayload = JSON.stringify({
+          contactId: currentUserId, // Reader ID
+          readerId: currentUserId,
+          timestamp: new Date().toISOString(),
+          type: "READ_RECEIPT",
+          isDirectNotification: true,
+          forceUpdate: true,
+          message: `User ${currentUserId} has read your messages`,
+        });
+
+        // Send using the standard user destination prefix
+        stompClient.publish({
+          destination: `/user/${contactId}/queue/read-receipts`, // Standard user destination
+          body: standardUserPayload,
+          headers: {
+            "content-type": "application/json",
+            "receipt": `standard-user-${receiptId}`,
+          },
+        });
+
+        console.log(
+          "[WebSocket] Standard user destination message sent to:",
+          `/user/${contactId}/queue/read-receipts`
+        );
+      } catch (standardUserError) {
+        console.error(
+          "[WebSocket] Error sending to standard user destination:",
+          standardUserError
+        );
+      }
+
+      // ADDITIONAL ATTEMPT 4: Try sending to the direct notifications queue
+      try {
+        console.log(
+          "[WebSocket] *** ATTEMPTING DIRECT NOTIFICATIONS QUEUE (METHOD 4) ***"
+        );
+
+        // Create a simplified payload
+        const directNotificationsPayload = JSON.stringify({
+          contactId: currentUserId, // Reader ID
+          readerId: currentUserId,
+          timestamp: new Date().toISOString(),
+          type: "DIRECT_READ_RECEIPT",
+          isDirectNotification: true,
+          forceUpdate: true,
+          message: `User ${currentUserId} has read your messages`,
+        });
+
+        // Send to the direct notifications queue
+        stompClient.publish({
+          destination: `/user/${contactId}/queue/direct-notifications`, // Direct notifications queue
+          body: directNotificationsPayload,
+          headers: {
+            "content-type": "application/json",
+            "receipt": `direct-notifications-${receiptId}`,
+          },
+        });
+
+        console.log(
+          "[WebSocket] Direct notifications message sent to:",
+          `/user/${contactId}/queue/direct-notifications`
+        );
+      } catch (directNotificationsError) {
+        console.error(
+          "[WebSocket] Error sending to direct notifications queue:",
+          directNotificationsError
+        );
+      }
+
+      // ADDITIONAL ATTEMPT 5: Try sending via server endpoint for direct notifications
+      try {
+        console.log(
+          "[WebSocket] *** ATTEMPTING SERVER ENDPOINT FOR DIRECT NOTIFICATIONS (METHOD 5) ***"
+        );
+
+        // Create a payload for the server endpoint
+        const serverEndpointPayload = JSON.stringify({
+          contactId: currentUserId, // Reader ID
+          readerId: currentUserId,
+          timestamp: new Date().toISOString(),
+          type: "DIRECT_READ_RECEIPT",
+          targetUserId: contactId,
+          isDirectNotification: true,
+          forceUpdate: true,
+        });
+
+        // Send via server endpoint
+        stompClient.publish({
+          destination: `/app/chat.directNotify`, // Server endpoint for direct notifications
+          body: serverEndpointPayload,
+          headers: {
+            "content-type": "application/json",
+            "receipt": `server-endpoint-${receiptId}`,
+            "targetUserId": contactId,
+          },
+        });
+
+        console.log(
+          "[WebSocket] Server endpoint message sent to:",
+          `/app/chat.directNotify`
+        );
+      } catch (serverEndpointError) {
+        console.error(
+          "[WebSocket] Error sending via server endpoint:",
+          serverEndpointError
+        );
+      }
+
+      // Log the details of the direct notification
+      console.log("[WebSocket] *** DIRECT NOTIFICATION DETAILS ***");
+      console.log("[WebSocket] Reader ID (current user):", currentUserId);
+      console.log("[WebSocket] Target user ID (sender):", contactId);
+      console.log("[WebSocket] Is group message:", isGroup);
+      console.log("[WebSocket] Message ID:", `direct-${Date.now()}`);
+      console.log("[WebSocket] Timestamp:", new Date().toISOString());
+
+      console.log("[WebSocket] Direct notification sent to sender:", contactId);
     } catch (error) {
       console.error(
         "[WebSocket] Error sending read notification via WebSocket:",
@@ -1562,6 +2054,8 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
         contactId,
         response
       );
+
+      // We've already sent direct notifications before the HTTP call, so we don't need to send another one here
     })
     .catch((error) => {
       // If the error is a 404 (Not Found), it means the group/contact doesn't exist

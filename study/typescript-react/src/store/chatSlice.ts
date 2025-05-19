@@ -1212,15 +1212,18 @@ const chatSlice = createSlice({
         contactId: string;
         currentUserId?: string;
         isRecipientReadEvent?: boolean;
+        forceUpdate?: boolean;
       }>
     ) => {
       // Use the currentUserId from the action payload
       const currentUserId = action.payload.currentUserId;
       // Check if this is a notification from the recipient that they read our messages
       const isRecipientReadEvent = action.payload.isRecipientReadEvent === true;
+      // Check if we should force update regardless of unread status
+      const forceUpdate = action.payload.forceUpdate === true;
 
       console.log(
-        `[Redux] updateMessagesReadStatus called with contactId: ${action.payload.contactId}, currentUserId: ${currentUserId}, isRecipientReadEvent: ${isRecipientReadEvent}`
+        `[Redux] updateMessagesReadStatus called with contactId: ${action.payload.contactId}, currentUserId: ${currentUserId}, isRecipientReadEvent: ${isRecipientReadEvent}, forceUpdate: ${forceUpdate}`
       );
 
       // Check if we need to update anything at all
@@ -1244,8 +1247,12 @@ const chatSlice = createSlice({
             !msg.read
         );
 
-      // If there are no unread messages to update, skip the update
-      if (!hasUnreadReceivedMessages && !hasUnreadSentMessages) {
+      // If there are no unread messages to update and we're not forcing an update, skip the update
+      if (
+        !hasUnreadReceivedMessages &&
+        !hasUnreadSentMessages &&
+        !forceUpdate
+      ) {
         console.log("[Redux] No unread messages to update, skipping");
         return;
       }
@@ -1273,16 +1280,20 @@ const chatSlice = createSlice({
 
       // Then, handle case 2: Mark messages we sent as read ONLY when notified by the recipient
       let sentUpdatedCount = 0;
-      if (isRecipientReadEvent && currentUserId) {
+      if ((isRecipientReadEvent || forceUpdate) && currentUserId) {
         console.log(
-          "[Redux] Processing recipient read event for sent messages"
+          "[Redux] Processing recipient read event for sent messages (isRecipientReadEvent:",
+          isRecipientReadEvent,
+          "forceUpdate:",
+          forceUpdate,
+          ")"
         );
         updatedMessages = updatedMessages.map((message) => {
           // If this is a message we sent to the contact who just read our messages
           if (
             message.sender.id === currentUserId &&
             message.receiver.id === action.payload.contactId &&
-            !message.read
+            (!message.read || forceUpdate) // Update even if already read when forceUpdate is true
           ) {
             sentUpdatedCount++;
             return { ...message, read: true };
@@ -1294,12 +1305,12 @@ const chatSlice = createSlice({
         );
       } else if (currentUserId) {
         console.log(
-          "[Redux] Not a recipient read event, skipping sent messages update"
+          "[Redux] Not a recipient read event and not forcing update, skipping sent messages update"
         );
       }
 
-      // Only update state if we actually changed something
-      if (updatedCount > 0 || sentUpdatedCount > 0) {
+      // Update state if we changed something or if forceUpdate is true
+      if (updatedCount > 0 || sentUpdatedCount > 0 || forceUpdate) {
         // Update the messages array
         state.messages = updatedMessages;
 
@@ -1338,7 +1349,8 @@ const chatSlice = createSlice({
         }
 
         console.log(
-          "[Redux] Created new references for messages and contacts arrays to ensure UI updates"
+          "[Redux] Created new references for messages and contacts arrays to ensure UI updates" +
+            (forceUpdate ? " (forced update)" : "")
         );
       } else {
         console.log("[Redux] No messages were updated, skipping state update");
