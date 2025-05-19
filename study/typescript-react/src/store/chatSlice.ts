@@ -193,10 +193,22 @@ export const deleteGroupThunk = createAsyncThunk(
 export const sendGroupMessageThunk = createAsyncThunk(
   "chat/sendGroupMessage",
   async (
-    { content, groupId }: { content: string; groupId: string },
+    {
+      content,
+      groupId,
+      persistent,
+    }: { content: string; groupId: string; persistent: boolean },
     { rejectWithValue, dispatch, getState }
   ) => {
     try {
+      // Process the group message send request
+      console.log(
+        "[ChatSlice] DEBUG - sendGroupMessageThunk persistent value:",
+        persistent,
+        "type:",
+        typeof persistent
+      );
+
       // Create a temporary message to display immediately
       const state = getState() as RootState;
       const userInfo = state.user.userInfo;
@@ -207,10 +219,6 @@ export const sendGroupMessageThunk = createAsyncThunk(
 
       if (userInfo) {
         const tempId = `temp-${Date.now()}`;
-        console.log(
-          "[ChatSlice] Creating temporary group message with ID:",
-          tempId
-        );
 
         const tempMessage: Message = {
           id: tempId,
@@ -225,7 +233,7 @@ export const sendGroupMessageThunk = createAsyncThunk(
           },
           timestamp: new Date().toISOString(),
           read: false,
-          persistent: true,
+          persistent: persistent === true, // Ensure it's a boolean
           metadata: {
             isGroupMessage: true,
             groupId: groupId,
@@ -233,22 +241,16 @@ export const sendGroupMessageThunk = createAsyncThunk(
         };
 
         // Add the temporary message to the Redux store
-        console.log(
-          "[ChatSlice] Adding temporary group message to store:",
-          tempMessage
-        );
         dispatch(addMessage(tempMessage));
       }
 
       // Now make the API call
-      console.log("[ChatSlice] Making API call to send group message:", {
-        content: content.substring(0, 20) + "...",
-        groupId,
-      });
 
       try {
-        const message = await sendGroupMessage(content, groupId);
-        console.log("[ChatSlice] Group message API call successful:", message);
+        // Use persistent value directly - it's already a boolean from the component
+
+        const message = await sendGroupMessage(content, groupId, persistent);
+        // Group message API call successful
         return message;
       } catch (error) {
         console.error("[ChatSlice] Error in sendGroupMessage API call:", error);
@@ -273,10 +275,12 @@ export const sendGroupMessageThunk = createAsyncThunk(
           const state = getState() as RootState;
           const token = state.auth.token;
 
+          // Use persistent value directly for the direct call
+
           // Make a direct API call to the group endpoint
           const directResponse = await axios.default.post(
             `http://localhost:9095/identify_service/chat/groups/${groupId}/messages`,
-            { content },
+            { content, persistent: persistent },
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -373,17 +377,25 @@ export const sendMessageThunk = createAsyncThunk(
     {
       content,
       receiverId,
-      persistent = true,
+      persistent,
       isGroup = false,
     }: {
       content: string;
       receiverId: string;
-      persistent?: boolean;
+      persistent: boolean;
       isGroup?: boolean;
     },
     { rejectWithValue, dispatch, getState }
   ) => {
     try {
+      // Process the message send request
+      console.log(
+        "[ChatSlice] DEBUG - sendMessageThunk persistent value:",
+        persistent,
+        "type:",
+        typeof persistent
+      );
+
       // Create a temporary message to display immediately
       const state = getState() as RootState;
       const userInfo = state.user.userInfo;
@@ -394,7 +406,7 @@ export const sendMessageThunk = createAsyncThunk(
 
       if (userInfo) {
         const tempId = `temp-${Date.now()}`;
-        console.log("[ChatSlice] Creating temporary message with ID:", tempId);
+        // Create a temporary message with a unique ID
 
         const tempMessage: Message = {
           id: tempId,
@@ -417,12 +429,10 @@ export const sendMessageThunk = createAsyncThunk(
         };
 
         // Add the temporary message to the Redux store
-        console.log(
-          "[ChatSlice] Adding temporary message to store:",
-          tempMessage
-        );
         dispatch(addMessage(tempMessage));
       }
+
+      // Use persistent value directly - it's already a boolean from the component
 
       // Now make the API call
       return await sendMessage(content, receiverId, persistent, isGroup);
@@ -1033,10 +1043,7 @@ const chatSlice = createSlice({
       state.messages = action.payload;
     },
     addMessage: (state, action: PayloadAction<Message>) => {
-      console.log("[Redux] Adding new message to store:", action.payload);
-
-      // Log persistence status for debugging
-      console.log("[Redux] Message persistence:", action.payload.persistent);
+      // Process the new message
 
       // Enhanced duplicate detection with more logging
       const isDuplicate = state.messages.some((msg) => {
@@ -1046,7 +1053,6 @@ const chatSlice = createSlice({
           !msg.id.toString().startsWith("temp-") &&
           !action.payload.id.toString().startsWith("temp-")
         ) {
-          console.log("[Redux] Exact ID match found:", msg.id);
           return true;
         }
 
@@ -1150,7 +1156,7 @@ const chatSlice = createSlice({
       });
 
       if (isDuplicate) {
-        console.log("[Redux] Message appears to be a duplicate, not adding");
+        // Skip duplicate messages
       } else {
         // Check if this is a server response that should replace a temp message
         const tempIndex = state.messages.findIndex(
@@ -1168,14 +1174,10 @@ const chatSlice = createSlice({
         );
 
         if (tempIndex !== -1) {
-          console.log(
-            "[Redux] Replacing temp message at index",
-            tempIndex,
-            "with server response"
-          );
+          // Replace the temporary message with the server response
           state.messages[tempIndex] = action.payload;
         } else {
-          console.log("[Redux] Message is new, adding to store");
+          // Add the new message to the store
           state.messages.push(action.payload);
           // Sort messages by timestamp to ensure correct order
           state.messages.sort(
@@ -1183,21 +1185,15 @@ const chatSlice = createSlice({
               new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
         }
-        console.log("[Redux] New message count:", state.messages.length);
+        // Messages updated successfully
       }
     },
     updateMessagesReadStatus: (
       state,
       action: PayloadAction<{ contactId: string; currentUserId?: string }>
     ) => {
-      console.log(
-        "[Redux] Updating read status for messages from contact:",
-        action.payload.contactId
-      );
-
       // Use the currentUserId from the action payload
       const currentUserId = action.payload.currentUserId;
-      console.log("[Redux] Current user ID from payload:", currentUserId);
 
       // Check if we need to update anything at all
       const hasUnreadReceivedMessages = state.messages.some(
@@ -1220,9 +1216,6 @@ const chatSlice = createSlice({
 
       // If there are no unread messages in either direction, skip the update
       if (!hasUnreadReceivedMessages && !hasUnreadSentMessages) {
-        console.log(
-          "[Redux] No unread messages found, skipping read status update"
-        );
         return;
       }
 
@@ -1257,10 +1250,6 @@ const chatSlice = createSlice({
             message.receiver.id === action.payload.contactId &&
             !message.read
           ) {
-            console.log(
-              "[Redux] *** MARKING SENT MESSAGE AS READ (recipient read it) ***:",
-              message.id
-            );
             sentUpdatedCount++;
             return { ...message, read: true };
           }

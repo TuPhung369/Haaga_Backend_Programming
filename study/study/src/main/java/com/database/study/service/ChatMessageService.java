@@ -113,9 +113,11 @@ public class ChatMessageService {
 
             // Set the persistent flag based on the request
             Boolean persistentValue = request.getPersistent();
+            System.out.println("PERSISTENT DEBUG - Direct message value from request: " + persistentValue + " (type: "
+                    + (persistentValue != null ? persistentValue.getClass().getName() : "null") + ")");
             boolean isPersistent = persistentValue != null ? persistentValue : true;
+            System.out.println("PERSISTENT DEBUG - Direct message final value: " + isPersistent);
             message.setPersistent(isPersistent);
-            System.out.println("Message persistence set to: " + isPersistent);
 
             // If conversationId is not provided, generate one
             if (message.getConversationId() == null) {
@@ -294,7 +296,7 @@ public class ChatMessageService {
         // message.getContent().length())) + "...");
         // });
 
-        //int count = 0;
+        // int count = 0;
         for (ChatMessage message : messages) {
             if (message.getReceiver().equals(user) && !message.isRead()) {
                 try {
@@ -303,7 +305,7 @@ public class ChatMessageService {
                     // message.getId(), message.getReceiver().getId(), user.getId());
                     message.setRead(true);
                     messageRepository.save(message);
-                    //count++;
+                    // count++;
 
                     // Force a flush after each save to ensure it's committed
                     messageRepository.flush();
@@ -351,11 +353,11 @@ public class ChatMessageService {
         // verifyMessages.getTotalElements(), conversationId);
 
         int stillUnreadCount = 0;
-        //int totalMessagesForUser = 0;
+        // int totalMessagesForUser = 0;
 
         for (ChatMessage message : verifyMessages) {
             if (message.getReceiver().equals(user)) {
-                //totalMessagesForUser++;
+                // totalMessagesForUser++;
 
                 if (!message.isRead()) {
                     stillUnreadCount++;
@@ -660,10 +662,9 @@ public class ChatMessageService {
             }
 
             // Debug log before creating message
-            System.out.println("Creating group message with details:");
-            System.out.println("Content: " + request.getContent());
-            System.out.println("Group ID: " + group.getId());
-            System.out.println("Sender ID: " + sender.getId());
+            System.out.println("PERSISTENT DEBUG - Creating group message with details:");
+            System.out.println("Persistent: " + request.getPersistent() + " (type: "
+                    + (request.getPersistent() != null ? request.getPersistent().getClass().getName() : "null") + ")");
 
             // IMPORTANT: Ignore receiverId from request for group messages
             if (request.getReceiverId() != null) {
@@ -690,7 +691,10 @@ public class ChatMessageService {
 
             // Set the persistent flag based on the request
             Boolean persistentValue = request.getPersistent();
+            System.out.println("PERSISTENT DEBUG - Value from request: " + persistentValue + " (type: "
+                    + (persistentValue != null ? persistentValue.getClass().getName() : "null") + ")");
             boolean isPersistent = persistentValue != null ? persistentValue : true;
+            System.out.println("PERSISTENT DEBUG - Final value: " + isPersistent);
             message.setPersistent(isPersistent);
 
             // Only save to database if the message is persistent
@@ -703,6 +707,7 @@ public class ChatMessageService {
                 System.out.println("Conversation ID: " + message.getConversationId());
                 System.out.println(
                         "Receiver: " + (message.getReceiver() != null ? message.getReceiver().getId() : "null"));
+                System.out.println("Persistent: " + message.isPersistent());
 
                 message = messageRepository.save(message);
 
@@ -721,6 +726,7 @@ public class ChatMessageService {
                                 + (savedMessage.getGroup() != null ? savedMessage.getGroup().getId() : "null"));
                         System.out.println("  Receiver ID: "
                                 + (savedMessage.getReceiver() != null ? savedMessage.getReceiver().getId() : "null"));
+                        System.out.println("  Persistent: " + savedMessage.isPersistent());
                     } else {
                         System.out.println("Could not find saved message in database!");
                     }
@@ -731,6 +737,8 @@ public class ChatMessageService {
                 // Generate a temporary ID for non-persistent messages
                 message.setId(UUID.randomUUID());
                 message.setPersistent(false);
+                System.out.println("Message is non-persistent (persistent=false), skipping database save");
+                System.out.println("Generated temporary ID: " + message.getId());
             }
 
             // Create response DTO

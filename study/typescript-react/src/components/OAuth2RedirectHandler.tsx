@@ -22,6 +22,12 @@ const OAuth2RedirectHandler = () => {
           loginSocial: true,
         })
       );
+      
+      // Reset persistMessages to true on social login
+      import("../utils/chatUtils").then(module => {
+        module.resetPersistMessagesOnLogin();
+      });
+      
       // Navigate to the home page
       window.location.href = appBaseUri;
     } else {

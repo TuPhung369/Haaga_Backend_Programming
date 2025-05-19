@@ -29,12 +29,10 @@ const GroupAvatar: React.FC<GroupAvatarProps> = ({ contact, size = 40 }) => {
   const nameMatch = contact.name.match(/^(\d+)\s+members?$/);
   if (nameMatch) {
     memberCount = parseInt(nameMatch[1], 10);
-    console.log("Extracted member count from name:", memberCount);
   }
   // Fallback to checking the members array
   else if (Array.isArray(contact.members)) {
     memberCount = contact.members.length;
-    console.log("Using members array length:", memberCount);
   }
 
   // Limit visible members to 3 if there are 5 or more members, otherwise show up to 4

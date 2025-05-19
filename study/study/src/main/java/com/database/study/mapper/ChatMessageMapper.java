@@ -51,7 +51,10 @@ public class ChatMessageMapper {
                                 senderName));
                 response.setTimestamp(message.getTimestamp().toString());
                 response.setRead(message.isRead());
-                response.setPersistent(message.isPersistent());
+                // Set persistent flag and log it
+                boolean isPersistent = message.isPersistent();
+                System.out.println("PERSISTENT DEBUG - ChatMessageMapper setting response persistent to: " + isPersistent);
+                response.setPersistent(isPersistent);
 
                 // IMPORTANT: Set receiver to null by default
                 response.setReceiver(null);

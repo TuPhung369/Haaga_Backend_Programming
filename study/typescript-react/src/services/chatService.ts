@@ -113,50 +113,24 @@ export const getMessages = async (contactId: string): Promise<Message[]> => {
 export const sendMessage = async (
   content: string,
   receiverId: string,
-  persistent: boolean = true,
+  persistent: boolean,
   isGroup: boolean = false
 ): Promise<Message> => {
   try {
-    console.log("[ChatService] sendMessage called with params:", {
-      content: content.substring(0, 20) + "...",
-      receiverId,
-      persistent,
-      isGroup,
-      isGroupType: typeof isGroup,
-    });
+    // Process the message send request
 
     // CRITICAL CHECK: Always verify if this is a group message first
     // If isGroup flag is explicitly set, use the group message endpoint
     if (isGroup === true) {
-      console.log(
-        "[ChatService] isGroup flag is true, redirecting to sendGroupMessage"
-      );
-      return sendGroupMessage(content, receiverId);
+      // Redirect to the group message endpoint
+      return sendGroupMessage(content, receiverId, persistent);
     }
 
     // ADDITIONAL SAFETY CHECK: Check if this might be a group ID by looking at the store
     const state = store.getState();
     const groups = state.chat.groups || [];
 
-    // CRITICAL: Log all groups for debugging
-    console.log(
-      "[ChatService] CRITICAL DEBUG - All groups in store:",
-      JSON.stringify(
-        groups.map((g) => ({ id: g.id, name: g.name })),
-        null,
-        2
-      )
-    );
-    console.log(
-      "[ChatService] CRITICAL DEBUG - Checking if receiverId is a group:",
-      receiverId
-    );
-
-    // Log all groups for debugging
-    console.log(
-      "[ChatService] All groups in store:",
-      groups.map((g) => ({ id: g.id, name: g.name }))
-    );
+    // Check if receiverId matches any group ID
 
     // CRITICAL: Check if receiverId matches any group ID - use strict equality and string comparison
     // First convert all IDs to strings to ensure consistent comparison
@@ -173,27 +147,14 @@ export const sendMessage = async (
       (group) => String(group.id) === receiverIdStr
     );
 
-    console.log("[ChatService] CRITICAL DEBUG - Group detection results:", {
-      matchingGroup: matchingGroup ? matchingGroup.name : null,
-      matchingGroupAlt,
-      matchingGroupIndex,
-      receiverIdStr,
-      groupIds: groups.map((g) => String(g.id)),
-    });
+    // Check if any of our group detection methods found a match
 
     // If ANY of our checks indicate this is a group, use the group endpoint
     if (matchingGroup || matchingGroupAlt || matchingGroupIndex >= 0) {
-      console.log(
-        "[ChatService] CRITICAL OVERRIDE: Detected receiverId as a group ID from store:",
-        matchingGroup ? matchingGroup.name : "Unknown Group"
-      );
-      console.log(
-        "[ChatService] Redirecting to sendGroupMessage for group ID:",
-        receiverIdStr
-      );
+      // Detected receiverId as a group ID, redirect to group message endpoint
 
       // FORCE use of group message endpoint
-      return sendGroupMessage(content, receiverIdStr);
+      return sendGroupMessage(content, receiverIdStr, persistent);
     }
 
     // ADDITIONAL SAFETY: Check if the selected contact in Redux has isGroup=true
@@ -203,25 +164,53 @@ export const sendMessage = async (
       String(selectedContact.id) === receiverIdStr &&
       selectedContact.isGroup === true
     ) {
-      console.log(
-        "[ChatService] CRITICAL OVERRIDE: Selected contact has isGroup=true"
-      );
-      return sendGroupMessage(content, receiverIdStr);
+      // Selected contact has isGroup=true, redirect to group message endpoint
+      return sendGroupMessage(content, receiverIdStr, persistent);
     }
 
     // This is a direct message
-    console.log(
-      "[ChatService] Confirmed this is a direct message to user:",
-      receiverId
-    );
-    const response = await apiClient.post(`/chat/messages`, {
-      content: content, // Pass content directly without additional encoding
-      receiverId,
-      persistent,
-    });
-    return response.data;
+    // This is confirmed to be a direct message
+    // Use persistent value directly - it's already a boolean from the component
+    console.log("[ChatService] DEBUG - sendMessage persistent value:", persistent, "type:", typeof persistent);
+    try {
+      const response = await apiClient.post(`/chat/messages`, {
+        content: content, // Pass content directly without additional encoding
+        receiverId,
+        persistent: persistent,
+      });
+      return response.data;
+    } catch (error) {
+      // Log the error before trying the fallback
+      console.error("[ChatService] API client error in sendMessage:", error);
+      // Try a direct axios call as a fallback
+
+      // Get the token for authentication
+      const token = store.getState().auth.token;
+
+      // Import axios for direct API call
+      const axios = await import("axios");
+      const API_BASE_URI = "http://localhost:9095/identify_service";
+
+      // Make a direct API call to the messages endpoint
+      const directResponse = await axios.default.post(
+        `${API_BASE_URI}/chat/messages`,
+        {
+          content,
+          receiverId,
+          persistent: persistent,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
+
+      return directResponse.data;
+    }
   } catch (error) {
-    console.error("Error sending message:", error);
     throw handleServiceError(error);
   }
 };
@@ -604,7 +593,7 @@ export const forwardMessage = async (
 
       // Use the appropriate function based on whether this is a group or not
       const sendPromise = isGroup
-        ? sendGroupMessage(messageContent, recipientId)
+        ? sendGroupMessage(messageContent, recipientId, true)
         : sendMessage(messageContent, recipientId, true, false);
 
       // Always persist messages for other contacts, but add metadata to indicate this is a forwarded message
@@ -782,13 +771,12 @@ export const deleteGroup = async (groupId: string): Promise<void> => {
 // Send a message to a group
 export const sendGroupMessage = async (
   content: string,
-  groupId: string
+  groupId: string,
+  persistent: boolean
 ): Promise<Message> => {
   try {
-    console.log("[ChatService] sendGroupMessage called with params:", {
-      content: content.substring(0, 20) + "...",
-      groupId,
-    });
+    // Process the group message send request
+    console.log("[ChatService] DEBUG - sendGroupMessage persistent value:", persistent, "type:", typeof persistent);
 
     // Validate inputs
     if (!content || content.trim() === "") {
@@ -805,25 +793,22 @@ export const sendGroupMessage = async (
       });
     }
 
-    // Log the endpoint we're using
+    // Set the endpoint for the group message
     const endpoint = `/chat/groups/${groupId}/messages`;
-    console.log("[ChatService] Using group-specific endpoint:", endpoint);
 
-    // Get the token for logging purposes
+    // Get the token for authentication
     const token = store.getState().auth.token;
-    console.log("[ChatService] Token available:", !!token);
 
     try {
       // Make the API call with detailed error handling
+      // Use persistent value directly - it's already a boolean from the component
+
       const response = await apiClient.post(endpoint, {
         content,
+        persistent: persistent,
       });
 
-      console.log("[ChatService] Group message sent successfully:", {
-        responseStatus: response.status,
-        responseId: response.data?.id,
-        responseData: response.data,
-      });
+      // Group message sent successfully
 
       // Ensure we have a valid response
       if (!response.data) {
@@ -846,11 +831,13 @@ export const sendGroupMessage = async (
       console.error("[ChatService] API error in sendGroupMessage:", apiError);
 
       // Try a direct axios call as a fallback
-      console.log("[ChatService] Attempting direct axios call as fallback");
+      // Attempt a direct axios call as a fallback
+
+      // Use persistent value directly for the direct call
 
       const directResponse = await axios.post(
         `${API_BASE_URI}/chat/groups/${groupId}/messages`,
-        { content },
+        { content, persistent: persistent },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -860,10 +847,7 @@ export const sendGroupMessage = async (
         }
       );
 
-      console.log("[ChatService] Direct axios call successful:", {
-        responseStatus: directResponse.status,
-        responseData: directResponse.data,
-      });
+      // Direct axios call successful
 
       return {
         ...directResponse.data,

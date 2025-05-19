@@ -888,7 +888,7 @@ export const sendMessageViaWebSocket = (
                 console.log(
                   "[WebSocket] Using group-specific endpoint for fallback"
                 );
-                response = await sendGroupMessage(content, receiverId);
+                response = await sendGroupMessage(content, receiverId, persistent);
               } else {
                 console.log(
                   "[WebSocket] Using direct message endpoint for fallback"
@@ -1054,12 +1054,7 @@ export const sendMessageViaWebSocket = (
 };
 
 export const sendTypingNotification = (receiverId: string): boolean => {
-  console.log("[WebSocket] Sending typing notification to:", receiverId);
-
   if (!stompClient || !stompClient.connected) {
-    console.warn(
-      "[WebSocket] No active connection, cannot send typing notification"
-    );
     return false;
   }
 
@@ -1075,7 +1070,6 @@ export const sendTypingNotification = (receiverId: string): boolean => {
         destination: "/app/chat.typing",
         body: notificationBody,
       });
-      console.log("[WebSocket] Typing notification sent");
     }
     return true;
   } catch (error) {

@@ -273,6 +273,12 @@ const TotpAuthComponent: React.FC<TotpAuthComponentProps> = ({
           })
         );
         setupTokenRefresh(result.result.token);
+        
+        // Reset persistMessages to true on login
+        import("../utils/chatUtils").then(module => {
+          module.resetPersistMessagesOnLogin();
+        });
+        
         notification.success({
           message: "Success",
           description: "2FA verification successful!"

@@ -8,7 +8,6 @@ import { setupTokenRefresh } from "../utils/tokenRefresh";
 import { COLORS } from "../utils/constant";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { authenticateWithEmailOtpAndCookies } from "../services/authService";
 
 const { Title, Text } = Typography;
 
@@ -287,6 +286,12 @@ const EmailOtpAuthComponent: React.FC<EmailOtpAuthComponentProps> = ({
           })
         );
         setupTokenRefresh(result.data.result.token);
+        
+        // Reset persistMessages to true on login
+        import("../utils/chatUtils").then(module => {
+          module.resetPersistMessagesOnLogin();
+        });
+        
         notification.success({
           message: "Success",
           description: "Email verification successful!"

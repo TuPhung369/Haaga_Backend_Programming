@@ -1101,6 +1101,16 @@ const ChatPage: React.FC = () => {
       if (styleEl) styleEl.remove();
     };
   }, []);
+
+  // Initialize localStorage with default value (true) if it doesn't exist yet
+  useEffect(() => {
+    if (localStorage.getItem("persistMessages") === null) {
+      console.log(
+        "[Chat] Initializing persistMessages in localStorage to true (default)"
+      );
+      localStorage.setItem("persistMessages", "true");
+    }
+  }, []);
   const dispatch =
     useDispatch<ThunkDispatch<RootState, unknown, UnknownAction>>();
 
@@ -1121,13 +1131,39 @@ const ChatPage: React.FC = () => {
     useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [newContactEmail, setNewContactEmail] = useState("");
-  const [persistMessages, setPersistMessages] = useState(true);
+  // Initialize persistMessages from localStorage or default to true
+  const [persistMessages, setPersistMessages] = useState(() => {
+    const savedValue = localStorage.getItem("persistMessages");
+    return savedValue !== null ? savedValue === "true" : true;
+  });
   const [newGroupName, setNewGroupName] = useState("");
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>(
     []
   );
   // Add a state to force re-renders when read status changes
   const [readStatusVersion, setReadStatusVersion] = useState(0);
+
+  // Log localStorage value on component mount (default is true if not found)
+  useEffect(() => {
+    const savedValue = localStorage.getItem("persistMessages");
+    console.log(
+      "[Chat] DEBUG - On mount - localStorage persistMessages value:",
+      savedValue,
+      "parsed as:",
+      savedValue === "true",
+      "using default of true if null"
+    );
+  }, []);
+
+  // Monitor persistMessages state changes for debugging
+  useEffect(() => {
+    console.log(
+      "[Chat] DEBUG - persistMessages changed to:",
+      persistMessages,
+      "type:",
+      typeof persistMessages
+    );
+  }, [persistMessages]);
   // Add state for contact search
   const [searchText, setSearchText] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -1593,8 +1629,6 @@ const ChatPage: React.FC = () => {
 
       // Add a focus event listener to mark messages as read when the window gets focus
       const handleWindowFocus = () => {
-        console.log("[Chat] Window focus gained, updating read status");
-
         // Only update the UI based on current Redux store data
         // No fetch needed - WebSocket will keep the store updated
         if (selectedContact) {
@@ -1645,6 +1679,28 @@ const ChatPage: React.FC = () => {
   const handleSendMessage = async (content?: string) => {
     console.log("[Chat] TinyMCE handleSendMessage called with content");
 
+    // Double-check with localStorage to ensure we have the latest value
+    // This is a safety measure in case the React state gets out of sync
+    // Default is true if no value is found in localStorage
+    const savedPersistValue = localStorage.getItem("persistMessages");
+    const currentPersistValue =
+      savedPersistValue !== null
+        ? savedPersistValue === "true"
+        : persistMessages; // Fall back to React state if localStorage is empty (which defaults to true)
+
+    console.log(
+      "[Chat] DEBUG - handleSendMessage - localStorage value:",
+      savedPersistValue,
+      "parsed as:",
+      savedPersistValue === "true",
+      "React state value:",
+      persistMessages,
+      "Final value used:",
+      currentPersistValue,
+      "type:",
+      typeof currentPersistValue
+    );
+
     // CRITICAL: Always get the latest selectedContact from the Redux store
     // This ensures we're using the most up-to-date contact information
     const storeState = store.getState();
@@ -1676,21 +1732,6 @@ const ChatPage: React.FC = () => {
       console.log("[Chat] No contact selected, cannot send message");
       return;
     }
-
-    // Log thông tin để debug
-    console.log(
-      "[Chat] All groups in store:",
-      groups.map((g) => ({ id: g.id, name: g.name }))
-    );
-    console.log(
-      "[Chat] CRITICAL DEBUG - Full effectiveContact object:",
-      JSON.stringify(effectiveContact, null, 2)
-    );
-    console.log(
-      "[Chat] CRITICAL DEBUG - Full groups array:",
-      JSON.stringify(groups, null, 2)
-    );
-    console.log("[Chat] CRITICAL DEBUG - isGroupMessage:", isGroupMessage);
 
     console.log(
       "[Chat] TinyMCE determined message type:",
@@ -1751,11 +1792,19 @@ const ChatPage: React.FC = () => {
         // Use ONLY the Redux thunk to send the message - this will handle all API calls
         // and ensure we don't have duplicate calls
         try {
-          console.log("[Chat] Using sendGroupMessageThunk for group message");
+          // Use the value we directly checked from the DOM
+          console.log(
+            "[Chat] DEBUG - Group message using persistent value:",
+            currentPersistValue,
+            "type:",
+            typeof currentPersistValue
+          );
+
           const result = await dispatch(
             sendGroupMessageThunk({
               content: textToSend,
               groupId: effectiveContact.id,
+              persistent: currentPersistValue,
             })
           ).unwrap();
 
@@ -1807,7 +1856,7 @@ const ChatPage: React.FC = () => {
       }
 
       // For direct messages, handle it directly here instead of calling sendMessage
-      console.log("[Chat] TinyMCE sending DIRECT message");
+      // Sending a direct message
 
       // Validate content - không cần định nghĩa lại biến textToSend vì đã được định nghĩa ở trên
       if (typeof textToSend !== "string" || !textToSend.trim()) {
@@ -1818,24 +1867,40 @@ const ChatPage: React.FC = () => {
       try {
         // We'll let the Redux thunk handle adding the message to the store
         // This prevents duplicate messages from appearing in the chat window
-        console.log(
-          "[Chat] Skipping temporary message creation to avoid duplicates"
-        );
+        // Skip temporary message creation to avoid duplicates
 
         // Use ONLY the Redux thunk to send the message - this will handle all API calls
         // and ensure we don't have duplicate calls
         try {
-          console.log("[Chat] Using sendMessageThunk for direct message");
-          const result = await dispatch(
+          // Pass the persistMessages boolean directly without conversion
+
+          // Use the value we directly checked from the DOM
+          const persistValue = currentPersistValue;
+          console.log(
+            "[Chat] DEBUG - Explicitly setting persistent value to:",
+            persistValue,
+            "type:",
+            typeof persistValue
+          );
+
+          // Debug log for persistent value
+          console.log(
+            "[Chat] DEBUG - In sendMessageThunk params - persistMessages:",
+            persistValue,
+            "type:",
+            typeof persistValue
+          );
+
+          await dispatch(
             sendMessageThunk({
               content: textToSend,
               receiverId: effectiveContact.id,
-              persistent: persistMessages,
+              persistent: persistValue,
               isGroup: false,
             })
           ).unwrap();
 
-          console.log("[Chat] Direct message sent successfully:", result);
+          // Message sent successfully
         } catch (error) {
           console.error("[Chat] Error sending direct message:", error);
 
@@ -3849,9 +3914,10 @@ const ChatPage: React.FC = () => {
                                                               ...selectedContact,
                                                               members:
                                                                 updatedGroup.members.map(
-                                                                  (
-                                                                    member: { id: string }
-                                                                  ) => member.id
+                                                                  (member: {
+                                                                    id: string;
+                                                                  }) =>
+                                                                    member.id
                                                                 ),
                                                             })
                                                           );
@@ -4086,9 +4152,9 @@ const ChatPage: React.FC = () => {
                                                                       ...selectedContact,
                                                                       members:
                                                                         updatedGroup.members.map(
-                                                                          (
-                                                                            member: { id: string }
-                                                                          ) =>
+                                                                          (member: {
+                                                                            id: string;
+                                                                          }) =>
                                                                             member.id
                                                                         ),
                                                                     }
@@ -4385,7 +4451,14 @@ const ChatPage: React.FC = () => {
                     onChange={(checked) => {
                       console.log(
                         "[Chat] Persistence setting changed to:",
-                        checked
+                        checked,
+                        "type:",
+                        typeof checked
+                      );
+                      // Save to localStorage
+                      localStorage.setItem(
+                        "persistMessages",
+                        checked.toString()
                       );
                       setPersistMessages(checked);
                     }}
@@ -4476,16 +4549,6 @@ const ChatPage: React.FC = () => {
                         }
                       };
 
-                      console.log("[Chat] ===== RENDERING MESSAGES =====");
-                      console.log(
-                        "[Chat] Current contact ID:",
-                        selectedContact?.id
-                      );
-                      console.log(
-                        "[Chat] Total messages before filtering:",
-                        messages.length
-                      );
-
                       // Filter out any messages that are being forwarded to the current contact
                       // This is a final safety check to prevent forwarded messages from appearing in the current chat
                       const filteredMessages = messages.filter((message) => {
@@ -4531,11 +4594,6 @@ const ChatPage: React.FC = () => {
 
                         return true;
                       });
-
-                      console.log(
-                        "[Chat] Messages after filtering:",
-                        filteredMessages.length
-                      );
 
                       // Group messages by date
                       const messagesByDate: { [key: string]: ChatMessage[] } =
@@ -4629,6 +4687,8 @@ const ChatPage: React.FC = () => {
               >
                 {/* Khu vực nhập liệu với thanh công cụ ở trên và nút gửi ở bên phải */}
                 <div style={{ position: "relative" }}>
+                  {/* Message persistence toggle removed - using the one at the top */}
+
                   {/* Nút gửi tin nhắn ở góc trên bên phải */}
                   <Button
                     type="primary"
@@ -4673,12 +4733,6 @@ const ChatPage: React.FC = () => {
                       onFocus={() => {
                         // Update read status when input is focused
                         if (selectedContact && userInfo) {
-                          console.log(
-                            "[Chat] Message input focused, updating read status for",
-                            selectedContact.isGroup ? "group" : "contact",
-                            selectedContact.id
-                          );
-
                           // Update read status in Redux
                           dispatch(
                             updateMessagesReadStatus({

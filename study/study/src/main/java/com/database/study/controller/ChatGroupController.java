@@ -245,6 +245,7 @@ public class ChatGroupController {
                 System.out.println("Group ID: " + groupId);
                 System.out.println("Content: " + groupRequest.getContent());
                 System.out.println("Receiver ID (should be null): " + groupRequest.getReceiverId());
+                System.out.println("Persistent: " + groupRequest.getPersistent());
 
                 // Send the message
                 ChatMessageResponse response = chatMessageService.sendGroupMessage(username, groupRequest);

@@ -187,6 +187,11 @@ const AuthPage: React.FC = () => {
 
           setupTokenRefresh(data.result.token);
 
+          // Reset persistMessages to true on login
+          import("../utils/chatUtils").then(module => {
+            module.resetPersistMessagesOnLogin();
+          });
+
           notification.success({
             message: "Success",
             description: "Logged in successfully!"
