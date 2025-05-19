@@ -48,6 +48,63 @@ export const disconnectWebSocket = () => {
   }
 };
 
+// Function to check for unread messages and update their status
+const checkForUnreadMessages = async () => {
+  try {
+    console.log(
+      "[WebSocket] Checking for unread messages after reconnection or activation"
+    );
+
+    // Get the current user ID
+    const currentUserId = store.getState().user.userInfo?.id;
+    if (!currentUserId) {
+      console.log(
+        "[WebSocket] No current user ID found, skipping unread message check"
+      );
+      return;
+    }
+
+    // Get the contacts list
+    const contacts = store.getState().chat.contacts;
+    if (!contacts || contacts.length === 0) {
+      console.log(
+        "[WebSocket] No contacts found, skipping unread message check"
+      );
+      return;
+    }
+
+    // Check for unread messages for each contact
+    console.log("[WebSocket] Checking unread messages for all contacts");
+
+    // Import the necessary functions
+    const { getUnreadMessageCount } = await import("../services/chatService");
+
+    // Check if there are any unread messages
+    const unreadCount = await getUnreadMessageCount();
+
+    if (unreadCount > 0) {
+      console.log(
+        `[WebSocket] Found ${unreadCount} unread messages, updating UI`
+      );
+
+      // Get the selected contact
+      const selectedContact = store.getState().chat.selectedContact;
+
+      // If a contact is selected, mark their messages as read
+      if (selectedContact) {
+        console.log(
+          `[WebSocket] Marking messages from selected contact ${selectedContact.id} as read`
+        );
+        markMessagesAsReadViaWebSocket(selectedContact.id);
+      }
+    } else {
+      console.log("[WebSocket] No unread messages found");
+    }
+  } catch (error) {
+    console.error("[WebSocket] Error checking for unread messages:", error);
+  }
+};
+
 export const connectWebSocket = (
   userId: string,
   connectionCallback?: (isConnected: boolean) => void
@@ -55,6 +112,18 @@ export const connectWebSocket = (
   // Store the callback for later use
   if (connectionCallback) {
     connectionStatusCallback = connectionCallback;
+  }
+
+  // Set up visibility change listener to check for unread messages when tab becomes active
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        console.log(
+          "[WebSocket] Document became visible, checking for unread messages"
+        );
+        checkForUnreadMessages();
+      }
+    });
   }
 
   if (stompClient) {
@@ -76,7 +145,9 @@ export const connectWebSocket = (
       debug: (str) => {
         console.debug("[STOMP Debug]", str);
       },
-      reconnectDelay: 5000,
+      // Improve reconnection settings
+      reconnectDelay: 2000, // Faster initial reconnect
+      // maxWebSocketFrameSize is not supported in StompConfig type, removing it
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
     });
@@ -118,6 +189,16 @@ export const connectWebSocket = (
       if (connectionCallback) {
         connectionCallback(false);
       }
+
+      // Attempt to reconnect after a short delay if not explicitly disconnected
+      setTimeout(() => {
+        if (!stompClient) {
+          console.log(
+            "[WebSocket] Attempting to reconnect after disconnect..."
+          );
+          connectWebSocket(userId, connectionCallback);
+        }
+      }, 3000);
     };
 
     // Handle connection errors
@@ -126,6 +207,12 @@ export const connectWebSocket = (
       if (connectionCallback) {
         connectionCallback(false);
       }
+
+      // Attempt to reconnect after a short delay
+      setTimeout(() => {
+        console.log("[WebSocket] Attempting to reconnect after error...");
+        connectWebSocket(userId, connectionCallback);
+      }, 5000);
     };
 
     // Handle connection events
@@ -134,6 +221,14 @@ export const connectWebSocket = (
       if (connectionCallback) {
         connectionCallback(true);
       }
+
+      // Check for unread messages when connection is established
+      setTimeout(() => {
+        console.log(
+          "[WebSocket] Connection established, checking for unread messages"
+        );
+        checkForUnreadMessages();
+      }, 1000); // Wait a second to ensure everything is initialized
 
       // Add a small delay to ensure the connection is fully established
       setTimeout(() => {
@@ -167,7 +262,7 @@ export const connectWebSocket = (
 
                   // Check if we already have a temporary message for this in the store
                   const messages = store.getState().chat.messages;
-                  const hasTempMessage = messages.some(
+                  const tempMessageIndex = messages.findIndex(
                     (msg) =>
                       msg.id.toString().startsWith("temp-") &&
                       msg.content === receivedMessage.content &&
@@ -175,38 +270,113 @@ export const connectWebSocket = (
                       msg.receiver.id === receivedMessage.receiver.id
                   );
 
+                  const hasTempMessage = tempMessageIndex !== -1;
+
                   console.log(
                     "[WebSocket] Has matching temp message?",
-                    hasTempMessage
+                    hasTempMessage,
+                    tempMessageIndex !== -1
+                      ? `at index ${tempMessageIndex}`
+                      : ""
                   );
 
                   // Check if this message already exists in the store before dispatching
                   const existingMessages = store.getState().chat.messages;
-                  const isDuplicate = existingMessages.some(
-                    (msg) =>
-                      // Exact ID match
-                      msg.id === receivedMessage.id ||
-                      // Same content, sender, receiver, and timestamp within 5 seconds
-                      (msg.content === receivedMessage.content &&
-                        msg.sender.id === receivedMessage.sender.id &&
-                        msg.receiver.id === receivedMessage.receiver.id &&
-                        Math.abs(
-                          new Date(msg.timestamp).getTime() -
-                            new Date(receivedMessage.timestamp).getTime()
-                        ) < 5000)
+                  const exactDuplicateIndex = existingMessages.findIndex(
+                    (msg) => msg.id === receivedMessage.id
                   );
 
-                  if (!isDuplicate) {
+                  const similarMessageIndex = existingMessages.findIndex(
+                    (msg) =>
+                      msg.id !== receivedMessage.id && // Not the same ID
+                      !msg.id.toString().startsWith("temp-") && // Not a temp message
+                      msg.content === receivedMessage.content &&
+                      msg.sender.id === receivedMessage.sender.id &&
+                      msg.receiver.id === receivedMessage.receiver.id &&
+                      Math.abs(
+                        new Date(msg.timestamp).getTime() -
+                          new Date(receivedMessage.timestamp).getTime()
+                      ) < 5000
+                  );
+
+                  const isDuplicate =
+                    exactDuplicateIndex !== -1 || similarMessageIndex !== -1;
+
+                  // If we have a temp message, replace it with the confirmed one
+                  if (hasTempMessage) {
+                    console.log(
+                      "[WebSocket] Replacing temporary message with confirmed message"
+                    );
+
+                    // Use the updateMessageContent action to replace the temp message
+                    // This will preserve the message's position in the list
+                    store.dispatch({
+                      type: "chat/updateMessageContent",
+                      payload: {
+                        messageId: messages[tempMessageIndex].id,
+                        newMessage: receivedMessage,
+                      },
+                    });
+
+                    console.log(
+                      "[WebSocket] Temporary message replaced successfully"
+                    );
+
+                    // Clear any message timeouts for this message
+                    const extendedWindow = window as ExtendedWindow;
+                    if (extendedWindow.messageTimeouts) {
+                      Object.keys(extendedWindow.messageTimeouts).forEach(
+                        (key) => {
+                          clearTimeout(extendedWindow.messageTimeouts![key]);
+                          delete extendedWindow.messageTimeouts![key];
+                        }
+                      );
+                    }
+                  }
+                  // If it's not a duplicate and not replacing a temp message, add it as new
+                  else if (!isDuplicate) {
                     // Dispatch the message to Redux store
                     console.log(
-                      "[WebSocket] Dispatching message to Redux store"
+                      "[WebSocket] Dispatching new message to Redux store"
                     );
                     store.dispatch(addMessage(receivedMessage));
-                    console.log("[WebSocket] Message dispatched successfully");
+                    console.log(
+                      "[WebSocket] New message dispatched successfully"
+                    );
+
+                    // Check if this message is from the currently selected contact
+                    // If so, automatically mark it as read
+                    const selectedContact =
+                      store.getState().chat.selectedContact;
+                    if (
+                      selectedContact &&
+                      !isFromCurrentUser &&
+                      receivedMessage.sender.id === selectedContact.id
+                    ) {
+                      console.log(
+                        "[WebSocket] Message is from currently selected contact, automatically marking as read"
+                      );
+
+                      // Use setTimeout to ensure the message is added to the store first
+                      setTimeout(() => {
+                        markMessagesAsReadViaWebSocket(
+                          receivedMessage.sender.id
+                        );
+                      }, 500);
+                    } else {
+                      console.log(
+                        "[WebSocket] Message is not from selected contact or is from current user, not marking as read automatically"
+                      );
+                    }
                   } else {
                     console.log(
                       "[WebSocket] Skipping duplicate message:",
-                      receivedMessage.id
+                      receivedMessage.id,
+                      exactDuplicateIndex !== -1
+                        ? `(exact duplicate at index ${exactDuplicateIndex})`
+                        : similarMessageIndex !== -1
+                        ? `(similar message at index ${similarMessageIndex})`
+                        : ""
                     );
                   }
                 } catch (error) {
@@ -273,6 +443,36 @@ export const connectWebSocket = (
                     console.log(
                       "[WebSocket] General message dispatched successfully"
                     );
+
+                    // Check if this is a message from the current user (a confirmation)
+                    const currentUserId = store.getState().user.userInfo?.id;
+                    const isFromCurrentUser =
+                      receivedMessage.sender.id === currentUserId;
+
+                    // Check if this message is from the currently selected contact
+                    // If so, automatically mark it as read
+                    const selectedContact =
+                      store.getState().chat.selectedContact;
+                    if (
+                      selectedContact &&
+                      !isFromCurrentUser &&
+                      receivedMessage.sender.id === selectedContact.id
+                    ) {
+                      console.log(
+                        "[WebSocket] General message is from currently selected contact, automatically marking as read"
+                      );
+
+                      // Use setTimeout to ensure the message is added to the store first
+                      setTimeout(() => {
+                        markMessagesAsReadViaWebSocket(
+                          receivedMessage.sender.id
+                        );
+                      }, 500);
+                    } else {
+                      console.log(
+                        "[WebSocket] General message is not from selected contact or is from current user, not marking as read automatically"
+                      );
+                    }
                   } else {
                     console.log(
                       "[WebSocket] Skipping duplicate general message:",
@@ -415,21 +615,23 @@ export const connectWebSocket = (
                   );
 
                   // Log whether this is a confirmation of our read action or a notification that our messages were read
-                  if (readReceipt.contactId === currentUserId) {
+                  // If contactId is NOT our ID, then this is a notification that someone read our messages
+                  // The contactId in this case is the ID of the user who read our messages
+                  if (readReceipt.contactId !== currentUserId) {
                     console.log(
                       "[WebSocket] *** IMPORTANT: This is a notification that our messages were read by the recipient ***"
                     );
+
+                    // In the ReadStatusResponse from the server, contactId is the ID of the user who read the messages
+                    // This is the user we need to update the read status for
+
+                    // The contactId is the ID of the user who read our messages
+                    const readerId = readReceipt.contactId;
+
                     console.log(
-                      "[WebSocket] Messages sent to",
-                      readReceipt.readerId,
-                      "were read by them"
+                      "[WebSocket] Messages were read by user with ID:",
+                      readerId
                     );
-
-                    // When our messages are read by the recipient, we need to update the read status of messages we sent to them
-                    // The contactId in this case is our own ID, but we need to update messages sent to the user who read them
-
-                    // Extract the reader ID from the receipt
-                    const readerId = readReceipt.readerId;
 
                     if (readerId) {
                       console.log(
@@ -448,31 +650,78 @@ export const connectWebSocket = (
                         readerId
                       );
 
-                      // Check if the chat with this contact is currently open
-                      const selectedContact =
-                        store.getState().chat.selectedContact;
-                      const isContactSelected =
-                        selectedContact && selectedContact.id === readerId;
+                      // Check if we have any messages to this user in our store
+                      const messages = store.getState().chat.messages;
+                      const hasSentMessages = messages.some(
+                        (msg) =>
+                          msg.sender.id === currentUserId &&
+                          msg.receiver.id === readerId
+                      );
 
-                      if (isContactSelected) {
+                      if (hasSentMessages) {
                         console.log(
-                          "[WebSocket] Contact is currently selected, updating read status"
+                          "[WebSocket] Found messages in store that need to be marked as read"
                         );
-                        // Only update the UI if we're currently viewing the conversation with this contact
+
                         // Dispatch the action with both IDs to ensure proper updating
                         store.dispatch(
                           updateMessagesReadStatus({
                             contactId: readerId,
                             currentUserId: currentUserId,
+                            isRecipientReadEvent: true, // This is a notification that the recipient read our messages
                           })
                         );
                       } else {
                         console.log(
-                          "[WebSocket] Contact is not currently selected, not updating UI"
+                          "[WebSocket] No messages found in store to this user, fetching from server..."
                         );
-                        // If we're not viewing this conversation, don't update the UI
-                        // This prevents unnecessary re-renders
+
+                        // If we don't have messages in the store (e.g., user wasn't active),
+                        // fetch messages from the server to update the UI
+                        import("../services/chatService").then(
+                          ({ getMessages }) => {
+                            getMessages(readerId)
+                              .then((messages) => {
+                                console.log(
+                                  "[WebSocket] Successfully fetched messages from server, updating store"
+                                );
+
+                                // Update the store with the fetched messages
+                                import("../store/chatSlice").then(
+                                  ({ setMessages }) => {
+                                    store.dispatch(setMessages(messages));
+
+                                    // Now update the read status
+                                    store.dispatch(
+                                      updateMessagesReadStatus({
+                                        contactId: readerId,
+                                        currentUserId: currentUserId,
+                                        isRecipientReadEvent: true,
+                                      })
+                                    );
+                                  }
+                                );
+                              })
+                              .catch((error) => {
+                                console.error(
+                                  "[WebSocket] Failed to fetch messages from server:",
+                                  error
+                                );
+                              });
+                          }
+                        );
                       }
+
+                      // Log whether the contact is currently selected (for debugging)
+                      const selectedContact =
+                        store.getState().chat.selectedContact;
+                      const isContactSelected =
+                        selectedContact && selectedContact.id === readerId;
+                      console.log(
+                        `[WebSocket] Contact ${readerId} is ${
+                          isContactSelected ? "currently" : "not"
+                        } selected in the UI`
+                      );
                     } else {
                       // Fallback to the old method if readerId is not provided
                       const messages = store.getState().chat.messages;
@@ -495,25 +744,39 @@ export const connectWebSocket = (
                         otherUserIds
                       );
 
-                      // Only update the UI if we're currently viewing the conversation with this contact
-                      if (
-                        selectedContact &&
-                        otherUserIds.includes(selectedContact.id)
-                      ) {
+                      // Update the read status for all contacts with unread messages
+                      console.log(
+                        "[WebSocket] Updating read status for all contacts with unread messages"
+                      );
+
+                      // Process each contact with unread messages
+                      otherUserIds.forEach((contactId) => {
                         console.log(
-                          "[WebSocket] Selected contact has unread messages, updating UI"
+                          `[WebSocket] Updating read status for contact: ${contactId}`
                         );
                         store.dispatch(
                           updateMessagesReadStatus({
-                            contactId: selectedContact.id,
+                            contactId: contactId,
                             currentUserId: currentUserId,
+                            isRecipientReadEvent: true, // This is a notification that the recipient read our messages
                           })
+                        );
+                      });
+
+                      // Log whether any of these contacts is currently selected (for debugging)
+                      if (selectedContact) {
+                        console.log(
+                          `[WebSocket] Currently selected contact: ${
+                            selectedContact.id
+                          }, is in unread list: ${otherUserIds.includes(
+                            selectedContact.id
+                          )}`
                         );
                       }
                     }
                   } else {
                     console.log(
-                      "[WebSocket] This is a notification about messages we received"
+                      "[WebSocket] This is a notification about messages we received or a confirmation of our read action"
                     );
                   }
                 } catch (error) {
@@ -693,6 +956,81 @@ export const sendMessageViaWebSocket = (
     isGroup,
     isGroupType: typeof isGroup,
   });
+
+  // Generate a unique message ID that can be used to track this message
+  const clientMessageId = `client-${Date.now()}-${Math.floor(
+    Math.random() * 1000
+  )}`;
+
+  // Store this ID in the window object for tracking
+  const extendedWindow = window as ExtendedWindow;
+  extendedWindow.messageTimeouts = extendedWindow.messageTimeouts || {};
+
+  // Set up a timeout to check if the message was confirmed
+  extendedWindow.messageTimeouts[clientMessageId] = setTimeout(() => {
+    console.log(
+      `[WebSocket] Checking confirmation status for message: ${clientMessageId}`
+    );
+    // This will run if we don't get a confirmation within the timeout period
+    // We'll check if the message is still in the store with a temporary ID
+    const messages = store.getState().chat.messages;
+    const tempMessages = messages.filter(
+      (msg) =>
+        msg.id.toString().startsWith("temp-") &&
+        msg.content === content &&
+        msg.sender.id === store.getState().user.userInfo?.id &&
+        msg.receiver.id === receiverId
+    );
+
+    if (tempMessages.length > 0) {
+      console.log(
+        `[WebSocket] Message ${clientMessageId} not confirmed yet, attempting HTTP fallback`
+      );
+      // If we still have a temporary message, try HTTP fallback
+      if (isGroup) {
+        import("./chatService").then(({ sendGroupMessage }) => {
+          sendGroupMessage(content, receiverId, persistent)
+            .then((response) => {
+              console.log(
+                `[WebSocket] HTTP fallback successful for group message: ${clientMessageId}`
+              );
+              store.dispatch(addMessage(response));
+            })
+            .catch((error) => {
+              console.error(
+                `[WebSocket] HTTP fallback failed for group message: ${clientMessageId}`,
+                error
+              );
+            });
+        });
+      } else {
+        import("./chatService").then(({ sendMessage }) => {
+          sendMessage(content, receiverId, persistent)
+            .then((response) => {
+              console.log(
+                `[WebSocket] HTTP fallback successful for direct message: ${clientMessageId}`
+              );
+              store.dispatch(addMessage(response));
+            })
+            .catch((error) => {
+              console.error(
+                `[WebSocket] HTTP fallback failed for direct message: ${clientMessageId}`,
+                error
+              );
+            });
+        });
+      }
+    } else {
+      console.log(
+        `[WebSocket] Message ${clientMessageId} already confirmed or removed`
+      );
+    }
+
+    // Clean up the timeout
+    if (extendedWindow.messageTimeouts) {
+      delete extendedWindow.messageTimeouts[clientMessageId];
+    }
+  }, 10000); // 10 seconds timeout
 
   // ADDITIONAL SAFETY CHECK: Check if this might be a group ID by looking at the store
   // We'll use a synchronous approach to ensure we have the correct isGroup value
@@ -888,7 +1226,11 @@ export const sendMessageViaWebSocket = (
                 console.log(
                   "[WebSocket] Using group-specific endpoint for fallback"
                 );
-                response = await sendGroupMessage(content, receiverId, persistent);
+                response = await sendGroupMessage(
+                  content,
+                  receiverId,
+                  persistent
+                );
               } else {
                 console.log(
                   "[WebSocket] Using direct message endpoint for fallback"
@@ -1084,13 +1426,17 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
   const selectedContact = state.chat.selectedContact;
   const isGroup = selectedContact?.isGroup || false;
 
-  // Verify that the contact ID matches the selected contact ID
-  // This prevents trying to mark messages as read for a non-existent contact/group
-  if (selectedContact?.id !== contactId) {
+  // Check if the contact exists in the contacts list
+  const contacts = state.chat.contacts;
+  const contactExists = contacts.some((contact) => contact.id === contactId);
+  const groups = state.chat.groups || [];
+  const groupExists = groups.some((group) => group.id === contactId);
+
+  // If the contact doesn't exist in either contacts or groups, log a warning
+  if (!contactExists && !groupExists) {
     console.warn(
-      `[WebSocket] *** WARNING *** Contact ID mismatch. Selected: ${selectedContact?.id}, Requested: ${contactId}. Aborting.`
+      `[WebSocket] *** WARNING *** Contact/Group with ID ${contactId} not found in contacts or groups list. Proceeding anyway.`
     );
-    return false;
   }
 
   console.log(
@@ -1105,10 +1451,33 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
   const currentUserId = state.user.userInfo?.id;
   console.log("[WebSocket] Current user ID:", currentUserId);
 
-  // IMPORTANT: Always update the database first via direct HTTP API call
-  // This ensures the database is updated regardless of WebSocket status
+  // IMPORTANT: First update the UI immediately to provide instant feedback to the user
+  // This makes the app feel more responsive
   console.log(
-    `[WebSocket] *** STEP 1: CALLING HTTP API DIRECTLY *** to update database for ${
+    `[WebSocket] *** STEP 1: UPDATING UI IMMEDIATELY *** for ${
+      isGroup ? "group" : "contact"
+    }:`,
+    contactId
+  );
+
+  store.dispatch(
+    updateMessagesReadStatus({
+      contactId,
+      currentUserId,
+      isRecipientReadEvent: false, // We are marking messages as read that we received
+    })
+  );
+
+  console.log(
+    `[WebSocket] *** STEP 2: UI UPDATED SUCCESSFULLY *** for ${
+      isGroup ? "group" : "contact"
+    }:`,
+    contactId
+  );
+
+  // Now update the database via HTTP API call
+  console.log(
+    `[WebSocket] *** STEP 3: CALLING HTTP API *** to update database for ${
       isGroup ? "group" : "contact"
     }:`,
     contactId
@@ -1123,93 +1492,31 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
         markMessagesAsRead(contactId)
       );
 
-  apiCall
-    .then((response) => {
+  // Now send the WebSocket notification to inform the sender that their messages were read
+  // This should happen before waiting for the HTTP API call to complete
+  if (stompClient && stompClient.connected) {
+    try {
+      // Generate a unique receipt ID for this operation
+      const receiptId = `read-${Date.now()}-${Math.floor(
+        Math.random() * 1000
+      )}`;
+      const messageId = `read-msg-${Date.now()}`;
       console.log(
-        `[WebSocket] *** STEP 2: DATABASE UPDATED SUCCESSFULLY *** via direct HTTP API call for ${
-          isGroup ? "group" : "contact"
-        }:`,
+        "[WebSocket] *** STEP 4: SENDING WEBSOCKET NOTIFICATION *** Generated receipt ID:",
+        receiptId
+      );
+
+      // Create read receipt payload with more detailed information
+      const readReceiptBody = JSON.stringify({
         contactId,
-        response
-      );
+        messageId,
+        readerId: currentUserId, // Add the reader's ID to the payload
+        timestamp: new Date().toISOString(), // Add timestamp for tracking
+        isGroup: isGroup, // Indicate if this is a group message
+        type: "READ_RECEIPT", // Explicitly mark the type of notification
+      });
 
-      // Update UI after database is updated
-      console.log(
-        `[WebSocket] *** STEP 3: UPDATING UI *** after database update for ${
-          isGroup ? "group" : "contact"
-        }:`,
-        contactId
-      );
-      store.dispatch(
-        updateMessagesReadStatus({
-          contactId,
-          currentUserId,
-        })
-      );
-      console.log(
-        `[WebSocket] *** STEP 4: UI UPDATED SUCCESSFULLY *** for ${
-          isGroup ? "group" : "contact"
-        }:`,
-        contactId
-      );
-    })
-    .catch((error) => {
-      // If the error is a 404 (Not Found), it means the group/contact doesn't exist
-      // We should handle this gracefully without disrupting the UI
-      if (error?.response?.status === 404) {
-        console.warn(
-          `[WebSocket] *** WARNING: RESOURCE NOT FOUND *** ${
-            isGroup ? "Group" : "Contact"
-          } with ID ${contactId} does not exist. Skipping database update.`
-        );
-
-        // Still update the UI to prevent any UI inconsistencies
-        store.dispatch(
-          updateMessagesReadStatus({
-            contactId,
-            currentUserId,
-          })
-        );
-        return true;
-      }
-
-      console.error(
-        `[WebSocket] *** ERROR: FAILED TO UPDATE DATABASE *** via direct HTTP API call for ${
-          isGroup ? "group" : "contact"
-        }:`,
-        contactId,
-        error
-      );
-    });
-
-  // Check if WebSocket is connected for notification purposes
-  if (!stompClient || !stompClient.connected) {
-    console.warn(
-      "[WebSocket] No active connection, cannot send read notification via WebSocket"
-    );
-    return false;
-  }
-
-  try {
-    // Generate a unique receipt ID for this operation
-    const receiptId = `read-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const messageId = `read-msg-${Date.now()}`;
-    console.log(
-      "[WebSocket] Generated receipt ID for read operation:",
-      receiptId
-    );
-
-    // Create read receipt payload
-    const readReceiptBody = JSON.stringify({
-      contactId,
-      messageId,
-      readerId: currentUserId, // Add the reader's ID to the payload
-    });
-
-    // Send the read receipt notification via WebSocket
-    // This is only for notification purposes, database is already updated via HTTP API
-    if (stompClient) {
-      // Send the read receipt
+      // Send the read receipt notification via WebSocket
       stompClient.publish({
         destination: "/app/chat.markAsRead",
         body: readReceiptBody,
@@ -1217,8 +1524,9 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
           "receipt": receiptId,
         },
       });
+
       console.log(
-        "[WebSocket] Read receipt notification sent with receipt ID:",
+        "[WebSocket] *** STEP 5: WEBSOCKET NOTIFICATION SENT *** with receipt ID:",
         receiptId
       );
       console.log(
@@ -1231,16 +1539,55 @@ export const markMessagesAsReadViaWebSocket = (contactId: string): boolean => {
         "[WebSocket] Server should now notify the sender (contactId) that their messages were read by:",
         currentUserId
       );
+    } catch (error) {
+      console.error(
+        "[WebSocket] Error sending read notification via WebSocket:",
+        error
+      );
+      // Continue with the HTTP API call even if WebSocket notification fails
     }
-    return true;
-  } catch (error) {
-    console.error(
-      "[WebSocket] Error sending read notification via WebSocket:",
-      error
+  } else {
+    console.warn(
+      "[WebSocket] *** WARNING: NO ACTIVE CONNECTION *** Cannot send read notification via WebSocket"
     );
-    // Even if WebSocket notification fails, database was already updated via HTTP API
-    return false;
   }
+
+  // Finally, wait for the HTTP API call to complete
+  apiCall
+    .then((response) => {
+      console.log(
+        `[WebSocket] *** STEP 6: DATABASE UPDATED SUCCESSFULLY *** via HTTP API call for ${
+          isGroup ? "group" : "contact"
+        }:`,
+        contactId,
+        response
+      );
+    })
+    .catch((error) => {
+      // If the error is a 404 (Not Found), it means the group/contact doesn't exist
+      // We should handle this gracefully without disrupting the UI
+      if (error?.response?.status === 404) {
+        console.warn(
+          `[WebSocket] *** WARNING: RESOURCE NOT FOUND *** ${
+            isGroup ? "Group" : "Contact"
+          } with ID ${contactId} does not exist. Skipping database update.`
+        );
+        return true;
+      }
+
+      console.error(
+        `[WebSocket] *** ERROR: FAILED TO UPDATE DATABASE *** via HTTP API call for ${
+          isGroup ? "group" : "contact"
+        }:`,
+        contactId,
+        error
+      );
+
+      // Even if the HTTP API call fails, the UI has already been updated and
+      // the WebSocket notification has been sent, so the user experience is not affected
+    });
+
+  return true;
 };
 
 /**

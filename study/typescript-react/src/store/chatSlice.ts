@@ -983,9 +983,27 @@ const chatSlice = createSlice({
       );
     },
     setSelectedContact: (state, action: PayloadAction<ChatContact | null>) => {
+      const previousContact = state.selectedContact;
       state.selectedContact = action.payload;
       // Clear messages when switching contacts to prevent showing old messages
       state.messages = [];
+
+      // If a new contact is selected, automatically mark messages as read
+      // This will be handled outside the reducer using a middleware or effect
+      // We'll add a flag to indicate that we need to mark messages as read
+      if (action.payload && action.payload.id !== previousContact?.id) {
+        console.log(
+          `[Redux] Selected new contact: ${action.payload.name} (${action.payload.id})`
+        );
+
+        // We'll use this flag in the component to trigger markMessagesAsReadViaWebSocket
+        // This is a side effect that should be handled outside the reducer
+        if (action.payload.unreadCount > 0) {
+          console.log(
+            `[Redux] New contact has ${action.payload.unreadCount} unread messages`
+          );
+        }
+      }
     },
     // Group-related reducers
     setGroups: (state, action: PayloadAction<Group[]>) => {
@@ -1190,10 +1208,20 @@ const chatSlice = createSlice({
     },
     updateMessagesReadStatus: (
       state,
-      action: PayloadAction<{ contactId: string; currentUserId?: string }>
+      action: PayloadAction<{
+        contactId: string;
+        currentUserId?: string;
+        isRecipientReadEvent?: boolean;
+      }>
     ) => {
       // Use the currentUserId from the action payload
       const currentUserId = action.payload.currentUserId;
+      // Check if this is a notification from the recipient that they read our messages
+      const isRecipientReadEvent = action.payload.isRecipientReadEvent === true;
+
+      console.log(
+        `[Redux] updateMessagesReadStatus called with contactId: ${action.payload.contactId}, currentUserId: ${currentUserId}, isRecipientReadEvent: ${isRecipientReadEvent}`
+      );
 
       // Check if we need to update anything at all
       const hasUnreadReceivedMessages = state.messages.some(
@@ -1204,7 +1232,9 @@ const chatSlice = createSlice({
           !msg.read
       );
 
+      // Only check for unread sent messages if this is a recipient read event
       const hasUnreadSentMessages =
+        isRecipientReadEvent &&
         currentUserId &&
         state.messages.some(
           (msg) =>
@@ -1214,8 +1244,9 @@ const chatSlice = createSlice({
             !msg.read
         );
 
-      // If there are no unread messages in either direction, skip the update
+      // If there are no unread messages to update, skip the update
       if (!hasUnreadReceivedMessages && !hasUnreadSentMessages) {
+        console.log("[Redux] No unread messages to update, skipping");
         return;
       }
 
@@ -1240,9 +1271,12 @@ const chatSlice = createSlice({
       });
       console.log(`[Redux] Marked ${updatedCount} received messages as read`);
 
-      // Then, handle case 2: Mark messages we sent as read when notified by the recipient
+      // Then, handle case 2: Mark messages we sent as read ONLY when notified by the recipient
       let sentUpdatedCount = 0;
-      if (currentUserId) {
+      if (isRecipientReadEvent && currentUserId) {
+        console.log(
+          "[Redux] Processing recipient read event for sent messages"
+        );
         updatedMessages = updatedMessages.map((message) => {
           // If this is a message we sent to the contact who just read our messages
           if (
@@ -1257,6 +1291,10 @@ const chatSlice = createSlice({
         });
         console.log(
           `[Redux] *** MARKED ${sentUpdatedCount} SENT MESSAGES AS READ ***`
+        );
+      } else if (currentUserId) {
+        console.log(
+          "[Redux] Not a recipient read event, skipping sent messages update"
         );
       }
 
@@ -1323,7 +1361,10 @@ const chatSlice = createSlice({
     // Update message content for a specific message
     updateMessageContent: (
       state,
-      action: PayloadAction<{ messageId: string; content: string }>
+      action: PayloadAction<
+        | { messageId: string; content: string }
+        | { messageId: string; newMessage: Message }
+      >
     ) => {
       console.log(
         "[Redux] Updating message content for ID:",
@@ -1334,8 +1375,23 @@ const chatSlice = createSlice({
       );
 
       if (messageIndex !== -1) {
-        state.messages[messageIndex].content = action.payload.content;
-        console.log("[Redux] Message content updated successfully");
+        if ("content" in action.payload) {
+          // Simple content update
+          state.messages[messageIndex].content = action.payload.content;
+          console.log("[Redux] Message content updated successfully");
+        } else if ("newMessage" in action.payload) {
+          // Replace temporary message with confirmed message
+          console.log(
+            "[Redux] Replacing temporary message with confirmed message"
+          );
+
+          // Keep the position in the array but replace the entire message object
+          state.messages[messageIndex] = convertServiceMessageToChatMessage(
+            action.payload.newMessage
+          );
+
+          console.log("[Redux] Temporary message replaced successfully");
+        }
       } else {
         console.warn(
           "[Redux] Message not found for update:",
