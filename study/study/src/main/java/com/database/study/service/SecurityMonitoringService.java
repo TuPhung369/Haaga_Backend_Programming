@@ -31,9 +31,6 @@ public class SecurityMonitoringService {
   @Value("${security.max-failed-attempts:3}")
   private int maxFailedAttempts;
 
-  @Value("${security.block-duration-minutes:30}")
-  private int blockDurationMinutes;
-
   @Autowired
   private UserRepository userRepository;
 

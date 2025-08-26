@@ -100,7 +100,6 @@ spring:
 # Security settings
 security:
   max-failed-attempts: 3
-  block-duration-minutes: 30
   rate-limit:
     enabled: true
     max-requests-per-second: 10

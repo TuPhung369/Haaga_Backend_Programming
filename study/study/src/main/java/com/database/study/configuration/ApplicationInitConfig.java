@@ -15,6 +15,7 @@ import com.database.study.mapper.UserMapper;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.database.study.repository.UserRepository;
@@ -23,7 +24,6 @@ import com.database.study.entity.Permission;
 import com.database.study.repository.PermissionRepository;
 
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,6 @@ import jakarta.transaction.Transactional;
 import jakarta.persistence.EntityManager;
 
 @Configuration
-@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ApplicationInitConfig {
 
@@ -43,6 +42,21 @@ public class ApplicationInitConfig {
   UserRepository userRepository;
   UserMapper userMapper;
   EntityManager entityManager;
+
+  public ApplicationInitConfig(
+      PasswordEncoder passwordEncoder,
+      RoleRepository roleRepository,
+      PermissionRepository permissionRepository,
+      UserRepository userRepository,
+      @Lazy UserMapper userMapper,
+      EntityManager entityManager) {
+    this.passwordEncoder = passwordEncoder;
+    this.roleRepository = roleRepository;
+    this.permissionRepository = permissionRepository;
+    this.userRepository = userRepository;
+    this.userMapper = userMapper;
+    this.entityManager = entityManager;
+  }
 
   @Bean
   ApplicationRunner applicationRunner() {
@@ -101,7 +115,7 @@ public class ApplicationInitConfig {
             String password = "Thanhcong6(";
             String firstName = "User" + i;
             String lastName = randomRole.name();
-            LocalDate dob = LocalDate.parse("1976-01-01").plusDays(i*30);
+            LocalDate dob = LocalDate.parse("1976-01-01").plusDays(i * 30);
             String email = username + "@gmail.com";
             String role = randomRole.name();
             boolean active = true;

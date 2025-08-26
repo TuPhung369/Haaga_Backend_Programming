@@ -45,7 +45,8 @@ public class StudyApplication {
                     case "google" -> configureGoogleProfile(dotenv);
                     case "aws" -> configureAwsProfile(dotenv);
                     default -> {
-                        log.error("Unsupported profile: {}. Supported profiles are 'dev', 'google', 'aws'.", activeProfile);
+                        log.error("Unsupported profile: {}. Supported profiles are 'dev', 'google', 'aws'.",
+                                activeProfile);
                         return;
                     }
                 }
@@ -83,6 +84,7 @@ public class StudyApplication {
         String emailServerPassword = dotenv.get("EMAIL_SERVER_PASSWORD");
         String emailServerHost = dotenv.get("EMAIL_SERVER_HOST");
         String emailServerPort = dotenv.get("EMAIL_SERVER_PORT");
+        String adminEmail = dotenv.get("ADMIN_EMAIL");
         String encryptionKey = dotenv.get("ENCRYPTION_KEY");
         String jwtKey = dotenv.get("JWT_KEY");
         String recaptchaSecretV3 = dotenv.get("RECAPTCHA_SECRET_V3");
@@ -134,6 +136,7 @@ public class StudyApplication {
         setSystemProperty("EMAIL_SERVER_PASSWORD", emailServerPassword);
         setSystemProperty("EMAIL_SERVER_HOST", emailServerHost);
         setSystemProperty("EMAIL_SERVER_PORT", emailServerPort);
+        setSystemProperty("ADMIN_EMAIL", adminEmail);
         setSystemProperty("ENCRYPTION_KEY", encryptionKey);
         setSystemProperty("JWT_KEY", jwtKey);
         setSystemProperty("RECAPTCHA_SECRET_V3", recaptchaSecretV3);
@@ -159,6 +162,7 @@ public class StudyApplication {
         String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
         String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
         String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
+        String adminEmail = dotenv.get("ADMIN_EMAIL");
 
         if (dbUrlGoogle == null || dbUsernameGoogle == null || dbPasswordGoogle == null ||
                 oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
@@ -173,6 +177,7 @@ public class StudyApplication {
         setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
         setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
         setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
+        setSystemProperty("ADMIN_EMAIL", adminEmail);
 
         log.info("GOOGLE profile configured successfully with MySQL datasource: {}", dbUrlGoogle);
     }
@@ -184,6 +189,7 @@ public class StudyApplication {
         String oauth2ClientId = dotenv.get("OAUTH2_CLIENT_ID");
         String oauth2ClientSecret = dotenv.get("OAUTH2_CLIENT_SECRET");
         String oauth2RedirectUri = dotenv.get("OAUTH2_REDIRECT_URI");
+        String adminEmail = dotenv.get("ADMIN_EMAIL");
 
         if (dbUrlAws == null || dbUsernameAws == null || dbPasswordAws == null ||
                 oauth2ClientId == null || oauth2ClientSecret == null || oauth2RedirectUri == null) {
@@ -198,6 +204,7 @@ public class StudyApplication {
         setSystemProperty("OAUTH2_CLIENT_ID", oauth2ClientId);
         setSystemProperty("OAUTH2_CLIENT_SECRET", oauth2ClientSecret);
         setSystemProperty("OAUTH2_REDIRECT_URI", oauth2RedirectUri);
+        setSystemProperty("ADMIN_EMAIL", adminEmail);
 
         log.info("AWS profile configured successfully with MySQL datasource: {}", dbUrlAws);
     }

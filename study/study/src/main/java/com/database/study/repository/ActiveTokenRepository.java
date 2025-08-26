@@ -17,7 +17,7 @@ public interface ActiveTokenRepository extends JpaRepository<ActiveToken, String
 
   Optional<ActiveToken> findByRefreshToken(String refreshToken);
 
-  Optional<ActiveToken> findByUsername(String username);
+  ActiveToken findFirstByUsername(String username);
 
   List<ActiveToken> findAllByUsername(String username);
 

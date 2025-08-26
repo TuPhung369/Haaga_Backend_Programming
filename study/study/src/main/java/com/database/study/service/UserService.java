@@ -12,12 +12,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.annotation.Lazy;
 
 import com.database.study.dto.request.UserCreationRequest;
 import com.database.study.dto.request.UserUpdateRequest;
 import com.database.study.dto.response.UserResponse;
 import com.database.study.entity.ChatGroup;
 import com.database.study.entity.Role;
+import com.database.study.entity.TotpSecret;
 import com.database.study.entity.User;
 import com.database.study.enums.ENUMS;
 import com.database.study.exception.AppException;
@@ -35,12 +37,10 @@ import com.database.study.repository.TotpSecretRepository;
 import com.database.study.repository.UserRepository;
 
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class UserService {
@@ -54,13 +54,40 @@ public class UserService {
   EmailVerificationTokenRepository emailVerificationTokenRepository;
   ActiveTokenRepository invalidatedTokenRepository;
   TotpService totpService;
-  TotpSecretRepository totpSecretRepository;
+  // TotpSecretRepository totpSecretRepository;
   ChatContactRepository chatContactRepository;
   ChatMessageRepository chatMessageRepository;
   ChatGroupRepository chatGroupRepository;
 
-  // @PreAuthorize("hasAuthority('APPROVE_POST')") // using match for permission:
-  // match EXACTLY the permission name or ROLE_ADMIN also)
+  public UserService(
+      UserRepository userRepository,
+      @Lazy UserMapper userMapper,
+      PasswordEncoder passwordEncoder,
+      RoleRepository roleRepository,
+      EventRepository eventRepository,
+      KanbanBoardRepository kanbanBoardRepository,
+      EmailVerificationTokenRepository emailVerificationTokenRepository,
+      ActiveTokenRepository invalidatedTokenRepository,
+      TotpService totpService,
+      TotpSecretRepository totpSecretRepository,
+      ChatContactRepository chatContactRepository,
+      ChatMessageRepository chatMessageRepository,
+      ChatGroupRepository chatGroupRepository) {
+    this.userRepository = userRepository;
+    this.userMapper = userMapper;
+    this.passwordEncoder = passwordEncoder;
+    this.roleRepository = roleRepository;
+    this.eventRepository = eventRepository;
+    this.kanbanBoardRepository = kanbanBoardRepository;
+    this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+    this.invalidatedTokenRepository = invalidatedTokenRepository;
+    this.totpService = totpService;
+    // this.totpSecretRepository = totpSecretRepository;
+    this.chatContactRepository = chatContactRepository;
+    this.chatMessageRepository = chatMessageRepository;
+    this.chatGroupRepository = chatGroupRepository;
+  }
+
   public List<UserResponse> getUsers() {
     return userRepository.findAll().stream()
         .map(userMapper::toUserResponse)
@@ -80,14 +107,12 @@ public class UserService {
     user.setPassword(passwordEncoder.encode(request.getPassword()));
     user.setActive(true);
 
-    // Set default role as USER if roles are not provided or empty
     List<String> roles = request.getRoles();
     if (roles == null || roles.isEmpty()) {
       roles = new ArrayList<>();
       roles.add(ENUMS.Role.USER.name());
     }
 
-    // Fetch Role entities based on role names
     Set<Role> roleEntities = roles.stream()
         .map(roleName -> roleRepository.findByName(roleName)
             .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
@@ -105,7 +130,6 @@ public class UserService {
 
     UserResponse userResponse = userMapper.toUserResponse(user);
 
-    // Add TOTP security information
     enrichUserResponseWithTotpInfo(userResponse);
 
     return userResponse;
@@ -121,7 +145,6 @@ public class UserService {
 
     UserResponse userResponse = userMapper.toUserResponse(user);
 
-    // Add TOTP security information
     enrichUserResponseWithTotpInfo(userResponse);
 
     return userResponse;
@@ -138,15 +161,12 @@ public class UserService {
 
     userMapper.updateUser(existingUser, request);
 
-    // Only update password if a new one is provided
     if (request.isPasswordBeingUpdated()) {
       existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
     }
 
-    // Update roles
     List<String> roles = request.getRoles();
     if (roles != null && !roles.isEmpty()) {
-      // Get current authenticated user's role
       String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
       User currentUser = userRepository.findByUsername(currentUsername)
           .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
@@ -154,9 +174,7 @@ public class UserService {
       boolean isAdmin = currentUser.getRoles().stream()
           .anyMatch(role -> role.getName().equals("ADMIN"));
 
-      // Validate roles based on authenticated user's role
       if (!isAdmin) {
-        // For MANAGER, restrict assigning ADMIN role
         if (roles.contains("ADMIN")) {
           log.warn("User with MANAGER role attempted to assign ADMIN role: {}", currentUsername);
           throw new AppException(ErrorCode.UNAUTHORIZED_ROLE_ASSIGNMENT)
@@ -183,9 +201,7 @@ public class UserService {
           throw new AppException(ErrorCode.USER_NOT_FOUND);
         });
 
-    // Verify current password only if user is trying to change password
     if (request.isPasswordBeingUpdated()) {
-      // Current password is required when changing password
       if (request.getCurrentPassword() == null || request.getCurrentPassword().isEmpty()) {
         log.warn("Current password is required when changing password for user: {}", existingUser.getUsername());
         throw new AppException(ErrorCode.CURRENT_PASSWORD_REQUIRED);
@@ -199,12 +215,10 @@ public class UserService {
 
     userMapper.updateUser(existingUser, request);
 
-    // Only update password if a new one is provided
     if (request.isPasswordBeingUpdated()) {
       existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
     }
 
-    // Update roles
     List<String> roles = request.getRoles();
     if (roles != null && !roles.isEmpty()) {
       Set<Role> roleEntities = roles.stream()
@@ -221,7 +235,6 @@ public class UserService {
   @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
   @Transactional
   public void deleteUser(UUID userId) {
-    // Find user first to get username before deletion
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -229,9 +242,7 @@ public class UserService {
     log.info("Deleting user with ID: {} and username: {}", userId, username);
 
     try {
-      // Delete all tokens related to user
       try {
-        // Delete email verification tokens
         emailVerificationTokenRepository.deleteByUsername(username);
         log.info("Deleted email verification tokens for user: {}", username);
       } catch (Exception e) {
@@ -239,7 +250,6 @@ public class UserService {
       }
 
       try {
-        // Delete invalidated tokens
         invalidatedTokenRepository.deleteByUsername(username);
         log.info("Deleted invalidated tokens for user: {}", username);
       } catch (Exception e) {
@@ -247,20 +257,16 @@ public class UserService {
       }
 
       try {
-        // Delete chat messages
         chatMessageRepository.deleteByUserIdAsSenderOrReceiver(userId);
         log.info("Deleted chat messages for user: {}", username);
       } catch (Exception e) {
         log.error("Error deleting chat messages for user: {}", username, e);
-        throw e; // Re-throw this exception as it's critical for deletion
+        throw e;
       }
 
       try {
-        // Handle chat groups
-        // 1. Get groups created by this user
         List<ChatGroup> createdGroups = chatGroupRepository.findGroupsCreatedByUser(userId);
 
-        // 2. Delete messages in these groups
         for (ChatGroup group : createdGroups) {
           try {
             chatMessageRepository.deleteByGroupId(group.getId());
@@ -270,7 +276,6 @@ public class UserService {
           }
         }
 
-        // 3. Delete the groups created by this user
         for (ChatGroup group : createdGroups) {
           try {
             chatGroupRepository.delete(group);
@@ -280,9 +285,8 @@ public class UserService {
           }
         }
 
-        // 4. Remove user from all other groups
         List<ChatGroup> memberGroups = chatGroupRepository.findGroupsWhereUserIsMember(userId);
-        User userEntity = userRepository.findById(userId).get(); // We already checked existence above
+        User userEntity = userRepository.findById(userId).get();
 
         for (ChatGroup group : memberGroups) {
           try {
@@ -296,24 +300,21 @@ public class UserService {
         log.info("Removed user from all chat groups: {}", username);
       } catch (Exception e) {
         log.error("Error handling chat groups for user: {}", username, e);
-        throw e; // Re-throw this exception as it's critical for deletion
+        throw e;
       }
 
       try {
-        // Delete chat contacts
         chatContactRepository.deleteByUserIdOrContactId(userId);
         log.info("Deleted chat contacts for user: {}", username);
       } catch (Exception e) {
         log.error("Error deleting chat contacts for user: {}", username, e);
-        throw e; // Re-throw this exception as it's critical for deletion
+        throw e;
       }
 
-      // Delete user relationships
       userRepository.deleteUserRolesByUserId(userId);
       eventRepository.deleteByUserId(userId);
       kanbanBoardRepository.deleteBoardsByUserId(userId);
 
-      // Finally delete the user
       userRepository.deleteById(userId);
       log.info("Successfully deleted user with ID: {} and username: {}", userId, username);
     } catch (Exception e) {
@@ -322,9 +323,6 @@ public class UserService {
     }
   }
 
-  /**
-   * Delete a user by username (alternative method)
-   */
   @PreAuthorize("hasRole(T(com.database.study.enums.ENUMS.Role).ADMIN.name())")
   @Transactional
   public void deleteUserByUsername(String username) {
@@ -334,13 +332,6 @@ public class UserService {
     deleteUser(user.getId());
   }
 
-  /**
-   * Update user status (online, away, busy, offline)
-   * 
-   * @param userId User ID
-   * @param status New status
-   * @return Updated user information
-   */
   @Transactional
   public UserResponse updateUserStatus(UUID userId, String status) {
     User user = userRepository.findById(userId)
@@ -349,7 +340,6 @@ public class UserService {
           throw new AppException(ErrorCode.USER_NOT_FOUND);
         });
 
-    // Update user status
     user.setUserStatus(status);
     User updatedUser = userRepository.save(user);
 
@@ -358,27 +348,19 @@ public class UserService {
   }
 
   private void enrichUserResponseWithTotpInfo(UserResponse userResponse) {
-    boolean totpEnabled = totpService.isTotpEnabled(userResponse.getUsername());
-
-    if (totpEnabled) {
-      totpSecretRepository.findByUsernameAndActive(userResponse.getUsername(), true)
-          .ifPresent(totpSecret -> {
-            UserResponse.TotpSecurityInfo totpInfo = UserResponse.TotpSecurityInfo.builder()
-                .enabled(true)
-                .deviceName(totpSecret.getDeviceName())
-                .enabledDate(totpSecret.getCreatedAt().toLocalDate())
-                .deviceId(totpSecret.getId())
-                .createdAt(totpSecret.getCreatedAt())
-                .build();
-
-            userResponse.setTotpSecurity(totpInfo);
-          });
+    TotpSecret activeDevice = totpService.findActiveDeviceForUser(userResponse.getUsername());
+    if (activeDevice != null) {
+      UserResponse.TotpSecurityInfo totpInfo = UserResponse.TotpSecurityInfo.builder()
+          .enabled(true)
+          .deviceName(activeDevice.getDeviceName())
+          .enabledDate(activeDevice.getCreatedAt().toLocalDate())
+          .deviceId(activeDevice.getId())
+          .createdAt(activeDevice.getCreatedAt())
+          .build();
+      userResponse.setTotpSecurity(totpInfo);
     } else {
       userResponse.setTotpSecurity(
-          UserResponse.TotpSecurityInfo.builder()
-              .enabled(false)
-              .build());
+          UserResponse.TotpSecurityInfo.builder().enabled(false).build());
     }
   }
-
 }

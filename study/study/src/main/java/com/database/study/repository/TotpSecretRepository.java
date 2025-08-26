@@ -11,8 +11,14 @@ import java.util.UUID;
 @Repository
 public interface TotpSecretRepository extends JpaRepository<TotpSecret, UUID> {
     Optional<TotpSecret> findByUsernameAndActive(String username, boolean active);
+
     List<TotpSecret> findAllByUsername(String username);
+
     List<TotpSecret> findAllByUsernameAndActive(String username, boolean active);
+
     void deleteByUsername(String username);
+
     long countByUsernameAndActive(String username, boolean active);
+
+    boolean existsByUsernameAndActive(String username, boolean active);
 }

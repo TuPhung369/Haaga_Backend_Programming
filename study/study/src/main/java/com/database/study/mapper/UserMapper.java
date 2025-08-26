@@ -13,12 +13,13 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
-
+import org.springframework.context.annotation.Lazy;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Lazy
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
 
@@ -72,7 +73,8 @@ public interface UserMapper {
 
   /**
    * Convert UserCreationRequest to User entity
-   * Note: This method does not set roles or totpSecurity, which should be handled separately
+   * Note: This method does not set roles or totpSecurity, which should be handled
+   * separately
    */
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
   @Mapping(target = "id", ignore = true) // ID is typically auto-generated
@@ -98,7 +100,7 @@ public interface UserMapper {
   @Mapping(target = "education", source = "education")
   @Mapping(target = "userStatus", source = "userStatus")
   UserResponse toUserResponse(User user);
-  
+
   // Helper method for mapping lists of users
   List<UserResponse> toUserResponseList(List<User> users);
 
@@ -123,7 +125,7 @@ public interface UserMapper {
         .map(Role::getName)
         .collect(Collectors.toSet());
   }
-  
+
   // Helper method to set profile fields from request to user
   @Named("setProfileFields")
   default void setProfileFields(User user, UserCreationRequest request) {
@@ -145,7 +147,7 @@ public interface UserMapper {
       user.setUserStatus("online"); // Default value
     }
   }
-  
+
   // Helper method to set profile fields from update request to user
   @Named("setProfileFieldsFromUpdate")
   default void setProfileFieldsFromUpdate(User user, UserUpdateRequest request) {
@@ -170,8 +172,10 @@ public interface UserMapper {
 
   /**
    * Updates an existing user entity with request data, ignoring the 'id' field
-   * Note: This method does not update roles or totpSecurity, which should be handled separately
-   * Profile fields (avatar, position, etc.) should be updated using the setProfileFields helper method
+   * Note: This method does not update roles or totpSecurity, which should be
+   * handled separately
+   * Profile fields (avatar, position, etc.) should be updated using the
+   * setProfileFields helper method
    */
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service
@@ -184,11 +188,13 @@ public interface UserMapper {
   @Mapping(target = "education", ignore = true)
   @Mapping(target = "userStatus", ignore = true)
   void updateUser(@MappingTarget User user, UserCreationRequest request);
-  
+
   /**
    * Updates an existing user entity with update request data
-   * Note: This method does not update roles, totpSecurity, or password, which should be handled separately
-   * Profile fields (avatar, position, etc.) should be updated using the setProfileFieldsFromUpdate helper method
+   * Note: This method does not update roles, totpSecurity, or password, which
+   * should be handled separately
+   * Profile fields (avatar, position, etc.) should be updated using the
+   * setProfileFieldsFromUpdate helper method
    */
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "roles", ignore = true) // Ignore roles; set them in the service

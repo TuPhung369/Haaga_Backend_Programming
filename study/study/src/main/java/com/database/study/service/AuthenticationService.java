@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.context.annotation.Lazy;
 
 import com.database.study.dto.request.AuthenticationRequest;
 import com.database.study.dto.request.EmailChangeRequest;
@@ -61,7 +62,6 @@ import com.nimbusds.jose.JWSVerifier;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.util.Date;
@@ -86,7 +86,6 @@ import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import com.database.study.interfaces.AuthenticationUtilities;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.HttpClientErrorException;
@@ -97,7 +96,6 @@ import java.util.Collections;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class AuthenticationService implements AuthenticationUtilities {
   final UserRepository userRepository;
@@ -115,9 +113,42 @@ public class AuthenticationService implements AuthenticationUtilities {
   final JwtUtils jwtUtils;
   final TotpService totpService;
   final RecaptchaService recaptchaService;
+  final SecurityMonitoringService securityMonitoringService;
 
-  @Autowired
-  private SecurityMonitoringService securityMonitoringService;
+  public AuthenticationService(
+      UserRepository userRepository,
+      PasswordEncoder passwordEncoder,
+      RoleRepository roleRepository,
+      @Lazy UserMapper userMapper,
+      ActiveTokenRepository activeTokenRepository,
+      EmailService emailService,
+      PasswordResetTokenRepository passwordResetTokenRepository,
+      EmailVerificationTokenRepository emailVerificationTokenRepository,
+      EmailChangeTokenRepository emailChangeTokenRepository,
+      EncryptionService encryptionService,
+      TokenSecurity tokenSecurity,
+      CookieService cookieService,
+      JwtUtils jwtUtils,
+      TotpService totpService,
+      RecaptchaService recaptchaService,
+      SecurityMonitoringService securityMonitoringService) {
+    this.userRepository = userRepository;
+    this.passwordEncoder = passwordEncoder;
+    this.roleRepository = roleRepository;
+    this.userMapper = userMapper;
+    this.activeTokenRepository = activeTokenRepository;
+    this.emailService = emailService;
+    this.passwordResetTokenRepository = passwordResetTokenRepository;
+    this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+    this.emailChangeTokenRepository = emailChangeTokenRepository;
+    this.encryptionService = encryptionService;
+    this.tokenSecurity = tokenSecurity;
+    this.cookieService = cookieService;
+    this.jwtUtils = jwtUtils;
+    this.totpService = totpService;
+    this.recaptchaService = recaptchaService;
+    this.securityMonitoringService = securityMonitoringService;
+  }
 
   static final long TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes
   static final long REFRESH_TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -172,10 +203,9 @@ public class AuthenticationService implements AuthenticationUtilities {
     final long OAUTH_TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 60 minutes for OAuth tokens
 
     // Find current token
-    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+    ActiveToken existingToken = activeTokenRepository.findFirstByUsername(user.getUsername());
 
-    if (existingTokenOpt.isPresent()) {
-      ActiveToken existingToken = existingTokenOpt.get();
+    if (existingToken != null) {
       Date currentTime = new Date();
 
       // If token is still valid, reuse it
@@ -246,11 +276,8 @@ public class AuthenticationService implements AuthenticationUtilities {
     activeTokenRepository.save(newToken);
 
     // 6. Return encrypted tokens to client
-    return AuthenticationResponse.builder()
-        .token(encryptedAccessToken)
-        .refreshToken(encryptedRefreshToken)
-        .authenticated(true)
-        .build();
+    return AuthenticationResponse.builder().token(encryptedAccessToken).refreshToken(encryptedRefreshToken)
+        .authenticated(true).build();
   }
 
   @Override
@@ -437,10 +464,9 @@ public class AuthenticationService implements AuthenticationUtilities {
       }
 
       // 4. Check for existing tokens instead of always creating new ones
-      Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+      ActiveToken existingToken = activeTokenRepository.findFirstByUsername(user.getUsername());
 
-      if (existingTokenOpt.isPresent()) {
-        ActiveToken existingToken = existingTokenOpt.get();
+      if (existingToken != null) {
         Date currentTime = new Date();
 
         // If access token is still valid, reuse it
@@ -594,10 +620,9 @@ public class AuthenticationService implements AuthenticationUtilities {
     }
 
     // Check for existing tokens
-    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+    ActiveToken existingToken = activeTokenRepository.findFirstByUsername(user.getUsername());
 
-    if (existingTokenOpt.isPresent()) {
-      ActiveToken existingToken = existingTokenOpt.get();
+    if (existingToken != null) {
       Date currentTime = new Date();
 
       // If access token is still valid, reuse it
@@ -680,10 +705,9 @@ public class AuthenticationService implements AuthenticationUtilities {
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
     // Check for existing tokens
-    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+    ActiveToken existingToken = activeTokenRepository.findFirstByUsername(user.getUsername());
 
-    if (existingTokenOpt.isPresent()) {
-      ActiveToken existingToken = existingTokenOpt.get();
+    if (existingToken != null) {
       Date currentTime = new Date();
 
       // If access token is still valid, reuse it
@@ -779,12 +803,12 @@ public class AuthenticationService implements AuthenticationUtilities {
       }
 
       // 4. Find token record by username
-      Optional<ActiveToken> tokenOpt = activeTokenRepository.findByUsername(username);
-      if (!tokenOpt.isPresent()) {
+      ActiveToken token = activeTokenRepository.findFirstByUsername(username);
+      if (token == null) {
         throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
       }
 
-      ActiveToken tokenRecord = tokenOpt.get();
+      ActiveToken tokenRecord = token;
 
       // 5. Verify encrypted tokens match
       if (!tokenRecord.getRefreshToken().equals(encryptedRefreshToken)) {
@@ -1440,12 +1464,12 @@ public class AuthenticationService implements AuthenticationUtilities {
       }
 
       // 4. Find token record by username
-      Optional<ActiveToken> tokenOpt = activeTokenRepository.findByUsername(username);
-      if (!tokenOpt.isPresent()) {
+      ActiveToken token = activeTokenRepository.findFirstByUsername(username);
+      if (token == null) {
         throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
       }
 
-      ActiveToken tokenRecord = tokenOpt.get();
+      ActiveToken tokenRecord = token;
 
       // 5. Verify encrypted tokens match
       if (!tokenRecord.getRefreshToken().equals(encryptedRefreshToken)) {
@@ -1567,8 +1591,8 @@ public class AuthenticationService implements AuthenticationUtilities {
         return IntrospectResponse.builder().valid(false).build();
       }
 
-      Optional<ActiveToken> tokenOpt = activeTokenRepository.findByUsername(username);
-      if (!tokenOpt.isPresent() || tokenOpt.get().getExpiryTime().before(new Date())) {
+      ActiveToken token = activeTokenRepository.findFirstByUsername(username);
+      if (token == null || token.getExpiryTime().before(new Date())) {
         return IntrospectResponse.builder().valid(false).build();
       }
       return IntrospectResponse.builder().valid(true).build();
@@ -2075,10 +2099,9 @@ public class AuthenticationService implements AuthenticationUtilities {
     // activeTokenRepository.deleteAllByExpiryRefreshTimeBefore(new Date());
 
     // Check for existing tokens
-    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+    ActiveToken existingToken = activeTokenRepository.findFirstByUsername(user.getUsername());
 
-    if (existingTokenOpt.isPresent()) {
-      ActiveToken existingToken = existingTokenOpt.get();
+    if (existingToken != null) {
       Date currentTime = new Date();
 
       // If access token is still valid, reuse it
@@ -2375,43 +2398,40 @@ public class AuthenticationService implements AuthenticationUtilities {
     userRepository.save(user);
 
     // Check for existing tokens instead of always creating new ones
-    Optional<ActiveToken> existingTokenOpt = activeTokenRepository.findByUsername(user.getUsername());
+    ActiveToken existingToken = activeTokenRepository.findFirstByUsername(user.getUsername());
 
-    if (existingTokenOpt.isPresent()) {
-      ActiveToken existingToken = existingTokenOpt.get();
-      Date currentTime = new Date();
+    Date currentTime = new Date();
 
-      // If access token is still valid, reuse it
-      if (existingToken.getExpiryTime().after(currentTime)) {
-        log.info("Reusing existing valid token for user: {}", user.getUsername());
+    // If access token is still valid, reuse it
+    if (existingToken.getExpiryTime().after(currentTime)) {
+      log.info("Reusing existing valid token for user: {}", user.getUsername());
 
-        return AuthenticationResponse.builder()
-            .token(existingToken.getToken())
-            .refreshToken(existingToken.getRefreshToken())
-            .authenticated(true)
-            .build();
-      }
-      // If access token expired but refresh token is valid, create new access token
-      else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
-        log.info("Access token expired but refresh token valid. Generating new access token for user: {}",
-            user.getUsername());
+      return AuthenticationResponse.builder()
+          .token(existingToken.getToken())
+          .refreshToken(existingToken.getRefreshToken())
+          .authenticated(true)
+          .build();
+    }
+    // If access token expired but refresh token is valid, create new access token
+    else if (existingToken.getExpiryRefreshTime().after(currentTime)) {
+      log.info("Access token expired but refresh token valid. Generating new access token for user: {}",
+          user.getUsername());
 
-        String plainNewAccessToken = generateToken(user, existingToken.getId());
-        Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
+      String plainNewAccessToken = generateToken(user, existingToken.getId());
+      Date newExpiryTime = extractTokenExpiry(plainNewAccessToken);
 
-        // Update only access token, keep refresh token
-        existingToken.setToken(plainNewAccessToken);
-        existingToken.setExpiryTime(newExpiryTime);
-        existingToken.setDescription("Refreshed at " + new Date());
+      // Update only access token, keep refresh token
+      existingToken.setToken(plainNewAccessToken);
+      existingToken.setExpiryTime(newExpiryTime);
+      existingToken.setDescription("Refreshed at " + new Date());
 
-        activeTokenRepository.save(existingToken);
+      activeTokenRepository.save(existingToken);
 
-        return AuthenticationResponse.builder()
-            .token(plainNewAccessToken)
-            .refreshToken(existingToken.getRefreshToken())
-            .authenticated(true)
-            .build();
-      }
+      return AuthenticationResponse.builder()
+          .token(plainNewAccessToken)
+          .refreshToken(existingToken.getRefreshToken())
+          .authenticated(true)
+          .build();
     }
 
     // Generate new token pair only if no valid tokens exist
@@ -2433,11 +2453,7 @@ public class AuthenticationService implements AuthenticationUtilities {
     activeTokenRepository.save(activeToken);
 
     log.info("Email OTP authentication successful for user: {}", user.getUsername());
-    return AuthenticationResponse.builder()
-        .token(accessToken)
-        .refreshToken(refreshToken)
-        .authenticated(true)
-        .build();
+    return AuthenticationResponse.builder().token(accessToken).refreshToken(refreshToken).authenticated(true).build();
   }
 
   @Transactional

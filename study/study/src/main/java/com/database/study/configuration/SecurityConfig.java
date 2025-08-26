@@ -13,9 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import com.database.study.security.JwtTokenFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -30,8 +28,8 @@ import java.util.ArrayList;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 
-    public class SecurityConfig {
-    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+public class SecurityConfig {
+  private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
   @Value("${APP_BASE_URI}")
   private String appBaseUrl;
@@ -39,14 +37,14 @@ import java.util.ArrayList;
   @Value("${CLIENT_REDIRECT_URI}")
   private String clientRedirectUrl;
 
-  @Value("${OAUTH2_REDIRECT_URI}")
-  private String oauth2RedirectUrl;
+  // @Value("${OAUTH2_REDIRECT_URI}")
+  // private String oauth2RedirectUrl;
 
-  @Value("${GITHUB_REDIRECT_URI}")
-  private String githubRedirectUri;
+  // @Value("${GITHUB_REDIRECT_URI}")
+  // private String githubRedirectUri;
 
-  @Value("${FACEBOOK_REDIRECT_URI}")
-  private String facebookRedirectUri;
+  // @Value("${FACEBOOK_REDIRECT_URI}")
+  // private String facebookRedirectUri;
 
   private final String[] PUBLIC_ENDPOINTS = {
       "/users/**",
@@ -61,7 +59,7 @@ import java.util.ArrayList;
       "/api/speech/**",
       "/api/language-ai/**",
       "/_dev_/**",
-      "/ws-messaging/**"  // Thêm endpoint WebSocket
+      "/ws-messaging/**" // WebSocket endpoint
   };
 
   private final String[] COOKIES_ENDPOINTS = {
@@ -139,19 +137,21 @@ import java.util.ArrayList;
   @Bean
   CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    // Explicitly allow the frontend origin, in addition to the configured base URL
+    // Configure allowed origins using APP_BASE_URI from environment
     List<String> allowedOrigins = new ArrayList<>();
     if (appBaseUrl != null && !appBaseUrl.isEmpty()) {
       allowedOrigins.add(appBaseUrl);
+    } else {
+      // Fallback to localhost if APP_BASE_URI is not configured
+      allowedOrigins.add("http://localhost:3000");
     }
-    allowedOrigins.add("http://localhost:3000"); // Add React app origin
 
     configuration.setAllowedOrigins(allowedOrigins);
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
     configuration.setAllowCredentials(true);
     configuration.addAllowedHeader("*");
     configuration.setExposedHeaders(List.of("Authorization", "X-Auth-Token")); // Expose headers
-    
+
     // Add WebSocket specific headers
     configuration.addAllowedHeader("Sec-WebSocket-Extensions");
     configuration.addAllowedHeader("Sec-WebSocket-Key");
@@ -163,14 +163,49 @@ import java.util.ArrayList;
     return source;
   }
 
-  @Bean
-  JwtAuthenticationConverter jwtAuthenticationConverter() {
-    JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-    jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
-    JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-    jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
-    return jwtAuthenticationConverter;
-  }
+  /**
+   * JWT Authentication Converter Bean - Currently NOT USED
+   * 
+   * This bean was originally designed to work with Spring Security's OAuth2
+   * Resource Server
+   * for automatic JWT token processing. It would:
+   * 
+   * 1. Convert JWT tokens into Spring Security Authentication objects
+   * 2. Extract authorities/roles from JWT claims (typically from 'scope' or
+   * 'authorities' claim)
+   * 3. Remove default "SCOPE_" prefix from authorities (setAuthorityPrefix(""))
+   * 
+   * WHY IT'S NOT USED:
+   * - We use custom JwtTokenFilter instead of OAuth2 Resource Server
+   * - Our tokens are encrypted and need custom decryption logic
+   * - We have dynamic key verification and active token repository checks
+   * - We need special handling for API endpoints
+   * 
+   * This bean would be used in SecurityFilterChain like:
+   * .oauth2ResourceServer(oauth2 -> oauth2
+   * .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+   * 
+   * KEPT FOR FUTURE: In case we migrate back to OAuth2 Resource Server approach
+   */
+  // @Bean
+  // JwtAuthenticationConverter jwtAuthenticationConverter() {
+  // // Create converter to extract authorities from JWT claims
+  // JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new
+  // JwtGrantedAuthoritiesConverter();
+  //
+  // // Remove default "SCOPE_" prefix from authorities (e.g., "SCOPE_read"
+  // becomes "read")
+  // jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
+  //
+  // // Create main JWT authentication converter
+  // JwtAuthenticationConverter jwtAuthenticationConverter = new
+  // JwtAuthenticationConverter();
+  //
+  // // Assign the authorities converter to the main converter
+  // jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
+  //
+  // return jwtAuthenticationConverter;
+  // }
 
   @Bean
   public PasswordEncoder passwordEncoder() {
