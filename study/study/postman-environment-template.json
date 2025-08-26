@@ -1,0 +1,37 @@
+{
+  "id": "enterprise-nexus-environment",
+  "name": "Enterprise Nexus Environment",
+  "values": [
+    {
+      "key": "GOOGLE_CLIENT_ID",
+      "value": "your-google-client-id-here",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "GOOGLE_CLIENT_SECRET",
+      "value": "your-google-client-secret-here",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "OPENAI_API_KEY",
+      "value": "your-openai-api-key-here",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:8080",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "API_VERSION",
+      "value": "v1",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

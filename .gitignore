@@ -16,6 +16,10 @@ hs_err_pid*.log # JVM crash logs
 *.env*
 local.properties # Spring Boot local config
 
+# Postman environment files (may contain secrets)
+*postman-environment.json
+*postman_environment.json
+
 # OS files
 .DS_Store
 Thumbs.db

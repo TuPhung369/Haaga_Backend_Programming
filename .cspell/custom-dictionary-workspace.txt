@@ -34,6 +34,7 @@ browserslist
 Ceci
 CLIENTFB
 CLIENTGIT
+cloudresourcemanager
 codesample
 contexte
 contexto
@@ -42,6 +43,7 @@ Csvg
 cuda
 CUDA
 cudnn
+Dayly
 DCCBY
 Detta
 discardcorrupt
@@ -67,6 +69,7 @@ formatselect
 Fuoj
 genpts
 getcwd
+gitbash
 GLTF
 Glvbj
 googleusercontent
@@ -135,6 +138,7 @@ myöhemmin
 mysqladmin
 mysqldump
 NAQEBBQA
+noauth
 nonbreaking
 nonheap
 normalizr
@@ -146,6 +150,7 @@ officedocument
 Oikea
 oikein
 openxmlformats
+Outh
 pagebreak
 päivä
 palvelimen
@@ -157,7 +162,9 @@ peaceiris
 pidempään
 playsinline
 PNFY
+prerequest
 pretrained
+problemdetails
 Procfile
 psutil
 puheen
@@ -212,6 +219,7 @@ tasolla
 tekoäly
 tekstintunnistuksessa
 temurin
+tftable
 tila
 tunnistamisessa
 tunnistettu
@@ -232,6 +240,7 @@ Virhe
 Voisitko
 voitu
 votre
+webjars
 wordcount
 wordprocessingml
 würde
