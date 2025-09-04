@@ -688,113 +688,172 @@ flowchart TD
 | **Secure Headers**     | Security-focused HTTP headers         | Protects against various web vulnerabilities              |
 | **Inactivity Timeout** | Automatic session termination         | Logs out inactive users after a configurable period       |
 
-### Auth Interceptor Implementation
+### Axios Interceptor Implementation
 
-```typescript
-import { Injectable } from "@angular/core";
-import {
-  HttpRequest,
-  HttpHandler,
-  HttpEvent,
-  HttpInterceptor,
-  HttpErrorResponse,
-} from "@angular/common/http";
-import { Observable, throwError, BehaviorSubject } from "rxjs";
-import { catchError, filter, take, switchMap } from "rxjs/operators";
-import { TokenService } from "./token.service";
-import { AuthService } from "./auth.service";
+```javascript
+import axios from "axios";
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(
-    null
-  );
+const apiBaseUri = process.env.REACT_APP_API_BASE_URI;
+const instance = axios.create({
+  baseURL: apiBaseUri,
+  withCredentials: true, // Enable if needed for cross-origin requests with cookies
+});
 
-  constructor(
-    private tokenService: TokenService,
-    private authService: AuthService
-  ) {}
+// Function to generate headers with token if available
+const getAuthHeader = () => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
-  intercept(
-    request: HttpRequest<any>,
-    next: HttpHandler
-  ): Observable<HttpEvent<any>> {
-    // Skip interceptor for authentication endpoints
-    if (this.isAuthRequest(request)) {
-      return next.handle(request);
+instance.interceptors.request.use(
+  function (config) {
+    // Merge dynamic headers with existing config headers
+    config.headers = {
+      ...config.headers,
+      "Content-Type": "application/json",
+      ...getAuthHeader(), // Add the dynamic Authorization header if token is present
+    };
+    console.log("Request config with headers:", config); // Debug logging for requests
+    return config;
+  },
+  function (error) {
+    console.error("Request error:", error);
+    return Promise.reject(error);
+  }
+);
+
+instance.interceptors.response.use(
+  function (response) {
+    console.log("Response data:", response.data); // Debug logging for responses
+    if (response && response.data) {
+      return response.data;
+    } else {
+      return response;
+    }
+  },
+  function (error) {
+    console.error("Response error:", error); // Debug logging for errors
+
+    // Handle 401 Unauthorized errors
+    if (error.response && error.response.status === 401) {
+      // Clear stored tokens
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+
+      // Redirect to login page
+      window.location.href = "/login";
+      return Promise.reject(error);
     }
 
-    // Add auth token to request
-    const token = this.tokenService.getToken();
-    if (token) {
-      request = this.addTokenHeader(request, token);
+    if (error && error.response && error.response.data) {
+      return Promise.reject(error.response.data);
+    } else {
+      return Promise.reject(error);
     }
-
-    // Handle the request and catch errors
-    return next.handle(request).pipe(
-      catchError((error) => {
-        if (error instanceof HttpErrorResponse && error.status === 401) {
-          return this.handle401Error(request, next);
-        }
-        return throwError(error);
-      })
-    );
   }
+);
 
-  private isAuthRequest(request: HttpRequest<any>): boolean {
-    return (
-      request.url.includes("/auth/login") ||
-      request.url.includes("/auth/register") ||
-      request.url.includes("/auth/refresh-token")
-    );
-  }
+export default instance;
+```
 
-  private addTokenHeader(
-    request: HttpRequest<any>,
-    token: string
-  ): HttpRequest<any> {
-    return request.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }
+### Authentication Service Implementation
 
-  private handle401Error(
-    request: HttpRequest<any>,
-    next: HttpHandler
-  ): Observable<HttpEvent<any>> {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
+The React application uses a modular service approach with exported functions for different authentication operations:
 
-      const refreshToken = this.tokenService.getRefreshToken();
+```javascript
+import axios from "axios";
 
-      if (refreshToken) {
-        return this.authService.refreshToken(refreshToken).pipe(
-          switchMap((token) => {
-            this.isRefreshing = false;
-            this.tokenService.setToken(token.accessToken);
-            this.refreshTokenSubject.next(token.accessToken);
+const API_BASE_URI = process.env.REACT_APP_API_BASE_URI;
 
-            return next.handle(this.addTokenHeader(request, token.accessToken));
-          }),
-          catchError((err) => {
-            this.isRefreshing = false;
-            this.authService.logout();
-            return throwError(err);
-          })
-        );
+export const authenticateUser = async (username, password) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URI}/auth/token`,
+      { username, password },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
-    }
-
-    return this.refreshTokenSubject.pipe(
-      filter((token) => token !== null),
-      take(1),
-      switchMap((token) => next.handle(this.addTokenHeader(request, token)))
     );
+    return response.data;
+  } catch (error) {
+    console.error("Error authenticating user:", error);
+    throw error;
   }
-}
+};
+
+export const registerUser = async (userData) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URI}/auth/register`,
+      userData,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error during registration:", error);
+    throw error;
+  }
+};
+
+export const resetPassword = async (username, newPassword) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URI}/auth/resetPassword`,
+      { username, newPassword },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error during reset password:", error);
+    throw error;
+  }
+};
+
+export const logoutUser = async (token) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URI}/auth/logout`,
+      { token },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error during logout:", error);
+    throw error;
+  }
+};
+
+export const validateGoogleToken = async (idToken) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URI}/google/token`,
+      { id_token: idToken },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error validating Google ID token:", error);
+    throw error;
+  }
+};
 ```
 
